@@ -29,8 +29,13 @@ export const LoginForm = () => {
       } else {
         toast.error(response.message || 'Login failed');
       }
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'An error occurred during login');
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response: { data: { message: string } } };
+        toast.error(axiosError.response?.data?.message || 'An error occurred during login');
+      } else {
+        toast.error('An unexpected error occurred');
+      }
     } finally {
       setIsLoading(false);
     }
