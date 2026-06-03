@@ -1,6 +1,6 @@
 import { createBrowserRouter, RouterProvider as LibRouterProvider } from 'react-router-dom';
+import { LoginPage } from '@/shared/pages/LoginPage';
 
-// Placeholder routes - in FSD these would be imported from src/pages
 const router = createBrowserRouter([
   {
     path: '/',
@@ -8,7 +8,7 @@ const router = createBrowserRouter([
   },
   {
     path: '/login',
-    element: <div>Login Page Placeholder</div>,
+    element: <LoginPage />,
   },
 ]);
 
