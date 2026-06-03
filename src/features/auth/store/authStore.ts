@@ -1,13 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Role } from '@/shared/types/enums';
-
-interface User {
-  id: string;
-  email: string;
-  fullName: string;
-  role: Role;
-}
+import type { User } from '../types';
 
 interface AuthState {
   user: User | null;
