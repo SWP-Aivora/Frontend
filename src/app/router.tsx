@@ -3,6 +3,7 @@ import { LoginPage } from '../features/auth/pages/LoginPage';
 import { RegisterPage } from '../features/auth/pages/RegisterPage';
 import { ProfilePage } from '../features/profiles/pages/ProfilePage';
 import { PostJobPage } from '../features/jobs/pages/PostJobPage';
+import { MyProjectsPage } from '../features/jobs/pages/MyProjectsPage';
 import { LandingPage } from '../shared/pages/LandingPage';
 import { ProtectedRoute } from '../shared/components/common/ProtectedRoute';
 import { ClientLayout, ExpertLayout, AdminLayout } from '../shared/layouts';
@@ -36,7 +37,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <div>Client Dashboard Overview</div> },
       { path: 'profile', element: <ProfilePage /> },
-      { path: 'projects', element: <div>Client Projects List</div> },
+      { path: 'projects', element: <MyProjectsPage /> },
       { path: 'experts', element: <div>Search Experts Page</div> },
       { path: 'post-job', element: <PostJobPage /> },
       { path: 'messages', element: <div>Client Messages</div> },

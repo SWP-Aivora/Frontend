@@ -33,7 +33,7 @@ export const AccountInfoForm = () => {
       } else {
         toast.error(response.message || 'Failed to update profile');
       }
-    } catch (error) {
+    } catch {
       toast.error('An error occurred while updating profile');
     } finally {
       setIsLoading(false);

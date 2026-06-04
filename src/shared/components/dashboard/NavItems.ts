@@ -9,14 +9,15 @@ import {
   UserCircle,
   Search,
   PlusCircle,
-  FileText
+  FileText,
+  type LucideIcon
 } from 'lucide-react';
 import { Role } from '@/shared/types/enums';
 
 export interface NavItem {
   label: string;
   href: string;
-  icon: any;
+  icon: LucideIcon;
 }
 
 export const NAV_ITEMS: Record<string, NavItem[]> = {
