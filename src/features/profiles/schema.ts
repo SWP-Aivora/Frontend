@@ -1,14 +1,31 @@
 import { z } from 'zod';
 
-export const profileSchema = z.object({
-  fullName: z.string().min(2, 'Full name must be at least 2 characters'),
-  email: z.string().email('Invalid email address'),
-  phone: z.string().optional(),
-  location: z.string().optional(),
-  language: z.string().default('English'),
-  timezone: z.string().default('Asia/Ho_Chi_Minh'),
+// Base User Schema (PUT /api/v1/users/me)
+export const userUpdateSchema = z.object({
+  fullName: z.string().min(2, 'Full name must be at least 2 characters').optional().nullable(),
+  avatarUrl: z.string().url('Invalid URL').optional().nullable(),
+  phone: z.string().optional().nullable(),
 });
 
+// Client Profile Schema (PUT /api/v1/profiles/client)
+export const clientProfileSchema = z.object({
+  companyName: z.string().optional().nullable(),
+  industry: z.string().optional().nullable(),
+  companySize: z.string().optional().nullable(),
+  website: z.string().url('Invalid URL').optional().nullable(),
+  description: z.string().optional().nullable(),
+});
+
+// Expert Profile Schema (PUT /api/v1/profiles/expert)
+export const expertProfileSchema = z.object({
+  title: z.string().optional().nullable(),
+  bio: z.string().optional().nullable(),
+  hourlyRate: z.coerce.number().min(0, 'Rate cannot be negative').optional().nullable(),
+  experienceYears: z.coerce.number().int().min(0).optional().nullable(),
+  availabilityStatus: z.coerce.number().int().optional().nullable(),
+});
+
+// Security Schema (Placeholder for future)
 export const securitySchema = z.object({
   currentPassword: z.string().min(6, 'Current password is required'),
   newPassword: z.string().min(6, 'New password must be at least 6 characters'),
@@ -18,5 +35,7 @@ export const securitySchema = z.object({
   path: ["confirmNewPassword"],
 });
 
-export type ProfileFormValues = z.infer<typeof profileSchema>;
+export type UserUpdateFormValues = z.infer<typeof userUpdateSchema>;
+export type ClientProfileFormValues = z.infer<typeof clientProfileSchema>;
+export type ExpertProfileFormValues = z.infer<typeof expertProfileSchema>;
 export type SecurityFormValues = z.infer<typeof securitySchema>;

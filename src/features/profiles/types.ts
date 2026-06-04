@@ -2,29 +2,31 @@ import type { Role } from '@/shared/types/enums';
 
 export interface UserProfile {
   id: string;
-  fullName: string;
+  fullName: string | null;
   email: string;
   role: Role;
-  phone?: string;
-  location?: string;
-  language?: string;
-  timezone?: string;
-  avatarUrl?: string;
+  phone: string | null;
+  avatarUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface NotificationSettings {
-  proposals: boolean;
-  projectUpdates: boolean;
-  paymentUpdates: boolean;
-  emailAlerts: boolean;
-  inAppAlerts: boolean;
+export interface ClientProfile {
+  id: string;
+  companyName: string | null;
+  industry: string | null;
+  companySize: string | null;
+  website: string | null;
+  description: string | null;
+  user: UserProfile;
 }
 
-export interface ActivityLog {
+export interface ExpertProfile {
   id: string;
-  action: string;
-  description: string;
-  timestamp: string;
+  title: string | null;
+  bio: string | null;
+  hourlyRate: number | null;
+  experienceYears: number | null;
+  availabilityStatus: number | null;
+  user: UserProfile;
 }
