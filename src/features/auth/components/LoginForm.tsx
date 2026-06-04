@@ -45,8 +45,9 @@ export const LoginForm = () => {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 w-full max-w-sm">
       <div className="space-y-2">
-        <label className="text-sm font-medium text-foreground">Email</label>
+        <label htmlFor="email" className="text-sm font-medium text-foreground">Email</label>
         <Input 
+          id="email"
           type="email" 
           placeholder="name@example.com" 
           {...register('email')}
@@ -55,8 +56,9 @@ export const LoginForm = () => {
         {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
       </div>
       <div className="space-y-2">
-        <label className="text-sm font-medium text-foreground">Password</label>
+        <label htmlFor="password" className="text-sm font-medium text-foreground">Password</label>
         <Input 
+          id="password"
           type="password" 
           placeholder="••••••••" 
           {...register('password')}
