@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
-import { QueryProvider } from './QueryProvider';
-import { RouterProvider } from './RouterProvider';
+import type { ReactNode } from "react";
+import { QueryProvider } from "./QueryProvider";
+import { RouterProvider } from "./RouterProvider";
 
 interface AppProvidersProps {
   children?: ReactNode; // In some setups, RouterProvider is the end of the chain
