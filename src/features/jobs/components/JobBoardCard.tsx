@@ -1,6 +1,7 @@
 import { type JobCard } from '../schema';
 import { Button } from '@/shared/components/ui/Button';
 import { BadgeCheck, Clock, MapPin, DollarSign, BrainCircuit, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface JobBoardCardProps {
   job: JobCard;
@@ -109,9 +110,11 @@ export const JobBoardCard = ({ job }: JobBoardCardProps) => {
               </div>
            </div>
            
-           <Button variant="ghost" className="rounded-full hover:bg-brand-accent hover:text-white group/btn pr-3 pl-5 mt-auto">
-             Apply
-             <ChevronRight className="size-4 ml-1 group-hover/btn:translate-x-1 transition-transform" />
+           <Button asChild variant="ghost" className="rounded-full hover:bg-brand-accent hover:text-white group/btn pr-3 pl-5 mt-auto">
+             <Link to={`/expert/jobs/${job.id}`}>
+               Apply
+               <ChevronRight className="size-4 ml-1 group-hover/btn:translate-x-1 transition-transform" />
+             </Link>
            </Button>
         </div>
       </div>
