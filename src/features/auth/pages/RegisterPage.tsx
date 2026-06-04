@@ -1,5 +1,8 @@
 import { RegisterForm } from '@/features/auth/components/RegisterForm';
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Role } from '@/shared/types/enums';
+import { cn } from '@/lib/utils';
 
 const ASSETS = {
   bgBlueWashLeft: "https://www.figma.com/api/mcp/asset/4d3b9620-0684-4a2a-8b55-c0c33cbd1a02",
@@ -11,6 +14,14 @@ const ASSETS = {
 };
 
 export const RegisterPage = () => {
+  const [step, setStep] = useState<'selection' | 'details'>('selection');
+  const [selectedRole, setSelectedRole] = useState<typeof Role.CLIENT | typeof Role.EXPERT>(Role.CLIENT);
+
+  const handleRoleSelect = (role: typeof Role.CLIENT | typeof Role.EXPERT) => {
+    setSelectedRole(role);
+    setStep('details');
+  };
+
   return (
     <div className="min-h-screen w-full bg-white relative overflow-hidden flex items-center justify-center lg:p-12 font-sans selection:bg-primary/10">
       {/* Background Ornaments */}
@@ -51,45 +62,11 @@ export const RegisterPage = () => {
             </p>
           </div>
 
-          {/* Tilted Account Preview */}
-          <div className="relative mt-auto h-[320px] flex items-center justify-center opacity-0 animate-slide-up [animation-delay:800ms]">
-             <div className="absolute inset-0 bg-primary/5 rounded-3xl -rotate-2 scale-105 blur-2xl" />
-             <div className="relative bg-white border border-border/60 rounded-[24px] shadow-2xl w-[460px] p-8 overflow-hidden animate-float">
-                <div className="flex justify-between items-center mb-6">
-                  <span className="text-lg font-bold">Account Setup</span>
-                  <span className="text-[10px] font-mono font-bold text-primary bg-primary/5 px-2 py-0.5 rounded">POST /auth/register</span>
-                </div>
-                
-                {/* Visual Elements */}
-                <div className="h-2 w-full bg-slate-100 rounded-full mb-8 relative overflow-hidden">
-                   <div className="absolute inset-y-0 left-0 w-2/3 bg-primary rounded-full shadow-[0_0_12px_rgba(37,99,235,0.4)]" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 mb-8">
-                   {[
-                     { label: 'Full name', active: true },
-                     { label: 'Email address', active: true },
-                     { label: 'Password', active: false },
-                     { label: 'Role: CLIENT', active: true, primary: true },
-                   ].map((field, i) => (
-                     <div key={i} className={`flex items-center gap-3 p-3 rounded-xl border ${field.active ? 'bg-slate-50 border-slate-100' : 'bg-white border-slate-100 opacity-60'}`}>
-                        <div className={`size-2 rounded-full ${field.primary ? 'bg-primary' : 'bg-slate-300'}`} />
-                        <span className={`text-[11px] font-bold ${field.primary ? 'text-primary' : 'text-slate-500'}`}>{field.label}</span>
-                     </div>
-                   ))}
-                </div>
-
-                <div className="w-40 h-10 bg-primary rounded-full flex items-center justify-center">
-                   <span className="text-[13px] font-bold text-white">Create Account</span>
-                </div>
-             </div>
-          </div>
-
-          {/* Benefit Cards */}
-          <div className="grid grid-cols-2 gap-6 mt-12 opacity-0 animate-fade-in [animation-delay:1000ms]">
+          {/* Benefit Cards (Dynamic based on step) */}
+          <div className="grid grid-cols-2 gap-6 mt-auto opacity-0 animate-fade-in [animation-delay:1000ms]">
             {[
-              { label: 'Client', color: 'bg-primary/10 text-primary', desc: 'Post projects, find experts, and manage milestones.' },
-              { label: 'Expert', color: 'bg-brand-accent/10 text-brand-accent', desc: 'Offer AI services, apply for work, and grow reputation.' },
+              { label: 'Hire Talent', color: 'bg-primary/10 text-primary', desc: 'Post projects and find the best AI experts worldwide.' },
+              { label: 'Find Work', color: 'bg-brand-accent/10 text-brand-accent', desc: 'Apply for AI jobs and grow your professional portfolio.' },
             ].map((card, i) => (
               <div key={i} className="p-5 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
                 <span className={`text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full ${card.color} mb-3 inline-block`}>
@@ -105,33 +82,84 @@ export const RegisterPage = () => {
           </p>
         </div>
 
-        {/* Right Panel: Form Card */}
+        {/* Right Panel: Interactive Card */}
         <div className="flex flex-col justify-center items-center py-12 lg:py-0">
-          <div className="w-full max-w-[640px] bg-white lg:rounded-[32px] p-8 sm:p-12 shadow-2xl border border-slate-100 relative opacity-0 animate-slide-up [animation-delay:300ms]">
-            <div className="space-y-8">
-              <div className="space-y-4">
-                <p className="text-xs font-bold text-primary tracking-widest uppercase">Register Page — AIVORA</p>
-                <h2 className="text-4xl font-black text-foreground tracking-tight">Create Your AIVORA Account</h2>
-                <p className="text-muted-foreground leading-relaxed font-medium">
-                  Join AIVORA to connect with AI experts, post AI projects, or offer professional AI services to clients.
-                </p>
-              </div>
+          <div className="w-full max-w-[640px] bg-white lg:rounded-[32px] p-8 sm:p-12 shadow-2xl border border-slate-100 relative overflow-hidden">
+            
+            {step === 'selection' ? (
+              <div className="space-y-8 animate-in fade-in zoom-in duration-500">
+                <div className="space-y-4">
+                  <div className="inline-flex items-center px-3 py-1 bg-primary/5 rounded-full border border-primary/10">
+                    <span className="text-[10px] font-bold text-primary tracking-widest uppercase">Step 1 of 2 — Role</span>
+                  </div>
+                  <h2 className="text-4xl font-black text-foreground tracking-tight">Join as a Client or AI Expert</h2>
+                  <p className="text-muted-foreground leading-relaxed font-medium">
+                    Select your role so we can personalize your experience and guide you to the right registration flow.
+                  </p>
+                </div>
 
-              <div className="h-px w-full bg-slate-100" />
-              
-              <RegisterForm />
-              
-              <div className="h-px w-full bg-slate-100" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {/* Client Card */}
+                  <div 
+                    onClick={() => handleRoleSelect(Role.CLIENT)}
+                    className="group cursor-pointer p-8 rounded-[32px] border-2 border-slate-100 hover:border-primary hover:bg-primary/5 transition-all duration-300 shadow-sm hover:shadow-xl hover:shadow-primary/10 flex flex-col items-center text-center space-y-4"
+                  >
+                    <div className="size-16 rounded-full bg-slate-50 group-hover:bg-primary flex items-center justify-center font-bold text-xl transition-colors duration-300 group-hover:text-white">CL</div>
+                    <div>
+                      <h3 className="text-xl font-black text-slate-900">I'm a Client</h3>
+                      <p className="text-sm text-slate-500 mt-1">Hiring for AI projects</p>
+                    </div>
+                  </div>
 
-              <div className="flex justify-center">
-                <p className="text-sm text-muted-foreground font-medium">
-                  Already have an account?{' '}
-                  <Link to="/login" className="text-primary font-bold hover:underline transition-all underline-offset-4">
-                    Sign In
-                  </Link>
-                </p>
+                  {/* Expert Card */}
+                  <div 
+                    onClick={() => handleRoleSelect(Role.EXPERT)}
+                    className="group cursor-pointer p-8 rounded-[32px] border-2 border-slate-100 hover:border-brand-accent hover:bg-brand-accent/5 transition-all duration-300 shadow-sm hover:shadow-xl hover:shadow-brand-accent/10 flex flex-col items-center text-center space-y-4"
+                  >
+                    <div className="size-16 rounded-full bg-slate-50 group-hover:bg-brand-accent flex items-center justify-center font-bold text-xl transition-colors duration-300 group-hover:text-white">AI</div>
+                    <div>
+                      <h3 className="text-xl font-black text-slate-900">I'm an Expert</h3>
+                      <p className="text-sm text-slate-500 mt-1">Offering AI expertise</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="h-px w-full bg-slate-100" />
+                
+                <div className="flex justify-center">
+                  <p className="text-sm text-muted-foreground font-medium">
+                    Already have an account?{' '}
+                    <Link to="/login" className="text-primary font-bold hover:underline transition-all underline-offset-4">
+                      Sign In
+                    </Link>
+                  </p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-8 animate-in slide-in-from-right fade-in duration-500">
+                <div className="space-y-4">
+                  <button 
+                    onClick={() => setStep('selection')}
+                    className="flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-primary transition-colors group"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="size-3 transition-transform group-hover:-translate-x-1">
+                      <path d="M19 12H5M12 19l-7-7 7-7" />
+                    </svg>
+                    BACK TO ROLE SELECTION
+                  </button>
+                  <h2 className="text-4xl font-black text-foreground tracking-tight">Complete your profile</h2>
+                  <p className="text-muted-foreground leading-relaxed font-medium">
+                    Registering as <span className={cn("font-bold uppercase", selectedRole === Role.CLIENT ? "text-primary" : "text-brand-accent")}>{selectedRole}</span>
+                  </p>
+                </div>
+
+                <div className="h-px w-full bg-slate-100" />
+                
+                <RegisterForm selectedRole={selectedRole} />
+                
+                <div className="h-px w-full bg-slate-100" />
+              </div>
+            )}
           </div>
         </div>
       </div>

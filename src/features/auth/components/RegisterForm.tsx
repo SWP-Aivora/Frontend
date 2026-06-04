@@ -5,7 +5,7 @@ import { Input } from '@/shared/components/ui/Input';
 import { registerSchema } from '../schema';
 import type { RegisterFormValues } from '../types';
 import { authService } from '../services';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Role } from '@/shared/types/enums';
@@ -15,18 +15,25 @@ const ASSETS = {
   iconCircle: "https://www.figma.com/api/mcp/asset/fcaaabae-fe9a-4782-9a0c-33099504df26",
 };
 
-export const RegisterForm = () => {
+interface RegisterFormProps {
+  selectedRole: typeof Role.CLIENT | typeof Role.EXPERT;
+}
+
+export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<RegisterFormValues>({
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      role: Role.CLIENT,
+      role: selectedRole,
     }
   });
 
-  const selectedRole = watch('role');
+  // Keep the hidden role field in sync if it changes from parent
+  useEffect(() => {
+    setValue('role', selectedRole);
+  }, [selectedRole, setValue]);
 
   const onSubmit = async (data: RegisterFormValues) => {
     setIsLoading(true);
@@ -143,70 +150,6 @@ export const RegisterForm = () => {
         </div>
       </div>
 
-      <div className="space-y-4">
-        <label className="text-sm font-bold text-slate-700 ml-1">I want to join as a:</label>
-        <div className="grid grid-cols-2 gap-4">
-          {/* Client Role Option */}
-          <div 
-            onClick={() => setValue('role', Role.CLIENT)}
-            className={cn(
-              "group cursor-pointer p-5 rounded-[24px] border-2 transition-all duration-300 flex flex-col items-center text-center space-y-3 relative overflow-hidden",
-              selectedRole === Role.CLIENT 
-                ? "border-primary bg-primary/5 shadow-lg shadow-primary/10" 
-                : "border-slate-100 bg-white hover:border-slate-200 hover:shadow-md"
-            )}
-          >
-            {selectedRole === Role.CLIENT && (
-              <div className="absolute top-3 right-3 size-5 bg-primary rounded-full flex items-center justify-center animate-in zoom-in duration-300">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="size-3 text-white">
-                  <path d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-            )}
-            <div className={cn(
-              "size-12 rounded-full flex items-center justify-center font-bold text-sm transition-colors duration-300",
-              selectedRole === Role.CLIENT ? "bg-primary text-white" : "bg-slate-100 text-slate-500 group-hover:bg-slate-200"
-            )}>
-              CL
-            </div>
-            <div>
-              <p className="font-bold text-slate-900">Client</p>
-              <p className="text-[11px] font-medium text-slate-500 leading-tight">I want to hire AI experts</p>
-            </div>
-          </div>
-
-          {/* Expert Role Option */}
-          <div 
-            onClick={() => setValue('role', Role.EXPERT)}
-            className={cn(
-              "group cursor-pointer p-5 rounded-[24px] border-2 transition-all duration-300 flex flex-col items-center text-center space-y-3 relative overflow-hidden",
-              selectedRole === Role.EXPERT 
-                ? "border-brand-accent bg-brand-accent/5 shadow-lg shadow-brand-accent/10" 
-                : "border-slate-100 bg-white hover:border-slate-200 hover:shadow-md"
-            )}
-          >
-            {selectedRole === Role.EXPERT && (
-              <div className="absolute top-3 right-3 size-5 bg-brand-accent rounded-full flex items-center justify-center animate-in zoom-in duration-300">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="size-3 text-white">
-                  <path d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-            )}
-            <div className={cn(
-              "size-12 rounded-full flex items-center justify-center font-bold text-sm transition-colors duration-300",
-              selectedRole === Role.EXPERT ? "bg-brand-accent text-white" : "bg-slate-100 text-slate-500 group-hover:bg-slate-200"
-            )}>
-              EX
-            </div>
-            <div>
-              <p className="font-bold text-slate-900">Expert</p>
-              <p className="text-[11px] font-medium text-slate-500 leading-tight">I want to offer AI services</p>
-            </div>
-          </div>
-        </div>
-        {errors.role && <p className="text-xs text-destructive font-medium ml-1">{errors.role.message}</p>}
-      </div>
-
       {/* Terms Row */}
       <div className="flex items-start gap-3 px-1 py-2 bg-slate-50/50 border border-slate-100 rounded-2xl">
         <label className="flex items-center gap-2 cursor-pointer group mt-1 ml-2">
@@ -228,7 +171,10 @@ export const RegisterForm = () => {
       <Button 
         type="submit" 
         size="lg" 
-        className="w-full h-14 rounded-full text-base font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 mt-2" 
+        className={cn(
+          "w-full h-14 rounded-full text-base font-bold shadow-lg transition-all duration-300 mt-2",
+          selectedRole === Role.CLIENT ? "shadow-primary/20" : "bg-brand-accent hover:bg-brand-accent/90 shadow-brand-accent/20"
+        )} 
         disabled={isLoading}
       >
         {isLoading ? 'Creating Account...' : 'Create Account'}
