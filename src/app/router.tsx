@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { LoginPage } from '../features/auth/pages/LoginPage';
 import { RegisterPage } from '../features/auth/pages/RegisterPage';
 import { ProfilePage } from '../features/profiles/pages/ProfilePage';
+import { PostJobPage } from '../features/jobs/pages/PostJobPage';
 import { LandingPage } from '../shared/pages/LandingPage';
 import { ProtectedRoute } from '../shared/components/common/ProtectedRoute';
 import { ClientLayout, ExpertLayout, AdminLayout } from '../shared/layouts';
@@ -37,7 +38,7 @@ export const router = createBrowserRouter([
       { path: 'profile', element: <ProfilePage /> },
       { path: 'projects', element: <div>Client Projects List</div> },
       { path: 'experts', element: <div>Search Experts Page</div> },
-      { path: 'post-job', element: <div>Post a New Job Form</div> },
+      { path: 'post-job', element: <PostJobPage /> },
       { path: 'messages', element: <div>Client Messages</div> },
       { path: 'wallet', element: <div>Client Wallet & Billing</div> },
     ],
