@@ -1,5 +1,5 @@
-import { createBrowserRouter } from 'react-router-dom';
-import { LoginPage } from '@/features/auth/pages/LoginPage';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { LoginPage } from '../features/auth/pages/LoginPage';
 
 /**
  * Global Router Configuration
@@ -7,10 +7,14 @@ import { LoginPage } from '@/features/auth/pages/LoginPage';
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <div>Home Page Placeholder</div>,
+    element: <Navigate to="/login" replace />,
   },
   {
     path: '/login',
     element: <LoginPage />,
+  },
+  {
+    path: '*',
+    element: <Navigate to="/login" replace />,
   },
 ]);

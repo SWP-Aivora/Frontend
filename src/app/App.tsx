@@ -10,13 +10,17 @@ const App = () => {
 
   // Apply theme to HTML root
   useEffect(() => {
+    console.log('AIVORA App Mounting...');
     const root = window.document.documentElement;
     root.classList.remove('light', 'dark');
     root.classList.add(theme);
   }, [theme]);
 
   return (
-    <AppProviders />
+    <>
+      <div className="fixed top-0 left-0 bg-primary text-white text-[10px] px-2 z-[9999]">AIVORA v0.1 LOADED</div>
+      <AppProviders />
+    </>
   );
 };
 
