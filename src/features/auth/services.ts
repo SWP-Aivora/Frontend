@@ -1,6 +1,6 @@
 import apiClient from '@/lib/axios';
 import { API_ENDPOINTS } from '@/shared/constants';
-import type { LoginFormValues, AuthResponse } from '../types';
+import type { LoginFormValues, AuthResponse } from './types';
 import type { BaseResponse } from '@/shared/types/api';
 
 export const authService = {

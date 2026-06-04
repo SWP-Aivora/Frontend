@@ -1,5 +1,5 @@
 import apiClient from '@/lib/axios';
-import { BaseResponse, PaginatedResponse } from '@/shared/types/api';
+import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
 
 /**
  * Generic Base Service for CRUD operations.
