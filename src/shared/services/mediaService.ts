@@ -1,6 +1,6 @@
 import apiClient from '@/lib/axios';
 import { API_ENDPOINTS } from '@/shared/constants';
-import { BaseResponse } from '@/shared/types/api';
+import type { BaseResponse } from '@/shared/types/api';
 
 /**
  * Service for handling media uploads.

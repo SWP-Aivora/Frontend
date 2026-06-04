@@ -1,0 +1,11 @@
+@layer utilities {
+  .bg-gradient-hero {
+    background: linear-gradient(to right, #ffffff, #eaf3ff);
+  }
+  .shadow-aivora {
+    box-shadow: 0px 18px 40px -16px rgba(18, 49, 99, 0.1);
+  }
+  .shadow-aivora-large {
+    box-shadow: 0px 24px 60px -8px rgba(27, 58, 122, 0.12);
+  }
+}
