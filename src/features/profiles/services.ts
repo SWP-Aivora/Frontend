@@ -1,38 +1,39 @@
 import apiClient from '@/lib/axios';
-import type { UserProfile, NotificationSettings } from './types';
-import type { ProfileFormValues, SecurityFormValues } from './schema';
+import type { UserProfile, ClientProfile, ExpertProfile } from './types';
+import type { UserUpdateFormValues, ClientProfileFormValues, ExpertProfileFormValues } from './schema';
 import type { BaseResponse } from '@/shared/types/api';
 
 export const profileService = {
-  getProfile: async (): Promise<BaseResponse<UserProfile>> => {
-    const response = await apiClient.get<BaseResponse<UserProfile>>('/settings/me');
+  // Base User endpoints
+  getUserProfile: async (): Promise<BaseResponse<UserProfile>> => {
+    const response = await apiClient.get<BaseResponse<UserProfile>>('/users/me');
     return response.data;
   },
 
-  updateProfile: async (data: ProfileFormValues): Promise<BaseResponse<UserProfile>> => {
-    const response = await apiClient.put<BaseResponse<UserProfile>>('/settings/me', data);
+  updateUser: async (data: UserUpdateFormValues): Promise<BaseResponse<UserProfile>> => {
+    const response = await apiClient.put<BaseResponse<UserProfile>>('/users/me', data);
     return response.data;
   },
 
-  updatePassword: async (data: SecurityFormValues): Promise<BaseResponse<void>> => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { confirmNewPassword, ...passwordData } = data;
-    const response = await apiClient.post<BaseResponse<void>>('/settings/me/change-password', passwordData);
+  // Client Profile endpoints
+  getClientProfile: async (): Promise<BaseResponse<ClientProfile>> => {
+    const response = await apiClient.get<BaseResponse<ClientProfile>>('/profiles/client');
     return response.data;
   },
 
-  getNotificationSettings: async (): Promise<BaseResponse<NotificationSettings>> => {
-    const response = await apiClient.get<BaseResponse<NotificationSettings>>('/notifications/settings');
+  updateClientProfile: async (data: ClientProfileFormValues): Promise<BaseResponse<ClientProfile>> => {
+    const response = await apiClient.put<BaseResponse<ClientProfile>>('/profiles/client', data);
     return response.data;
   },
 
-  updateNotificationSettings: async (data: Partial<NotificationSettings>): Promise<BaseResponse<NotificationSettings>> => {
-    const response = await apiClient.put<BaseResponse<NotificationSettings>>('/notifications/settings', data);
+  // Expert Profile endpoints
+  getExpertProfile: async (): Promise<BaseResponse<ExpertProfile>> => {
+    const response = await apiClient.get<BaseResponse<ExpertProfile>>('/profiles/expert');
     return response.data;
   },
 
-  deleteAccount: async (): Promise<BaseResponse<void>> => {
-    const response = await apiClient.delete<BaseResponse<void>>('/settings/me');
+  updateExpertProfile: async (data: ExpertProfileFormValues): Promise<BaseResponse<ExpertProfile>> => {
+    const response = await apiClient.put<BaseResponse<ExpertProfile>>('/profiles/expert', data);
     return response.data;
   },
 };
