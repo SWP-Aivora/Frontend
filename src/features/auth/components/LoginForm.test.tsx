@@ -23,7 +23,7 @@ describe('LoginForm Component', () => {
     );
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /log in/i })).toBeInTheDocument();
   });
 
   it('shows validation errors for empty fields', async () => {
@@ -33,7 +33,7 @@ describe('LoginForm Component', () => {
       </BrowserRouter>
     );
     
-    fireEvent.click(screen.getByRole('button', { name: /sign in/i }));
+    fireEvent.click(screen.getByRole('button', { name: /log in/i }));
 
     expect(await screen.findByText(/invalid email address/i)).toBeInTheDocument();
     expect(await screen.findByText(/password must be at least 6 characters/i)).toBeInTheDocument();

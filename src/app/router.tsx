@@ -1,5 +1,7 @@
-import { createBrowserRouter } from 'react-router-dom';
-import { LoginPage } from '@/features/auth/pages/LoginPage';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { LoginPage } from '../features/auth/pages/LoginPage';
+import { RegisterPage } from '../features/auth/pages/RegisterPage';
+import { LandingPage } from '../shared/pages/LandingPage';
 
 /**
  * Global Router Configuration
@@ -7,10 +9,18 @@ import { LoginPage } from '@/features/auth/pages/LoginPage';
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <div>Home Page Placeholder</div>,
+    element: <LandingPage />,
   },
   {
     path: '/login',
     element: <LoginPage />,
+  },
+  {
+    path: '/register',
+    element: <RegisterPage />,
+  },
+  {
+    path: '*',
+    element: <Navigate to="/" replace />,
   },
 ]);
