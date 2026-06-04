@@ -4,6 +4,7 @@ import { RegisterPage } from '../features/auth/pages/RegisterPage';
 import { ProfilePage } from '../features/profiles/pages/ProfilePage';
 import { PostJobPage } from '../features/jobs/pages/PostJobPage';
 import { MyProjectsPage } from '../features/jobs/pages/MyProjectsPage';
+import { FindWorkPage } from '../features/jobs/pages/FindWorkPage';
 import { LandingPage } from '../shared/pages/LandingPage';
 import { ProtectedRoute } from '../shared/components/common/ProtectedRoute';
 import { ClientLayout, ExpertLayout, AdminLayout } from '../shared/layouts';
@@ -56,7 +57,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <div>Expert Dashboard Overview</div> },
       { path: 'profile', element: <ProfilePage /> },
-      { path: 'jobs', element: <div>Find Work / Job Board</div> },
+      { path: 'jobs', element: <FindWorkPage /> },
       { path: 'my-jobs', element: <div>My Active & Completed Jobs</div> },
       { path: 'messages', element: <div>Expert Messages</div> },
       { path: 'wallet', element: <div>Expert Earnings & Payouts</div> },
