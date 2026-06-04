@@ -1,4 +1,5 @@
 import { LoginForm } from '@/features/auth/components/LoginForm';
+import { Link } from 'react-router-dom';
 
 const ASSETS = {
   bgBlueWashLeft: "https://www.figma.com/api/mcp/asset/831be4b9-07e3-4a9f-8f14-27d345ad5e93",
@@ -27,13 +28,13 @@ export const LoginPage = () => {
           <img src={ASSETS.leftPanelGlow} alt="" className="absolute -left-20 top-20 w-[400px] opacity-30 pointer-events-none" />
           
           {/* Logo Section */}
-          <div className="flex items-center gap-3 mb-16 opacity-0 animate-fade-in [animation-delay:200ms]">
-            <div className="relative size-10">
+          <Link to="/" className="flex items-center gap-3 mb-16 opacity-0 animate-fade-in [animation-delay:200ms] w-fit group">
+            <div className="relative size-10 transition-transform group-hover:scale-110 duration-300">
               <img src={ASSETS.logoCircle} alt="AIVORA" className="size-full" />
               <span className="absolute inset-0 flex items-center justify-center font-bold text-white text-lg">A</span>
             </div>
             <span className="text-xl font-bold tracking-tight text-brand-blue-dark">AIVORA</span>
-          </div>
+          </Link>
 
           {/* Badge */}
           <div className="inline-flex items-center bg-white/60 backdrop-blur-md border border-primary/10 rounded-full px-4 py-1.5 mb-8 w-fit opacity-0 animate-fade-in [animation-delay:400ms]">
