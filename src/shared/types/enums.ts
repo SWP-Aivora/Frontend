@@ -2,9 +2,9 @@
  * User Roles in AIVORA
  */
 export const Role = {
-  CLIENT: 'Client',
-  EXPERT: 'Expert',
-  ADMIN: 'Admin',
+  CLIENT: 'CLIENT',
+  EXPERT: 'EXPERT',
+  ADMIN: 'ADMIN',
 } as const;
 export type Role = (typeof Role)[keyof typeof Role];
 

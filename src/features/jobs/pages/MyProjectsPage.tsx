@@ -158,9 +158,11 @@ export const MyProjectsPage = () => {
                      <p className="text-3xl font-black text-slate-900">{project.proposals}</p>
                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Proposals</p>
                   </div>
-                  <Button variant="ghost" className="rounded-full bg-slate-50 hover:bg-primary hover:text-white group/btn">
-                    View Details
-                    <ChevronRight className="size-4 ml-1 group-hover/btn:translate-x-1 transition-transform" />
+                  <Button asChild variant="ghost" className="rounded-full bg-slate-50 hover:bg-primary hover:text-white group/btn">
+                    <Link to={`/client/projects/${project.id}/proposals`}>
+                      View Details
+                      <ChevronRight className="size-4 ml-1 group-hover/btn:translate-x-1 transition-transform" />
+                    </Link>
                   </Button>
                 </div>
               </div>
