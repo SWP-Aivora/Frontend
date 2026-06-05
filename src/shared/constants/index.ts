@@ -26,4 +26,10 @@ export const API_ENDPOINTS = {
     UPLOAD_IMAGE: '/api/v1/media/upload-image',
     UPLOAD_FILE: '/api/v1/media/upload-file',
   },
+  DISPUTES: {
+    BASE: '/api/v1/disputes',
+    ID: (id: string | number) => `/api/v1/disputes/${id}`,
+    EVIDENCE: (id: string | number) => `/api/v1/disputes/${id}/evidence`,
+    RESOLVE: (id: string | number) => `/api/v1/disputes/${id}/resolve`,
+  },
 } as const;
