@@ -12,8 +12,7 @@ export interface User {
   role: Role;
 }
 
-export interface AuthResponse {
+export interface AuthResponse extends User {
   accessToken: string;
   refreshToken: string;
-  user: User;
 }

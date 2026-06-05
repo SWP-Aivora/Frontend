@@ -9,6 +9,7 @@ import { authService } from '../services';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { Role } from '@/shared/types/enums';
 
 const ASSETS = {
   iconCircle: "https://www.figma.com/api/mcp/asset/b5419652-1b98-4868-81dd-4af0923d3db0",
@@ -28,9 +29,26 @@ export const LoginForm = () => {
     try {
       const response = await authService.login(data);
       if (response.success) {
-        setAuth(response.data.user, response.data.accessToken);
+        const authData = response.data;
+        // Pass the entire flat response as the user object since it contains user fields
+        setAuth(authData, authData.accessToken);
+        
         toast.success('Login successful!');
-        navigate('/');
+        
+        // Role-based navigation
+        switch (authData.role) {
+          case Role.CLIENT:
+            navigate('/client');
+            break;
+          case Role.EXPERT:
+            navigate('/expert');
+            break;
+          case Role.ADMIN:
+            navigate('/admin');
+            break;
+          default:
+            navigate('/');
+        }
       } else {
         toast.error(response.message || 'Login failed');
       }
