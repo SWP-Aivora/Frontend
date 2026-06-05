@@ -59,4 +59,10 @@ export const jobService = {
     const response = await apiClient.get<BaseResponse<unknown[]>>(`/jobs/${jobId}/recommendations`);
     return response.data;
   },
+
+  // Expert specific
+  getMyProposals: async (): Promise<BaseResponse<Proposal[]>> => {
+    const response = await apiClient.get<BaseResponse<Proposal[]>>('/proposals/me');
+    return response.data;
+  },
 };

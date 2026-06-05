@@ -7,6 +7,7 @@ import { MyProjectsPage } from '../features/jobs/pages/MyProjectsPage';
 import { ClientJobProposalsPage } from '../features/jobs/pages/ClientJobProposalsPage';
 import { FindWorkPage } from '../features/jobs/pages/FindWorkPage';
 import { JobDetailsPage } from '../features/jobs/pages/JobDetailsPage';
+import { ExpertMyProposalsPage } from '../features/jobs/pages/ExpertMyProposalsPage';
 import { LandingPage } from '../shared/pages/LandingPage';
 import { ProtectedRoute } from '../shared/components/common/ProtectedRoute';
 import { ClientLayout, ExpertLayout, AdminLayout } from '../shared/layouts';
@@ -62,6 +63,7 @@ export const router = createBrowserRouter([
       { path: 'profile', element: <ProfilePage /> },
       { path: 'jobs', element: <FindWorkPage /> },
       { path: 'jobs/:id', element: <JobDetailsPage /> },
+      { path: 'proposals', element: <ExpertMyProposalsPage /> },
       { path: 'my-jobs', element: <div>My Active & Completed Jobs</div> },
       { path: 'messages', element: <div>Expert Messages</div> },
       { path: 'wallet', element: <div>Expert Earnings & Payouts</div> },
