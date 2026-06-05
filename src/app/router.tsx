@@ -4,6 +4,7 @@ import { RegisterPage } from '../features/auth/pages/RegisterPage';
 import { ProfilePage } from '../features/profiles/pages/ProfilePage';
 import { PostJobPage } from '../features/jobs/pages/PostJobPage';
 import { MyProjectsPage } from '../features/jobs/pages/MyProjectsPage';
+import { ClientJobProposalsPage } from '../features/jobs/pages/ClientJobProposalsPage';
 import { FindWorkPage } from '../features/jobs/pages/FindWorkPage';
 import { JobDetailsPage } from '../features/jobs/pages/JobDetailsPage';
 import { LandingPage } from '../shared/pages/LandingPage';
@@ -40,6 +41,7 @@ export const router = createBrowserRouter([
       { index: true, element: <div>Client Dashboard Overview</div> },
       { path: 'profile', element: <ProfilePage /> },
       { path: 'projects', element: <MyProjectsPage /> },
+      { path: 'projects/:id/proposals', element: <ClientJobProposalsPage /> },
       { path: 'experts', element: <div>Search Experts Page</div> },
       { path: 'post-job', element: <PostJobPage /> },
       { path: 'messages', element: <div>Client Messages</div> },
