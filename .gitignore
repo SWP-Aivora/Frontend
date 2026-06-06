@@ -28,4 +28,11 @@ dist-ssr
 .env.production
 .env.local
 .env.*.local
-docs/superpowers/  
+docs/superpowers/
+
+# AI Assistant
+.gemini/
+MEMORY.md
+*.heapsnapshot
+trace.json
+  
