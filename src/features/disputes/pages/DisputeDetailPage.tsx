@@ -72,10 +72,12 @@ export const DisputeDetailPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-red-50 rounded-xl border border-red-100 mr-2">
-              <Lock className="size-4 text-red-600" />
-              <span className="text-xs font-bold text-red-700">Disputed: $200 Frozen</span>
-            </div>
+            {dispute.milestoneAmount !== undefined && (
+              <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-red-50 rounded-xl border border-red-100 mr-2">
+                <Lock className="size-4 text-red-600" />
+                <span className="text-xs font-bold text-red-700">Disputed: ${dispute.milestoneAmount} Frozen</span>
+              </div>
+            )}
             
             <Button className="rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white h-11 px-6 font-bold shadow-lg shadow-blue-100">
               Resolve Dispute
@@ -141,7 +143,7 @@ export const DisputeDetailPage: React.FC = () => {
             <div>
               <h3 className="text-sm font-bold text-red-900 mb-1">Payment Frozen in Escrow</h3>
               <p className="text-red-700/80 text-xs leading-relaxed">
-                The milestone payment of <span className="font-bold">$200.00</span> is currently locked. Funds will not be released until a final resolution is reached.
+                The milestone payment of <span className="font-bold">${dispute.milestoneAmount ?? 0}</span> is currently locked. Funds will not be released until a final resolution is reached.
               </p>
             </div>
           </div>
@@ -259,7 +261,7 @@ export const DisputeDetailPage: React.FC = () => {
             <div className="animate-in slide-in-from-right-4 duration-700">
               <ResolutionForm 
                 disputeId={dispute.id} 
-                totalAmount={200} // Mock amount or use dispute.milestoneAmount if available
+                totalAmount={dispute.milestoneAmount} 
               />
             </div>
           )}

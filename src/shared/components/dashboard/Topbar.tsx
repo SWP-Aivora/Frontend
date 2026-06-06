@@ -1,4 +1,4 @@
-import { Bell, Menu, Search, User } from 'lucide-react';
+import { Bell, Menu, Search, User, LogOut } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/store';
 
 interface TopbarProps {
@@ -6,7 +6,7 @@ interface TopbarProps {
 }
 
 export const Topbar = ({ onMenuClick }: TopbarProps) => {
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
 
   return (
     <header className="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-8 sticky top-0 z-30 shadow-sm">
@@ -38,19 +38,30 @@ export const Topbar = ({ onMenuClick }: TopbarProps) => {
 
         <div className="h-8 w-px bg-slate-100 mx-1" />
 
-        {/* User Profile */}
-        <div className="flex items-center gap-3 pl-2 group cursor-pointer">
-          <div className="text-right hidden sm:block">
-            <p className="text-sm font-black text-slate-900 leading-none">{user?.fullName || 'User Name'}</p>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mt-1">{user?.role || 'Role'}</p>
+        <div className="flex items-center gap-2">
+          {/* User Profile */}
+          <div className="flex items-center gap-3 pl-2 group cursor-pointer">
+            <div className="text-right hidden sm:block">
+              <p className="text-sm font-black text-slate-900 leading-none">{user?.fullName || 'User Name'}</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mt-1">{user?.role || 'Role'}</p>
+            </div>
+            <div className="size-11 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/10 flex items-center justify-center group-hover:scale-105 transition-transform duration-300 overflow-hidden shadow-sm">
+              {user?.fullName ? (
+                <span className="text-sm font-black text-primary uppercase">{user.fullName.charAt(0)}</span>
+              ) : (
+                <User className="size-5 text-primary" />
+              )}
+            </div>
           </div>
-          <div className="size-11 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/10 flex items-center justify-center group-hover:scale-105 transition-transform duration-300 overflow-hidden shadow-sm">
-            {user?.fullName ? (
-              <span className="text-sm font-black text-primary uppercase">{user.fullName.charAt(0)}</span>
-            ) : (
-              <User className="size-5 text-primary" />
-            )}
-          </div>
+
+          {/* Logout Button */}
+          <button 
+            onClick={() => logout()}
+            className="p-2.5 rounded-xl hover:bg-destructive/5 text-slate-400 hover:text-destructive transition-all duration-300 group"
+            title="Sign Out"
+          >
+            <LogOut className="size-5 group-hover:scale-110 transition-transform" />
+          </button>
         </div>
       </div>
     </header>

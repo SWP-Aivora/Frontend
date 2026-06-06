@@ -42,6 +42,7 @@ export interface Dispute {
   id: string;
   milestoneId: string;
   milestoneTitle: string;
+  milestoneAmount?: number;
   projectId: string;
   projectTitle: string;
   clientId: string;

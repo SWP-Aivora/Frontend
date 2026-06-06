@@ -42,21 +42,21 @@ export const EvidenceSubmitZone: React.FC<EvidenceSubmitZoneProps> = ({ disputeI
         }
       });
     } catch (error) {
-      console.error('Lỗi khi nộp minh chứng:', error);
+      console.error('Error submitting evidence:', error);
     }
   };
 
   return (
     <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-      <h3 className="text-lg font-semibold mb-4">Nộp thêm minh chứng</h3>
+      <h3 className="text-lg font-semibold mb-4">Submit Additional Evidence</h3>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Nội dung minh chứng
+            Evidence Content
           </label>
           <Textarea
             {...register('content')}
-            placeholder="Mô tả chi tiết bằng chứng của bạn..."
+            placeholder="Provide details of your evidence..."
             rows={4}
             className={errors.content ? 'border-red-500' : ''}
           />
@@ -67,7 +67,7 @@ export const EvidenceSubmitZone: React.FC<EvidenceSubmitZoneProps> = ({ disputeI
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Tệp đính kèm (Ảnh, PDF, Docx...)
+            Attachments (Images, PDF, Docx...)
           </label>
           <input
             type="file"
@@ -86,7 +86,7 @@ export const EvidenceSubmitZone: React.FC<EvidenceSubmitZoneProps> = ({ disputeI
           disabled={isUploading || isSubmitting}
           className="w-full"
         >
-          {isUploading ? 'Đang tải tệp lên...' : isSubmitting ? 'Đang gửi...' : 'Gửi minh chứng'}
+          {isUploading ? 'Uploading file...' : isSubmitting ? 'Sending...' : 'Submit Evidence'}
         </Button>
       </form>
     </div>

@@ -1,8 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import type { NavItem } from './NavItems';
 import { cn } from '@/lib/utils';
-import { LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useAuthStore } from '@/features/auth/store';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface SidebarProps {
   items: NavItem[];
@@ -16,7 +15,6 @@ const ASSETS = {
 
 export const Sidebar = ({ items, collapsed, setCollapsed }: SidebarProps) => {
   const location = useLocation();
-  const { logout } = useAuthStore();
 
   return (
     <aside 
@@ -79,21 +77,6 @@ export const Sidebar = ({ items, collapsed, setCollapsed }: SidebarProps) => {
         })}
       </nav>
 
-      {/* Logout Action */}
-      <div className="p-4 border-t border-slate-50 mt-auto">
-        <button 
-          onClick={() => logout()}
-          className={cn(
-            "flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-200 w-full group",
-            "text-slate-400 hover:bg-destructive/5 hover:text-destructive"
-          )}
-        >
-          <LogOut className="size-5 shrink-0 group-hover:-translate-x-1 transition-transform" />
-          {!collapsed && (
-            <span className="font-bold text-sm animate-in fade-in duration-300">Sign Out</span>
-          )}
-        </button>
-      </div>
     </aside>
   );
 };

@@ -57,9 +57,9 @@ export const router = createBrowserRouter([
   {
     path: '/expert',
     element: (
-      <ProtectedRoute allowedRoles={[Role.EXPERT]}>
+      // <ProtectedRoute allowedRoles={[Role.EXPERT]}>
         <ExpertLayout />
-      </ProtectedRoute>
+      // </ProtectedRoute>
     ),
     children: [
       { index: true, element: <div>Expert Dashboard Overview</div> },
@@ -78,9 +78,9 @@ export const router = createBrowserRouter([
   {
     path: '/admin',
     element: (
-      <ProtectedRoute allowedRoles={[Role.ADMIN]}>
+      // <ProtectedRoute allowedRoles={[Role.ADMIN]}>
         <AdminLayout />
-      </ProtectedRoute>
+      // </ProtectedRoute>
     ),
     children: [
       { index: true, element: <div>Admin Dashboard Overview</div> },

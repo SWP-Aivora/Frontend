@@ -8,7 +8,7 @@ import { DisputeResolutionType } from '../types';
 
 interface ResolutionFormProps {
   disputeId: string;
-  totalAmount: number;
+  totalAmount?: number;
 }
 
 export const ResolutionForm: React.FC<ResolutionFormProps> = ({ disputeId, totalAmount }) => {
@@ -41,30 +41,36 @@ export const ResolutionForm: React.FC<ResolutionFormProps> = ({ disputeId, total
 
   return (
     <div className="bg-gray-50 p-6 rounded-lg border border-blue-200">
-      <h3 className="text-lg font-semibold text-blue-900 mb-4">Quyết định của Quản trị viên</h3>
+      <h3 className="text-lg font-semibold text-blue-900 mb-4">Admin Decision</h3>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Loại giải quyết
+            Resolution Type
           </label>
           <select
-            {...register('resolutionType', { valueAsNumber: true })}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            onChange={(e) => {
-              const val = parseInt(e.target.value);
-              if (val === DisputeResolutionType.RELEASE_TO_EXPERT) {
-                setValue('releaseAmount', totalAmount);
-                setValue('refundAmount', 0);
-              } else if (val === DisputeResolutionType.REFUND_TO_CLIENT) {
-                setValue('releaseAmount', 0);
-                setValue('refundAmount', totalAmount);
+            {...register('resolutionType', { 
+              valueAsNumber: true,
+              onChange: (e) => {
+                const val = parseInt(e.target.value);
+                if (totalAmount !== undefined) {
+                  if (val === DisputeResolutionType.RELEASE_TO_EXPERT) {
+                    setValue('releaseAmount', totalAmount);
+                    setValue('refundAmount', 0);
+                  } else if (val === DisputeResolutionType.REFUND_TO_CLIENT) {
+                    setValue('releaseAmount', 0);
+                    setValue('refundAmount', totalAmount);
+                  }
+                }
               }
-            }}
+            })}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           >
-            <option value={DisputeResolutionType.RELEASE_TO_EXPERT}>Thanh toán toàn bộ cho Expert</option>
-            <option value={DisputeResolutionType.REFUND_TO_CLIENT}>Hoàn tiền toàn bộ cho Client</option>
-            <option value={DisputeResolutionType.SPLIT_PAYMENT}>Chia sẻ thanh toán (Tùy chỉnh)</option>
-            <option value={DisputeResolutionType.EXPERT_WORK_REDO}>Yêu cầu Expert làm lại</option>
+            <option value={DisputeResolutionType.RELEASE_TO_EXPERT}>Full payment to Expert</option>
+            <option value={DisputeResolutionType.REFUND_TO_CLIENT}>Full refund to Client</option>
+            {totalAmount !== undefined && (
+              <option value={DisputeResolutionType.SPLIT_PAYMENT}>Split payment (Custom)</option>
+            )}
+            <option value={DisputeResolutionType.EXPERT_WORK_REDO}>Request expert redo</option>
           </select>
         </div>
 
@@ -72,7 +78,7 @@ export const ResolutionForm: React.FC<ResolutionFormProps> = ({ disputeId, total
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Số tiền trả Expert ($)
+                Amount to Expert ($)
               </label>
               <Input
                 type="number"
@@ -82,7 +88,7 @@ export const ResolutionForm: React.FC<ResolutionFormProps> = ({ disputeId, total
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Số tiền hoàn Client ($)
+                Amount to Client ($)
               </label>
               <Input
                 type="number"
@@ -95,11 +101,11 @@ export const ResolutionForm: React.FC<ResolutionFormProps> = ({ disputeId, total
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Ghi chú giải quyết (Gửi cho cả 2 bên)
+            Resolution Note (Sent to both parties)
           </label>
           <Textarea
             {...register('resolutionNote')}
-            placeholder="Giải thích lý do đưa ra quyết định này dựa trên các bằng chứng..."
+            placeholder="Explain the reasoning for this decision based on the evidence..."
             rows={5}
             className={errors.resolutionNote ? 'border-red-500' : ''}
           />
@@ -113,7 +119,7 @@ export const ResolutionForm: React.FC<ResolutionFormProps> = ({ disputeId, total
           disabled={isPending}
           className="w-full bg-blue-600 hover:bg-blue-700"
         >
-          {isPending ? 'Đang lưu quyết định...' : 'Ban hành quyết định cuối cùng'}
+          {isPending ? 'Saving decision...' : 'Issue final decision'}
         </Button>
       </form>
     </div>

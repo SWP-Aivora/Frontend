@@ -18,10 +18,17 @@ import { cn } from '@/lib/utils';
 
 export const AdminDisputeListPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const [pageIndex, setPageIndex] = React.useState(1);
+  const pageSize = 10;
   
   const { data: response, isLoading } = useQuery({
-    queryKey: ['disputes'],
-    queryFn: () => disputeService.getDisputes({ PageIndex: 1, PageSize: 50 }),
+    queryKey: ['disputes', pageIndex, searchTerm],
+    queryFn: () => disputeService.getDisputes({ 
+      PageIndex: pageIndex, 
+      PageSize: pageSize, 
+      SearchTerm: searchTerm 
+    }),
   });
 
   if (isLoading) return (
@@ -32,10 +39,10 @@ export const AdminDisputeListPage: React.FC = () => {
   );
 
   const disputes = response?.data || [];
+  const metadata = response?.metadata;
   
-  // Mock pagination for visual fidelity
-  const hasNextPage = false;
-  const hasPrevPage = false;
+  const hasNextPage = metadata?.hasNextPage ?? false;
+  const hasPrevPage = metadata?.hasPreviousPage ?? false;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 bg-[#f0f4f9] -m-6 lg:-m-10 p-6 lg:p-10 min-h-screen">
@@ -53,16 +60,23 @@ export const AdminDisputeListPage: React.FC = () => {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400 group-focus-within/search:text-blue-500 group-focus-within/search:scale-105 transition-all duration-300" />
             <Input 
               placeholder="Search Case ID or Project..." 
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setPageIndex(1);
+              }}
               className="pl-11 w-72 h-12 bg-white border-transparent shadow-sm rounded-2xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-300 font-medium"
             />
           </div>
           
           <Button 
             variant="outline" 
-            className="h-12 px-5 bg-white border-transparent shadow-sm rounded-2xl text-slate-700 hover:bg-slate-50 hover:text-blue-600 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 group/filter flex items-center gap-2 font-bold text-xs uppercase tracking-widest"
+            disabled
+            className="h-12 px-5 bg-white border-transparent shadow-sm rounded-2xl text-slate-400 cursor-not-allowed border border-transparent shadow-none hover:bg-white hover:scale-100 flex items-center gap-2 font-bold text-xs uppercase tracking-widest"
+            title="Filtering capability coming soon"
           >
-            <SlidersHorizontal className="size-4 group-hover/filter:rotate-12 transition-transform duration-300" />
-            Filter
+            <SlidersHorizontal className="size-4" />
+            Filter (Soon)
           </Button>
         </div>
       </div>
@@ -163,11 +177,12 @@ export const AdminDisputeListPage: React.FC = () => {
         {/* Pagination Section */}
         <div className="bg-slate-50/50 px-10 py-5 border-t border-slate-100 flex items-center justify-between">
            <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-             Page Integrity: <span className="text-emerald-500">Verified</span> • {disputes.length} active tasks
+             Page Integrity: <span className="text-emerald-500">Verified</span> • {metadata?.totalCount || 0} active tasks
            </div>
            
            <div className="flex items-center gap-2">
              <button 
+                onClick={() => setPageIndex(prev => prev - 1)}
                 disabled={!hasPrevPage}
                 className={cn(
                   "size-10 rounded-xl flex items-center justify-center transition-all duration-200",
@@ -179,6 +194,7 @@ export const AdminDisputeListPage: React.FC = () => {
                <ChevronLeft className="size-5" />
              </button>
              <button 
+                onClick={() => setPageIndex(prev => prev + 1)}
                 disabled={!hasNextPage}
                 className={cn(
                   "size-10 rounded-xl flex items-center justify-center transition-all duration-200",

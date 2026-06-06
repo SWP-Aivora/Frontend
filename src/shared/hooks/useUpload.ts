@@ -1,4 +1,5 @@
 ﻿import { useState } from 'react';
+import { mediaService } from '../services/mediaService';
 
 export const useUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
@@ -6,10 +7,11 @@ export const useUpload = () => {
   const uploadFile = async (file: File, folder?: string) => {
     setIsUploading(true);
     try {
-      // Mock upload implementation
-      console.log(`Mock uploading file: ${file.name} to ${folder || 'default'}`);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      return { url: 'https://example.com/mock-upload' };
+      const response = await mediaService.uploadFile(file, folder);
+      return { url: response.data.url };
+    } catch (error) {
+      console.error('Upload failed', error);
+      throw error;
     } finally {
       setIsUploading(false);
     }
