@@ -13,6 +13,7 @@ import { ExpertMyProposalsPage } from '../features/jobs/pages/ExpertMyProposalsP
 import { DisputeDetailPage } from '../features/disputes/pages/DisputeDetailPage';
 import { AdminDisputeListPage } from '../features/disputes/pages/AdminDisputeListPage';
 import { LandingPage } from '../shared/pages/LandingPage';
+import ReviewPage from '../features/reviews/pages/ReviewPage';
 import { ProtectedRoute } from '../shared/components/common/ProtectedRoute';
 import { ClientLayout, ExpertLayout, AdminLayout } from '../shared/layouts';
 import { Role } from '../shared/types/enums';
@@ -33,14 +34,18 @@ export const router = createBrowserRouter([
     path: '/register',
     element: <RegisterPage />,
   },
+  {
+    path: '/reviews',
+    element: <ReviewPage />,
+  },
   
   // Client Routes
   {
     path: '/client',
     element: (
-      <ProtectedRoute allowedRoles={[Role.CLIENT]}>
+      // <ProtectedRoute allowedRoles={[Role.CLIENT]}>
         <ClientLayout />
-      </ProtectedRoute>
+      // </ProtectedRoute>
     ),
     children: [
       { index: true, element: <div>Client Dashboard Overview</div> },

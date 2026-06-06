@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { ProposalListCard } from '../components/ProposalListCard';
 import type { Job, Proposal } from '../types';
@@ -22,6 +22,7 @@ import { Role } from '@/shared/types/enums';
 
 export const ClientJobProposalsPage = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [job, setJob] = useState<Job | null>(null);
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -134,7 +135,12 @@ export const ClientJobProposalsPage = () => {
         </div>
         <div className="flex items-center gap-3">
            <Button variant="outline" className="rounded-full border-slate-200">Edit Job</Button>
-           <Button className="rounded-full shadow-lg shadow-primary/20">Finish Project</Button>
+           <Button 
+             onClick={() => navigate('/reviews')}
+             className="rounded-full shadow-lg shadow-primary/20"
+           >
+             Finish Project
+           </Button>
         </div>
       </div>
 
