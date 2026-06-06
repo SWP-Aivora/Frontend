@@ -47,9 +47,9 @@ export const router = createBrowserRouter([
   {
     path: '/client',
     element: (
-      // <ProtectedRoute allowedRoles={[Role.CLIENT]}>
+       <ProtectedRoute allowedRoles={[Role.CLIENT]}>
         <ClientLayout />
-      // </ProtectedRoute>
+      </ProtectedRoute>
     ),
     children: [
       { index: true, element: <div>Client Dashboard Overview</div> },
