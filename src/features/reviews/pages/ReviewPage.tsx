@@ -1,27 +1,34 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ReviewModal } from '../components/ReviewModal';
 import { Button } from '@/shared/components/ui/Button';
 import { useAuthStore } from '@/features/auth/store';
 import { Role } from '@/shared/types/enums';
-import { CheckCircle, ArrowRight, Star } from 'lucide-react';
+import { CheckCircle, ArrowRight, Star, AlertCircle } from 'lucide-react';
+
+interface ProjectContext {
+  id: string;
+  title: string;
+  milestone: string;
+  completedDate: string;
+  clientName: string;
+  expertName: string;
+  amount: string;
+  revieweeId: string;
+}
 
 const ReviewPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuthStore();
   const [isModalOpen, setIsModalOpen] = React.useState(false);
 
-  // Mock project info for testing the modal
-  const mockProject = {
-    id: 'f5e6d7c8-b9a0-4123-8901-23456789abcd',
-    title: 'Vietnamese Customer Support Chatbot',
-    milestone: 'Final Delivery and Handover',
-    completedDate: 'June 12, 2026',
-    clientName: 'Linh Tran',
-    expertName: 'An Nguyen',
-    amount: '$635',
-    revieweeId: 'a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d',
-  };
+  const projectInfo = location.state as ProjectContext | null;
+
+  useEffect(() => {
+    // If accessed directly without context, redirect after a short delay or show error
+    // For now, we allow the component to render the "missing context" UI if null
+  }, [projectInfo, navigate]);
 
   const handleSkip = () => {
     const role = user?.role || Role.CLIENT;
@@ -29,6 +36,30 @@ const ReviewPage: React.FC = () => {
     else if (role === Role.EXPERT) navigate('/expert');
     else navigate('/client');
   };
+
+  if (!projectInfo) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6">
+        <div className="bg-white p-8 rounded-3xl shadow-xl max-w-md w-full text-center space-y-6 border border-slate-100">
+          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto">
+            <AlertCircle className="w-8 h-8 text-amber-600" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-black text-slate-900">Missing Context</h1>
+            <p className="text-slate-500 font-medium leading-relaxed">
+              We couldn't find the project details for this review. Please navigate from a project page.
+            </p>
+          </div>
+          <Button 
+            onClick={() => navigate('/client')}
+            className="w-full bg-[#1f6eeb] hover:bg-[#1656c0] text-white rounded-2xl font-bold py-6"
+          >
+            Go to Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 sm:p-8">
@@ -59,15 +90,15 @@ const ReviewPage: React.FC = () => {
             <ul className="space-y-3">
               <li className="flex flex-col">
                 <span className="text-[10px] font-bold text-slate-400 uppercase">Project Name</span>
-                <span className="text-sm font-bold text-slate-800">{mockProject.title}</span>
+                <span className="text-sm font-bold text-slate-800">{projectInfo.title}</span>
               </li>
               <li className="flex flex-col">
                 <span className="text-[10px] font-bold text-slate-400 uppercase">Milestone</span>
-                <span className="text-sm font-bold text-slate-800">{mockProject.milestone}</span>
+                <span className="text-sm font-bold text-slate-800">{projectInfo.milestone}</span>
               </li>
               <li className="flex flex-col">
                 <span className="text-[10px] font-bold text-slate-400 uppercase">Amount Released</span>
-                <span className="text-sm font-bold text-emerald-600">{mockProject.amount}</span>
+                <span className="text-sm font-bold text-emerald-600">{projectInfo.amount}</span>
               </li>
             </ul>
           </div>
@@ -120,7 +151,7 @@ const ReviewPage: React.FC = () => {
       <ReviewModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
-        projectInfo={mockProject}
+        projectInfo={projectInfo}
       />
     </div>
   );

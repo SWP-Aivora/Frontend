@@ -36,6 +36,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
     handleSubmit,
     formState: { errors },
     reset,
+    watch,
   } = useForm<ReviewFormData>({
     resolver: zodResolver(reviewSchema),
     defaultValues: {
@@ -48,6 +49,8 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
       deadlineRating: 5,
     },
   });
+
+  const watchedValues = watch();
 
   if (!isOpen) return null;
 
@@ -248,7 +251,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
                           )}
                         />
                         <span className="text-[9px] font-semibold text-[#123b9e] w-6 text-right">
-                          {control._formValues[item.name]?.toFixed(1) || '0.0'}
+                          {watchedValues[item.name]?.toFixed(1) || '0.0'}
                         </span>
                       </div>
                     </div>

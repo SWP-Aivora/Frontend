@@ -136,7 +136,18 @@ export const ClientJobProposalsPage = () => {
         <div className="flex items-center gap-3">
            <Button variant="outline" className="rounded-full border-slate-200">Edit Job</Button>
            <Button 
-             onClick={() => navigate('/reviews')}
+             onClick={() => navigate('/reviews', { 
+               state: { 
+                 id: job?.id,
+                 title: job?.title,
+                 milestone: 'Final Project Completion', // Default for this page
+                 completedDate: new Date().toLocaleDateString(),
+                 clientName: job?.client?.fullName || 'Client',
+                 expertName: proposals.find(p => p.status === 2)?.expert?.fullName || 'Selected Expert', // Status 2 could mean accepted/completed
+                 amount: `${job?.budgetMin}-${job?.budgetMax} ${job?.currency}`,
+                 revieweeId: proposals.find(p => p.status === 2)?.expertId || proposals[0]?.expertId // Fallback to first if none accepted (for mock purpose)
+               } 
+             })}
              className="rounded-full shadow-lg shadow-primary/20"
            >
              Finish Project

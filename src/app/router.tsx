@@ -36,7 +36,11 @@ export const router = createBrowserRouter([
   },
   {
     path: '/reviews',
-    element: <ReviewPage />,
+    element: (
+      <ProtectedRoute allowedRoles={[Role.CLIENT]}>
+        <ReviewPage />
+      </ProtectedRoute>
+    ),
   },
   
   // Client Routes
