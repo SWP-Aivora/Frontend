@@ -62,11 +62,11 @@ export const OpenDisputeForm: React.FC<OpenDisputeFormProps> = ({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Detailed Description
+            Detailed Description <span className="text-xs font-normal text-slate-400">(Minimum 50 characters)</span>
           </label>
           <Textarea
             {...register('description')}
-            placeholder="Explain clearly the issue you are facing and your desired resolution..."
+            placeholder="Explain clearly the issue you are facing and your desired resolution (Minimum 50 characters)..."
             rows={6}
             className={errors.description ? 'border-red-500' : ''}
           />

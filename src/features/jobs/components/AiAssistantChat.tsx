@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Send, Paperclip, Sparkles, Bot, ExternalLink } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { cn } from '@/lib/utils';
@@ -21,6 +21,15 @@ export const AiAssistantChat = () => {
     }
   ]);
   const [inputValue, setInputValue] = useState('');
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleSend = () => {
     if (!inputValue.trim()) return;
@@ -36,7 +45,7 @@ export const AiAssistantChat = () => {
     setInputValue('');
 
     // Simulate AI reply
-    setTimeout(() => {
+    timeoutRef.current = setTimeout(() => {
       const aiReply: Message = {
         id: (Date.now() + 1).toString(),
         sender: 'ai',

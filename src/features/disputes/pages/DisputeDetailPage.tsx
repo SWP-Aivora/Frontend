@@ -75,13 +75,18 @@ export const DisputeDetailPage: React.FC = () => {
             {dispute.milestoneAmount !== undefined && (
               <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-red-50 rounded-xl border border-red-100 mr-2">
                 <Lock className="size-4 text-red-600" />
-                <span className="text-xs font-bold text-red-700">Disputed: ${dispute.milestoneAmount} Frozen</span>
+                <span className="text-xs font-bold text-red-700">Disputed: ${dispute.milestoneAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Frozen</span>
               </div>
             )}
             
-            <Button className="rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white h-11 px-6 font-bold shadow-lg shadow-blue-100">
-              Resolve Dispute
-            </Button>
+            {isAdmin && !isResolved && (
+              <Button 
+                onClick={() => document.getElementById('resolution-form')?.scrollIntoView({ behavior: 'smooth' })}
+                className="rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white h-11 px-6 font-bold shadow-lg shadow-blue-100"
+              >
+                Resolve Dispute
+              </Button>
+            )}
             <Button variant="ghost" className="size-11 p-0 rounded-xl hover:bg-slate-100 transition-colors">
               <MoreVertical className="size-5 text-slate-400" />
             </Button>
@@ -136,7 +141,7 @@ export const DisputeDetailPage: React.FC = () => {
           </div>
 
           {/* Payment Warning Block */}
-          {dispute.milestoneAmount !== undefined && (
+          {dispute.milestoneAmount !== undefined && dispute.milestoneAmount > 0 && (
             <div className="bg-red-50 rounded-2xl border border-red-100 p-6 flex items-start gap-4">
               <div className="size-10 rounded-xl bg-white flex items-center justify-center shrink-0 shadow-sm">
                 <AlertCircle className="size-6 text-red-600" />
@@ -144,7 +149,7 @@ export const DisputeDetailPage: React.FC = () => {
               <div>
                 <h3 className="text-sm font-bold text-red-900 mb-1">Payment Frozen in Escrow</h3>
                 <p className="text-red-700/80 text-xs leading-relaxed">
-                  The milestone payment of <span className="font-bold">${dispute.milestoneAmount}</span> is currently locked. Funds will not be released until a final resolution is reached.
+                  The milestone payment of <span className="font-bold">${dispute.milestoneAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> is currently locked. Funds will not be released until a final resolution is reached.
                 </p>
               </div>
             </div>
@@ -247,11 +252,11 @@ export const DisputeDetailPage: React.FC = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="p-3 bg-white rounded-xl border border-emerald-100">
                     <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">To Expert</span>
-                    <span className="text-lg font-black text-emerald-700">${dispute.releaseAmount}</span>
+                    <span className="text-lg font-black text-emerald-700">${dispute.releaseAmount?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                   <div className="p-3 bg-white rounded-xl border border-emerald-100">
                     <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">To Client</span>
-                    <span className="text-lg font-black text-emerald-700">${dispute.refundAmount}</span>
+                    <span className="text-lg font-black text-emerald-700">${dispute.refundAmount?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                 </div>
               </div>
@@ -260,7 +265,7 @@ export const DisputeDetailPage: React.FC = () => {
 
           {/* Admin Decision Form (If not resolved and user is admin) */}
           {isAdmin && !isResolved && (
-            <div className="animate-in slide-in-from-right-4 duration-700">
+            <div id="resolution-form" className="animate-in slide-in-from-right-4 duration-700">
               <ResolutionForm 
                 disputeId={dispute.id} 
                 totalAmount={dispute.milestoneAmount} 

@@ -15,7 +15,6 @@ export type OpenDisputeFormData = z.infer<typeof openDisputeSchema>;
  */
 export const addEvidenceSchema = z.object({
   content: z.string().min(20, 'Evidence content must be at least 20 characters'),
-  fileUrl: z.string().url('Invalid file URL format').optional().nullable(),
 });
 
 export type AddEvidenceFormData = z.infer<typeof addEvidenceSchema>;

@@ -5,6 +5,7 @@ import { Button, Input, Textarea } from '@/shared/components/ui';
 import { resolveDisputeSchema, type ResolveDisputeFormData } from '../schema';
 import { useResolveDispute } from '../hooks/useResolveDispute';
 import { DisputeResolutionType } from '../types';
+import { toast } from 'sonner';
 
 interface ResolutionFormProps {
   disputeId: string;
@@ -36,6 +37,11 @@ export const ResolutionForm: React.FC<ResolutionFormProps> = ({ disputeId, total
     resolveDispute({
       ...data,
       resolutionType: data.resolutionType as DisputeResolutionType
+    }, {
+      onError: (error: unknown) => {
+        const message = error instanceof Error ? error.message : "Failed to submit resolution. Please try again.";
+        toast.error(message);
+      }
     });
   };
 
@@ -52,6 +58,7 @@ export const ResolutionForm: React.FC<ResolutionFormProps> = ({ disputeId, total
               valueAsNumber: true,
               onChange: (e) => {
                 const val = parseInt(e.target.value);
+                setValue('resolutionType', val, { shouldValidate: true });
                 if (totalAmount !== undefined) {
                   if (val === DisputeResolutionType.RELEASE_TO_EXPERT) {
                     setValue('releaseAmount', totalAmount);

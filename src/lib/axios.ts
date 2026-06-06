@@ -66,7 +66,13 @@ axiosInstance.interceptors.response.use(
         axios
           .post(`${env.API_URL}${API_ENDPOINTS.AUTH.REFRESH_TOKEN}`, { refreshToken })
           .then(({ data }) => {
-            const { accessToken, refreshToken: newRefreshToken } = data.data;
+            const accessToken = data?.data?.accessToken;
+            const newRefreshToken = data?.data?.refreshToken;
+
+            if (!accessToken || !newRefreshToken) {
+              throw new Error('Invalid refresh token response');
+            }
+
             localStorage.setItem('accessToken', accessToken);
             localStorage.setItem('refreshToken', newRefreshToken);
             

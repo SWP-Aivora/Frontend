@@ -5,6 +5,7 @@ import { Button, Textarea } from '@/shared/components/ui';
 import { useUpload } from '@/shared/hooks/useUpload';
 import { addEvidenceSchema, type AddEvidenceFormData } from '../schema';
 import { useSubmitEvidence } from '../hooks/useSubmitEvidence';
+import { toast } from 'sonner';
 
 interface EvidenceSubmitZoneProps {
   disputeId: string;
@@ -26,7 +27,7 @@ export const EvidenceSubmitZone: React.FC<EvidenceSubmitZoneProps> = ({ disputeI
 
   const onSubmit = async (data: AddEvidenceFormData) => {
     try {
-      let fileUrl = data.fileUrl;
+      let fileUrl: string | undefined;
       if (file) {
         const uploadResult = await uploadFile(file, 'disputes');
         fileUrl = uploadResult.url;
@@ -39,9 +40,15 @@ export const EvidenceSubmitZone: React.FC<EvidenceSubmitZoneProps> = ({ disputeI
         onSuccess: () => {
           reset();
           setFile(null);
+        },
+        onError: (error: unknown) => {
+          const message = error instanceof Error ? error.message : "Evidence submission failed. Please try again.";
+          toast.error(message);
         }
       });
-    } catch (error) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Evidence submission failed. Your files were not uploaded.";
+      toast.error(message);
       console.error('Error submitting evidence:', error);
     }
   };

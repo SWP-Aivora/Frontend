@@ -18,9 +18,19 @@ import { cn } from '@/lib/utils';
 
 export const AdminDisputeListPage: React.FC = () => {
   const navigate = useNavigate();
+  const [localSearchTerm, setLocalSearchTerm] = React.useState('');
   const [searchTerm, setSearchTerm] = React.useState('');
   const [pageIndex, setPageIndex] = React.useState(1);
   const pageSize = 10;
+
+  React.useEffect(() => {
+    const handler = setTimeout(() => {
+      setSearchTerm(localSearchTerm);
+      setPageIndex(1);
+    }, 300);
+
+    return () => clearTimeout(handler);
+  }, [localSearchTerm]);
   
   const { data: response, isLoading } = useQuery({
     queryKey: ['disputes', pageIndex, searchTerm],
@@ -60,11 +70,8 @@ export const AdminDisputeListPage: React.FC = () => {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400 group-focus-within/search:text-blue-500 group-focus-within/search:scale-105 transition-all duration-300" />
             <Input 
               placeholder="Search Case ID or Project..." 
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setPageIndex(1);
-              }}
+              value={localSearchTerm}
+              onChange={(e) => setLocalSearchTerm(e.target.value)}
               className="pl-11 w-72 h-12 bg-white border-transparent shadow-sm rounded-2xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-300 font-medium"
             />
           </div>
