@@ -10,6 +10,8 @@ import { ProjectWorkspacePage } from '../features/projects/pages/ProjectWorkspac
 import { WalletPage } from '../features/wallet/pages/WalletPage';
 import { JobDetailsPage } from '../features/jobs/pages/JobDetailsPage';
 import { ExpertMyProposalsPage } from '../features/jobs/pages/ExpertMyProposalsPage';
+import { DisputeDetailPage } from '../features/disputes/pages/DisputeDetailPage';
+import { AdminDisputeListPage } from '../features/disputes/pages/AdminDisputeListPage';
 import { LandingPage } from '../shared/pages/LandingPage';
 import { ProtectedRoute } from '../shared/components/common/ProtectedRoute';
 import { ClientLayout, ExpertLayout, AdminLayout } from '../shared/layouts';
@@ -50,6 +52,7 @@ export const router = createBrowserRouter([
       { path: 'post-job', element: <PostJobPage /> },
       { path: 'messages', element: <div>Client Messages</div> },
       { path: 'wallet', element: <WalletPage /> },
+      { path: 'disputes/:id', element: <DisputeDetailPage /> },
     ],
   },
 
@@ -71,6 +74,7 @@ export const router = createBrowserRouter([
       { path: 'my-jobs', element: <div>My Active & Completed Jobs</div> },
       { path: 'messages', element: <div>Expert Messages</div> },
       { path: 'wallet', element: <WalletPage /> },
+      { path: 'disputes/:id', element: <DisputeDetailPage /> },
     ],
   },
 
@@ -86,9 +90,11 @@ export const router = createBrowserRouter([
       { index: true, element: <div>Admin Dashboard Overview</div> },
       { path: 'users', element: <div>User Management Table</div> },
       { path: 'verification', element: <div>Expert Verification Queue</div> },
-      { path: 'disputes', element: <div>Conflict & Dispute Resolution</div> },
+      { path: 'disputes', element: <AdminDisputeListPage /> },
+      { path: 'disputes/:id', element: <DisputeDetailPage /> },
       { path: 'settings', element: <div>Global System Settings</div> },
     ],
+    
   },
 
   // Common Routes
