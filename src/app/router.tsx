@@ -6,6 +6,7 @@ import { PostJobPage } from '../features/jobs/pages/PostJobPage';
 import { MyProjectsPage } from '../features/jobs/pages/MyProjectsPage';
 import { ClientJobProposalsPage } from '../features/jobs/pages/ClientJobProposalsPage';
 import { FindWorkPage } from '../features/jobs/pages/FindWorkPage';
+import { ProjectWorkspacePage } from '../features/projects/pages/ProjectWorkspacePage';
 import { JobDetailsPage } from '../features/jobs/pages/JobDetailsPage';
 import { ExpertMyProposalsPage } from '../features/jobs/pages/ExpertMyProposalsPage';
 import { LandingPage } from '../shared/pages/LandingPage';
@@ -43,6 +44,7 @@ export const router = createBrowserRouter([
       { path: 'profile', element: <ProfilePage /> },
       { path: 'projects', element: <MyProjectsPage /> },
       { path: 'projects/:id/proposals', element: <ClientJobProposalsPage /> },
+      { path: 'projects/:id/workspace', element: <ProjectWorkspacePage /> },
       { path: 'experts', element: <div>Search Experts Page</div> },
       { path: 'post-job', element: <PostJobPage /> },
       { path: 'messages', element: <div>Client Messages</div> },
@@ -64,6 +66,7 @@ export const router = createBrowserRouter([
       { path: 'jobs', element: <FindWorkPage /> },
       { path: 'jobs/:id', element: <JobDetailsPage /> },
       { path: 'proposals', element: <ExpertMyProposalsPage /> },
+      { path: 'projects/:id/workspace', element: <ProjectWorkspacePage /> },
       { path: 'my-jobs', element: <div>My Active & Completed Jobs</div> },
       { path: 'messages', element: <div>Expert Messages</div> },
       { path: 'wallet', element: <div>Expert Earnings & Payouts</div> },
