@@ -136,17 +136,19 @@ export const DisputeDetailPage: React.FC = () => {
           </div>
 
           {/* Payment Warning Block */}
-          <div className="bg-red-50 rounded-2xl border border-red-100 p-6 flex items-start gap-4">
-            <div className="size-10 rounded-xl bg-white flex items-center justify-center shrink-0 shadow-sm">
-              <AlertCircle className="size-6 text-red-600" />
+          {dispute.milestoneAmount !== undefined && (
+            <div className="bg-red-50 rounded-2xl border border-red-100 p-6 flex items-start gap-4">
+              <div className="size-10 rounded-xl bg-white flex items-center justify-center shrink-0 shadow-sm">
+                <AlertCircle className="size-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-red-900 mb-1">Payment Frozen in Escrow</h3>
+                <p className="text-red-700/80 text-xs leading-relaxed">
+                  The milestone payment of <span className="font-bold">${dispute.milestoneAmount}</span> is currently locked. Funds will not be released until a final resolution is reached.
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-red-900 mb-1">Payment Frozen in Escrow</h3>
-              <p className="text-red-700/80 text-xs leading-relaxed">
-                The milestone payment of <span className="font-bold">${dispute.milestoneAmount ?? 0}</span> is currently locked. Funds will not be released until a final resolution is reached.
-              </p>
-            </div>
-          </div>
+          )}
 
           {/* Evidence Timeline */}
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8">
