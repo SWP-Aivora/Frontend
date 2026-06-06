@@ -7,6 +7,7 @@ import { MyProjectsPage } from '../features/jobs/pages/MyProjectsPage';
 import { ClientJobProposalsPage } from '../features/jobs/pages/ClientJobProposalsPage';
 import { FindWorkPage } from '../features/jobs/pages/FindWorkPage';
 import { ProjectWorkspacePage } from '../features/projects/pages/ProjectWorkspacePage';
+import { WalletPage } from '../features/wallet/pages/WalletPage';
 import { JobDetailsPage } from '../features/jobs/pages/JobDetailsPage';
 import { ExpertMyProposalsPage } from '../features/jobs/pages/ExpertMyProposalsPage';
 import { LandingPage } from '../shared/pages/LandingPage';
@@ -48,7 +49,7 @@ export const router = createBrowserRouter([
       { path: 'experts', element: <div>Search Experts Page</div> },
       { path: 'post-job', element: <PostJobPage /> },
       { path: 'messages', element: <div>Client Messages</div> },
-      { path: 'wallet', element: <div>Client Wallet & Billing</div> },
+      { path: 'wallet', element: <WalletPage /> },
     ],
   },
 
@@ -69,7 +70,7 @@ export const router = createBrowserRouter([
       { path: 'projects/:id/workspace', element: <ProjectWorkspacePage /> },
       { path: 'my-jobs', element: <div>My Active & Completed Jobs</div> },
       { path: 'messages', element: <div>Expert Messages</div> },
-      { path: 'wallet', element: <div>Expert Earnings & Payouts</div> },
+      { path: 'wallet', element: <WalletPage /> },
     ],
   },
 
