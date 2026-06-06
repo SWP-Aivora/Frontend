@@ -16,6 +16,21 @@ export const API_ENDPOINTS = {
   PROJECTS: {
     BASE: '/api/v1/projects',
     ID: (id: string) => `/api/v1/projects/${id}`,
+    MILESTONES: (id: string) => `/api/v1/projects/${id}/milestones`,
+    CANCEL: (id: string) => `/api/v1/projects/${id}/cancel`,
+  },
+  MILESTONES: {
+    BASE: '/api/v1/milestones',
+    ID: (id: string) => `/api/v1/milestones/${id}`,
+    FUND: (id: string) => `/api/v1/milestones/${id}/fund`,
+    APPROVE: (id: string) => `/api/v1/milestones/${id}/approve`,
+    REVISION: (id: string) => `/api/v1/milestones/${id}/request-revision`,
+    DELIVERABLES: (id: string) => `/api/v1/milestones/${id}/deliverables`,
+  },
+  WALLET: {
+    ME: '/api/v1/wallet/me',
+    HISTORY: '/api/v1/payments/history',
+    DEPOSIT_DEMO: '/api/v1/wallet/deposit-demo',
   },
   PROFILES: {
     CLIENT: '/api/v1/profiles/client',
