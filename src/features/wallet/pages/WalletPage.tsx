@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Wallet as WalletIcon, 
   Plus, 
@@ -16,29 +17,90 @@ import { useAuthStore } from '@/features/auth/store';
 import { Role } from '@/shared/types/enums';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-
-// Mock Transaction Data
-const mockTransactions = [
-  { id: 't1', type: 'deposit', amount: 5000, status: 'completed', description: 'Bank Transfer Deposit', date: '2026-06-01' },
-  { id: 't2', type: 'payment', amount: 1500, status: 'completed', description: 'Milestone: Data Preprocessing', date: '2026-06-03' },
-  { id: 't3', type: 'payment', amount: 1000, status: 'pending', description: 'Milestone: Model Architecture', date: '2026-06-05' },
-  { id: 't4', type: 'refund', amount: 200, status: 'completed', description: 'Job Cancellation Refund', date: '2026-05-28' },
-];
+import { walletService } from '../services';
 
 export const WalletPage = () => {
   const { user } = useAuthStore();
-  const [balance, setBalance] = useState(3500);
-  const [isLoading, setIsLoading] = useState(false);
+  const queryClient = useQueryClient();
+  const [isDepositing, setIsDepositing] = useState(false);
   const isClient = user?.role === Role.CLIENT;
 
-  const handleDeposit = async () => {
-    setIsLoading(true);
-    toast.info('Simulating bank gateway connection...');
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setBalance(prev => prev + 1000);
-    toast.success('Successfully deposited $1,000.00!');
-    setIsLoading(false);
+  const { data: walletResponse, isLoading: isLoadingWallet } = useQuery({
+    queryKey: ['wallet'],
+    queryFn: () => walletService.getWallet(),
+  });
+
+  const { data: historyResponse, isLoading: isLoadingHistory } = useQuery({
+    queryKey: ['payments-history'],
+    queryFn: () => walletService.getPaymentHistory(),
+  });
+
+  const depositMutation = useMutation({
+    mutationFn: (amount: number) => walletService.depositDemo({ amount }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wallet'] });
+      queryClient.invalidateQueries({ queryKey: ['payments-history'] });
+      toast.success('Successfully deposited funds!');
+    },
+    onError: () => {
+      toast.error('Failed to deposit funds. Please try again.');
+    },
+    onSettled: () => setIsDepositing(false),
+  });
+
+  const wallet = walletResponse?.data;
+  const transactions = useMemo(() => historyResponse?.data || [], [historyResponse?.data]);
+  const isLoading = isLoadingWallet || isLoadingHistory;
+
+  const totals = useMemo(() => {
+    // 0: Deposit, 1: Withdrawal, 2: Payment, 3: Refund
+    const spent = transactions
+      .filter(t => t.type === 2 && t.status === 1)
+      .reduce((acc, t) => acc + t.amount, 0);
+    
+    const earned = transactions
+      .filter(t => (t.type === 0 || t.type === 3) && t.status === 1)
+      .reduce((acc, t) => acc + t.amount, 0);
+
+    const inEscrow = transactions
+      .filter(t => t.status === 0)
+      .reduce((acc, t) => acc + t.amount, 0);
+
+    return { spent, earned, inEscrow };
+  }, [transactions]);
+
+  const handleDeposit = () => {
+    setIsDepositing(true);
+    depositMutation.mutate(1000);
   };
+
+  const getTransactionTypeInfo = (type: number) => {
+    switch (type) {
+      case 0: return { label: 'Deposit', icon: ArrowDownLeft, color: 'text-emerald-600', bg: 'bg-emerald-50' };
+      case 1: return { label: 'Withdrawal', icon: ArrowUpRight, color: 'text-rose-600', bg: 'bg-rose-50' };
+      case 2: return { label: 'Payment', icon: ArrowUpRight, color: 'text-blue-600', bg: 'bg-blue-50' };
+      case 3: return { label: 'Refund', icon: ArrowDownLeft, color: 'text-emerald-600', bg: 'bg-emerald-50' };
+      default: return { label: 'Unknown', icon: ArrowUpRight, color: 'text-slate-600', bg: 'bg-slate-50' };
+    }
+  };
+
+  const getStatusInfo = (status: number) => {
+    switch (status) {
+      case 0: return { label: 'Pending', color: 'bg-amber-50 text-amber-600' };
+      case 1: return { label: 'Completed', color: 'bg-emerald-50 text-emerald-600' };
+      case 2: return { label: 'Failed', color: 'bg-rose-50 text-rose-600' };
+      default: return { label: 'Unknown', color: 'bg-slate-50 text-slate-600' };
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <div className="size-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+        <p className="text-slate-400 font-bold animate-pulse uppercase tracking-widest text-xs">Loading Wallet...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-10 animate-in fade-in duration-700 pb-20">
@@ -53,8 +115,8 @@ export const WalletPage = () => {
         <div className="flex items-center gap-3">
            <Button variant="outline" className="rounded-full border-slate-200">Export PDF</Button>
            {isClient ? (
-             <Button onClick={handleDeposit} disabled={isLoading} className="rounded-full px-6 shadow-lg shadow-primary/20 flex items-center gap-2">
-                {isLoading ? <RefreshCw className="size-4 animate-spin" /> : <Plus className="size-4" />}
+             <Button onClick={handleDeposit} disabled={isDepositing} className="rounded-full px-6 shadow-lg shadow-primary/20 flex items-center gap-2">
+                {isDepositing ? <RefreshCw className="size-4 animate-spin" /> : <Plus className="size-4" />}
                 Deposit Funds
              </Button>
            ) : (
@@ -81,7 +143,9 @@ export const WalletPage = () => {
                  <div className="flex justify-between items-start">
                     <div>
                        <p className="text-blue-100/70 text-xs font-black uppercase tracking-widest mb-1">Available Balance</p>
-                       <h2 className="text-5xl font-black tracking-tighter">${balance.toLocaleString()}.00</h2>
+                       <h2 className="text-5xl font-black tracking-tighter">
+                          ${wallet?.balance?.toLocaleString() || '0'}.00
+                       </h2>
                     </div>
                     <div className="size-14 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/10">
                        <WalletIcon className="size-8 text-blue-200" />
@@ -91,11 +155,15 @@ export const WalletPage = () => {
                  <div className="flex items-center gap-10">
                     <div>
                        <p className="text-blue-100/50 text-[10px] font-bold uppercase tracking-widest mb-1">In Review / Escrow</p>
-                       <p className="text-xl font-black">$1,250.00</p>
+                       <p className="text-xl font-black">${totals.inEscrow.toLocaleString()}.00</p>
                     </div>
                     <div>
-                       <p className="text-blue-100/50 text-[10px] font-bold uppercase tracking-widest mb-1">Total {isClient ? 'Spent' : 'Earned'}</p>
-                       <p className="text-xl font-black">${isClient ? '12,400' : '8,900'}.00</p>
+                       <p className="text-blue-100/50 text-[10px] font-bold uppercase tracking-widest mb-1">
+                          Total {isClient ? 'Spent' : 'Earned'}
+                       </p>
+                       <p className="text-xl font-black">
+                          ${(isClient ? totals.spent : totals.earned).toLocaleString()}.00
+                       </p>
                     </div>
                  </div>
               </div>
@@ -196,44 +264,60 @@ export const WalletPage = () => {
                   </tr>
                </thead>
                <tbody className="divide-y divide-slate-50">
-                  {mockTransactions.map((t) => (
-                    <tr key={t.id} className="group hover:bg-slate-50/50 transition-colors">
-                       <td className="px-8 py-6">
-                          <div className="flex items-center gap-4">
-                             <div className={cn(
-                               "size-10 rounded-xl flex items-center justify-center shadow-sm",
-                               t.type === 'deposit' ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"
-                             )}>
-                                {t.type === 'deposit' ? <ArrowDownLeft className="size-5" /> : <ArrowUpRight className="size-5" />}
-                             </div>
-                             <div>
-                                <p className="text-sm font-black text-slate-900 leading-tight">{t.description}</p>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mt-1">ID: {t.id.toUpperCase()}</p>
-                             </div>
-                          </div>
-                       </td>
-                       <td className="px-8 py-6">
-                          <span className="text-xs font-bold text-slate-500">{new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                       </td>
-                       <td className="px-8 py-6">
-                          <div className={cn(
-                            "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase",
-                            t.status === 'completed' ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
-                          )}>
-                             <span className="size-1.5 rounded-full bg-current" />
-                             {t.status}
-                          </div>
-                       </td>
-                       <td className="px-8 py-6 text-right">
-                          <span className={cn(
-                            "text-base font-black",
-                            t.type === 'deposit' ? "text-emerald-600" : "text-slate-900"
-                          )}>
-                             {t.type === 'deposit' ? '+' : '-'}${t.amount.toLocaleString()}.00
-                          </span>
-                       </td>
+                  {transactions.map((t) => {
+                    const typeInfo = getTransactionTypeInfo(t.type);
+                    const statusInfo = getStatusInfo(t.status);
+                    return (
+                      <tr key={t.id} className="group hover:bg-slate-50/50 transition-colors">
+                         <td className="px-8 py-6">
+                            <div className="flex items-center gap-4">
+                               <div className={cn(
+                                 "size-10 rounded-xl flex items-center justify-center shadow-sm",
+                                 typeInfo.bg,
+                                 typeInfo.color
+                               )}>
+                                  <typeInfo.icon className="size-5" />
+                               </div>
+                               <div>
+                                  <p className="text-sm font-black text-slate-900 leading-tight">
+                                     {t.description || typeInfo.label}
+                                  </p>
+                                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mt-1">ID: {t.id.toUpperCase()}</p>
+                               </div>
+                            </div>
+                         </td>
+                         <td className="px-8 py-6">
+                            <span className="text-xs font-bold text-slate-500">
+                               {new Date(t.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </span>
+                         </td>
+                         <td className="px-8 py-6">
+                            <div className={cn(
+                              "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase",
+                              statusInfo.color
+                            )}>
+                               <span className="size-1.5 rounded-full bg-current" />
+                               {statusInfo.label}
+                            </div>
+                         </td>
+                         <td className="px-8 py-6 text-right">
+                            <span className={cn(
+                              "text-base font-black",
+                              (t.type === 0 || t.type === 3) ? "text-emerald-600" : "text-slate-900"
+                            )}>
+                               {(t.type === 0 || t.type === 3) ? '+' : '-'}${t.amount.toLocaleString()}.00
+                            </span>
+                         </td>
+                      </tr>
+                    );
+                  })}
+                  {transactions.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="px-8 py-10 text-center text-slate-400 font-medium">
+                        No transactions found.
+                      </td>
                     </tr>
-                  ))}
+                  )}
                </tbody>
             </table>
             

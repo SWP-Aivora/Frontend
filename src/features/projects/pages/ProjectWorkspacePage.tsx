@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { KanbanBoard } from '../components/KanbanBoard';
-import type { Milestone, Project } from '../types';
+import type { Milestone } from '../types';
+import { projectService } from '../services';
 import { 
   ChevronLeft, 
   Settings, 
@@ -16,55 +18,48 @@ import {
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { useAuthStore } from '@/features/auth/store';
-import { Role } from '@/shared/types/enums';
+import { Role, ProjectStatus } from '@/shared/types/enums';
 import { cn } from '@/lib/utils';
 
 export const ProjectWorkspacePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const [project, setProject] = useState<Project | null>(null);
-  const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [selectedMilestone, setSelectedMilestone] = useState<Milestone | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    // Mocking project and milestones data
-    const fetchData = async () => {
-      setIsLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setProject({
-        id: id!,
-        title: 'Computer Vision Model for Medical Imaging',
-        description: 'Advanced classification model for retina fundus images.',
-        status: 2, // In Progress
-        clientId: 'c1',
-        expertId: 'e1',
-        client: { id: 'c1', fullName: 'HealthTech Inc.', avatarUrl: null, role: Role.CLIENT },
-        expert: { id: 'e1', fullName: 'Dr. Alex Rivera', avatarUrl: null, role: Role.EXPERT },
-        totalBudget: 5000,
-        remainingBudget: 3500,
-        startDate: new Date().toISOString(),
-        endDate: null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        milestones: []
-      });
+  const { data: projectResponse, isLoading: isLoadingProject } = useQuery({
+    queryKey: ['project', id],
+    queryFn: () => projectService.getProjectById(id!),
+    enabled: !!id,
+  });
 
-      setMilestones([
-        { id: 'm1', title: 'Data Preprocessing', amount: 1500, status: 3, orderIndex: 0, dueDate: null, dueDays: 2, acceptanceCriteria: null, description: 'Cleaning and normalizing the dataset.', projectId: id!, createdAt: '', updatedAt: '' },
-        { id: 'm2', title: 'Model Architecture Design', amount: 1000, status: 2, orderIndex: 1, dueDate: null, dueDays: 3, acceptanceCriteria: null, description: 'Defining the CNN layers.', projectId: id!, createdAt: '', updatedAt: '' },
-        { id: 'm3', title: 'Initial Training Run', amount: 1500, status: 1, orderIndex: 2, dueDate: null, dueDays: 7, acceptanceCriteria: null, description: 'First epoch training.', projectId: id!, createdAt: '', updatedAt: '' },
-        { id: 'm4', title: 'Final Validation & Report', amount: 1000, status: 0, orderIndex: 3, dueDate: null, dueDays: 5, acceptanceCriteria: null, description: '95% accuracy verification.', projectId: id!, createdAt: '', updatedAt: '' },
-      ]);
-      
-      setIsLoading(false);
-    };
-    fetchData();
-  }, [id]);
+  const { data: milestonesResponse, isLoading: isLoadingMilestones } = useQuery({
+    queryKey: ['milestones', id],
+    queryFn: () => projectService.getMilestonesByProject(id!),
+    enabled: !!id,
+  });
+
+  const project = projectResponse?.data;
+  const milestones = milestonesResponse?.data || [];
+  const isLoading = isLoadingProject || isLoadingMilestones;
 
   const handleMilestoneClick = (milestone: Milestone) => setSelectedMilestone(milestone);
+
+  const getStatusLabel = (status: ProjectStatus) => {
+    switch (status) {
+      case ProjectStatus.IN_PROGRESS: return 'In Progress';
+      case ProjectStatus.COMPLETED: return 'Completed';
+      case ProjectStatus.PENDING_FUNDING: return 'Pending Funding';
+      case ProjectStatus.CANCELLED: return 'Cancelled';
+      case ProjectStatus.DISPUTED: return 'Disputed';
+      default: return 'Draft';
+    }
+  };
+
+  const getKanbanRole = () => {
+    if (user?.role === Role.CLIENT || user?.role === Role.ADMIN) return 'CLIENT';
+    return 'EXPERT';
+  };
 
   if (isLoading) {
     return (
@@ -90,7 +85,7 @@ export const ProjectWorkspacePage = () => {
           <div className="flex items-center gap-4">
              <h1 className="text-3xl font-black text-slate-900 tracking-tight">{project?.title}</h1>
              <div className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-wider border border-blue-100">
-                In Progress
+                {project ? getStatusLabel(project.status) : 'Unknown'}
              </div>
           </div>
           <p className="text-sm text-slate-500 font-medium max-w-2xl">{project?.description}</p>
@@ -121,7 +116,7 @@ export const ProjectWorkspacePage = () => {
                      <DollarSign className="size-5 text-emerald-600" />
                   </div>
                   <div>
-                     <p className="text-lg font-black text-slate-900 leading-none">${project?.totalBudget}</p>
+                     <p className="text-lg font-black text-slate-900 leading-none">${project?.totalBudget?.toLocaleString()}</p>
                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Total Contract</p>
                   </div>
                </div>
@@ -130,16 +125,18 @@ export const ProjectWorkspacePage = () => {
                      <Calendar className="size-5 text-blue-600" />
                   </div>
                   <div>
-                     <p className="text-lg font-black text-slate-900 leading-none">June 30</p>
+                     <p className="text-lg font-black text-slate-900 leading-none">
+                        {project?.endDate ? new Date(project.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'}
+                     </p>
                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Target Deadline</p>
                   </div>
                </div>
             </div>
 
             <div className="flex -space-x-3">
-               {[project?.client, project?.expert].map((u, i) => (
+               {[project?.client, project?.expert].filter(Boolean).map((u, i) => (
                  <div key={i} className="size-10 rounded-full border-4 border-slate-50 bg-slate-200 flex items-center justify-center overflow-hidden shadow-sm" title={u?.fullName}>
-                    {u?.avatarUrl ? <img src={u.avatarUrl} className="size-full object-cover" /> : <span className="text-xs font-black">{u?.fullName.charAt(0)}</span>}
+                    {u?.avatarUrl ? <img src={u.avatarUrl} className="size-full object-cover" /> : <span className="text-xs font-black">{u?.fullName?.charAt(0)}</span>}
                  </div>
                ))}
             </div>
@@ -147,7 +144,7 @@ export const ProjectWorkspacePage = () => {
 
          <KanbanBoard 
            milestones={milestones} 
-           role={user?.role === Role.CLIENT ? 'CLIENT' : 'EXPERT'}
+           role={getKanbanRole()}
            onMilestoneClick={handleMilestoneClick}
          />
       </div>
@@ -177,12 +174,12 @@ export const ProjectWorkspacePage = () => {
                  <div className="grid grid-cols-2 gap-4">
                     <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
                        <DollarSign className="size-5 text-emerald-600 mb-2" />
-                       <p className="text-lg font-black text-slate-900">${selectedMilestone.amount}</p>
+                       <p className="text-lg font-black text-slate-900">${selectedMilestone.amount?.toLocaleString()}</p>
                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Budget Locked</p>
                     </div>
                     <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
                        <Clock className="size-5 text-blue-600 mb-2" />
-                       <p className="text-lg font-black text-slate-900">5 Days</p>
+                       <p className="text-lg font-black text-slate-900">{selectedMilestone.dueDays || 0} Days</p>
                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Est. Duration</p>
                     </div>
                  </div>
@@ -193,12 +190,16 @@ export const ProjectWorkspacePage = () => {
                        Acceptance Criteria
                     </h3>
                     <ul className="space-y-3">
-                       {['Code hosted on GitHub', 'Unit tests passing (>80%)', 'Documentation provided'].map((item, idx) => (
-                         <li key={idx} className="flex items-start gap-3 text-sm text-slate-600 font-medium">
-                            <span className="size-1.5 rounded-full bg-slate-300 mt-2 shrink-0" />
-                            {item}
-                         </li>
-                       ))}
+                       {selectedMilestone.acceptanceCriteria ? (
+                         selectedMilestone.acceptanceCriteria.split('\n').map((item, idx) => (
+                           <li key={idx} className="flex items-start gap-3 text-sm text-slate-600 font-medium">
+                              <span className="size-1.5 rounded-full bg-slate-300 mt-2 shrink-0" />
+                              {item}
+                           </li>
+                         ))
+                       ) : (
+                         <li className="text-sm text-slate-400 font-medium italic">No criteria specified</li>
+                       )}
                     </ul>
                  </div>
               </div>
@@ -227,7 +228,7 @@ export const ProjectWorkspacePage = () => {
                       <CheckCircle2 className="size-6 shrink-0" />
                       <div>
                          <p className="font-black text-sm uppercase">Milestone Completed</p>
-                         <p className="text-xs font-bold opacity-80">Payment of ${selectedMilestone.amount} has been released.</p>
+                         <p className="text-xs font-bold opacity-80">Payment of ${selectedMilestone.amount?.toLocaleString()} has been released.</p>
                       </div>
                    </div>
                  )}
