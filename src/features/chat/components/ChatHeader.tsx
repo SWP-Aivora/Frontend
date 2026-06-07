@@ -34,11 +34,16 @@ export const ChatHeader = ({ recipient, type, relatedTitle, projectId }: ChatHea
     const isClient = user?.role === Role.CLIENT || location.pathname.startsWith('/client');
     const isExpert = user?.role === Role.EXPERT || location.pathname.startsWith('/expert');
     
-    // Navigate to role-specific project workspace
+    // Role-based target path
+    let target = '';
     if (isClient) {
-      navigate(`/client/projects/${projectId}/workspace`);
+      target = `/client/projects/${projectId}/workspace`;
     } else if (isExpert) {
-      navigate(`/expert/projects/${projectId}/workspace`);
+      target = `/expert/projects/${projectId}/workspace`;
+    }
+
+    if (target) {
+      navigate(target);
     }
   };
 

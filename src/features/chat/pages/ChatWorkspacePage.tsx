@@ -34,7 +34,7 @@ export const ChatWorkspacePage = () => {
     PageSize: 100
   });
   const { data: messagesData, isLoading: isLoadingMessages } = useMessages(selectedConversationId || '');
-  const markReadMutation = useMarkRead();
+  const { mutate: markAsRead } = useMarkRead();
 
   // Strictly use API data
   const conversations = useMemo(() => {
@@ -52,9 +52,9 @@ export const ChatWorkspacePage = () => {
   // Mark as read when conversation is selected and has unread messages
   useEffect(() => {
     if (selectedConversationId && selectedConversation?.unreadCount && selectedConversation.unreadCount > 0) {
-      markReadMutation.mutate(selectedConversationId);
+      markAsRead(selectedConversationId);
     }
-  }, [selectedConversationId, selectedConversation?.unreadCount, markReadMutation]);
+  }, [selectedConversationId, selectedConversation?.unreadCount, markAsRead]);
 
   // Fetch project context if projectId exists
   const { data: projectResponse } = useQuery({

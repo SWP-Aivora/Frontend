@@ -41,10 +41,14 @@ export const MessageItem = ({ message, isCurrentUser }: MessageItemProps) => {
         
         {message.type === 'FILE' ? (
           <a 
-            href={message.fileUrl} 
-            target="_blank" 
+            href={message.fileUrl || '#'} 
+            target={message.fileUrl ? "_blank" : undefined}
             rel="noopener noreferrer"
-            className="flex items-center gap-2 hover:underline"
+            className={cn(
+              "flex items-center gap-2 hover:underline",
+              !message.fileUrl && "cursor-not-allowed pointer-events-none opacity-50"
+            )}
+            onClick={(e) => !message.fileUrl && e.preventDefault()}
           >
             <div className={cn(
               "p-2 rounded-lg",
@@ -52,7 +56,7 @@ export const MessageItem = ({ message, isCurrentUser }: MessageItemProps) => {
             )}>
               <FileIcon className="w-4 h-4" />
             </div>
-            <span className="truncate max-w-[150px]">{message.fileName || 'Attached File'}</span>
+            <span className="truncate max-w-[150px]">{message.fileName || (message.fileUrl ? 'Attached File' : 'File Unavailable')}</span>
           </a>
         ) : (
           <p className="leading-relaxed whitespace-pre-wrap">{message.content}</p>

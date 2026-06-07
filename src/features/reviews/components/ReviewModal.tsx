@@ -383,6 +383,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
                       onChange={(e) => setTagInput(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
+                          e.preventDefault();
                           addTag();
                         }
                         if (e.key === 'Escape') setIsAddingTag(false);
