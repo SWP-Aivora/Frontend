@@ -55,7 +55,7 @@ export const AdminDisputeListPage: React.FC = () => {
   const hasPrevPage = metadata?.hasPreviousPage ?? false;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 bg-[#f0f4f9] -m-6 lg:-m-10 p-6 lg:p-10 min-h-screen">
+    <div className="space-y-8 animate-in fade-in duration-500">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

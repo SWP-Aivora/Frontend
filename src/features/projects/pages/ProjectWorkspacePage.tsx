@@ -71,7 +71,7 @@ export const ProjectWorkspacePage = () => {
   }
 
   return (
-    <div className="relative min-h-screen pb-20 animate-in fade-in duration-700">
+    <div className="relative pb-20 animate-in fade-in duration-700">
       {/* Top Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
         <div className="space-y-1">

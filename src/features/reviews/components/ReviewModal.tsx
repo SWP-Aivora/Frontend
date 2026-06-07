@@ -1,13 +1,15 @@
 import React from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { X, Check } from 'lucide-react';
+import { X, Check, AlertTriangle } from 'lucide-react';
 import { reviewSchema, type ReviewFormData } from '../schema';
 import { DotRating } from './StarRating';
 import { useSubmitReview } from '../hooks/useReviews';
 import { cn } from '@/lib/utils';
 import { Button } from '@/shared/components/ui/Button';
 import { Textarea } from '@/shared/components/ui/Textarea';
+import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '@/features/auth/store';
 
 interface ReviewModalProps {
   isOpen: boolean;
@@ -25,11 +27,15 @@ interface ReviewModalProps {
 }
 
 export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, projectInfo }) => {
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
   const submitReview = useSubmitReview();
   const [selectedTags, setSelectedTags] = React.useState<string[]>([]);
   const [tagInput, setTagInput] = React.useState('');
   const [isAddingTag, setIsAddingTag] = React.useState(false);
   const [isConfirmed, setIsConfirmed] = React.useState(false);
+  const [showSubmitConfirmation, setShowSubmitConfirmation] = React.useState(false);
+  const [pendingData, setPendingData] = React.useState<ReviewFormData | null>(null);
 
   const {
     control,
@@ -54,26 +60,40 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
 
   if (!isOpen) return null;
 
-  const onSubmit = (data: ReviewFormData) => {
+  const handleInitialSubmit = (data: ReviewFormData) => {
     if (!isConfirmed) return;
+    setPendingData(data);
+    setShowSubmitConfirmation(true);
+  };
+
+  const onConfirmSubmit = () => {
+    if (!pendingData) return;
     
     // Note: Tags are not in the API, so we could append them to the comment if needed
     const finalComment = selectedTags.length > 0 
-      ? `${data.comment}\n\nTags: ${selectedTags.join(', ')}`
-      : data.comment;
+      ? `${pendingData.comment}\n\nTags: ${selectedTags.join(', ')}`
+      : pendingData.comment;
 
-    submitReview.mutate(
-      {
-        ...data,
-        comment: finalComment,
-      },
-      {
-        onSuccess: () => {
-          reset();
-          onClose();
-        },
+    // Mutate with onSuccess callback for cleanup and navigation
+    submitReview.mutate({
+      ...pendingData,
+      comment: finalComment,
+    }, {
+      onSuccess: () => {
+        // Close everything only after success
+        setShowSubmitConfirmation(false);
+        reset();
+        onClose();
+        
+        // Role-based navigation
+        if (user?.role === 'EXPERT') {
+          navigate('/expert/my-jobs');
+        } else {
+          // Fallback to /client/projects for Client or if role is missing
+          navigate('/client/projects');
+        }
       }
-    );
+    });
   };
 
   const addTag = () => {
@@ -106,6 +126,38 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      {/* Actual Submit Confirmation Dialog */}
+      {showSubmitConfirmation && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-200">
+          <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full mx-4 border border-slate-100 animate-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertTriangle className="w-8 h-8 text-blue-600" />
+            </div>
+            <h3 className="text-xl font-black text-slate-900 text-center mb-2">Confirm Submission</h3>
+            <p className="text-slate-500 text-center text-sm font-medium leading-relaxed mb-8">
+              Are you sure you want to submit this review? After submitting, the project may be marked as completed if the backend confirms it.
+            </p>
+            <div className="flex flex-col gap-3">
+              <Button
+                onClick={onConfirmSubmit}
+                disabled={submitReview.isPending}
+                className="w-full bg-[#1f6eeb] hover:bg-[#1656c0] text-white rounded-2xl font-bold h-12 shadow-lg shadow-blue-200"
+              >
+                {submitReview.isPending ? 'Submitting...' : 'Confirm & Submit'}
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => setShowSubmitConfirmation(false)}
+                disabled={submitReview.isPending}
+                className="w-full text-slate-500 hover:text-slate-900 font-bold h-12"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white border border-[#c7dbf5] shadow-2xl rounded-[18px] w-full max-w-[720px] max-h-[90vh] overflow-y-auto relative animate-in fade-in zoom-in duration-200">
         {/* Modal Header Wash */}
         <div className="absolute top-0 left-0 w-full h-[154px] bg-[rgba(227,240,255,0.9)] rounded-t-[18px] -z-10" />
@@ -118,7 +170,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
                 Completed project
               </span>
               <span className="px-3 py-1 bg-[#e0f0ff] text-[#123b9e] text-[10px] font-semibold rounded-full">
-                Role: Client
+                Role: {user?.role || 'Client'}
               </span>
             </div>
             <button onClick={onClose} className="text-[#94a6bd] hover:text-[#091329] transition-colors">
@@ -175,7 +227,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
             </div>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+          <form onSubmit={handleSubmit(handleInitialSubmit)} className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* Overall Rating */}
               <div className="space-y-4">

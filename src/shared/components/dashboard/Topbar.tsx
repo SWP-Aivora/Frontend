@@ -1,5 +1,6 @@
 import { Bell, Menu, Search, User, LogOut } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/store';
+import { useNavigate } from 'react-router-dom';
 
 interface TopbarProps {
   onMenuClick: () => void;
@@ -7,6 +8,20 @@ interface TopbarProps {
 
 export const Topbar = ({ onMenuClick }: TopbarProps) => {
   const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
+
+  const handleProfileClick = () => {
+    if (user?.role) {
+      navigate(`/${user.role.toLowerCase()}/profile`);
+    }
+  };
+
+  const handleNotificationsClick = () => {
+    // Navigate to role-specific dashboard for now as notification page is not implemented
+    if (user?.role) {
+      navigate(`/${user.role.toLowerCase()}`);
+    }
+  };
 
   return (
     <header className="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-8 sticky top-0 z-30 shadow-sm">
@@ -31,7 +46,10 @@ export const Topbar = ({ onMenuClick }: TopbarProps) => {
 
       <div className="flex items-center gap-5">
         {/* Notifications */}
-        <button className="relative p-2.5 rounded-xl hover:bg-slate-50 text-slate-500 hover:text-primary transition-all duration-300">
+        <button 
+          onClick={handleNotificationsClick}
+          className="relative p-2.5 rounded-xl hover:bg-slate-50 text-slate-500 hover:text-primary transition-all duration-300"
+        >
           <Bell className="size-5" />
           <span className="absolute top-2 right-2 size-2 bg-destructive border-2 border-white rounded-full" />
         </button>
@@ -40,7 +58,10 @@ export const Topbar = ({ onMenuClick }: TopbarProps) => {
 
         <div className="flex items-center gap-2">
           {/* User Profile */}
-          <div className="flex items-center gap-3 pl-2 group cursor-pointer">
+          <div 
+            onClick={handleProfileClick}
+            className="flex items-center gap-3 pl-2 group cursor-pointer"
+          >
             <div className="text-right hidden sm:block">
               <p className="text-sm font-black text-slate-900 leading-none">{user?.fullName || 'User Name'}</p>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mt-1">{user?.role || 'Role'}</p>

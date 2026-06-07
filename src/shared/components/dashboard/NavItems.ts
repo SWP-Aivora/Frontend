@@ -44,6 +44,7 @@ export const NAV_ITEMS: Record<string, NavItem[]> = {
     { label: 'User Management', href: '/admin/users', icon: Users },
     { label: 'Expert Verification', href: '/admin/verification', icon: Briefcase },
     { label: 'Disputes', href: '/admin/disputes', icon: ShieldAlert },
+    { label: 'Messages', href: '/admin/messages', icon: MessageSquare },
     { label: 'System Settings', href: '/admin/settings', icon: Settings },
   ],
 };

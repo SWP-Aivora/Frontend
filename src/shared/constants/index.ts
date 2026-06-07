@@ -47,4 +47,10 @@ export const API_ENDPOINTS = {
     EVIDENCE: (id: string | number) => `/api/v1/disputes/${id}/evidence`,
     RESOLVE: (id: string | number) => `/api/v1/disputes/${id}/resolve`,
   },
+  MESSAGES: {
+    CONVERSATIONS: '/api/v1/conversations',
+    MESSAGES: (id: string) => `/api/v1/conversations/${id}/messages`,
+    READ: (id: string) => `/api/v1/conversations/${id}/read`,
+    INIT: '/api/v1/conversations/init',
+  },
 } as const;
