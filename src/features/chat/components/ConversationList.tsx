@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Input } from '@/shared/components/ui/Input';
 import type { Conversation } from '../types';
@@ -13,6 +12,8 @@ interface ConversationListProps {
   isLoading: boolean;
   isCollapsed: boolean;
   onToggle: () => void;
+  searchTerm: string;
+  onSearchChange: (value: string) => void;
 }
 
 export const ConversationList = ({ 
@@ -21,15 +22,10 @@ export const ConversationList = ({
   onSelect, 
   isLoading,
   isCollapsed,
-  onToggle
+  onToggle,
+  searchTerm,
+  onSearchChange
 }: ConversationListProps) => {
-  const [searchTerm, setSearchTerm] = useState('');
-
-  const filteredConversations = conversations.filter(c => 
-    c.recipient.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.relatedTitle?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   return (
     <div className={cn(
       "flex flex-col h-full bg-white border-r border-slate-200 transition-all duration-300 ease-in-out relative",
@@ -64,7 +60,7 @@ export const ConversationList = ({
                 placeholder="Search conversations..." 
                 className="pl-9 bg-slate-50 border-none h-10 rounded-xl focus-visible:ring-1"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => onSearchChange(e.target.value)}
               />
             </div>
           </>
@@ -76,8 +72,8 @@ export const ConversationList = ({
           <div className="p-4 text-center text-slate-500 text-sm">
             {isCollapsed ? '...' : 'Loading conversations...'}
           </div>
-        ) : filteredConversations.length > 0 ? (
-          filteredConversations.map(conversation => (
+        ) : conversations.length > 0 ? (
+          conversations.map(conversation => (
             <ConversationItem
               key={conversation.id}
               conversation={conversation}

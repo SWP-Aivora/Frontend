@@ -1,24 +1,41 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ConversationList } from '../components/ConversationList';
 import { ChatBox } from '../components/ChatBox';
 import { ChatHeader } from '../components/ChatHeader';
 import { EmptyState } from '../components/EmptyState';
 import { useConversations } from '../hooks/useConversations';
-import { useMessages, useSendMessage } from '../hooks/useMessages';
+import { useMessages, useSendMessage, useMarkRead } from '../hooks/useMessages';
 import type { Conversation } from '../types';
-import { FileText, Download, Info, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Info, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { cn } from '@/lib/utils';
+import { useQuery } from '@tanstack/react-query';
+import { projectService } from '@/features/projects/services';
 
 export const ChatWorkspacePage = () => {
   const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
   
   // Real API hooks
-  const { data: conversationsData, isLoading: isLoadingConversations } = useConversations();
+  const { data: conversationsData, isLoading: isLoadingConversations } = useConversations({ 
+    SearchTerm: debouncedSearch,
+    PageIndex: 1,
+    PageSize: 100
+  });
   const { data: messagesData, isLoading: isLoadingMessages } = useMessages(selectedConversationId || '');
   const sendMessageMutation = useSendMessage();
+  const markReadMutation = useMarkRead();
 
   // Strictly use API data
   const conversations = useMemo(() => {
@@ -33,9 +50,33 @@ export const ChatWorkspacePage = () => {
     return selectedConversationId ? (messagesData?.data ?? []) : [];
   }, [messagesData, selectedConversationId]);
 
-  const handleSendMessage = (content: string) => {
+  // Mark as read when conversation is selected and has unread messages
+  useEffect(() => {
+    if (selectedConversationId && selectedConversation?.unreadCount && selectedConversation.unreadCount > 0) {
+      markReadMutation.mutate(selectedConversationId);
+    }
+  }, [selectedConversationId, selectedConversation?.unreadCount, markReadMutation]);
+
+  // Fetch project context if projectId exists
+  const { data: projectResponse } = useQuery({
+    queryKey: ['project', selectedConversation?.projectId],
+    queryFn: () => projectService.getProjectById(selectedConversation!.projectId!),
+    enabled: !!selectedConversation?.projectId,
+  });
+
+  const { data: milestonesResponse } = useQuery({
+    queryKey: ['milestones', selectedConversation?.projectId],
+    queryFn: () => projectService.getMilestonesByProject(selectedConversation!.projectId!),
+    enabled: !!selectedConversation?.projectId,
+  });
+
+  const project = projectResponse?.data;
+  const milestones = milestonesResponse?.data ?? [];
+  const currentMilestone = milestones.find(m => m.status === 1 || m.status === 2) || milestones[0];
+
+  const handleSendMessage = async (content: string) => {
     if (selectedConversationId) {
-      sendMessageMutation.mutate({ conversationId: selectedConversationId, content });
+      await sendMessageMutation.mutateAsync({ conversationId: selectedConversationId, content });
     }
   };
 
@@ -49,6 +90,8 @@ export const ChatWorkspacePage = () => {
         isLoading={isLoadingConversations}
         isCollapsed={isSidebarCollapsed}
         onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
       />
 
       {/* Main Workspace Wrapper (Middle + Right) */}
@@ -103,43 +146,47 @@ export const ChatWorkspacePage = () => {
               <div className="p-6 border-b border-slate-100">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="font-black text-slate-900 tracking-tight uppercase text-xs">Project Context</h3>
-                  <div className="flex items-center gap-2">
-                    <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded uppercase">ACTIVE</span>
-                  </div>
+                  {project && (
+                    <div className="flex items-center gap-2">
+                      <span className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded uppercase">
+                        {project.status === 1 ? 'Active' : 'Pending'}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 
-                <div className="space-y-6">
-                  <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Project Title</p>
-                    <p className="text-sm font-black text-slate-900 leading-tight">{selectedConversation.relatedTitle}</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Current Milestone</p>
-                    <p className="text-sm font-bold text-slate-800">Conversation Flow Design</p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
+                {project ? (
+                  <div className="space-y-6">
                     <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Payment</p>
-                      <p className="text-xs font-bold text-slate-900 bg-blue-50 px-2 py-1 rounded inline-block">HELD</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Project Title</p>
+                      <p className="text-sm font-black text-slate-900 leading-tight">{project.title}</p>
                     </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Deadline</p>
-                      <p className="text-xs font-bold text-slate-900">June 12</p>
-                    </div>
-                  </div>
+                    
+                    {currentMilestone && (
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Current Milestone</p>
+                        <p className="text-sm font-bold text-slate-800">{currentMilestone.title}</p>
+                      </div>
+                    )}
 
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Progress</p>
-                      <span className="text-[10px] font-black text-blue-600">62%</span>
-                    </div>
-                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200/50">
-                      <div className="h-full bg-blue-600 rounded-full" style={{ width: '62%' }}></div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Total Budget</p>
+                        <p className="text-xs font-bold text-slate-900 bg-blue-50 px-2 py-1 rounded inline-block">
+                          ${project.totalBudget?.toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Deadline</p>
+                        <p className="text-xs font-bold text-slate-900">
+                          {project.endDate ? new Date(project.endDate).toLocaleDateString() : 'N/A'}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <p className="text-xs text-slate-500 font-medium italic">No project context available yet.</p>
+                )}
 
                 <div className="mt-8 p-4 bg-slate-50 rounded-2xl border border-slate-100">
                   <div className="flex gap-3">
@@ -154,33 +201,11 @@ export const ChatWorkspacePage = () => {
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="font-black text-slate-900 tracking-tight uppercase text-xs">Shared Files</h3>
-                  <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">3 TOTAL</span>
                 </div>
 
                 <div className="space-y-4">
-                  {[
-                    { name: 'Product Catalog.xlsx', size: '2.4 MB', type: 'XLSX' },
-                    { name: 'Conversation Flow.pdf', size: '1.1 MB', type: 'PDF' },
-                    { name: 'Testing Report.docx', size: '850 KB', type: 'DOCX' }
-                  ].map((file, i) => (
-                    <div key={i} className="flex items-center gap-3 p-2.5 rounded-2xl hover:bg-slate-50 transition-all cursor-pointer group border border-transparent hover:border-slate-100">
-                      <div className="p-2.5 bg-slate-100 rounded-xl group-hover:bg-white transition-colors border border-transparent group-hover:border-slate-100">
-                        <FileText className="w-4 h-4 text-slate-500" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[11px] font-bold text-slate-900 truncate tracking-tight">{file.name}</p>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{file.size} • {file.type}</p>
-                      </div>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 rounded-lg">
-                        <Download className="w-3.5 h-3.5 text-blue-600" />
-                      </Button>
-                    </div>
-                  ))}
+                  <p className="text-xs text-slate-500 font-medium italic">Project files will appear here when available.</p>
                 </div>
-                
-                <Button variant="ghost" className="w-full mt-6 text-[10px] font-black uppercase tracking-widest text-blue-600 hover:bg-blue-50 h-10 rounded-xl">
-                  View all files
-                </Button>
               </div>
             </div>
           </div>

@@ -35,7 +35,6 @@ export const ChatHeader = ({ recipient, type, relatedTitle, projectId }: ChatHea
     const isExpert = user?.role === Role.EXPERT || location.pathname.startsWith('/expert');
     
     // Navigate to role-specific project workspace
-    // TODO: Verify if additional project metadata is needed from backend for precise routing
     if (isClient) {
       navigate(`/client/projects/${projectId}/workspace`);
     } else if (isExpert) {

@@ -1,22 +1,27 @@
-import { useState, useRef } from 'react';
-import { Send, Paperclip } from 'lucide-react';
+import { useState } from 'react';
+import { Send } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
-
 interface MessageInputProps {
-  onSendMessage: (content: string) => void;
-  onAttachFile?: (file: File) => void;
+  onSendMessage: (content: string) => Promise<void>;
   disabled?: boolean;
 }
 
-export const MessageInput = ({ onSendMessage, onAttachFile, disabled }: MessageInputProps) => {
+export const MessageInput = ({ onSendMessage, disabled }: MessageInputProps) => {
   const [content, setContent] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isSending, setIsSending] = useState(false);
 
-  const handleSubmit = (e?: React.FormEvent) => {
+  const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (content.trim() && !disabled) {
-      onSendMessage(content.trim());
-      setContent('');
+    if (content.trim() && !disabled && !isSending) {
+      setIsSending(true);
+      try {
+        await onSendMessage(content.trim());
+        setContent('');
+      } catch {
+        // Do not clear content on error so user can retry
+      } finally {
+        setIsSending(false);
+      }
     }
   };
 
@@ -27,34 +32,13 @@ export const MessageInput = ({ onSendMessage, onAttachFile, disabled }: MessageI
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && onAttachFile) {
-      onAttachFile(file);
-    }
-  };
-
   return (
     <div className="p-3 border-t border-slate-200 bg-white">
       <form onSubmit={handleSubmit} className="relative flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-2 py-1 focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-300 transition-all">
-        <input 
-          type="file" 
-          ref={fileInputRef} 
-          onChange={handleFileChange} 
-          className="hidden" 
-        />
-        <Button 
-          type="button" 
-          variant="ghost" 
-          size="sm" 
-          className="h-8 w-8 p-0 text-slate-400 hover:text-blue-600 hover:bg-white rounded-lg shrink-0"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={disabled}
-        >
-          <Paperclip className="w-4 h-4" />
-        </Button>
-        
+        {/* Attachment button hidden in production until media upload API is fully confirmed */}
+
         <textarea
+
           placeholder="Message..."
           value={content}
           rows={1}

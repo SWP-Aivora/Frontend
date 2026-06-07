@@ -27,10 +27,17 @@ class ChatService extends BaseService<Conversation> {
 
   /**
    * Send a message
+   * Note: The POST endpoint for sending messages is not yet confirmed in the API contract (full_api.json).
+   * This implementation throws an error to avoid calling an unsupported endpoint.
    */
-  async sendMessage(conversationId: string, content: string, type: string = 'TEXT'): Promise<BaseResponse<Message>> {
-    const response = await apiClient.post<BaseResponse<Message>>(API_ENDPOINTS.MESSAGES.MESSAGES(conversationId), { content, type });
+  async sendMessage(): Promise<BaseResponse<Message>> {
+    throw new Error('Message sending is not yet available in the API contract.');
+    
+    /* 
+    // Original implementation for future reference:
+    const response = await apiClient.post<BaseResponse<Message>>(API_ENDPOINTS.MESSAGES.MESSAGES(_conversationId), { content: _content, type: _type });
     return response.data as unknown as BaseResponse<Message>;
+    */
   }
 
   /**

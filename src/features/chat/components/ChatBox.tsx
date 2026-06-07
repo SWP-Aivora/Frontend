@@ -7,7 +7,7 @@ import { useAuthStore } from '@/features/auth/store';
 interface ChatBoxProps {
   messages: Message[];
   isLoading: boolean;
-  onSendMessage: (content: string) => void;
+  onSendMessage: (content: string) => Promise<void>;
 }
 
 export const ChatBox = ({ messages, isLoading, onSendMessage }: ChatBoxProps) => {

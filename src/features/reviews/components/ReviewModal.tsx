@@ -90,7 +90,6 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
           navigate('/expert/my-jobs');
         } else {
           // Fallback to /client/projects for Client or if role is missing
-          // TODO: Verify if other roles need specific navigation
           navigate('/client/projects');
         }
       }
