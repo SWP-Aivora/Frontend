@@ -5,7 +5,6 @@ import { ChatHeader } from '../components/ChatHeader';
 import { EmptyState } from '../components/EmptyState';
 import { useConversations } from '../hooks/useConversations';
 import { useMessages, useSendMessage } from '../hooks/useMessages';
-import { MOCK_CONVERSATIONS, MOCK_MESSAGES } from '../mock';
 import type { Conversation } from '../types';
 import { FileText, Download, Info, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
@@ -21,12 +20,9 @@ export const ChatWorkspacePage = () => {
   const { data: messagesData, isLoading: isLoadingMessages } = useMessages(selectedConversationId || '');
   const sendMessageMutation = useSendMessage();
 
-  // Fallback to mock data if API is not ready/empty
+  // Strictly use API data
   const conversations = useMemo(() => {
-    if (conversationsData?.data && conversationsData.data.length > 0) {
-      return conversationsData.data;
-    }
-    return MOCK_CONVERSATIONS;
+    return conversationsData?.data ?? [];
   }, [conversationsData]);
 
   const selectedConversation = useMemo(() => 
@@ -34,10 +30,7 @@ export const ChatWorkspacePage = () => {
   [conversations, selectedConversationId]);
 
   const messages = useMemo(() => {
-    if (messagesData?.data && messagesData.data.length > 0) {
-      return messagesData.data;
-    }
-    return selectedConversationId ? (MOCK_MESSAGES[selectedConversationId] || []) : [];
+    return selectedConversationId ? (messagesData?.data ?? []) : [];
   }, [messagesData, selectedConversationId]);
 
   const handleSendMessage = (content: string) => {

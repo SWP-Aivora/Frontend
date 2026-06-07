@@ -74,20 +74,27 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
       ? `${pendingData.comment}\n\nTags: ${selectedTags.join(', ')}`
       : pendingData.comment;
 
-    // Fire and forget (mutate handles the toast on its own)
+    // Mutate with onSuccess callback for cleanup and navigation
     submitReview.mutate({
       ...pendingData,
       comment: finalComment,
+    }, {
+      onSuccess: () => {
+        // Close everything only after success
+        setShowSubmitConfirmation(false);
+        reset();
+        onClose();
+        
+        // Role-based navigation
+        if (user?.role === 'EXPERT') {
+          navigate('/expert/my-jobs');
+        } else {
+          // Fallback to /client/projects for Client or if role is missing
+          // TODO: Verify if other roles need specific navigation
+          navigate('/client/projects');
+        }
+      }
     });
-
-    // Close everything
-    setShowSubmitConfirmation(false);
-    reset();
-    onClose();
-    
-    // Navigate immediately to project list as requested
-    console.log('Navigating to: /client/projects');
-    navigate('/client/projects');
   };
 
   const addTag = () => {
