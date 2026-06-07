@@ -1,0 +1,7 @@
+│   ├── chat/                             # [BƯỚC 6] Chia team thực chiến: Trao đổi 1-1
+│   │   ├── components/                   # ConversationList, ChatBox, MessageItem
+│   │   ├── hooks/                        # useConversations, useMessages
+│   │   ├── pages/                        # ChatWorkspacePage
+│   │   ├── services.ts                   # Kết nối hệ thống endpoint /conversations, /messages
+│   │   └── types.ts                      # Cấu trúc Conversation và Message
+│   │

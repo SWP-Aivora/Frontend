@@ -12,6 +12,7 @@ import { JobDetailsPage } from '../features/jobs/pages/JobDetailsPage';
 import { ExpertMyProposalsPage } from '../features/jobs/pages/ExpertMyProposalsPage';
 import { DisputeDetailPage } from '../features/disputes/pages/DisputeDetailPage';
 import { AdminDisputeListPage } from '../features/disputes/pages/AdminDisputeListPage';
+import { ChatWorkspacePage } from '../features/chat/pages/ChatWorkspacePage';
 import { LandingPage } from '../shared/pages/LandingPage';
 import ReviewPage from '../features/reviews/pages/ReviewPage';
 import { ProtectedRoute } from '../shared/components/common/ProtectedRoute';
@@ -47,7 +48,7 @@ export const router = createBrowserRouter([
   {
     path: '/client',
     element: (
-       <ProtectedRoute allowedRoles={[Role.CLIENT]}>
+      <ProtectedRoute allowedRoles={[Role.CLIENT]}>
         <ClientLayout />
       </ProtectedRoute>
     ),
@@ -59,7 +60,7 @@ export const router = createBrowserRouter([
       { path: 'projects/:id/workspace', element: <ProjectWorkspacePage /> },
       { path: 'experts', element: <div>Search Experts Page</div> },
       { path: 'post-job', element: <PostJobPage /> },
-      { path: 'messages', element: <div>Client Messages</div> },
+      { path: 'messages', element: <ChatWorkspacePage /> },
       { path: 'wallet', element: <WalletPage /> },
       { path: 'disputes/:id', element: <DisputeDetailPage /> },
     ],
@@ -81,7 +82,7 @@ export const router = createBrowserRouter([
       { path: 'proposals', element: <ExpertMyProposalsPage /> },
       { path: 'projects/:id/workspace', element: <ProjectWorkspacePage /> },
       { path: 'my-jobs', element: <div>My Active & Completed Jobs</div> },
-      { path: 'messages', element: <div>Expert Messages</div> },
+      { path: 'messages', element: <ChatWorkspacePage /> },
       { path: 'wallet', element: <WalletPage /> },
       { path: 'disputes/:id', element: <DisputeDetailPage /> },
     ],
@@ -101,6 +102,7 @@ export const router = createBrowserRouter([
       { path: 'verification', element: <div>Expert Verification Queue</div> },
       { path: 'disputes', element: <AdminDisputeListPage /> },
       { path: 'disputes/:id', element: <DisputeDetailPage /> },
+      { path: 'messages', element: <ChatWorkspacePage /> },
       { path: 'settings', element: <div>Global System Settings</div> },
     ],
     

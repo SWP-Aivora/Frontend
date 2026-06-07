@@ -1,0 +1,70 @@
+import type { Message } from '../types';
+import { cn } from '@/lib/utils';
+import { FileIcon } from 'lucide-react';
+
+interface MessageItemProps {
+  message: Message;
+  isCurrentUser: boolean;
+}
+
+export const MessageItem = ({ message, isCurrentUser }: MessageItemProps) => {
+  const formatTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  if (message.type === 'SYSTEM') {
+    return (
+      <div className="flex justify-center my-4">
+        <span className="bg-orange-50 text-orange-600 text-[10px] font-semibold px-3 py-1 rounded-full border border-orange-200 uppercase tracking-wider">
+          {message.content}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn(
+      "flex flex-col mb-4",
+      isCurrentUser ? "items-end" : "items-start"
+    )}>
+      <div className={cn(
+        "max-w-[70%] rounded-2xl px-4 py-2.5 shadow-sm text-sm",
+        isCurrentUser 
+          ? "bg-blue-600 text-white rounded-tr-none" 
+          : "bg-white text-slate-900 border border-slate-100 rounded-tl-none"
+      )}>
+        {!isCurrentUser && (
+          <p className="text-[10px] font-bold mb-1 opacity-70">
+            {message.senderName}
+          </p>
+        )}
+        
+        {message.type === 'FILE' ? (
+          <a 
+            href={message.fileUrl} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 hover:underline"
+          >
+            <div className={cn(
+              "p-2 rounded-lg",
+              isCurrentUser ? "bg-blue-500" : "bg-slate-100"
+            )}>
+              <FileIcon className="w-4 h-4" />
+            </div>
+            <span className="truncate max-w-[150px]">{message.fileName || 'Attached File'}</span>
+          </a>
+        ) : (
+          <p className="leading-relaxed whitespace-pre-wrap">{message.content}</p>
+        )}
+        
+        <div className={cn(
+          "text-[10px] mt-1 text-right",
+          isCurrentUser ? "text-blue-100" : "text-slate-400"
+        )}>
+          {formatTime(message.createdAt)}
+        </div>
+      </div>
+    </div>
+  );
+};

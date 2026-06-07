@@ -8,7 +8,7 @@ const ASSETS = {
 
 export const PostJobPage = () => {
   return (
-    <div className="space-y-10">
+    <div className="space-y-10 animate-in fade-in duration-500">
       {/* Hero Section */}
       <div className="bg-white border border-slate-100 rounded-[40px] p-10 shadow-2xl relative overflow-hidden">
         <div className="absolute -right-20 -top-20 size-96 pointer-events-none opacity-40">

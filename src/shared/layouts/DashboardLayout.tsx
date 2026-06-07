@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from '../components/dashboard/Sidebar';
 import { Topbar } from '../components/dashboard/Topbar';
 import { NAV_ITEMS } from '../components/dashboard/NavItems';
 import { Role } from '@/shared/types/enums';
+import { cn } from '@/lib/utils';
 
 interface DashboardLayoutProps {
   role: Role;
@@ -12,12 +13,15 @@ interface DashboardLayoutProps {
 export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const location = useLocation();
   const items = NAV_ITEMS[role] || [];
 
+  const isMessagePage = location.pathname.endsWith('/messages');
+
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="h-screen bg-slate-50 flex overflow-hidden">
       {/* Desktop Sidebar */}
-      <div className="hidden lg:flex shrink-0 sticky top-0 h-screen">
+      <div className="hidden lg:flex shrink-0 sticky top-0 h-screen overflow-visible z-40">
         <Sidebar 
           items={items} 
           collapsed={collapsed} 
@@ -48,8 +52,14 @@ export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar onMenuClick={() => setMobileMenuOpen(true)} />
         
-        <main className="flex-1 p-6 lg:p-10 overflow-y-auto">
-          <div className="max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <main className={cn(
+          "flex-1 overflow-y-auto",
+          !isMessagePage && "p-6 lg:p-10"
+        )}>
+          <div className={cn(
+            "animate-in fade-in slide-in-from-bottom-4 duration-700",
+            isMessagePage ? "h-full" : "max-w-screen-2xl mx-auto"
+          )}>
             <Outlet />
           </div>
         </main>
