@@ -27,7 +27,7 @@ export const useMarkRead = () => {
 
   return useMutation({
     mutationFn: (conversationId: string) => chatService.markAsRead(conversationId),
-    onSuccess: (_, _conversationId) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       // Optionally invalidate specific unread counts if any
     },

@@ -6,6 +6,7 @@ import { EmptyState } from '../components/EmptyState';
 import { useConversations } from '../hooks/useConversations';
 import { useMessages, useSendMessage } from '../hooks/useMessages';
 import { MOCK_CONVERSATIONS, MOCK_MESSAGES } from '../mock';
+import type { Conversation } from '../types';
 import { FileText, Download, Info, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { cn } from '@/lib/utils';
@@ -29,7 +30,7 @@ export const ChatWorkspacePage = () => {
   }, [conversationsData]);
 
   const selectedConversation = useMemo(() => 
-    conversations.find((c: any) => c.id === selectedConversationId),
+    conversations.find((c: Conversation) => c.id === selectedConversationId),
   [conversations, selectedConversationId]);
 
   const messages = useMemo(() => {
