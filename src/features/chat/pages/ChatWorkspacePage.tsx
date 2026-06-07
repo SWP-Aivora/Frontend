@@ -37,6 +37,9 @@ export const ChatWorkspacePage = () => {
   const sendMessageMutation = useSendMessage();
   const markReadMutation = useMarkRead();
 
+  // Message sending is not yet available in the API contract
+  const canSendMessages = false;
+
   // Strictly use API data
   const conversations = useMemo(() => {
     return conversationsData?.data ?? [];
@@ -111,6 +114,7 @@ export const ChatWorkspacePage = () => {
                 messages={messages} 
                 isLoading={isLoadingMessages} 
                 onSendMessage={handleSendMessage}
+                canSendMessages={canSendMessages}
               />
             </>
           ) : (

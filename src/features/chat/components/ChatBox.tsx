@@ -8,9 +8,10 @@ interface ChatBoxProps {
   messages: Message[];
   isLoading: boolean;
   onSendMessage: (content: string) => Promise<void>;
+  canSendMessages?: boolean;
 }
 
-export const ChatBox = ({ messages, isLoading, onSendMessage }: ChatBoxProps) => {
+export const ChatBox = ({ messages, isLoading, onSendMessage, canSendMessages = true }: ChatBoxProps) => {
   const { user } = useAuthStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -47,7 +48,7 @@ export const ChatBox = ({ messages, isLoading, onSendMessage }: ChatBoxProps) =>
         )}
       </div>
 
-      <MessageInput onSendMessage={onSendMessage} disabled={isLoading} />
+      <MessageInput onSendMessage={onSendMessage} disabled={isLoading || !canSendMessages} />
     </div>
   );
 };

@@ -143,6 +143,17 @@ describe('Chat Feature', () => {
       expect(screen.getByRole('button')).toBeDisabled();
     });
 
+    it('shows unavailable message and disables input when disabled prop is true', () => {
+      render(
+        <MessageInput onSendMessage={vi.fn()} disabled={true} />,
+        { wrapper }
+      );
+      
+      expect(screen.getByText(/message sending is not available yet/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/sending disabled/i)).toBeDisabled();
+      expect(screen.getByRole('button')).toBeDisabled();
+    });
+
     it('hides attachment button (paperclip) as upload is not implemented', () => {
       render(
         <MessageInput onSendMessage={vi.fn()} disabled={false} />,
