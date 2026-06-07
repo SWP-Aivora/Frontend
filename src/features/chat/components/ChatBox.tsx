@@ -7,11 +7,11 @@ import { useAuthStore } from '@/features/auth/store';
 interface ChatBoxProps {
   messages: Message[];
   isLoading: boolean;
-  onSendMessage: (content: string) => Promise<void>;
-  canSendMessages?: boolean;
+  onSendMessage?: (content: string) => Promise<void>;
+  readOnlyReason?: string;
 }
 
-export const ChatBox = ({ messages, isLoading, onSendMessage, canSendMessages = true }: ChatBoxProps) => {
+export const ChatBox = ({ messages, isLoading, onSendMessage, readOnlyReason }: ChatBoxProps) => {
   const { user } = useAuthStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -43,12 +43,20 @@ export const ChatBox = ({ messages, isLoading, onSendMessage, canSendMessages = 
           </>
         ) : (
           <div className="flex items-center justify-center h-full">
-            <span className="text-slate-500 text-sm">No messages yet. Say hello!</span>
+            <span className="text-slate-500 text-sm">No messages yet.</span>
           </div>
         )}
       </div>
 
-      <MessageInput onSendMessage={onSendMessage} disabled={isLoading || !canSendMessages} />
+      {readOnlyReason ? (
+        <div className="p-4 border-t border-slate-200 bg-white">
+          <p className="text-xs text-slate-500 font-medium text-center italic">
+            {readOnlyReason}
+          </p>
+        </div>
+      ) : onSendMessage && (
+        <MessageInput onSendMessage={onSendMessage} disabled={isLoading} />
+      )}
     </div>
   );
 };

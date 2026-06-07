@@ -4,7 +4,7 @@ import { ChatBox } from '../components/ChatBox';
 import { ChatHeader } from '../components/ChatHeader';
 import { EmptyState } from '../components/EmptyState';
 import { useConversations } from '../hooks/useConversations';
-import { useMessages, useSendMessage, useMarkRead } from '../hooks/useMessages';
+import { useMessages, useMarkRead } from '../hooks/useMessages';
 import type { Conversation } from '../types';
 import { Info, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
@@ -34,11 +34,7 @@ export const ChatWorkspacePage = () => {
     PageSize: 100
   });
   const { data: messagesData, isLoading: isLoadingMessages } = useMessages(selectedConversationId || '');
-  const sendMessageMutation = useSendMessage();
   const markReadMutation = useMarkRead();
-
-  // Message sending is not yet available in the API contract
-  const canSendMessages = false;
 
   // Strictly use API data
   const conversations = useMemo(() => {
@@ -77,12 +73,6 @@ export const ChatWorkspacePage = () => {
   const milestones = milestonesResponse?.data ?? [];
   const currentMilestone = milestones.find(m => m.status === 1 || m.status === 2) || milestones[0];
 
-  const handleSendMessage = async (content: string) => {
-    if (selectedConversationId) {
-      await sendMessageMutation.mutateAsync({ conversationId: selectedConversationId, content });
-    }
-  };
-
   return (
     <div className="h-[calc(100vh-80px)] bg-white flex overflow-hidden border-t border-slate-200">
       {/* Left Column: Conversation List */}
@@ -113,8 +103,7 @@ export const ChatWorkspacePage = () => {
               <ChatBox 
                 messages={messages} 
                 isLoading={isLoadingMessages} 
-                onSendMessage={handleSendMessage}
-                canSendMessages={canSendMessages}
+                readOnlyReason="Messaging is read-only until the backend send endpoint is available."
               />
             </>
           ) : (
