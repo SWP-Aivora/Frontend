@@ -9,17 +9,14 @@ interface SidebarProps {
   setCollapsed: (collapsed: boolean) => void;
 }
 
-const ASSETS = {
-  logoCircle: "https://www.figma.com/api/mcp/asset/7d5ca9a5-19fa-4c3f-816b-14a9c0a0f910",
-};
-
 export const Sidebar = ({ items, collapsed, setCollapsed }: SidebarProps) => {
   const location = useLocation();
 
   return (
     <aside 
       className={cn(
-        "bg-white border-r border-slate-100 flex flex-col transition-all duration-300 relative z-40 shadow-sm overflow-visible",
+        "bg-white border-r border-slate-100 flex flex-col transition-all duration-300 relative z-40 shadow-sm overflow-visible h-full",
+        // w-0 is intentional to fully hide the sidebar and maximize workspace when collapsed
         collapsed ? "w-0 border-r-0" : "w-72"
       )}
     >
@@ -27,7 +24,7 @@ export const Sidebar = ({ items, collapsed, setCollapsed }: SidebarProps) => {
       <button 
         onClick={() => setCollapsed(!collapsed)}
         className={cn(
-          "absolute top-10 size-8 bg-white border border-slate-200 rounded-full flex items-center justify-center shadow-md hover:shadow-xl hover:text-primary transition-all z-50",
+          "absolute top-6 size-8 bg-white border border-slate-200 rounded-full flex items-center justify-center shadow-md hover:shadow-xl hover:text-primary transition-all z-50",
           collapsed 
             ? "left-6 -translate-x-1/2" 
             : "right-0 translate-x-1/2"
@@ -43,17 +40,6 @@ export const Sidebar = ({ items, collapsed, setCollapsed }: SidebarProps) => {
       )}
       style={{ width: collapsed ? 0 : '18rem' }}
       >
-        {/* Brand Header */}
-        <div className="p-6 flex items-center gap-3 shrink-0">
-           <Link to="/" className="flex items-center gap-3 group shrink-0">
-              <div className="relative size-10 shrink-0">
-                <img src={ASSETS.logoCircle} alt="AIVORA" className="size-full" />
-                <span className="absolute inset-0 flex items-center justify-center font-bold text-white text-lg">A</span>
-              </div>
-              <span className="text-xl font-bold tracking-tight text-brand-blue-dark">AIVORA</span>
-           </Link>
-        </div>
-
         {/* Navigation Menu */}
         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto custom-scrollbar overflow-x-hidden">
           {items.map((item) => {

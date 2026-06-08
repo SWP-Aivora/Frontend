@@ -53,4 +53,8 @@ export const API_ENDPOINTS = {
     READ: (id: string) => `/api/v1/conversations/${id}/read`,
     INIT: '/api/v1/conversations/init',
   },
+  ADMIN: {
+    DASHBOARD_SUMMARY: '/api/v1/admin/dashboard/summary',
+    USERS: '/api/v1/admin/users',
+  },
 } as const;

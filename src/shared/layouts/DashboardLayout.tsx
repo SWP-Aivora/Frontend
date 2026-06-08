@@ -19,41 +19,42 @@ export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
   const isMessagePage = location.pathname.endsWith('/messages');
 
   return (
-    <div className="h-screen bg-slate-50 flex overflow-hidden">
-      {/* Desktop Sidebar */}
-      <div className="hidden lg:flex shrink-0 sticky top-0 h-screen overflow-visible z-40">
-        <Sidebar 
-          items={items} 
-          collapsed={collapsed} 
-          setCollapsed={setCollapsed} 
-        />
-      </div>
+    <div className="h-screen bg-slate-50 flex flex-col overflow-hidden">
+      {/* Topbar spans full width */}
+      <Topbar onMenuClick={() => setMobileMenuOpen(true)} />
 
-      {/* Mobile Sidebar Overlay */}
-      {mobileMenuOpen && (
-        <div 
-          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 lg:hidden animate-in fade-in duration-300"
-          onClick={() => setMobileMenuOpen(false)}
-        >
-          <div 
-            className="w-72 h-full bg-white animate-in slide-in-from-left duration-300"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Sidebar 
-              items={items} 
-              collapsed={false} 
-              setCollapsed={() => setMobileMenuOpen(false)} 
-            />
-          </div>
+      <div className="flex-1 flex overflow-hidden">
+        {/* Desktop Sidebar */}
+        <div className="hidden lg:flex shrink-0 h-full overflow-visible z-40 relative">
+          <Sidebar 
+            items={items} 
+            collapsed={collapsed} 
+            setCollapsed={setCollapsed} 
+          />
         </div>
-      )}
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <Topbar onMenuClick={() => setMobileMenuOpen(true)} />
-        
+        {/* Mobile Sidebar Overlay */}
+        {mobileMenuOpen && (
+          <div 
+            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 lg:hidden animate-in fade-in duration-300"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            <div 
+              className="w-72 h-full bg-white animate-in slide-in-from-left duration-300"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Sidebar 
+                items={items} 
+                collapsed={false} 
+                setCollapsed={() => setMobileMenuOpen(false)} 
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Main Content Area */}
         <main className={cn(
-          "flex-1 overflow-y-auto",
+          "flex-1 overflow-y-auto min-w-0",
           !isMessagePage && "p-6 lg:p-10"
         )}>
           <div className={cn(
