@@ -16,6 +16,7 @@ export const Sidebar = ({ items, collapsed, setCollapsed }: SidebarProps) => {
     <aside 
       className={cn(
         "bg-white border-r border-slate-100 flex flex-col transition-all duration-300 relative z-40 shadow-sm overflow-visible h-full",
+        // w-0 is intentional to fully hide the sidebar and maximize workspace when collapsed
         collapsed ? "w-0 border-r-0" : "w-72"
       )}
     >

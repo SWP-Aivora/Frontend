@@ -1,3 +1,10 @@
+/**
+ * TODO: Temporary UI Preview Data
+ * - This data is for temporary UI preview only.
+ * - It is used only when the backend is not connected or during a Network Error.
+ * - This is NOT production fallback data.
+ * - REMOVE/REPLACE once the backend API is ready for integration.
+ */
 import type { DashboardSummary, AdminUserManagementData } from '../types';
 
 export const ADMIN_DASHBOARD_PREVIEW_DATA: DashboardSummary = {
