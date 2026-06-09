@@ -46,16 +46,6 @@ export const Topbar = ({ onMenuClick }: TopbarProps) => {
           </div>
           <span className="text-xl font-bold tracking-tight text-brand-blue-dark hidden sm:block">AIVORA</span>
         </Link>
-
-        {/* Global Search */}
-        <div className="hidden md:flex items-center bg-slate-50 border border-slate-100 rounded-2xl px-4 py-2 w-full max-w-md group focus-within:bg-white focus-within:border-primary/20 focus-within:ring-4 focus-within:ring-primary/5 transition-all duration-300">
-           <Search className="size-4 text-slate-400 group-focus-within:text-primary transition-colors" />
-           <input 
-              type="text" 
-              placeholder="Search projects, experts, or messages..." 
-              className="bg-transparent border-none focus:outline-none focus:ring-0 text-sm ml-3 w-full text-slate-700 placeholder:text-slate-400 placeholder:font-medium"
-           />
-        </div>
       </div>
 
       <div className="flex items-center gap-5">

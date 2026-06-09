@@ -19,6 +19,7 @@ import { AdminUserDetailPage } from '../features/admin/pages/AdminUserDetailPage
 import { LandingPage } from '../shared/pages/LandingPage';
 import ReviewPage from '../features/reviews/pages/ReviewPage';
 import { ExpertPublicProfilePage } from '../features/profiles/pages/ExpertPublicProfilePage';
+import { SearchExpertsPage } from '../features/profiles/pages/SearchExpertsPage';
 import { ExpertMyJobsPage } from '../features/jobs/pages/ExpertMyJobsPage';
 import { ClientDashboardPage } from '../features/dashboard/pages/ClientDashboardPage';
 import { ExpertDashboardPage } from '../features/dashboard/pages/ExpertDashboardPage';
@@ -65,7 +66,7 @@ export const router = createBrowserRouter([
       { path: 'projects', element: <MyProjectsPage /> },
       { path: 'projects/:id/proposals', element: <ClientJobProposalsPage /> },
       { path: 'projects/:id/workspace', element: <ProjectWorkspacePage /> },
-      { path: 'experts', element: <div>Search Experts Page</div> },
+      { path: 'experts', element: <SearchExpertsPage /> },
       { path: 'experts/:id', element: <ExpertPublicProfilePage /> },
       { path: 'post-job', element: <PostJobPage /> },
       { path: 'messages', element: <ChatWorkspacePage /> },
