@@ -18,6 +18,7 @@ import { UserManagementPage } from '../features/admin/pages/UserManagementPage';
 import { AdminUserDetailPage } from '../features/admin/pages/AdminUserDetailPage';
 import { LandingPage } from '../shared/pages/LandingPage';
 import ReviewPage from '../features/reviews/pages/ReviewPage';
+import { ExpertPublicProfilePage } from '../features/profiles/pages/ExpertPublicProfilePage';
 // import { ProtectedRoute } from '../shared/components/common/ProtectedRoute';
 import { ClientLayout, ExpertLayout, AdminLayout } from '../shared/layouts';
 // import { Role } from '../shared/types/enums';
@@ -62,6 +63,7 @@ export const router = createBrowserRouter([
       { path: 'projects/:id/proposals', element: <ClientJobProposalsPage /> },
       { path: 'projects/:id/workspace', element: <ProjectWorkspacePage /> },
       { path: 'experts', element: <div>Search Experts Page</div> },
+      { path: 'experts/:id', element: <ExpertPublicProfilePage /> },
       { path: 'post-job', element: <PostJobPage /> },
       { path: 'messages', element: <ChatWorkspacePage /> },
       { path: 'wallet', element: <WalletPage /> },
