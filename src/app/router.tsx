@@ -20,6 +20,8 @@ import { LandingPage } from '../shared/pages/LandingPage';
 import ReviewPage from '../features/reviews/pages/ReviewPage';
 import { ExpertPublicProfilePage } from '../features/profiles/pages/ExpertPublicProfilePage';
 import { ExpertMyJobsPage } from '../features/jobs/pages/ExpertMyJobsPage';
+import { ClientDashboardPage } from '../features/dashboard/pages/ClientDashboardPage';
+import { ExpertDashboardPage } from '../features/dashboard/pages/ExpertDashboardPage';
 // import { ProtectedRoute } from '../shared/components/common/ProtectedRoute';
 import { ClientLayout, ExpertLayout, AdminLayout } from '../shared/layouts';
 // import { Role } from '../shared/types/enums';
@@ -58,7 +60,7 @@ export const router = createBrowserRouter([
       // </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <div>Client Dashboard Overview</div> },
+      { index: true, element: <ClientDashboardPage /> },
       { path: 'profile', element: <ProfilePage /> },
       { path: 'projects', element: <MyProjectsPage /> },
       { path: 'projects/:id/proposals', element: <ClientJobProposalsPage /> },
@@ -81,7 +83,7 @@ export const router = createBrowserRouter([
       // </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <div>Expert Dashboard Overview</div> },
+      { index: true, element: <ExpertDashboardPage /> },
       { path: 'profile', element: <ProfilePage /> },
       { path: 'jobs', element: <FindWorkPage /> },
       { path: 'jobs/:id', element: <JobDetailsPage /> },
