@@ -41,4 +41,20 @@ export const API_ENDPOINTS = {
     UPLOAD_IMAGE: '/api/v1/media/upload-image',
     UPLOAD_FILE: '/api/v1/media/upload-file',
   },
+  DISPUTES: {
+    BASE: '/api/v1/disputes',
+    ID: (id: string | number) => `/api/v1/disputes/${id}`,
+    EVIDENCE: (id: string | number) => `/api/v1/disputes/${id}/evidence`,
+    RESOLVE: (id: string | number) => `/api/v1/disputes/${id}/resolve`,
+  },
+  MESSAGES: {
+    CONVERSATIONS: '/api/v1/conversations',
+    MESSAGES: (id: string) => `/api/v1/conversations/${id}/messages`,
+    READ: (id: string) => `/api/v1/conversations/${id}/read`,
+    INIT: '/api/v1/conversations/init',
+  },
+  ADMIN: {
+    DASHBOARD_SUMMARY: '/api/v1/admin/dashboard/summary',
+    USERS: '/api/v1/admin/users',
+  },
 } as const;
