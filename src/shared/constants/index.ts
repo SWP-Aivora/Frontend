@@ -62,5 +62,8 @@ export const API_ENDPOINTS = {
   ADMIN: {
     DASHBOARD_SUMMARY: '/api/v1/admin/dashboard/summary',
     USERS: '/api/v1/admin/users',
+    EXPERT_REVIEWS: '/api/v1/admin/expert-reviews',
+    EXPERT_REVIEW_DETAIL: (id: string) => `/api/v1/admin/expert-reviews/${id}`,
+    PROCESS_EXPERT_REVIEW: (id: string) => `/api/v1/admin/expert-reviews/${id}/process`,
   },
 } as const;

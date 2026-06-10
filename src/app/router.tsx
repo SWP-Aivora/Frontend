@@ -16,13 +16,13 @@ import { ChatWorkspacePage } from '../features/chat/pages/ChatWorkspacePage';
 import { AdminDashboardPage } from '../features/admin/pages/AdminDashboardPage';
 import { UserManagementPage } from '../features/admin/pages/UserManagementPage';
 import { AdminUserDetailPage } from '../features/admin/pages/AdminUserDetailPage';
+import { AdminExpertReviewsPage } from '../features/admin/pages/AdminExpertReviewsPage';
 import { NotificationsPage } from '../features/notifications';
 import { LandingPage } from '../shared/pages/LandingPage';
 import ReviewPage from '../features/reviews/pages/ReviewPage';
 import { ProtectedRoute } from '../shared/components/common/ProtectedRoute';
 import { ClientLayout, ExpertLayout, AdminLayout } from '../shared/layouts';
 import { Role } from '../shared/types/enums';
-
 /**
  * Global Router Configuration
  */
@@ -103,15 +103,16 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <AdminDashboardPage /> },
-      { path: 'users', element: <UserManagementPage /> },
-      { path: 'users/:id', element: <AdminUserDetailPage /> },
-      { path: 'disputes', element: <AdminDisputeListPage /> },
-      { path: 'disputes/:id', element: <DisputeDetailPage /> },
-      { path: 'messages', element: <ChatWorkspacePage /> },
-      { path: 'notifications', element: <NotificationsPage /> },
-      { path: 'settings', element: <div>Global System Settings</div> },
-    ],
+  { index: true, element: <AdminDashboardPage /> },
+  { path: 'users', element: <UserManagementPage /> },
+  { path: 'users/:id', element: <AdminUserDetailPage /> },
+  { path: 'expert-reviews', element: <AdminExpertReviewsPage /> },
+  { path: 'disputes', element: <AdminDisputeListPage /> },
+  { path: 'disputes/:id', element: <DisputeDetailPage /> },
+  { path: 'messages', element: <ChatWorkspacePage /> },
+  { path: 'notifications', element: <NotificationsPage /> },
+  { path: 'settings', element: <div>Global System Settings</div> },
+],
     
   },
 
