@@ -1,7 +1,7 @@
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { 
-  Star, MapPin, ShieldCheck, CheckCircle2, MessageSquare, 
+  Star, MapPin, ShieldCheck, 
   Briefcase, Github, Linkedin, Video, FileText, ChevronRight
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
