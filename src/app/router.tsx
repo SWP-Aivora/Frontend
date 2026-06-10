@@ -16,6 +16,7 @@ import { ChatWorkspacePage } from '../features/chat/pages/ChatWorkspacePage';
 import { AdminDashboardPage } from '../features/admin/pages/AdminDashboardPage';
 import { UserManagementPage } from '../features/admin/pages/UserManagementPage';
 import { AdminUserDetailPage } from '../features/admin/pages/AdminUserDetailPage';
+import { NotificationsPage } from '../features/notifications';
 import { LandingPage } from '../shared/pages/LandingPage';
 import ReviewPage from '../features/reviews/pages/ReviewPage';
 // import { ProtectedRoute } from '../shared/components/common/ProtectedRoute';
@@ -64,6 +65,7 @@ export const router = createBrowserRouter([
       { path: 'experts', element: <div>Search Experts Page</div> },
       { path: 'post-job', element: <PostJobPage /> },
       { path: 'messages', element: <ChatWorkspacePage /> },
+      { path: 'notifications', element: <NotificationsPage /> },
       { path: 'wallet', element: <WalletPage /> },
       { path: 'disputes/:id', element: <DisputeDetailPage /> },
     ],
@@ -86,6 +88,7 @@ export const router = createBrowserRouter([
       { path: 'projects/:id/workspace', element: <ProjectWorkspacePage /> },
       { path: 'my-jobs', element: <div>My Active & Completed Jobs</div> },
       { path: 'messages', element: <ChatWorkspacePage /> },
+      { path: 'notifications', element: <NotificationsPage /> },
       { path: 'wallet', element: <WalletPage /> },
       { path: 'disputes/:id', element: <DisputeDetailPage /> },
     ],
@@ -103,10 +106,10 @@ export const router = createBrowserRouter([
       { index: true, element: <AdminDashboardPage /> },
       { path: 'users', element: <UserManagementPage /> },
       { path: 'users/:id', element: <AdminUserDetailPage /> },
-      { path: 'verification', element: <div>Expert Verification Queue</div> },
       { path: 'disputes', element: <AdminDisputeListPage /> },
       { path: 'disputes/:id', element: <DisputeDetailPage /> },
       { path: 'messages', element: <ChatWorkspacePage /> },
+      { path: 'notifications', element: <NotificationsPage /> },
       { path: 'settings', element: <div>Global System Settings</div> },
     ],
     
