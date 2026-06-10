@@ -21,7 +21,12 @@ export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
   return (
     <div className="h-screen bg-slate-50 flex flex-col overflow-hidden">
       {/* Topbar spans full width */}
-      <Topbar onMenuClick={() => setMobileMenuOpen(true)} />
+      <Topbar 
+        role={role} 
+        onMenuClick={() => setMobileMenuOpen(true)} 
+        onToggleSidebar={() => setCollapsed(!collapsed)}
+        sidebarCollapsed={collapsed}
+      />
 
       <div className="flex-1 flex overflow-hidden">
         {/* Desktop Sidebar */}
@@ -29,7 +34,6 @@ export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
           <Sidebar 
             items={items} 
             collapsed={collapsed} 
-            setCollapsed={setCollapsed} 
           />
         </div>
 
@@ -46,7 +50,6 @@ export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
               <Sidebar 
                 items={items} 
                 collapsed={false} 
-                setCollapsed={() => setMobileMenuOpen(false)} 
               />
             </div>
           </div>

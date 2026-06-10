@@ -1,16 +1,21 @@
-import { Bell, Menu, Search, User, LogOut } from 'lucide-react';
+import { Menu, User, LogOut } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/store';
 import { useNavigate, Link } from 'react-router-dom';
+import { NotificationDropdown } from '@/features/notifications';
+import { Role } from '@/shared/types/enums';
 
 interface TopbarProps {
   onMenuClick: () => void;
+  onToggleSidebar: () => void;
+  sidebarCollapsed: boolean;
+  role: Role;
 }
 
 const ASSETS = {
-  logoCircle: "https://www.figma.com/api/mcp/asset/7d5ca9a5-19fa-4c3f-816b-14a9c0a0f910",
+  logoCircle: "/logo.png",
 };
 
-export const Topbar = ({ onMenuClick }: TopbarProps) => {
+export const Topbar = ({ onMenuClick, onToggleSidebar, sidebarCollapsed, role }: TopbarProps) => {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
 
@@ -20,17 +25,19 @@ export const Topbar = ({ onMenuClick }: TopbarProps) => {
     }
   };
 
-  const handleNotificationsClick = () => {
-    // Navigate to role-specific dashboard for now as notification page is not implemented
-    if (user?.role) {
-      navigate(`/${user.role.toLowerCase()}`);
-    }
-  };
-
   return (
     <header className="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-6 lg:px-8 shrink-0 relative z-30 shadow-sm">
-      <div className="flex items-center gap-4 lg:gap-8 flex-1">
-        {/* Mobile Menu Toggle */}
+      <div className="flex items-center gap-4 lg:gap-6 flex-1">
+        {/* Sidebar Toggle (YouTube-style Hamburger) */}
+        <button 
+          onClick={onToggleSidebar}
+          className="hidden lg:flex p-2.5 rounded-xl hover:bg-slate-50 text-slate-600 hover:text-primary transition-all duration-300 group"
+          title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+        >
+          <Menu className="size-7 stroke-[2.5px] group-hover:scale-110 transition-transform" />
+        </button>
+
+        {/* Mobile Menu Toggle (Left side for mobile visibility) */}
         <button 
           onClick={onMenuClick}
           className="lg:hidden p-2 rounded-xl hover:bg-slate-50 text-slate-500"
@@ -38,25 +45,21 @@ export const Topbar = ({ onMenuClick }: TopbarProps) => {
           <Menu className="size-6" />
         </button>
 
-        {/* Brand Header (Moved from Sidebar) */}
-        <Link to="/" className="flex items-center gap-3 group shrink-0">
-          <div className="relative size-10 shrink-0">
-            <img src={ASSETS.logoCircle} alt="AIVORA" className="size-full" />
-            <span className="absolute inset-0 flex items-center justify-center font-bold text-white text-lg">A</span>
+        {/* Brand Header */}
+        <Link to="/" className="flex items-center group shrink-0">
+          <div className="relative w-32 h-12 overflow-hidden flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+            <img 
+              src={ASSETS.logoCircle} 
+              alt="AIVORA" 
+              className="w-full h-full object-contain scale-[1.8]" 
+            />
           </div>
-          <span className="text-xl font-bold tracking-tight text-brand-blue-dark hidden sm:block">AIVORA</span>
         </Link>
       </div>
 
       <div className="flex items-center gap-5">
         {/* Notifications */}
-        <button 
-          onClick={handleNotificationsClick}
-          className="relative p-2.5 rounded-xl hover:bg-slate-50 text-slate-500 hover:text-primary transition-all duration-300"
-        >
-          <Bell className="size-5" />
-          <span className="absolute top-2 right-2 size-2 bg-destructive border-2 border-white rounded-full" />
-        </button>
+        <NotificationDropdown role={role} />
 
         <div className="h-8 w-px bg-slate-100 mx-1" />
 

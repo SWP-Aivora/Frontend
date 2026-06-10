@@ -2,6 +2,7 @@ import {
   LayoutDashboard, 
   Briefcase, 
   Users, 
+  UserCheck,
   MessageSquare, 
   Wallet, 
   ShieldAlert, 
@@ -10,6 +11,7 @@ import {
   Search,
   PlusCircle,
   FileText,
+  Bell,
   type LucideIcon
 } from 'lucide-react';
 import { Role } from '@/shared/types/enums';
@@ -27,6 +29,7 @@ export const NAV_ITEMS: Record<string, NavItem[]> = {
     { label: 'Find Experts', href: '/client/experts', icon: Search },
     { label: 'Post a Job', href: '/client/post-job', icon: PlusCircle },
     { label: 'Messages', href: '/client/messages', icon: MessageSquare },
+    { label: 'Notifications', href: '/client/notifications', icon: Bell },
     { label: 'Wallet', href: '/client/wallet', icon: Wallet },
     { label: 'Profile', href: '/client/profile', icon: UserCircle },
   ],
@@ -36,15 +39,17 @@ export const NAV_ITEMS: Record<string, NavItem[]> = {
     { label: 'My Proposals', href: '/expert/proposals', icon: FileText },
     { label: 'My Jobs', href: '/expert/my-jobs', icon: Briefcase },
     { label: 'Messages', href: '/expert/messages', icon: MessageSquare },
+    { label: 'Notifications', href: '/expert/notifications', icon: Bell },
     { label: 'Wallet', href: '/expert/wallet', icon: Wallet },
     { label: 'Profile', href: '/expert/profile', icon: UserCircle },
   ],
   [Role.ADMIN]: [
-    { label: 'Admin Dashboard', href: '/admin', icon: LayoutDashboard },
-    { label: 'User Management', href: '/admin/users', icon: Users },
-    { label: 'Expert Verification', href: '/admin/verification', icon: Briefcase },
-    { label: 'Disputes', href: '/admin/disputes', icon: ShieldAlert },
-    { label: 'Messages', href: '/admin/messages', icon: MessageSquare },
-    { label: 'System Settings', href: '/admin/settings', icon: Settings },
-  ],
+  { label: 'Admin Dashboard', href: '/admin', icon: LayoutDashboard },
+  { label: 'User Management', href: '/admin/users', icon: Users },
+  { label: 'Expert Reviews', href: '/admin/expert-reviews', icon: UserCheck },
+  { label: 'Disputes', href: '/admin/disputes', icon: ShieldAlert },
+  { label: 'Messages', href: '/admin/messages', icon: MessageSquare },
+  { label: 'Notifications', href: '/admin/notifications', icon: Bell },
+  { label: 'System Settings', href: '/admin/settings', icon: Settings },
+],
 };

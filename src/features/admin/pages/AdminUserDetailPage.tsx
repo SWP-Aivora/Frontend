@@ -1,6 +1,8 @@
 import { useParams, Link } from 'react-router-dom';
+import { useState } from 'react';
 import { useAdminUsers } from '../hooks/useAdminUsers';
-import { ADMIN_USER_MANAGEMENT_PREVIEW_DATA } from '../hooks/previewData';
+import { useAdminExpertReviews, useExpertReviewDetail, useProcessExpertReview } from '../hooks/useAdminExpertReviews';
+import { ADMIN_USER_MANAGEMENT_PREVIEW_DATA, ADMIN_EXPERT_REVIEWS_PREVIEW_DATA, ADMIN_EXPERT_REVIEW_DETAIL_PREVIEW_DATA } from '../hooks/previewData';
 import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
 import { cn } from '@/lib/utils';
 import { 
@@ -12,22 +14,38 @@ import {
   XCircle, 
   Briefcase, 
   FileText,
-  Activity
+  Activity,
+  ExternalLink,
+  Clock
 } from 'lucide-react';
 import type { AxiosError } from 'axios';
 import { adminService } from '../services';
+import type { ExpertReviewItem } from '../types';
 
 export const AdminUserDetailPage = () => {
   const { id } = useParams<{ id: string }>();
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [showRejectModal, setShowRejectModal] = useState(false);
 
-  // Fetch all users to find the specific one (as there is no specific GET /admin/users/{id} in contract)
-  const { data: realData, isLoading, isError, error } = useAdminUsers();
+  // Fetch all users to find the specific one
+  const { data: realUserData, isLoading: isLoadingUser, isError: isUserError, error: userError } = useAdminUsers();
+  
+  // Fetch reviews to find if this expert has a pending one
+  const { data: realReviewsData, isError: isReviewsError, error: reviewsError } = useAdminExpertReviews();
 
-  const isNetworkError = (error as AxiosError)?.message === 'Network Error' || (error as AxiosError)?.response?.status === 404 || (error as AxiosError)?.response?.status === 405;
-  const isPreviewMode = isError && isNetworkError;
-  const data = isPreviewMode ? ADMIN_USER_MANAGEMENT_PREVIEW_DATA : realData;
+  const isNetworkError = (error: unknown) => (error as AxiosError)?.message === 'Network Error' || (error as AxiosError)?.response?.status === 404 || (error as AxiosError)?.response?.status === 405;
+  const isPreviewMode = (isUserError && isNetworkError(userError)) || (isReviewsError && isNetworkError(reviewsError));
+  
+  const userData = isPreviewMode ? ADMIN_USER_MANAGEMENT_PREVIEW_DATA : realUserData;
+  const reviewsData = isPreviewMode ? ADMIN_EXPERT_REVIEWS_PREVIEW_DATA : realReviewsData;
 
-  const user = data?.users?.find(u => u.id === id);
+  const user = userData?.users?.find(u => u.id === id);
+  const pendingReview = reviewsData?.reviews.find((rev: ExpertReviewItem) => rev.expertId === id && rev.status === 'Pending');
+
+  const { data: realDetailData, isLoading: isLoadingDetail } = useExpertReviewDetail(pendingReview?.id || null);
+  const { mutate: processReview, isPending: isProcessing } = useProcessExpertReview();
+
+  const currentReviewDetail = isPreviewMode && pendingReview ? ADMIN_EXPERT_REVIEW_DETAIL_PREVIEW_DATA[pendingReview.id] : realDetailData;
 
   const handleSuspend = async () => {
     if (!user) return;
@@ -37,16 +55,28 @@ export const AdminUserDetailPage = () => {
       } else {
         await adminService.suspendUser(user.id, 'Suspended by admin via dashboard');
       }
-      // Ideally trigger a refetch here or optimistic update
       window.location.reload();
     } catch (err) {
       console.error('Failed to update user status', err);
-      // Fallback for preview mode
       if (isPreviewMode) alert('Action simulated in preview mode.');
     }
   };
 
-  if (isLoading) {
+  const handleApprove = () => {
+    if (!pendingReview) return;
+    if (window.confirm('Are you sure you want to approve these profile changes?')) {
+      processReview({ id: pendingReview.id, status: 'Approved' });
+    }
+  };
+
+  const handleReject = () => {
+    if (!pendingReview || !rejectionReason) return;
+    processReview({ id: pendingReview.id, status: 'Rejected', note: rejectionReason });
+    setShowRejectModal(false);
+    setRejectionReason('');
+  };
+
+  if (isLoadingUser) {
     return (
       <div className="h-[50vh] flex items-center justify-center">
         <LoadingSpinner size="lg" />
@@ -54,12 +84,12 @@ export const AdminUserDetailPage = () => {
     );
   }
 
-  if (isError && !isPreviewMode) {
+  if (isUserError && !isPreviewMode) {
     return (
       <div className="bg-rose-50 border border-rose-100 rounded-3xl p-10 text-center max-w-2xl mx-auto my-10">
         <AlertCircle className="size-12 text-rose-500 mx-auto mb-4" />
         <h2 className="text-lg font-black text-rose-900 mb-2">Failed to load user details</h2>
-        <p className="text-rose-600 font-medium">{(error as Error)?.message || 'Something went wrong.'}</p>
+        <p className="text-rose-600 font-medium">{(userError as Error)?.message || 'Something went wrong.'}</p>
       </div>
     );
   }
@@ -84,35 +114,35 @@ export const AdminUserDetailPage = () => {
       </Link>
 
       {/* Header & Basic Profile Info */}
-      <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
-        <div className="flex items-center gap-5">
+      <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+        <div className="flex items-center gap-4">
           <div className={cn(
-            "size-16 rounded-full flex items-center justify-center text-lg font-bold text-white shadow-inner",
+            "size-14 rounded-full flex items-center justify-center text-lg font-bold text-white shadow-inner",
             user.role === 'Admin' ? "bg-purple-500" :
             user.role === 'Client' ? "bg-blue-500" : "bg-emerald-500"
           )}>
             {user.initials}
           </div>
           <div>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">{user.fullName}</h1>
-            <p className="text-sm text-slate-500 font-medium">{user.email}</p>
-            <div className="flex flex-wrap gap-2 mt-3">
+            <h1 className="text-xl font-black text-slate-900 tracking-tight">{user.fullName}</h1>
+            <p className="text-xs text-slate-500 font-medium">{user.email}</p>
+            <div className="flex flex-wrap gap-2 mt-2">
               <span className={cn(
-                "px-2.5 py-1 rounded-full text-[10px] font-semibold border",
+                "px-2 py-0.5 rounded-full text-[9px] font-semibold border",
                 user.role === 'Admin' ? "bg-purple-50 text-purple-600 border-purple-100" :
                 user.role === 'Client' ? "bg-blue-50 text-blue-600 border-blue-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"
               )}>
                 {user.role}
               </span>
               <span className={cn(
-                "px-2.5 py-1 rounded-full text-[10px] font-semibold border",
+                "px-2 py-0.5 rounded-full text-[9px] font-semibold border",
                 user.status === 'Active' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : 
                 user.status === 'Suspended' ? "bg-rose-50 text-rose-600 border-rose-100" : "bg-orange-50 text-orange-600 border-orange-100"
               )}>
                 {user.status}
               </span>
               <span className={cn(
-                "px-2.5 py-1 rounded-full text-[10px] font-semibold border",
+                "px-2 py-0.5 rounded-full text-[9px] font-semibold border",
                 user.verificationState === 'Verified' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-slate-50 text-slate-600 border-slate-200"
               )}>
                 {user.verificationState}
@@ -121,27 +151,27 @@ export const AdminUserDetailPage = () => {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-2">
           {user.role !== 'Admin' && (
             <button 
               onClick={handleSuspend}
               className={cn(
-                "px-5 py-2 rounded-xl text-xs font-bold transition-colors shadow-sm",
+                "px-4 py-1.5 rounded-xl text-xs font-bold transition-colors shadow-sm",
                 user.status === 'Suspended' ? "bg-slate-100 text-slate-700 hover:bg-slate-200" : "bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-100"
               )}
             >
               {user.status === 'Suspended' ? 'Unsuspend User' : 'Suspend User'}
             </button>
           )}
-          <button className="px-5 py-2 bg-white border border-primary/20 text-primary rounded-xl font-bold text-xs hover:bg-primary/5 transition-colors shadow-sm">
+          <button className="px-4 py-1.5 bg-white border border-primary/20 text-primary rounded-xl font-bold text-xs hover:bg-primary/5 transition-colors shadow-sm">
             View Activity Log
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="flex flex-col lg:flex-row gap-6">
         {/* Left Column - Details */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="flex-1 space-y-6">
           
           {/* Admin Specific Content */}
           {user.role === 'Admin' && (
@@ -234,6 +264,142 @@ export const AdminUserDetailPage = () => {
                 </div>
               </div>
 
+              {/* Pending Profile Change Review Section */}
+              {pendingReview && (
+                <div className="bg-white border-2 border-primary/20 rounded-2xl overflow-hidden shadow-xl shadow-primary/5 animate-in slide-in-from-bottom-4 duration-500">
+                  <div className="bg-primary p-4 flex justify-between items-center">
+                    <div className="flex items-center gap-3 text-white">
+                      <div className="size-10 rounded-xl bg-white/20 flex items-center justify-center border border-white/30">
+                        <Clock className="size-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-black uppercase tracking-tight">Pending Profile Changes</h3>
+                        <p className="text-[10px] text-white/70 font-bold">Submitted on {pendingReview.submittedAt}</p>
+                      </div>
+                    </div>
+                    <div className="bg-white/20 text-white px-3 py-1 rounded-full text-[10px] font-bold border border-white/20">
+                      Action Required
+                    </div>
+                  </div>
+
+                  <div className="p-6 space-y-8">
+                    {isLoadingDetail ? (
+                      <div className="py-10 flex flex-col items-center justify-center">
+                        <LoadingSpinner />
+                        <p className="text-xs text-slate-500 font-bold mt-4 tracking-widest uppercase">Fetching comparison data...</p>
+                      </div>
+                    ) : currentReviewDetail ? (
+                      <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           <ComparisonField 
+                             label="Professional Bio" 
+                             current={currentReviewDetail.bio.current} 
+                             requested={currentReviewDetail.bio.requested}
+                             isChanged={currentReviewDetail.bio.isChanged}
+                           />
+                           <ComparisonField 
+                             label="Hourly Rate" 
+                             current={`$${currentReviewDetail.hourlyRate.current}/hr`} 
+                             requested={`$${currentReviewDetail.hourlyRate.requested}/hr`}
+                             isChanged={currentReviewDetail.hourlyRate.isChanged}
+                           />
+                           <ComparisonField 
+                             label="Skills" 
+                             current={currentReviewDetail.skillsComparison.current.join(', ')} 
+                             requested={currentReviewDetail.skillsComparison.requested.join(', ')}
+                             isChanged={currentReviewDetail.skillsComparison.isChanged}
+                           />
+                           <ComparisonField 
+                             label="Categories" 
+                             current={currentReviewDetail.categories.current.join(', ')} 
+                             requested={currentReviewDetail.categories.requested.join(', ')}
+                             isChanged={currentReviewDetail.categories.isChanged}
+                           />
+                           <ComparisonField 
+                             label="Experience Detail" 
+                             current={currentReviewDetail.experience.current} 
+                             requested={currentReviewDetail.experience.requested}
+                             isChanged={currentReviewDetail.experience.isChanged}
+                           />
+                        </div>
+
+                        {/* Evidence */}
+                        <div className="space-y-4">
+                           <div className="flex items-center justify-between">
+                            <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                              <FileText className="size-4 text-primary" />
+                              Verification Evidence
+                            </h4>
+                            <span className="bg-slate-50 text-slate-500 text-[10px] font-black px-2 py-0.5 rounded-full border border-slate-100">
+                              {currentReviewDetail.portfolio.length} items
+                            </span>
+                           </div>
+                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              {currentReviewDetail.portfolio.map((item: { id: string; title: string; type: string; url: string; status: string }) => (
+                                <div key={item.id} className="group p-3 bg-slate-50 hover:bg-white rounded-xl border border-slate-100 hover:border-primary/20 transition-all flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <div className="size-10 rounded-lg bg-white flex items-center justify-center border border-slate-100 group-hover:border-primary/20">
+                                      <span className="text-[10px] font-black text-primary">DOC</span>
+                                    </div>
+                                    <div>
+                                      <p className="text-[11px] font-bold text-slate-900 leading-tight">{item.title}</p>
+                                      <p className="text-[9px] text-slate-500 font-medium mt-0.5">{item.type}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                     <span className={cn(
+                                       "px-2 py-0.5 rounded-full text-[9px] font-bold border",
+                                       item.status === 'Verified' || item.status === 'Strong' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-orange-50 text-orange-600 border-orange-100"
+                                     )}>
+                                       {item.status}
+                                     </span>
+                                     <button className="p-1.5 hover:bg-primary/10 text-slate-400 hover:text-primary rounded-lg transition-colors">
+                                       <ExternalLink className="size-3.5" />
+                                     </button>
+                                  </div>
+                                </div>
+                              ))}
+                           </div>
+                        </div>
+
+                        {/* Decision */}
+                        <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row gap-3">
+                          <button 
+                            onClick={handleApprove}
+                            disabled={isProcessing}
+                            className="flex-1 bg-primary text-white py-3 rounded-xl text-xs font-black hover:bg-primary-dark transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20 disabled:opacity-50"
+                          >
+                            <CheckCircle2 className="size-4" />
+                            Approve All Changes
+                          </button>
+                          <button 
+                            onClick={() => setShowRejectModal(true)}
+                            disabled={isProcessing}
+                            className="px-6 bg-rose-500 text-white py-3 rounded-xl text-xs font-black hover:bg-rose-600 transition-all flex items-center justify-center gap-2 shadow-lg shadow-rose-200 disabled:opacity-50"
+                          >
+                            <XCircle className="size-4" />
+                            Reject
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center py-10 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                        <AlertCircle className="size-8 text-slate-300 mx-auto mb-2" />
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Failed to load comparison data</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Empty state if no pending and user IS expert */}
+              {!pendingReview && (
+                <div className="bg-slate-50/50 border border-slate-100 border-dashed rounded-2xl p-6 text-center">
+                   <CheckCircle2 className="size-8 text-slate-300 mx-auto mb-2" />
+                   <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">No pending profile changes for this expert</p>
+                </div>
+              )}
+
               <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
                 <h3 className="text-lg font-black text-slate-900 mb-4">Work History</h3>
                 <div className="grid grid-cols-2 gap-4 mb-6">
@@ -257,7 +423,7 @@ export const AdminUserDetailPage = () => {
         </div>
 
         {/* Right Column - Stats & Meta */}
-        <div className="space-y-6">
+        <div className="lg:w-[320px] space-y-6">
           <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
             <h3 className="text-sm font-bold text-slate-900 mb-4">Account Metadata</h3>
             <div className="space-y-4">
@@ -294,6 +460,73 @@ export const AdminUserDetailPage = () => {
         </div>
 
       </div>
+
+      {/* Rejection Modal */}
+      {showRejectModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+           <div className="bg-white rounded-3xl p-8 max-w-md w-full animate-in zoom-in-95 duration-200 shadow-2xl">
+              <div className="size-16 rounded-2xl bg-rose-50 flex items-center justify-center mb-6">
+                 <AlertCircle className="size-8 text-rose-500" />
+              </div>
+              <h3 className="text-xl font-black text-slate-900 mb-2">Reject profile changes?</h3>
+              <p className="text-slate-500 text-sm font-medium mb-6 leading-relaxed">Please provide a reason for rejection. This will be sent to the expert to help them improve their profile.</p>
+              
+              <textarea 
+                className="w-full h-32 bg-slate-50 border border-slate-100 rounded-2xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-slate-400 placeholder:font-medium mb-6"
+                placeholder="e.g. Portfolio links are broken, experience detail is too vague..."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+              />
+
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setShowRejectModal(false)}
+                  className="flex-1 bg-slate-50 text-slate-600 py-3 rounded-2xl text-xs font-black hover:bg-slate-100 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  disabled={!rejectionReason || isProcessing}
+                  onClick={handleReject}
+                  className={cn(
+                    "flex-1 py-3 rounded-2xl text-xs font-black transition-all",
+                    !rejectionReason ? "bg-slate-200 text-slate-400" : "bg-rose-500 text-white hover:bg-rose-600 shadow-lg shadow-rose-200"
+                  )}
+                >
+                  Confirm Reject
+                </button>
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
 };
+
+interface ComparisonFieldProps {
+  label: string;
+  current: string;
+  requested: string;
+  isChanged: boolean;
+}
+
+const ComparisonField = ({ label, current, requested, isChanged }: ComparisonFieldProps) => (
+  <div className="space-y-2">
+    <div className="flex items-center justify-between">
+      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</span>
+      {isChanged && (
+        <span className="bg-orange-50 text-orange-600 text-[8px] font-black px-1.5 py-0.5 rounded-full border border-orange-100">CHANGED</span>
+      )}
+    </div>
+    <div className="grid grid-cols-1 gap-2">
+      <div className="bg-slate-50 p-2.5 rounded-xl border border-dashed border-slate-200 relative group overflow-hidden">
+        <span className="absolute top-1 right-2 text-[8px] font-bold text-slate-300 group-hover:text-slate-400 transition-colors uppercase">Current</span>
+        <p className="text-[10px] font-medium text-slate-400 line-through decoration-slate-300">{current}</p>
+      </div>
+      <div className="bg-emerald-50/30 p-2.5 rounded-xl border border-emerald-100 relative group overflow-hidden">
+        <span className="absolute top-1 right-2 text-[8px] font-bold text-emerald-400/60 uppercase">Requested</span>
+        <p className="text-[11px] font-bold text-slate-700 leading-relaxed">{requested}</p>
+      </div>
+    </div>
+  </div>
+);
