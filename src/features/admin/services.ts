@@ -31,18 +31,18 @@ export const adminService = {
   },
 
   getExpertReviews: async (params?: Record<string, unknown>): Promise<BaseResponse<AdminExpertReviewsData>> => {
-    const response = await apiClient.get<BaseResponse<AdminExpertReviewsData>>('/api/v1/admin/expert-reviews', { params });
+    const response = await apiClient.get<BaseResponse<AdminExpertReviewsData>>(API_ENDPOINTS.ADMIN.EXPERT_REVIEWS, { params });
     return response.data;
   },
 
   getExpertReviewDetail: async (id: string): Promise<BaseResponse<ExpertReviewDetail>> => {
-    const response = await apiClient.get<BaseResponse<ExpertReviewDetail>>(`/api/v1/admin/expert-reviews/${id}`);
+    const response = await apiClient.get<BaseResponse<ExpertReviewDetail>>(API_ENDPOINTS.ADMIN.EXPERT_REVIEW_DETAIL(id));
     return response.data;
   },
 
   processExpertReview: async (params: ExpertReviewActionParams): Promise<BaseResponse<void>> => {
     const { id, ...data } = params;
-    const response = await apiClient.post<BaseResponse<void>>(`/api/v1/admin/expert-reviews/${id}/process`, data);
+    const response = await apiClient.post<BaseResponse<void>>(API_ENDPOINTS.ADMIN.PROCESS_EXPERT_REVIEW(id), data);
     return response.data;
   }
 };
