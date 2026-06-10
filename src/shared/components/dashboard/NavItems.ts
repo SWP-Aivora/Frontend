@@ -2,6 +2,7 @@ import {
   LayoutDashboard, 
   Briefcase, 
   Users, 
+  UserCheck,
   MessageSquare, 
   Wallet, 
   ShieldAlert, 
@@ -45,6 +46,7 @@ export const NAV_ITEMS: Record<string, NavItem[]> = {
   [Role.ADMIN]: [
     { label: 'Admin Dashboard', href: '/admin', icon: LayoutDashboard },
     { label: 'User Management', href: '/admin/users', icon: Users },
+    { label: 'Expert Reviews', href: '/admin/expert-reviews', icon: UserCheck },
     { label: 'Disputes', href: '/admin/disputes', icon: ShieldAlert },
     { label: 'Messages', href: '/admin/messages', icon: MessageSquare },
     { label: 'Notifications', href: '/admin/notifications', icon: Bell },

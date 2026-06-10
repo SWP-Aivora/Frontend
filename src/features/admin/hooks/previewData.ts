@@ -232,3 +232,110 @@ export const ADMIN_USER_MANAGEMENT_PREVIEW_DATA: AdminUserManagementData = {
     }
   ]
 };
+
+export const ADMIN_EXPERT_REVIEWS_PREVIEW_DATA: AdminExpertReviewsData = {
+  reviews: [
+    {
+      id: 'rev1',
+      expertId: 'u1',
+      fullName: 'An Nguyen',
+      email: 'an@example.com',
+      initials: 'AN',
+      status: 'Pending',
+      submittedAt: 'Jun 1',
+      title: 'AI Chatbot Expert',
+      skills: ['Chatbot', 'NLP'],
+      experienceYears: 3,
+      proofCount: 4
+    },
+    {
+      id: 'rev2',
+      expertId: 'u4',
+      fullName: 'Mai Pham',
+      email: 'mai@example.com',
+      initials: 'MP',
+      status: 'Pending',
+      submittedAt: 'Today',
+      title: 'RAG Engineer',
+      skills: ['RAG', 'Python'],
+      experienceYears: 2,
+      proofCount: 3
+    },
+    {
+      id: 'rev3',
+      expertId: 'u6',
+      fullName: 'Khoa Le',
+      email: 'khoa@example.com',
+      initials: 'KL',
+      status: 'Pending',
+      submittedAt: 'May 31',
+      title: 'Prompt Engineer',
+      skills: ['Prompt', 'LLM'],
+      experienceYears: 4,
+      proofCount: 5
+    },
+    {
+      id: 'rev4',
+      expertId: 'u7',
+      fullName: 'Hoa Nguyen',
+      email: 'hoa@example.com',
+      initials: 'HN',
+      status: 'Revision',
+      submittedAt: 'May 29',
+      title: 'ML Specialist',
+      skills: ['ML', 'Python'],
+      experienceYears: 5,
+      proofCount: 6
+    }
+  ],
+  totalPending: 24,
+  totalRevisions: 12,
+  newToday: 6,
+  totalRejected: 38
+};
+
+export const ADMIN_EXPERT_REVIEW_DETAIL_PREVIEW_DATA: Record<string, ExpertReviewDetail> = {
+  'rev1': {
+    id: 'rev1',
+    expertId: 'u1',
+    fullName: 'An Nguyen',
+    email: 'annguyen@example.com',
+    initials: 'AN',
+    status: 'Pending',
+    submittedAt: 'Jun 1',
+    title: 'AI Chatbot Expert',
+    skills: ['Chatbot', 'NLP'],
+    experienceYears: 3,
+    proofCount: 4,
+    bio: {
+      current: 'I build chatbots.',
+      requested: 'Helping businesses build practical chatbot and automation solutions with LLMs.',
+      isChanged: true
+    },
+    hourlyRate: {
+      current: 20,
+      requested: 25,
+      isChanged: true
+    },
+    skillsComparison: {
+      current: ['Python', 'Chatbot'],
+      requested: ['Python', 'Chatbot', 'NLP', 'LLM'],
+      isChanged: true
+    },
+    categories: {
+      current: ['Development'],
+      requested: ['Development', 'AI & Machine Learning'],
+      isChanged: true
+    },
+    experience: {
+      current: '2 years',
+      requested: '3 years of building production-grade RAG systems.',
+      isChanged: true
+    },
+    portfolio: [
+      { id: 'p1', title: 'Chatbot Demo', type: 'Portfolio', url: '#', status: 'Strong' },
+      { id: 'p2', title: 'ML Certificate', type: 'Certificate', url: '#', status: 'Verified' },
+      { id: 'p3', title: 'Project Screenshot', type: 'Screenshot', url: '#', status: 'Review' }
+    ]
+  }
+};
