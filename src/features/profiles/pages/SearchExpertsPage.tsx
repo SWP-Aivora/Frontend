@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Star, MapPin, ShieldCheck, SlidersHorizontal } from 'lucide-react';
+import { Search, Star, MapPin, ShieldCheck, SlidersHorizontal, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 
 // Mock data since there isn't a search API endpoint in v1 yet
