@@ -238,7 +238,7 @@ export const ExpertPublicProfilePage = () => {
               </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {displayProjects.map((project: any, i) => (
+                {displayProjects.map((project: { title: string; description: string; rating: number }, i) => (
                   <div key={i} className="border border-blue-50 bg-white rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
                     <div className="flex justify-between items-start mb-4">
                       <span className="bg-blue-50 text-brand-primary text-xs font-semibold px-3 py-1 rounded-full">AI/ML</span>
@@ -307,7 +307,7 @@ export const ExpertPublicProfilePage = () => {
                 <ChevronRight className="w-4 h-4 text-slate-400" />
               </div>
               <div className="space-y-4">
-                {displayReviews.map((review: any, i) => (
+                {displayReviews.map((review: { reviewerName?: string; rating: number; comment: string; initial?: string; name?: string }, i) => (
                   <div key={i} className={i > 0 ? "pt-4 border-t border-slate-50" : ""}>
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">

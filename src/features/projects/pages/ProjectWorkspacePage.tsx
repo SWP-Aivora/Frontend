@@ -52,7 +52,7 @@ export const ProjectWorkspacePage = () => {
 
   // Mutations
   const submitMutation = useMutation({
-    mutationFn: (data: any) => projectService.submitDeliverable(selectedMilestone!.id, data),
+    mutationFn: (data: { description: string; fileUrl: string; demoUrl: string; sourceCodeUrl: string; note: string }) => projectService.submitDeliverable(selectedMilestone!.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['milestones', id] });
       setIsSubmitModalOpen(false);
