@@ -98,3 +98,56 @@ export interface AdminUserManagementData {
   reviewQueue: AdminUserReviewQueueItem[];
   recentActions: RecentActivityItem[];
 }
+
+export type ExpertReviewStatus = 'Pending' | 'Approved' | 'Rejected' | 'Revision';
+
+export interface ExpertReviewItem {
+  id: string;
+  expertId: string;
+  fullName: string;
+  email: string;
+  avatarUrl?: string | null;
+  initials: string;
+  status: ExpertReviewStatus;
+  submittedAt: string;
+  title: string;
+  skills: string[];
+  experienceYears: number;
+  proofCount: number;
+}
+
+export interface ComparisonValue<T> {
+  current: T;
+  requested: T;
+  isChanged: boolean;
+}
+
+export interface ExpertReviewDetail extends ExpertReviewItem {
+  bio: ComparisonValue<string>;
+  hourlyRate: ComparisonValue<number>;
+  skillsComparison: ComparisonValue<string[]>;
+  categories: ComparisonValue<string[]>;
+  experience: ComparisonValue<string>;
+  portfolio: {
+    id: string;
+    title: string;
+    type: string;
+    url: string;
+    status: 'Verified' | 'Review' | 'Strong';
+  }[];
+  adminNote?: string;
+}
+
+export interface ExpertReviewActionParams {
+  id: string;
+  status: 'Approved' | 'Rejected' | 'Revision';
+  note?: string;
+}
+
+export interface AdminExpertReviewsData {
+  reviews: ExpertReviewItem[];
+  totalPending: number;
+  totalRevisions: number;
+  newToday: number;
+  totalRejected: number;
+}

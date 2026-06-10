@@ -16,6 +16,8 @@ import { ChatWorkspacePage } from '../features/chat/pages/ChatWorkspacePage';
 import { AdminDashboardPage } from '../features/admin/pages/AdminDashboardPage';
 import { UserManagementPage } from '../features/admin/pages/UserManagementPage';
 import { AdminUserDetailPage } from '../features/admin/pages/AdminUserDetailPage';
+import { AdminExpertReviewsPage } from '../features/admin/pages/AdminExpertReviewsPage';
+import { NotificationsPage } from '../features/notifications';
 import { LandingPage } from '../shared/pages/LandingPage';
 import ReviewPage from '../features/reviews/pages/ReviewPage';
 import { ExpertPublicProfilePage } from '../features/profiles/pages/ExpertPublicProfilePage';
@@ -24,9 +26,9 @@ import { ExpertMyJobsPage } from '../features/jobs/pages/ExpertMyJobsPage';
 import { ClientDashboardPage } from '../features/dashboard/pages/ClientDashboardPage';
 import { ExpertDashboardPage } from '../features/dashboard/pages/ExpertDashboardPage';
 // import { ProtectedRoute } from '../shared/components/common/ProtectedRoute';
+import { ProtectedRoute } from '../shared/components/common/ProtectedRoute';
 import { ClientLayout, ExpertLayout, AdminLayout } from '../shared/layouts';
-// import { Role } from '../shared/types/enums';
-
+import { Role } from '../shared/types/enums';
 /**
  * Global Router Configuration
  */
@@ -46,9 +48,9 @@ export const router = createBrowserRouter([
   {
     path: '/reviews',
     element: (
-      // <ProtectedRoute allowedRoles={[Role.CLIENT]}>
+      <ProtectedRoute allowedRoles={[Role.CLIENT]}>
         <ReviewPage />
-      // </ProtectedRoute>
+      </ProtectedRoute>
     ),
   },
   
@@ -56,9 +58,9 @@ export const router = createBrowserRouter([
   {
     path: '/client',
     element: (
-      // <ProtectedRoute allowedRoles={[Role.CLIENT]}>
+      <ProtectedRoute allowedRoles={[Role.CLIENT]}>
         <ClientLayout />
-      // </ProtectedRoute>
+      </ProtectedRoute>
     ),
     children: [
       { index: true, element: <ClientDashboardPage /> },
@@ -70,6 +72,7 @@ export const router = createBrowserRouter([
       { path: 'experts/:id', element: <ExpertPublicProfilePage /> },
       { path: 'post-job', element: <PostJobPage /> },
       { path: 'messages', element: <ChatWorkspacePage /> },
+      { path: 'notifications', element: <NotificationsPage /> },
       { path: 'wallet', element: <WalletPage /> },
       { path: 'disputes/:id', element: <DisputeDetailPage /> },
     ],
@@ -79,9 +82,9 @@ export const router = createBrowserRouter([
   {
     path: '/expert',
     element: (
-      // <ProtectedRoute allowedRoles={[Role.EXPERT]}>
+      <ProtectedRoute allowedRoles={[Role.EXPERT]}>
         <ExpertLayout />
-      // </ProtectedRoute>
+      </ProtectedRoute>
     ),
     children: [
       { index: true, element: <ExpertDashboardPage /> },
@@ -92,6 +95,7 @@ export const router = createBrowserRouter([
       { path: 'projects/:id/workspace', element: <ProjectWorkspacePage /> },
       { path: 'my-jobs', element: <ExpertMyJobsPage /> },
       { path: 'messages', element: <ChatWorkspacePage /> },
+      { path: 'notifications', element: <NotificationsPage /> },
       { path: 'wallet', element: <WalletPage /> },
       { path: 'disputes/:id', element: <DisputeDetailPage /> },
     ],
@@ -101,20 +105,21 @@ export const router = createBrowserRouter([
   {
     path: '/admin',
     element: (
-      // <ProtectedRoute allowedRoles={[Role.ADMIN]}>
+      <ProtectedRoute allowedRoles={[Role.ADMIN]}>
         <AdminLayout />
-      // </ProtectedRoute>
+      </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <AdminDashboardPage /> },
-      { path: 'users', element: <UserManagementPage /> },
-      { path: 'users/:id', element: <AdminUserDetailPage /> },
-      { path: 'verification', element: <div>Expert Verification Queue</div> },
-      { path: 'disputes', element: <AdminDisputeListPage /> },
-      { path: 'disputes/:id', element: <DisputeDetailPage /> },
-      { path: 'messages', element: <ChatWorkspacePage /> },
-      { path: 'settings', element: <div>Global System Settings</div> },
-    ],
+  { index: true, element: <AdminDashboardPage /> },
+  { path: 'users', element: <UserManagementPage /> },
+  { path: 'users/:id', element: <AdminUserDetailPage /> },
+  { path: 'expert-reviews', element: <AdminExpertReviewsPage /> },
+  { path: 'disputes', element: <AdminDisputeListPage /> },
+  { path: 'disputes/:id', element: <DisputeDetailPage /> },
+  { path: 'messages', element: <ChatWorkspacePage /> },
+  { path: 'notifications', element: <NotificationsPage /> },
+  { path: 'settings', element: <div>Global System Settings</div> },
+],
     
   },
 
