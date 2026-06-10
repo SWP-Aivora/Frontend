@@ -6,7 +6,7 @@ const ASSETS = {
   bgBlueWashRight: "https://www.figma.com/api/mcp/asset/f8b8860a-0acf-427f-acbd-b52139f91452",
   bgRing1: "https://www.figma.com/api/mcp/asset/45fc19ef-047b-4f19-bcbb-ed3948535434",
   bgRing2: "https://www.figma.com/api/mcp/asset/24b23800-9e98-4e1d-b2c2-7d02a8a63345",
-  logoCircle: "https://www.figma.com/api/mcp/asset/d987bd29-d2ab-4ad5-aa75-4c5dd9f70d59",
+  logoCircle: "/logo.png",
   leftPanelGlow: "https://www.figma.com/api/mcp/asset/57d33c6f-ca38-4428-8b24-6422ecaada28",
   redirectDot: "https://www.figma.com/api/mcp/asset/b0a526e4-8c51-49ad-9d0f-3f19b5e58d9e",
 };
@@ -28,12 +28,14 @@ export const LoginPage = () => {
           <img src={ASSETS.leftPanelGlow} alt="" className="absolute -left-20 top-20 w-[400px] opacity-30 pointer-events-none" />
           
           {/* Logo Section */}
-          <Link to="/" className="flex items-center gap-3 mb-16 opacity-0 animate-fade-in [animation-delay:200ms] w-fit group">
-            <div className="relative size-10 transition-transform group-hover:scale-110 duration-300">
-              <img src={ASSETS.logoCircle} alt="AIVORA" className="size-full" />
-              <span className="absolute inset-0 flex items-center justify-center font-bold text-white text-lg">A</span>
+          <Link to="/" className="flex items-center mb-16 opacity-0 animate-fade-in [animation-delay:200ms] w-fit group">
+            <div className="relative w-48 h-16 overflow-hidden flex items-center justify-center transition-transform group-hover:scale-105 duration-300">
+              <img 
+                src={ASSETS.logoCircle} 
+                alt="AIVORA" 
+                className="w-full h-full object-contain scale-[1.8]" 
+              />
             </div>
-            <span className="text-xl font-bold tracking-tight text-brand-blue-dark">AIVORA</span>
           </Link>
 
           {/* Badge */}

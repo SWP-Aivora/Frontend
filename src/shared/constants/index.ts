@@ -53,6 +53,12 @@ export const API_ENDPOINTS = {
     READ: (id: string) => `/api/v1/conversations/${id}/read`,
     INIT: '/api/v1/conversations/init',
   },
+  NOTIFICATIONS: {
+    BASE: '/api/v1/notifications',
+    UNREAD_COUNT: '/api/v1/notifications/unread-count',
+    READ: (id: string) => `/api/v1/notifications/${id}/read`,
+    READ_ALL: '/api/v1/notifications/read-all',
+  },
   ADMIN: {
     DASHBOARD_SUMMARY: '/api/v1/admin/dashboard/summary',
     USERS: '/api/v1/admin/users',

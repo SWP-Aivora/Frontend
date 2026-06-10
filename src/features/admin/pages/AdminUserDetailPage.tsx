@@ -84,35 +84,35 @@ export const AdminUserDetailPage = () => {
       </Link>
 
       {/* Header & Basic Profile Info */}
-      <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
-        <div className="flex items-center gap-5">
+      <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+        <div className="flex items-center gap-4">
           <div className={cn(
-            "size-16 rounded-full flex items-center justify-center text-lg font-bold text-white shadow-inner",
+            "size-14 rounded-full flex items-center justify-center text-lg font-bold text-white shadow-inner",
             user.role === 'Admin' ? "bg-purple-500" :
             user.role === 'Client' ? "bg-blue-500" : "bg-emerald-500"
           )}>
             {user.initials}
           </div>
           <div>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">{user.fullName}</h1>
-            <p className="text-sm text-slate-500 font-medium">{user.email}</p>
-            <div className="flex flex-wrap gap-2 mt-3">
+            <h1 className="text-xl font-black text-slate-900 tracking-tight">{user.fullName}</h1>
+            <p className="text-xs text-slate-500 font-medium">{user.email}</p>
+            <div className="flex flex-wrap gap-2 mt-2">
               <span className={cn(
-                "px-2.5 py-1 rounded-full text-[10px] font-semibold border",
+                "px-2 py-0.5 rounded-full text-[9px] font-semibold border",
                 user.role === 'Admin' ? "bg-purple-50 text-purple-600 border-purple-100" :
                 user.role === 'Client' ? "bg-blue-50 text-blue-600 border-blue-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"
               )}>
                 {user.role}
               </span>
               <span className={cn(
-                "px-2.5 py-1 rounded-full text-[10px] font-semibold border",
+                "px-2 py-0.5 rounded-full text-[9px] font-semibold border",
                 user.status === 'Active' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : 
                 user.status === 'Suspended' ? "bg-rose-50 text-rose-600 border-rose-100" : "bg-orange-50 text-orange-600 border-orange-100"
               )}>
                 {user.status}
               </span>
               <span className={cn(
-                "px-2.5 py-1 rounded-full text-[10px] font-semibold border",
+                "px-2 py-0.5 rounded-full text-[9px] font-semibold border",
                 user.verificationState === 'Verified' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-slate-50 text-slate-600 border-slate-200"
               )}>
                 {user.verificationState}
@@ -121,27 +121,27 @@ export const AdminUserDetailPage = () => {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-2">
           {user.role !== 'Admin' && (
             <button 
               onClick={handleSuspend}
               className={cn(
-                "px-5 py-2 rounded-xl text-xs font-bold transition-colors shadow-sm",
+                "px-4 py-1.5 rounded-xl text-xs font-bold transition-colors shadow-sm",
                 user.status === 'Suspended' ? "bg-slate-100 text-slate-700 hover:bg-slate-200" : "bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-100"
               )}
             >
               {user.status === 'Suspended' ? 'Unsuspend User' : 'Suspend User'}
             </button>
           )}
-          <button className="px-5 py-2 bg-white border border-primary/20 text-primary rounded-xl font-bold text-xs hover:bg-primary/5 transition-colors shadow-sm">
+          <button className="px-4 py-1.5 bg-white border border-primary/20 text-primary rounded-xl font-bold text-xs hover:bg-primary/5 transition-colors shadow-sm">
             View Activity Log
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="flex flex-col lg:flex-row gap-6">
         {/* Left Column - Details */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="flex-1 space-y-6">
           
           {/* Admin Specific Content */}
           {user.role === 'Admin' && (
@@ -257,7 +257,7 @@ export const AdminUserDetailPage = () => {
         </div>
 
         {/* Right Column - Stats & Meta */}
-        <div className="space-y-6">
+        <div className="lg:w-[320px] space-y-6">
           <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
             <h3 className="text-sm font-bold text-slate-900 mb-4">Account Metadata</h3>
             <div className="space-y-4">
