@@ -23,7 +23,6 @@ import ReviewPage from '../features/reviews/pages/ReviewPage';
 import { ProtectedRoute } from '../shared/components/common/ProtectedRoute';
 import { ClientLayout, ExpertLayout, AdminLayout } from '../shared/layouts';
 import { Role } from '../shared/types/enums';
-
 /**
  * Global Router Configuration
  */
@@ -99,21 +98,21 @@ export const router = createBrowserRouter([
   {
     path: '/admin',
     element: (
-      // <ProtectedRoute allowedRoles={[Role.ADMIN]}>
+      <ProtectedRoute allowedRoles={[Role.ADMIN]}>
         <AdminLayout />
-      // </ProtectedRoute>
+      </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <AdminDashboardPage /> },
-      { path: 'users', element: <UserManagementPage /> },
-      { path: 'users/:id', element: <AdminUserDetailPage /> },
-      { path: 'expert-reviews', element: <AdminExpertReviewsPage /> },
-      { path: 'disputes', element: <AdminDisputeListPage /> },
-      { path: 'disputes/:id', element: <DisputeDetailPage /> },
-      { path: 'messages', element: <ChatWorkspacePage /> },
-      { path: 'notifications', element: <NotificationsPage /> },
-      { path: 'settings', element: <div>Global System Settings</div> },
-    ],
+  { index: true, element: <AdminDashboardPage /> },
+  { path: 'users', element: <UserManagementPage /> },
+  { path: 'users/:id', element: <AdminUserDetailPage /> },
+  { path: 'expert-reviews', element: <AdminExpertReviewsPage /> },
+  { path: 'disputes', element: <AdminDisputeListPage /> },
+  { path: 'disputes/:id', element: <DisputeDetailPage /> },
+  { path: 'messages', element: <ChatWorkspacePage /> },
+  { path: 'notifications', element: <NotificationsPage /> },
+  { path: 'settings', element: <div>Global System Settings</div> },
+],
     
   },
 
