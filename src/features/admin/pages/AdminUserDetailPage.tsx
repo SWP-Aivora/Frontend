@@ -15,15 +15,12 @@ import {
   Briefcase, 
   FileText,
   Activity,
-  Layout,
   ExternalLink,
-  Download,
-  Plus,
   Clock
 } from 'lucide-react';
 import type { AxiosError } from 'axios';
 import { adminService } from '../services';
-import type { ExpertReviewStatus } from '../types';
+import type { ExpertReviewItem } from '../types';
 
 export const AdminUserDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -36,14 +33,14 @@ export const AdminUserDetailPage = () => {
   // Fetch reviews to find if this expert has a pending one
   const { data: realReviewsData, isError: isReviewsError, error: reviewsError } = useAdminExpertReviews();
 
-  const isNetworkError = (error: any) => error?.message === 'Network Error' || error?.response?.status === 404 || error?.response?.status === 405;
+  const isNetworkError = (error: unknown) => (error as AxiosError)?.message === 'Network Error' || (error as AxiosError)?.response?.status === 404 || (error as AxiosError)?.response?.status === 405;
   const isPreviewMode = (isUserError && isNetworkError(userError)) || (isReviewsError && isNetworkError(reviewsError));
   
   const userData = isPreviewMode ? ADMIN_USER_MANAGEMENT_PREVIEW_DATA : realUserData;
   const reviewsData = isPreviewMode ? ADMIN_EXPERT_REVIEWS_PREVIEW_DATA : realReviewsData;
 
   const user = userData?.users?.find(u => u.id === id);
-  const pendingReview = reviewsData?.reviews.find(rev => rev.expertId === id && rev.status === 'Pending');
+  const pendingReview = reviewsData?.reviews.find((rev: ExpertReviewItem) => rev.expertId === id && rev.status === 'Pending');
 
   const { data: realDetailData, isLoading: isLoadingDetail } = useExpertReviewDetail(pendingReview?.id || null);
   const { mutate: processReview, isPending: isProcessing } = useProcessExpertReview();
@@ -338,7 +335,7 @@ export const AdminUserDetailPage = () => {
                             </span>
                            </div>
                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              {currentReviewDetail.portfolio.map((item) => (
+                              {currentReviewDetail.portfolio.map((item: { id: string; title: string; type: string; url: string; status: string }) => (
                                 <div key={item.id} className="group p-3 bg-slate-50 hover:bg-white rounded-xl border border-slate-100 hover:border-primary/20 transition-all flex items-center justify-between">
                                   <div className="flex items-center gap-3">
                                     <div className="size-10 rounded-lg bg-white flex items-center justify-center border border-slate-100 group-hover:border-primary/20">

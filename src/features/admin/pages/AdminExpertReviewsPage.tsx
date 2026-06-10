@@ -16,7 +16,7 @@ import {
   Plus
 } from 'lucide-react';
 import type { AxiosError } from 'axios';
-import type { ExpertReviewStatus } from '../types';
+import type { ExpertReviewStatus, ExpertReviewItem } from '../types';
 
 /**
  * Temporary preview data for UI development only. Remove when the backend API is available. Not for production use.
@@ -33,7 +33,7 @@ export const AdminExpertReviewsPage = () => {
   const isPreviewMode = isError && isNetworkError;
   const data = isPreviewMode ? ADMIN_EXPERT_REVIEWS_PREVIEW_DATA : realData;
 
-  const filteredReviews = data?.reviews.filter(rev => {
+  const filteredReviews = data?.reviews.filter((rev: ExpertReviewItem) => {
     const matchesSearch = rev.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || 
                          rev.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterStatus === 'All' || rev.status === filterStatus;
@@ -206,7 +206,7 @@ export const AdminExpertReviewsPage = () => {
                   </td>
                   <td className="px-4 py-2.5">
                     <div className="flex flex-wrap gap-1">
-                      {rev.skills.slice(0, 2).map(skill => (
+                      {rev.skills.slice(0, 2).map((skill: string) => (
                         <span key={skill} className="bg-primary/5 text-primary text-[9px] px-2 py-0.5 rounded-full font-semibold">
                           {skill}
                         </span>

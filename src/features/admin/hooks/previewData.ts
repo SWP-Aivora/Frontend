@@ -5,7 +5,7 @@
  * - This is NOT production fallback data.
  * - REMOVE/REPLACE once the backend API is ready for integration.
  */
-import type { DashboardSummary, AdminUserManagementData } from '../types';
+import type { DashboardSummary, AdminUserManagementData, AdminExpertReviewsData, ExpertReviewDetail } from '../types';
 
 export const ADMIN_DASHBOARD_PREVIEW_DATA: DashboardSummary = {
   totalUsers: 12540,
