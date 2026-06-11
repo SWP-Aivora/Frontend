@@ -22,7 +22,9 @@ export const WalletPage = () => {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
+  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [depositAmount, setDepositAmount] = useState<number>(1000);
+  const [withdrawAmount, setWithdrawAmount] = useState<number>(500);
   const isClient = user?.role === Role.CLIENT;
 
   const { data: walletResponse, isLoading: isLoadingWallet } = useQuery({
@@ -76,6 +78,24 @@ export const WalletPage = () => {
   const confirmDeposit = () => {
     if (depositAmount > 0) {
       depositMutation.mutate(depositAmount);
+    }
+  };
+
+  const handleWithdraw = () => {
+    setIsWithdrawModalOpen(true);
+  };
+
+  const confirmWithdraw = () => {
+    if (withdrawAmount > 0) {
+      if (withdrawAmount > (wallet?.balance || 0)) {
+        toast.error('Insufficient balance to withdraw this amount.');
+        return;
+      }
+      
+      // Mocking the withdrawal since there is no API endpoint for it yet
+      toast.success(`Successfully submitted withdrawal request for ${withdrawAmount} Xu!`);
+      setIsWithdrawModalOpen(false);
+      setWithdrawAmount(500);
     }
   };
 
@@ -365,6 +385,46 @@ export const WalletPage = () => {
                 className="rounded-full shadow-lg shadow-primary/20 font-black"
               >
                 {depositMutation.isPending ? 'Processing...' : 'Deposit'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Withdraw Modal */}
+      {isWithdrawModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsWithdrawModalOpen(false)} />
+          <div className="bg-white rounded-3xl p-8 w-[90%] max-w-sm relative z-10 shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="text-2xl font-black text-slate-900 mb-2">Withdraw Earnings</h3>
+            <p className="text-sm text-slate-500 mb-6">Enter the amount of Xu you want to withdraw. The requested amount will be converted and transferred to your linked account.</p>
+            
+            <div className="space-y-4 mb-8">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Amount (Xu)</label>
+                <div className="relative">
+                  <input 
+                    type="number" 
+                    min="1"
+                    max={wallet?.balance || 0}
+                    className="w-full rounded-xl border-slate-200 p-3 pl-4 pr-12 text-lg font-bold text-slate-900 focus:ring-primary focus:border-primary" 
+                    placeholder="500"
+                    value={withdrawAmount || ''}
+                    onChange={e => setWithdrawAmount(Number(e.target.value))}
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">Xu</span>
+                </div>
+                <p className="text-[10px] font-medium text-slate-400 mt-1">Available to withdraw: {wallet?.balance?.toLocaleString() || '0'} Xu</p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setIsWithdrawModalOpen(false)} className="rounded-full font-bold">Cancel</Button>
+              <Button 
+                onClick={confirmWithdraw} 
+                disabled={withdrawAmount <= 0 || withdrawAmount > (wallet?.balance || 0)}
+                className="rounded-full shadow-lg shadow-brand-accent/20 font-black bg-brand-accent hover:bg-brand-accent/90"
+              >
+                Request Withdrawal
               </Button>
             </div>
           </div>
