@@ -145,7 +145,7 @@ export const WalletPage = () => {
                 Deposit Funds
              </Button>
            ) : (
-             <Button className="rounded-full px-6 bg-brand-accent hover:bg-brand-accent/90 shadow-lg shadow-brand-accent/20">
+             <Button onClick={handleWithdraw} className="rounded-full px-6 bg-brand-accent hover:bg-brand-accent/90 shadow-lg shadow-brand-accent/20">
                 Withdraw Earnings
              </Button>
            )}
