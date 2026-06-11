@@ -2,8 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 interface AppState {
-  theme: 'light' | 'dark';
-  setTheme: (theme: 'light' | 'dark') => void;
+  theme: 'light' | 'dark' | 'system';
+  setTheme: (theme: 'light' | 'dark' | 'system') => void;
   toggleTheme: () => void;
 }
 
@@ -13,7 +13,7 @@ interface AppState {
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
-      theme: 'light',
+      theme: 'system',
       setTheme: (theme) => set({ theme }),
       toggleTheme: () => 
         set((state) => ({ 
