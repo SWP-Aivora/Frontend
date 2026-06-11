@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { KanbanBoard } from '../components/KanbanBoard';
 import type { Milestone } from '../types';
 import { projectService } from '../services';
@@ -43,6 +43,40 @@ export const ProjectWorkspacePage = () => {
   const milestones = milestonesResponse?.data || [];
   const isLoading = isLoadingProject || isLoadingMilestones;
 
+  // Modals state
+  const queryClient = useQueryClient();
+  const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
+  const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
+  const [submitData, setSubmitData] = useState({ description: '', fileUrl: '', demoUrl: '', sourceCodeUrl: '', note: '' });
+  const [revisionReason, setRevisionReason] = useState('');
+
+  // Mutations
+  const submitMutation = useMutation({
+    mutationFn: (data: { description: string; fileUrl: string; demoUrl: string; sourceCodeUrl: string; note: string }) => projectService.submitDeliverable(selectedMilestone!.id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['milestones', id] });
+      setIsSubmitModalOpen(false);
+      setSelectedMilestone(null);
+    }
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: () => projectService.approveMilestone(selectedMilestone!.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['milestones', id] });
+      setSelectedMilestone(null);
+    }
+  });
+
+  const revisionMutation = useMutation({
+    mutationFn: (reason: string) => projectService.requestRevision(selectedMilestone!.id, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['milestones', id] });
+      setIsRevisionModalOpen(false);
+      setSelectedMilestone(null);
+    }
+  });
+
   const handleMilestoneClick = (milestone: Milestone) => setSelectedMilestone(milestone);
 
   const getStatusLabel = (status: ProjectStatus) => {
@@ -71,7 +105,7 @@ export const ProjectWorkspacePage = () => {
   }
 
   return (
-    <div className="relative pb-20 animate-in fade-in duration-700">
+    <div className="relative min-h-screen pb-20 animate-in fade-in duration-700">
       {/* Top Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
         <div className="space-y-1">
@@ -212,15 +246,30 @@ export const ProjectWorkspacePage = () => {
                    </Button>
                  )}
                  {selectedMilestone.status === 1 && user?.role === Role.EXPERT && (
-                   <Button className="w-full h-14 rounded-full font-black text-base bg-brand-accent hover:bg-brand-accent/90 shadow-xl shadow-brand-accent/20 flex items-center justify-center gap-2">
+                   <Button 
+                     onClick={() => setIsSubmitModalOpen(true)}
+                     className="w-full h-14 rounded-full font-black text-base bg-brand-accent hover:bg-brand-accent/90 shadow-xl shadow-brand-accent/20 flex items-center justify-center gap-2"
+                   >
                       <Upload className="size-5" />
                       Submit Deliverables
                    </Button>
                  )}
                  {selectedMilestone.status === 2 && user?.role === Role.CLIENT && (
                    <div className="flex gap-3">
-                      <Button variant="outline" className="flex-1 h-14 rounded-full font-black border-slate-200">Revision</Button>
-                      <Button className="flex-[2] h-14 rounded-full font-black shadow-xl shadow-primary/20">Approve & Pay</Button>
+                      <Button 
+                        onClick={() => setIsRevisionModalOpen(true)}
+                        variant="outline" 
+                        className="flex-1 h-14 rounded-full font-black border-slate-200"
+                      >
+                        Revision
+                      </Button>
+                      <Button 
+                        onClick={() => approveMutation.mutate()}
+                        disabled={approveMutation.isPending}
+                        className="flex-[2] h-14 rounded-full font-black shadow-xl shadow-primary/20"
+                      >
+                        {approveMutation.isPending ? 'Approving...' : 'Approve & Pay'}
+                      </Button>
                    </div>
                  )}
                  {selectedMilestone.status === 3 && (
@@ -236,6 +285,96 @@ export const ProjectWorkspacePage = () => {
            </div>
          )}
       </div>
+
+      {/* Submit Modal */}
+      {isSubmitModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsSubmitModalOpen(false)} />
+          <div className="bg-white rounded-3xl p-8 w-[90%] max-w-lg relative z-10 shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="text-2xl font-black text-slate-900 mb-2">Submit Deliverables</h3>
+            <p className="text-sm text-slate-500 mb-6">Provide the required links and files for this milestone.</p>
+            
+            <div className="space-y-4 mb-8">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Description (Required)</label>
+                <textarea 
+                  className="w-full rounded-xl border-slate-200 p-3 text-sm focus:ring-primary focus:border-primary" 
+                  rows={3} 
+                  placeholder="What have you completed?"
+                  value={submitData.description}
+                  onChange={e => setSubmitData({...submitData, description: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">File/Drive URL</label>
+                <input 
+                  type="text" 
+                  className="w-full rounded-xl border-slate-200 p-3 text-sm focus:ring-primary focus:border-primary" 
+                  placeholder="https://..."
+                  value={submitData.fileUrl}
+                  onChange={e => setSubmitData({...submitData, fileUrl: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Demo URL</label>
+                <input 
+                  type="text" 
+                  className="w-full rounded-xl border-slate-200 p-3 text-sm focus:ring-primary focus:border-primary" 
+                  placeholder="https://..."
+                  value={submitData.demoUrl}
+                  onChange={e => setSubmitData({...submitData, demoUrl: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setIsSubmitModalOpen(false)} className="rounded-full font-bold">Cancel</Button>
+              <Button 
+                onClick={() => submitMutation.mutate(submitData)} 
+                disabled={submitMutation.isPending || !submitData.description.trim()}
+                className="rounded-full shadow-lg shadow-primary/20 font-black"
+              >
+                {submitMutation.isPending ? 'Submitting...' : 'Submit Work'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Revision Modal */}
+      {isRevisionModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsRevisionModalOpen(false)} />
+          <div className="bg-white rounded-3xl p-8 w-[90%] max-w-lg relative z-10 shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="text-2xl font-black text-slate-900 mb-2">Request Revision</h3>
+            <p className="text-sm text-slate-500 mb-6">Explain what needs to be changed or improved.</p>
+            
+            <div className="space-y-4 mb-8">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Reason for Revision</label>
+                <textarea 
+                  className="w-full rounded-xl border-slate-200 p-3 text-sm focus:ring-primary focus:border-primary" 
+                  rows={4}
+                  placeholder="Please update the following..."
+                  value={revisionReason}
+                  onChange={e => setRevisionReason(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setIsRevisionModalOpen(false)} className="rounded-full font-bold">Cancel</Button>
+              <Button 
+                onClick={() => revisionMutation.mutate(revisionReason)} 
+                disabled={revisionMutation.isPending || !revisionReason.trim()}
+                className="rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-600/20 font-black border-none"
+              >
+                {revisionMutation.isPending ? 'Requesting...' : 'Request Revision'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Overlay backdrop */}
       {selectedMilestone && (
