@@ -36,4 +36,9 @@ export const profileService = {
     const response = await apiClient.put<BaseResponse<ExpertProfile>>('/profiles/expert', data);
     return response.data;
   },
+
+  getExpertProfileById: async (expertId: string): Promise<BaseResponse<ExpertProfile>> => {
+    const response = await apiClient.get<BaseResponse<ExpertProfile>>(`/profiles/expert/${expertId}`);
+    return response.data;
+  },
 };

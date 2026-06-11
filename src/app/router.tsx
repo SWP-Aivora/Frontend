@@ -20,6 +20,12 @@ import { AdminExpertReviewsPage } from '../features/admin/pages/AdminExpertRevie
 import { NotificationsPage } from '../features/notifications';
 import { LandingPage } from '../shared/pages/LandingPage';
 import ReviewPage from '../features/reviews/pages/ReviewPage';
+import { ExpertPublicProfilePage } from '../features/profiles/pages/ExpertPublicProfilePage';
+import { SearchExpertsPage } from '../features/profiles/pages/SearchExpertsPage';
+import { ExpertMyJobsPage } from '../features/jobs/pages/ExpertMyJobsPage';
+import { ClientDashboardPage } from '../features/dashboard/pages/ClientDashboardPage';
+import { ExpertDashboardPage } from '../features/dashboard/pages/ExpertDashboardPage';
+// import { ProtectedRoute } from '../shared/components/common/ProtectedRoute';
 import { ProtectedRoute } from '../shared/components/common/ProtectedRoute';
 import { ClientLayout, ExpertLayout, AdminLayout } from '../shared/layouts';
 import { Role } from '../shared/types/enums';
@@ -58,12 +64,13 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <div>Client Dashboard Overview</div> },
+      { index: true, element: <ClientDashboardPage /> },
       { path: 'profile', element: <ProfilePage /> },
       { path: 'projects', element: <MyProjectsPage /> },
       { path: 'projects/:id/proposals', element: <ClientJobProposalsPage /> },
       { path: 'projects/:id/workspace', element: <ProjectWorkspacePage /> },
-      { path: 'experts', element: <div>Search Experts Page</div> },
+      { path: 'experts', element: <SearchExpertsPage /> },
+      { path: 'experts/:id', element: <ExpertPublicProfilePage /> },
       { path: 'post-job', element: <PostJobPage /> },
       { path: 'messages', element: <ChatWorkspacePage /> },
       { path: 'notifications', element: <NotificationsPage /> },
@@ -81,13 +88,13 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <div>Expert Dashboard Overview</div> },
+      { index: true, element: <ExpertDashboardPage /> },
       { path: 'profile', element: <ProfilePage /> },
       { path: 'jobs', element: <FindWorkPage /> },
       { path: 'jobs/:id', element: <JobDetailsPage /> },
       { path: 'proposals', element: <ExpertMyProposalsPage /> },
       { path: 'projects/:id/workspace', element: <ProjectWorkspacePage /> },
-      { path: 'my-jobs', element: <div>My Active & Completed Jobs</div> },
+      { path: 'my-jobs', element: <ExpertMyJobsPage /> },
       { path: 'messages', element: <ChatWorkspacePage /> },
       { path: 'notifications', element: <NotificationsPage /> },
       { path: 'wallet', element: <WalletPage /> },
