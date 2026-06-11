@@ -47,6 +47,12 @@ export const ExpertPublicProfilePage = () => {
     p => p.expertId === expertId && p.status === ProjectStatus.COMPLETED
   );
 
+  const mappedProjects = completedProjects.map(p => ({
+    title: p.title,
+    description: p.description || '',
+    rating: 5.0
+  }));
+
   const isLoading = isProfileLoading || isReviewsLoading || isProjectsLoading;
 
   // Since we might not have a fully populated profile from the API for testing, 
@@ -80,7 +86,7 @@ export const ExpertPublicProfilePage = () => {
     { reviewerName: 'Minh Pham', rating: 4.8, comment: 'Completed on time with clear communication.' }
   ];
 
-  const displayProjects = completedProjects.length > 0 ? completedProjects : [
+  const displayProjects = mappedProjects.length > 0 ? mappedProjects : [
     { title: 'Vietnamese Support Chatbot', description: 'Reduced repetitive product questions.', rating: 5.0 },
     { title: 'Internal RAG Assistant', description: 'Retrieved answers from company documents.', rating: 4.9 }
   ];

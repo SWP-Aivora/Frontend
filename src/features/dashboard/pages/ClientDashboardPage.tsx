@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { 
-  Plus, Search, Briefcase, DollarSign, Clock, ChevronRight, Activity, Wallet, Star
+  Plus, Search, Briefcase, DollarSign, Clock, ChevronRight, Activity, Wallet, Star, CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { projectService } from '@/features/projects/services';
