@@ -32,6 +32,7 @@ export const NAV_ITEMS: Record<string, NavItem[]> = {
     { label: 'Notifications', href: '/client/notifications', icon: Bell },
     { label: 'Wallet', href: '/client/wallet', icon: Wallet },
     { label: 'Profile', href: '/client/profile', icon: UserCircle },
+    { label: 'Settings', href: '/client/settings', icon: Settings },
   ],
   [Role.EXPERT]: [
     { label: 'Dashboard', href: '/expert', icon: LayoutDashboard },
@@ -42,6 +43,7 @@ export const NAV_ITEMS: Record<string, NavItem[]> = {
     { label: 'Notifications', href: '/expert/notifications', icon: Bell },
     { label: 'Wallet', href: '/expert/wallet', icon: Wallet },
     { label: 'Profile', href: '/expert/profile', icon: UserCircle },
+    { label: 'Settings', href: '/expert/settings', icon: Settings },
   ],
   [Role.ADMIN]: [
     { label: 'Admin Dashboard', href: '/admin', icon: LayoutDashboard },

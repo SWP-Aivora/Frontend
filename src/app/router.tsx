@@ -23,6 +23,7 @@ import ReviewPage from '../features/reviews/pages/ReviewPage';
 import { ExpertPublicProfilePage } from '../features/profiles/pages/ExpertPublicProfilePage';
 import { SearchExpertsPage } from '../features/profiles/pages/SearchExpertsPage';
 import { ExpertMyJobsPage } from '../features/jobs/pages/ExpertMyJobsPage';
+import { SettingsPage } from '../features/settings/pages/SettingsPage';
 import { ClientDashboardPage } from '../features/dashboard/pages/ClientDashboardPage';
 import { ExpertDashboardPage } from '../features/dashboard/pages/ExpertDashboardPage';
 // import { ProtectedRoute } from '../shared/components/common/ProtectedRoute';
@@ -76,6 +77,7 @@ export const router = createBrowserRouter([
       { path: 'notifications', element: <NotificationsPage /> },
       { path: 'wallet', element: <WalletPage /> },
       { path: 'disputes/:id', element: <DisputeDetailPage /> },
+      { path: 'settings', element: <SettingsPage /> },
     ],
   },
 
@@ -99,6 +101,7 @@ export const router = createBrowserRouter([
       { path: 'notifications', element: <NotificationsPage /> },
       { path: 'wallet', element: <WalletPage /> },
       { path: 'disputes/:id', element: <DisputeDetailPage /> },
+      { path: 'settings', element: <SettingsPage /> },
     ],
   },
 
@@ -120,7 +123,7 @@ export const router = createBrowserRouter([
       { path: 'messages', element: <ChatWorkspacePage /> },
       { path: 'notifications', element: <NotificationsPage /> },
       { path: 'profile', element: <ProfilePage /> },
-      { path: 'settings', element: <div>Global System Settings</div> },
+      { path: 'settings', element: <SettingsPage /> },
     ],
   },
 
