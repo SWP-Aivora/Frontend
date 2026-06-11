@@ -7,9 +7,9 @@ interface NotificationFiltersProps {
 
 export const NotificationFilters = ({ searchTerm, onSearchChange }: NotificationFiltersProps) => {
   return (
-    <div className="bg-white border border-slate-200 rounded-[22px] shadow-sm p-4 flex flex-col xl:flex-row gap-4 items-center">
+    <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 flex flex-col xl:flex-row gap-4 items-center">
       {/* Search */}
-      <div className="relative flex-1 w-full bg-slate-50 border border-slate-200 rounded-[18px] overflow-hidden">
+      <div className="relative flex-1 w-full bg-slate-50 border border-slate-200 rounded-xl overflow-hidden">
         <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
           <Search className="size-4 text-slate-400" />
         </div>
@@ -18,7 +18,7 @@ export const NotificationFilters = ({ searchTerm, onSearchChange }: Notification
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search title, project, proposal, payment, dispute, or user"
-          className="w-full bg-transparent border-none py-3 pl-11 pr-4 text-[11px] font-medium text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-0"
+          className="w-full bg-transparent border-none py-3 pl-11 pr-4 text-xs font-medium text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-0"
         />
       </div>
 
@@ -38,8 +38,8 @@ export const NotificationFilters = ({ searchTerm, onSearchChange }: Notification
 };
 
 const FilterDropdown = ({ label, value }: { label: string; value: string }) => (
-  <div className="bg-white border border-slate-200 rounded-[14px] px-4 py-2 min-w-[120px] cursor-not-allowed opacity-70" title="Filter pending backend support">
-    <p className="text-[9px] font-medium text-slate-500 mb-1">{label}</p>
-    <p className="text-[11px] font-semibold text-slate-900">{value}</p>
+  <div className="bg-white border border-slate-200 rounded-xl px-4 py-2 min-w-[120px] cursor-not-allowed opacity-70" title="Filter pending backend support">
+    <p className="text-xs font-medium text-slate-500 mb-1">{label}</p>
+    <p className="text-xs font-semibold text-slate-900">{value}</p>
   </div>
 );

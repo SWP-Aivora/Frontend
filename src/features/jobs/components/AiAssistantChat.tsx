@@ -57,24 +57,24 @@ export const AiAssistantChat = () => {
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-[32px] shadow-2xl flex flex-col h-[700px] overflow-hidden animate-in fade-in slide-in-from-right-4 duration-700">
+    <div className="bg-white border border-slate-200 rounded-xl shadow-2xl flex flex-col h-[700px] overflow-hidden animate-in fade-in slide-in-from-right-4 duration-700">
       {/* Header */}
       <div className="p-6 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="size-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
+          <div className="size-12 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
             <Bot className="size-6 text-white" />
           </div>
           <div>
             <h3 className="text-base font-black text-slate-900 leading-none">AIVORA AI</h3>
             <div className="flex items-center gap-1.5 mt-1.5">
               <span className="size-2 bg-brand-success rounded-full animate-pulse" />
-              <span className="text-[10px] font-bold text-brand-success uppercase tracking-wider">AI Chatbot Expert / Online</span>
+              <span className="text-xs font-bold text-brand-success uppercase tracking-wider">AI Chatbot Expert / Online</span>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
            <div className="hidden sm:flex bg-primary/5 px-3 py-1 rounded-full border border-primary/10">
-              <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Assistant Mode</span>
+              <span className="text-xs font-bold text-primary uppercase tracking-widest">Assistant Mode</span>
            </div>
            <Button variant="outline" size="sm" className="rounded-xl h-9 px-4 border-slate-200 text-primary font-bold text-xs gap-2">
               <ExternalLink className="size-3" />
@@ -86,7 +86,7 @@ export const AiAssistantChat = () => {
       {/* Warning/Notice */}
       <div className="px-6 py-2.5 bg-brand-blue-light/30 border-b border-slate-100 flex items-center gap-3">
          <Sparkles className="size-3 text-primary shrink-0" />
-         <p className="text-[11px] font-medium text-slate-500 leading-tight">
+         <p className="text-xs font-medium text-slate-500 leading-tight">
             AI suggestions are structured to help you attract the best experts. Review before posting.
          </p>
       </div>
@@ -98,13 +98,13 @@ export const AiAssistantChat = () => {
           return (
             <div key={msg.id} className={cn("flex flex-col max-w-[85%]", isAi ? "items-start" : "items-end ml-auto")}>
               <div className="flex items-center gap-2 mb-1.5">
-                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+                 <span className="text-xs font-bold text-slate-400 uppercase tracking-tighter">
                    {isAi ? 'AIVORA Assistant' : 'You'}
                  </span>
-                 <span className="text-[9px] font-medium text-slate-300">{msg.timestamp}</span>
+                 <span className="text-xs font-medium text-slate-300">{msg.timestamp}</span>
               </div>
               <div className={cn(
-                "p-4 rounded-[24px] text-sm leading-relaxed shadow-sm",
+                "p-4 rounded-xl text-sm leading-relaxed shadow-sm",
                 isAi 
                   ? "bg-white border border-slate-100 text-slate-700 rounded-tl-none" 
                   : "bg-primary text-white rounded-tr-none shadow-primary/20"
@@ -113,7 +113,7 @@ export const AiAssistantChat = () => {
                 {msg.attachment && (
                   <div className="mt-3 p-2 bg-white/10 rounded-xl flex items-center gap-2 border border-white/20">
                      <Paperclip className="size-3" />
-                     <span className="text-[11px] font-bold">{msg.attachment}</span>
+                     <span className="text-xs font-bold">{msg.attachment}</span>
                   </div>
                 )}
               </div>
@@ -131,7 +131,7 @@ export const AiAssistantChat = () => {
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             placeholder="Ask AI to refine your job post..."
-            className="w-full h-14 pl-6 pr-32 rounded-2xl bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all duration-300 text-sm font-medium"
+            className="w-full h-14 pl-6 pr-32 rounded-xl bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all duration-300 text-sm font-medium"
           />
           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
             <button className="p-2.5 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-primary transition-all">

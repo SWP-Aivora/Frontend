@@ -38,12 +38,12 @@ export const NotificationStats = ({ unreadCount }: { unreadCount: number }) => {
 };
 
 const StatCard = ({ icon, value, label, subtext }: { icon: React.ReactNode, value: string, label: string, subtext: string }) => (
-  <div className="bg-white border border-slate-200 rounded-[18px] p-4 shadow-sm flex flex-col justify-center h-24 relative overflow-hidden">
+  <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col justify-center h-24 relative overflow-hidden">
     <div className="absolute right-4 top-4 bg-slate-50 p-2 rounded-xl">
       {icon}
     </div>
     <p className="text-xl font-bold text-slate-900 leading-none">{value}</p>
-    <p className="text-[11px] font-semibold text-slate-600 mt-2">{label}</p>
-    <p className="text-[10px] font-medium text-slate-400 mt-1">{subtext}</p>
+    <p className="text-xs font-semibold text-slate-600 mt-2">{label}</p>
+    <p className="text-xs font-medium text-slate-400 mt-1">{subtext}</p>
   </div>
 );

@@ -15,7 +15,7 @@ export const MessageItem = ({ message, isCurrentUser }: MessageItemProps) => {
   if (message.type === 'SYSTEM') {
     return (
       <div className="flex justify-center my-4">
-        <span className="bg-orange-50 text-orange-600 text-[10px] font-semibold px-3 py-1 rounded-full border border-orange-200 uppercase tracking-wider">
+        <span className="bg-orange-50 text-orange-600 text-xs font-semibold px-3 py-1 rounded-full border border-orange-200 uppercase tracking-wider">
           {message.content}
         </span>
       </div>
@@ -28,13 +28,13 @@ export const MessageItem = ({ message, isCurrentUser }: MessageItemProps) => {
       isCurrentUser ? "items-end" : "items-start"
     )}>
       <div className={cn(
-        "max-w-[70%] rounded-2xl px-4 py-2.5 shadow-sm text-sm",
+        "max-w-[70%] rounded-xl px-4 py-2.5 shadow-sm text-sm",
         isCurrentUser 
           ? "bg-blue-600 text-white rounded-tr-none" 
           : "bg-white text-slate-900 border border-slate-100 rounded-tl-none"
       )}>
         {!isCurrentUser && (
-          <p className="text-[10px] font-bold mb-1 opacity-70">
+          <p className="text-xs font-bold mb-1 opacity-70">
             {message.senderName}
           </p>
         )}
@@ -63,7 +63,7 @@ export const MessageItem = ({ message, isCurrentUser }: MessageItemProps) => {
         )}
         
         <div className={cn(
-          "text-[10px] mt-1 text-right",
+          "text-xs mt-1 text-right",
           isCurrentUser ? "text-blue-100" : "text-slate-400"
         )}>
           {formatTime(message.createdAt)}

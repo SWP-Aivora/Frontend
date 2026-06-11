@@ -40,7 +40,7 @@ const ReviewPage: React.FC = () => {
   if (!projectInfo) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6">
-        <div className="bg-white p-8 rounded-3xl shadow-xl max-w-md w-full text-center space-y-6 border border-slate-100">
+        <div className="bg-white p-8 rounded-xl shadow-xl max-w-md w-full text-center space-y-6 border border-slate-100">
           <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto">
             <AlertCircle className="w-8 h-8 text-amber-600" />
           </div>
@@ -52,7 +52,7 @@ const ReviewPage: React.FC = () => {
           </div>
           <Button 
             onClick={() => navigate('/client')}
-            className="w-full bg-[#1f6eeb] hover:bg-[#1656c0] text-white rounded-2xl font-bold py-6"
+            className="w-full bg-[#1f6eeb] hover:bg-[#1656c0] text-white rounded-xl font-bold py-6"
           >
             Go to Dashboard
           </Button>
@@ -63,7 +63,7 @@ const ReviewPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 sm:p-8">
-      <div className="bg-white p-8 sm:p-12 rounded-3xl shadow-xl shadow-slate-200/50 max-w-2xl w-full text-center space-y-10 border border-slate-100 relative overflow-hidden">
+      <div className="bg-white p-8 sm:p-12 rounded-xl shadow-xl shadow-slate-200/50 max-w-2xl w-full text-center space-y-10 border border-slate-100 relative overflow-hidden">
         {/* Success Background Element */}
         <div className="absolute top-0 left-0 w-full h-2 bg-emerald-500" />
         <div className="absolute -top-24 -right-24 w-48 h-48 bg-emerald-50 rounded-full blur-3xl" />
@@ -82,42 +82,42 @@ const ReviewPage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left relative z-10">
-          <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100 space-y-4">
+          <div className="p-5 bg-slate-50 rounded-xl border border-slate-100 space-y-4">
             <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
               <span className="w-1 h-3 bg-primary rounded-full" />
               Project Details
             </h2>
             <ul className="space-y-3">
               <li className="flex flex-col">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Project Name</span>
+                <span className="text-xs font-bold text-slate-400 uppercase">Project Name</span>
                 <span className="text-sm font-bold text-slate-800">{projectInfo.title}</span>
               </li>
               <li className="flex flex-col">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Milestone</span>
+                <span className="text-xs font-bold text-slate-400 uppercase">Milestone</span>
                 <span className="text-sm font-bold text-slate-800">{projectInfo.milestone}</span>
               </li>
               <li className="flex flex-col">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Amount Released</span>
+                <span className="text-xs font-bold text-slate-400 uppercase">Amount Released</span>
                 <span className="text-sm font-bold text-emerald-600">{projectInfo.amount}</span>
               </li>
             </ul>
           </div>
 
-          <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100 space-y-4">
+          <div className="p-5 bg-slate-50 rounded-xl border border-slate-100 space-y-4">
             <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
               <span className="w-1 h-3 bg-emerald-500 rounded-full" />
               Status Info
             </h2>
             <ul className="space-y-3">
               <li className="flex flex-col">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Project Status</span>
+                <span className="text-xs font-bold text-slate-400 uppercase">Project Status</span>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
                   <span className="text-sm font-bold text-emerald-600">Completed</span>
                 </div>
               </li>
               <li className="flex flex-col">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Completion Status</span>
+                <span className="text-xs font-bold text-slate-400 uppercase">Completion Status</span>
                 <span className="text-xs font-medium text-slate-600 mt-1">All milestones delivered and approved.</span>
               </li>
             </ul>
@@ -127,7 +127,7 @@ const ReviewPage: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4 relative z-10">
           <Button 
             onClick={() => setIsModalOpen(true)}
-            className="w-full sm:w-auto bg-[#1f6eeb] hover:bg-[#1656c0] text-white px-10 py-7 text-lg rounded-2xl shadow-xl shadow-[#1f6eeb]/20 transition-all hover:scale-105 active:scale-95 font-black group"
+            className="w-full sm:w-auto bg-[#1f6eeb] hover:bg-[#1656c0] text-white px-10 py-7 text-lg rounded-xl shadow-xl shadow-[#1f6eeb]/20 transition-all hover:scale-105 active:scale-95 font-black group"
           >
             <Star className="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform" />
             Write Review
@@ -136,14 +136,14 @@ const ReviewPage: React.FC = () => {
           <Button 
             variant="ghost"
             onClick={handleSkip}
-            className="w-full sm:w-auto text-slate-500 hover:text-slate-900 hover:bg-slate-100 px-10 py-7 text-lg rounded-2xl font-bold transition-all group"
+            className="w-full sm:w-auto text-slate-500 hover:text-slate-900 hover:bg-slate-100 px-10 py-7 text-lg rounded-xl font-bold transition-all group"
           >
             Skip for Now
             <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
           </Button>
         </div>
 
-        <div className="pt-6 text-slate-400 text-[10px] font-bold uppercase tracking-widest opacity-50">
+        <div className="pt-6 text-slate-400 text-xs font-bold uppercase tracking-widest opacity-50">
           AIVORA Review System v1.0
         </div>
       </div>

@@ -118,7 +118,7 @@ export const ProjectWorkspacePage = () => {
           </button>
           <div className="flex items-center gap-4">
              <h1 className="text-3xl font-black text-slate-900 tracking-tight">{project?.title}</h1>
-             <div className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-wider border border-blue-100">
+             <div className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-black uppercase tracking-wider border border-blue-100">
                 {project ? getStatusLabel(project.status) : 'Unknown'}
              </div>
           </div>
@@ -126,10 +126,10 @@ export const ProjectWorkspacePage = () => {
         </div>
 
         <div className="flex items-center gap-2">
-           <Button variant="outline" size="icon" className="rounded-2xl border-slate-200 text-slate-400 hover:text-slate-900">
+           <Button variant="outline" size="icon" className="rounded-xl border-slate-200 text-slate-400 hover:text-slate-900">
               <Share2 className="size-4" />
            </Button>
-           <Button variant="outline" size="icon" className="rounded-2xl border-slate-200 text-slate-400 hover:text-slate-900">
+           <Button variant="outline" size="icon" className="rounded-xl border-slate-200 text-slate-400 hover:text-slate-900">
               <Settings className="size-4" />
            </Button>
            <Button className="rounded-full px-6 shadow-lg shadow-primary/20 flex items-center gap-2">
@@ -140,7 +140,7 @@ export const ProjectWorkspacePage = () => {
       </div>
 
       {/* Kanban Board Container */}
-      <div className="bg-slate-50/50 border border-slate-100 rounded-[40px] p-6 md:p-8 relative overflow-hidden">
+      <div className="bg-slate-50/50 border border-slate-100 rounded-xl p-6 md:p-8 relative overflow-hidden">
          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-brand-accent to-blue-400" />
          
          <div className="flex items-center justify-between mb-8">
@@ -151,7 +151,7 @@ export const ProjectWorkspacePage = () => {
                   </div>
                   <div>
                      <p className="text-lg font-black text-slate-900 leading-none">${project?.totalBudget?.toLocaleString()}</p>
-                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Total Contract</p>
+                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Total Contract</p>
                   </div>
                </div>
                <div className="flex items-center gap-3">
@@ -162,7 +162,7 @@ export const ProjectWorkspacePage = () => {
                      <p className="text-lg font-black text-slate-900 leading-none">
                         {project?.endDate ? new Date(project.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'}
                      </p>
-                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Target Deadline</p>
+                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Target Deadline</p>
                   </div>
                </div>
             </div>
@@ -191,10 +191,10 @@ export const ProjectWorkspacePage = () => {
          {selectedMilestone && (
            <div className="h-full flex flex-col">
               <div className="flex items-center justify-between mb-10">
-                 <div className="px-3 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase tracking-widest">
+                 <div className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-black uppercase tracking-widest">
                     Milestone Details
                  </div>
-                 <button onClick={() => setSelectedMilestone(null)} className="size-10 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-slate-900 transition-colors">
+                 <button onClick={() => setSelectedMilestone(null)} className="size-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-slate-900 transition-colors">
                     <X className="size-5" />
                  </button>
               </div>
@@ -206,15 +206,15 @@ export const ProjectWorkspacePage = () => {
                  </div>
 
                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
                        <DollarSign className="size-5 text-emerald-600 mb-2" />
                        <p className="text-lg font-black text-slate-900">${selectedMilestone.amount?.toLocaleString()}</p>
-                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Budget Locked</p>
+                       <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Budget Locked</p>
                     </div>
-                    <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
                        <Clock className="size-5 text-blue-600 mb-2" />
                        <p className="text-lg font-black text-slate-900">{selectedMilestone.dueDays || 0} Days</p>
-                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Est. Duration</p>
+                       <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Est. Duration</p>
                     </div>
                  </div>
 
@@ -273,7 +273,7 @@ export const ProjectWorkspacePage = () => {
                    </div>
                  )}
                  {selectedMilestone.status === 3 && (
-                   <div className="bg-emerald-50 text-emerald-700 p-4 rounded-2xl border border-emerald-100 flex items-center gap-3">
+                   <div className="bg-emerald-50 text-emerald-700 p-4 rounded-xl border border-emerald-100 flex items-center gap-3">
                       <CheckCircle2 className="size-6 shrink-0" />
                       <div>
                          <p className="font-black text-sm uppercase">Milestone Completed</p>

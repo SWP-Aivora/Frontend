@@ -34,14 +34,14 @@ export const IdeaInputForm = () => {
   };
 
   return (
-    <div className="bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm space-y-8 animate-in fade-in slide-in-from-left-4 duration-700">
+    <div className="bg-white rounded-xl p-8 border border-slate-100 shadow-sm space-y-8 animate-in fade-in slide-in-from-left-4 duration-700">
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-xl font-black text-slate-900">Idea Input Form</h3>
           <p className="text-sm text-slate-500 font-medium">Write naturally; AIVORA will structure it.</p>
         </div>
         <div className="bg-brand-success/10 px-3 py-1 rounded-full border border-brand-success/20">
-          <span className="text-[10px] font-bold text-brand-success uppercase tracking-widest">Ready to generate</span>
+          <span className="text-xs font-bold text-brand-success uppercase tracking-widest">Ready to generate</span>
         </div>
       </div>
 
@@ -52,7 +52,7 @@ export const IdeaInputForm = () => {
         <div className="space-y-2">
           <label className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">Project Title</label>
           <Input {...register('title')} placeholder="e.g., E-commerce AI Chatbot" className="h-12 rounded-xl bg-slate-50 border-slate-100 focus:bg-white" />
-          {errors.title && <p className="text-[10px] text-destructive font-bold ml-1">{errors.title.message}</p>}
+          {errors.title && <p className="text-xs text-destructive font-bold ml-1">{errors.title.message}</p>}
         </div>
 
         {/* Raw Idea */}
@@ -63,8 +63,8 @@ export const IdeaInputForm = () => {
             placeholder="Example: I need a chatbot for my online store that can answer customer questions and recommend products."
             className="w-full min-h-[100px] p-4 rounded-xl bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
           />
-          <p className="text-[10px] text-slate-400 font-medium ml-1">Write your idea naturally. No technical terms required.</p>
-          {errors.description && <p className="text-[10px] text-destructive font-bold ml-1">{errors.description.message}</p>}
+          <p className="text-xs text-slate-400 font-medium ml-1">Write your idea naturally. No technical terms required.</p>
+          {errors.description && <p className="text-xs text-destructive font-bold ml-1">{errors.description.message}</p>}
         </div>
 
         {/* Expected Outcome */}
@@ -75,7 +75,7 @@ export const IdeaInputForm = () => {
             placeholder="Reduce repetitive customer support tasks and improve response time."
             className="w-full min-h-[80px] p-4 rounded-xl bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
           />
-          {errors.expectedOutcome && <p className="text-[10px] text-destructive font-bold ml-1">{errors.expectedOutcome.message}</p>}
+          {errors.expectedOutcome && <p className="text-xs text-destructive font-bold ml-1">{errors.expectedOutcome.message}</p>}
         </div>
 
         <div className="grid grid-cols-2 gap-6">

@@ -68,11 +68,11 @@ export const ChatHeader = ({ recipient, type, relatedTitle, projectId }: ChatHea
             <h3 className="font-black text-slate-900 leading-tight tracking-tight truncate">
               {recipient.fullName}
             </h3>
-            <span className={cn("text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider", getRoleBadgeColor(recipient.role))}>
+            <span className={cn("text-xs px-1.5 py-0.5 rounded font-bold uppercase tracking-wider", getRoleBadgeColor(recipient.role))}>
               {recipient.role}
             </span>
           </div>
-          <p className="text-[11px] font-medium text-slate-500 truncate">
+          <p className="text-xs font-medium text-slate-500 truncate">
             {recipient.isOnline ? 'Online' : 'Offline'} • {type === 'SUPPORT' ? 'Support Ticket' : relatedTitle || 'General Chat'}
           </p>
         </div>

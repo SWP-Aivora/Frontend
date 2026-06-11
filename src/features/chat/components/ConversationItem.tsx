@@ -71,17 +71,17 @@ export const ConversationItem = ({ conversation, isSelected, onClick, isCollapse
             <h4 className="font-bold text-sm text-slate-900 truncate tracking-tight">
               {recipient.fullName}
             </h4>
-            <span className="text-[10px] font-medium text-slate-400 shrink-0">
+            <span className="text-xs font-medium text-slate-400 shrink-0">
               {formatTime(lastMessageAt)}
             </span>
           </div>
           
           <div className="flex items-center gap-1.5 mb-1">
-            <span className={cn("text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider", getRoleBadgeColor(recipient.role))}>
+            <span className={cn("text-xs px-1.5 py-0.5 rounded font-bold uppercase tracking-wider", getRoleBadgeColor(recipient.role))}>
               {recipient.role}
             </span>
             {relatedTitle && (
-              <span className="text-[10px] font-medium text-slate-400 truncate max-w-[100px]">
+              <span className="text-xs font-medium text-slate-400 truncate max-w-[100px]">
                 • {relatedTitle}
               </span>
             )}
@@ -97,7 +97,7 @@ export const ConversationItem = ({ conversation, isSelected, onClick, isCollapse
       )}
 
       {!isCollapsed && unreadCount > 0 && (
-        <div className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center ml-1 shadow-sm">
+        <div className="bg-blue-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center ml-1 shadow-sm">
           {unreadCount}
         </div>
       )}

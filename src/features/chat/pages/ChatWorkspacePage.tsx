@@ -141,7 +141,7 @@ export const ChatWorkspacePage = () => {
                   <h3 className="font-black text-slate-900 tracking-tight uppercase text-xs">Project Context</h3>
                   {project && (
                     <div className="flex items-center gap-2">
-                      <span className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded uppercase">
+                      <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-0.5 rounded uppercase">
                         {project.status === 1 ? 'Active' : 'Pending'}
                       </span>
                     </div>
@@ -151,26 +151,26 @@ export const ChatWorkspacePage = () => {
                 {project ? (
                   <div className="space-y-6">
                     <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Project Title</p>
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Project Title</p>
                       <p className="text-sm font-black text-slate-900 leading-tight">{project.title}</p>
                     </div>
                     
                     {currentMilestone && (
                       <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Current Milestone</p>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Current Milestone</p>
                         <p className="text-sm font-bold text-slate-800">{currentMilestone.title}</p>
                       </div>
                     )}
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Total Budget</p>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Total Budget</p>
                         <p className="text-xs font-bold text-slate-900 bg-blue-50 px-2 py-1 rounded inline-block">
                           ${project.totalBudget?.toLocaleString()}
                         </p>
                       </div>
                       <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Deadline</p>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Deadline</p>
                         <p className="text-xs font-bold text-slate-900">
                           {project.endDate ? new Date(project.endDate).toLocaleDateString() : 'N/A'}
                         </p>
@@ -181,10 +181,10 @@ export const ChatWorkspacePage = () => {
                   <p className="text-xs text-slate-500 font-medium italic">No project context available yet.</p>
                 )}
 
-                <div className="mt-8 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                <div className="mt-8 p-4 bg-slate-50 rounded-xl border border-slate-100">
                   <div className="flex gap-3">
                     <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                    <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
+                    <p className="text-xs text-slate-600 font-medium leading-relaxed">
                       This context is visible to both parties to ensure alignment on project goals.
                     </p>
                   </div>

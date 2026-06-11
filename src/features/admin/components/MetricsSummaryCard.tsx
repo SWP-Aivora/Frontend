@@ -34,7 +34,7 @@ export const MetricsSummaryCard = ({
 
   return (
     <div className={cn(
-      "bg-white border border-slate-100 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all flex items-center gap-4",
+      "bg-white border border-slate-100 rounded-xl p-4 shadow-sm hover:shadow-md transition-all flex items-center gap-4",
       className
     )}>
       <div className={cn(
@@ -55,7 +55,7 @@ export const MetricsSummaryCard = ({
             {value}
           </h3>
           {secondaryInfo && (
-            <span className="text-slate-400 text-[9px] font-medium truncate">
+            <span className="text-slate-400 text-xs font-medium truncate">
               {secondaryInfo}
             </span>
           )}

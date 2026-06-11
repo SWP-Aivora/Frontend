@@ -23,13 +23,13 @@ const getIconConfig = (type: string | NotificationType) => {
 const getStatusBadge = (status: string | NotificationStatus) => {
   switch (status) {
     case NotificationStatus.ACTION_REQUIRED:
-      return <div className="bg-red-50 px-3 py-1 rounded-full"><span className="text-[9px] font-bold text-red-600 uppercase">Action Required</span></div>;
+      return <div className="bg-red-50 px-3 py-1 rounded-full"><span className="text-xs font-bold text-red-600 uppercase">Action Required</span></div>;
     case NotificationStatus.RESOLVED:
-      return <div className="bg-emerald-50 px-3 py-1 rounded-full"><span className="text-[9px] font-bold text-emerald-600 uppercase">Resolved</span></div>;
+      return <div className="bg-emerald-50 px-3 py-1 rounded-full"><span className="text-xs font-bold text-emerald-600 uppercase">Resolved</span></div>;
     case NotificationStatus.UNREAD:
-      return <div className="bg-blue-50 px-3 py-1 rounded-full"><span className="text-[9px] font-bold text-primary uppercase">Unread</span></div>;
+      return <div className="bg-blue-50 px-3 py-1 rounded-full"><span className="text-xs font-bold text-primary uppercase">Unread</span></div>;
     default:
-      return <div className="bg-slate-50 px-3 py-1 rounded-full"><span className="text-[9px] font-bold text-slate-500 uppercase">Normal</span></div>;
+      return <div className="bg-slate-50 px-3 py-1 rounded-full"><span className="text-xs font-bold text-slate-500 uppercase">Normal</span></div>;
   }
 };
 
@@ -37,7 +37,7 @@ const getPriorityBadge = (priority: string | NotificationPriority) => {
   switch (priority) {
     case NotificationPriority.HIGH:
     case NotificationPriority.URGENT:
-      return <div className="bg-orange-50 px-3 py-1 rounded-full"><span className="text-[9px] font-bold text-orange-500 uppercase">High</span></div>;
+      return <div className="bg-orange-50 px-3 py-1 rounded-full"><span className="text-xs font-bold text-orange-500 uppercase">High</span></div>;
     default:
       return null;
   }
@@ -58,7 +58,7 @@ export const NotificationItem = ({ notification, onMarkAsRead }: NotificationIte
   };
 
   return (
-    <div className="relative bg-white border border-slate-200 h-24 overflow-hidden rounded-[18px] shadow-sm flex items-center hover:bg-slate-50 transition-colors">
+    <div className="relative bg-white border border-slate-200 h-24 overflow-hidden rounded-xl shadow-sm flex items-center hover:bg-slate-50 transition-colors">
       {/* Unread Stripe */}
       {isUnread && (
         <div className={`absolute left-0 top-0 bottom-0 w-[5px] ${notification.type === NotificationType.PAYMENT_RELEASED ? 'bg-emerald-600' : 'bg-primary'}`} />
@@ -74,11 +74,11 @@ export const NotificationItem = ({ notification, onMarkAsRead }: NotificationIte
         <h4 className="text-[15px] font-semibold text-slate-900 leading-tight">
           {notification.title}
         </h4>
-        <p className="text-[11px] text-slate-600 mt-1 truncate max-w-[400px]">
+        <p className="text-xs text-slate-600 mt-1 truncate max-w-[400px]">
           {notification.message}
         </p>
         {notification.projectName && (
-          <p className="text-[10px] font-medium text-primary mt-2">
+          <p className="text-xs font-medium text-primary mt-2">
             {notification.projectName}
           </p>
         )}
@@ -92,7 +92,7 @@ export const NotificationItem = ({ notification, onMarkAsRead }: NotificationIte
 
       {/* Time & Actions */}
       <div className="flex flex-col items-end gap-2 pr-6">
-        <span className="text-[10px] font-medium text-slate-500">
+        <span className="text-xs font-medium text-slate-500">
           {formatTime(notification.createdAt)}
         </span>
         

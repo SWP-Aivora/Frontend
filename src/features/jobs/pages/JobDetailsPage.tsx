@@ -80,7 +80,7 @@ export const JobDetailsPage = () => {
         
         {/* Left Column: Job Details */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-[32px] p-8 md:p-10 border border-slate-100 shadow-sm relative overflow-hidden">
+          <div className="bg-white rounded-xl p-8 md:p-10 border border-slate-100 shadow-sm relative overflow-hidden">
              {/* Header */}
              <div className="space-y-4 mb-8">
                 <div className="flex flex-wrap items-center gap-2">
@@ -90,7 +90,7 @@ export const JobDetailsPage = () => {
                    <span className="px-3 py-1 bg-brand-accent/5 border border-brand-accent/10 rounded-lg text-xs font-bold text-brand-accent flex items-center gap-1.5">
                      <BrainCircuit className="size-3.5" /> Expert Level
                    </span>
-                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-auto flex items-center gap-1">
+                   <span className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-auto flex items-center gap-1">
                      <Clock className="size-3" /> Posted {mockJob.createdAt}
                    </span>
                 </div>
@@ -109,7 +109,7 @@ export const JobDetailsPage = () => {
                    </div>
                    <div>
                       <p className="font-black text-slate-900">${mockJob.budgetMin} - ${mockJob.budgetMax}</p>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Fixed Price</p>
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Fixed Price</p>
                    </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -118,7 +118,7 @@ export const JobDetailsPage = () => {
                    </div>
                    <div>
                       <p className="font-black text-slate-900">{mockJob.timelineDays} Days</p>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Est. Timeline</p>
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Est. Timeline</p>
                    </div>
                 </div>
              </div>
@@ -145,7 +145,7 @@ export const JobDetailsPage = () => {
           </div>
 
           {/* Client Info (Mobile only, moves to sidebar on desktop) */}
-          <div className="lg:hidden bg-slate-50 rounded-[32px] p-8 border border-slate-100">
+          <div className="lg:hidden bg-slate-50 rounded-xl p-8 border border-slate-100">
              <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider mb-4">About the Client</h3>
              <div className="space-y-3">
                 <p className="font-bold text-slate-900">{mockJob.clientName}</p>
@@ -165,7 +165,7 @@ export const JobDetailsPage = () => {
         <div className="lg:col-span-1 space-y-6">
           
           {/* Client Info (Desktop) */}
-          <div className="hidden lg:block bg-slate-50 rounded-[32px] p-8 border border-slate-100 shadow-sm">
+          <div className="hidden lg:block bg-slate-50 rounded-xl p-8 border border-slate-100 shadow-sm">
              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-6">About the Client</h3>
              <div className="space-y-4">
                 <p className="font-black text-lg text-slate-900">{mockJob.clientName}</p>
@@ -179,13 +179,13 @@ export const JobDetailsPage = () => {
                 </div>
                 <div className="pt-4 border-t border-slate-200">
                    <p className="text-sm font-black text-slate-900">{mockJob.clientTotalSpent}</p>
-                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Total Spent</p>
+                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Total Spent</p>
                 </div>
              </div>
           </div>
 
           {/* Proposal Form */}
-          <div className="bg-white rounded-[32px] p-8 border border-brand-accent/20 shadow-xl shadow-brand-accent/5 relative overflow-hidden">
+          <div className="bg-white rounded-xl p-8 border border-brand-accent/20 shadow-xl shadow-brand-accent/5 relative overflow-hidden">
              <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-brand-accent to-blue-500" />
              
              <h3 className="text-xl font-black text-slate-900 mb-2 mt-2">Submit a Proposal</h3>
@@ -198,12 +198,12 @@ export const JobDetailsPage = () => {
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Proposed Bid ($)</label>
                     <Input type="number" {...register('proposedBudget')} className="h-12 rounded-xl bg-slate-50" />
-                    {errors.proposedBudget && <p className="text-[10px] text-destructive font-bold">{errors.proposedBudget.message}</p>}
+                    {errors.proposedBudget && <p className="text-xs text-destructive font-bold">{errors.proposedBudget.message}</p>}
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Delivery Time (Days)</label>
                     <Input type="number" {...register('proposedTimelineDays')} className="h-12 rounded-xl bg-slate-50" />
-                    {errors.proposedTimelineDays && <p className="text-[10px] text-destructive font-bold">{errors.proposedTimelineDays.message}</p>}
+                    {errors.proposedTimelineDays && <p className="text-xs text-destructive font-bold">{errors.proposedTimelineDays.message}</p>}
                   </div>
                 </div>
 
@@ -215,16 +215,16 @@ export const JobDetailsPage = () => {
                       placeholder="Hi! I have extensive experience in building computer vision models..."
                       className="w-full min-h-[160px] p-4 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-accent/20 text-sm"
                    />
-                   {errors.coverLetter && <p className="text-[10px] text-destructive font-bold">{errors.coverLetter.message}</p>}
+                   {errors.coverLetter && <p className="text-xs text-destructive font-bold">{errors.coverLetter.message}</p>}
                 </div>
 
                 {/* Milestones (Simplified for UI) */}
-                <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
                    <div className="flex items-center justify-between">
                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
                        <FileText className="size-3" /> Milestones
                      </label>
-                     <button type="button" onClick={() => append({ title: '', amount: 0, dueDays: 0, orderIndex: fields.length })} className="text-[10px] font-bold text-brand-accent hover:underline">
+                     <button type="button" onClick={() => append({ title: '', amount: 0, dueDays: 0, orderIndex: fields.length })} className="text-xs font-bold text-brand-accent hover:underline">
                         + Add Milestone
                      </button>
                    </div>

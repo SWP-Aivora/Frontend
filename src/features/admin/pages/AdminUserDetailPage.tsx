@@ -18,7 +18,6 @@ import {
   ExternalLink,
   Clock
 } from 'lucide-react';
-import type { AxiosError } from 'axios';
 import { adminService } from '../services';
 import type { ExpertReviewItem } from '../types';
 
@@ -31,10 +30,12 @@ export const AdminUserDetailPage = () => {
   const { data: realUserData, isLoading: isLoadingUser, isError: isUserError, error: userError } = useAdminUsers();
   
   // Fetch reviews to find if this expert has a pending one
-  const { data: realReviewsData, isError: isReviewsError, error: reviewsError } = useAdminExpertReviews();
+  const { data: realReviewsData } = useAdminExpertReviews();
 
-  const isNetworkError = (error: unknown) => (error as AxiosError)?.message === 'Network Error' || (error as AxiosError)?.response?.status === 404 || (error as AxiosError)?.response?.status === 405;
-  const isPreviewMode = (isUserError && isNetworkError(userError)) || (isReviewsError && isNetworkError(reviewsError));
+  // PREVIEW MODE:
+  // Expert reviews and details rely on endpoints not yet in v1.json.
+  // The service is stubbed, but if the main user fetch fails via network error, we also fall back.
+  const isPreviewMode = true; 
   
   const userData = isPreviewMode ? ADMIN_USER_MANAGEMENT_PREVIEW_DATA : realUserData;
   const reviewsData = isPreviewMode ? ADMIN_EXPERT_REVIEWS_PREVIEW_DATA : realReviewsData;
@@ -58,7 +59,7 @@ export const AdminUserDetailPage = () => {
       window.location.reload();
     } catch (err) {
       console.error('Failed to update user status', err);
-      if (isPreviewMode) alert('Action simulated in preview mode.');
+      if (isPreviewMode) alert('Note: Real API integration attempted, but failed or simulates in preview mode.');
     }
   };
 
@@ -66,6 +67,7 @@ export const AdminUserDetailPage = () => {
     if (!pendingReview) return;
     if (window.confirm('Are you sure you want to approve these profile changes?')) {
       processReview({ id: pendingReview.id, status: 'Approved' });
+      alert('Preview Mode: Approval simulated. Endpoint not in v1.json.');
     }
   };
 
@@ -74,6 +76,7 @@ export const AdminUserDetailPage = () => {
     processReview({ id: pendingReview.id, status: 'Rejected', note: rejectionReason });
     setShowRejectModal(false);
     setRejectionReason('');
+    alert('Preview Mode: Rejection simulated. Endpoint not in v1.json.');
   };
 
   if (isLoadingUser) {
@@ -86,7 +89,7 @@ export const AdminUserDetailPage = () => {
 
   if (isUserError && !isPreviewMode) {
     return (
-      <div className="bg-rose-50 border border-rose-100 rounded-3xl p-10 text-center max-w-2xl mx-auto my-10">
+      <div className="bg-rose-50 border border-rose-100 rounded-xl p-10 text-center max-w-2xl mx-auto my-10">
         <AlertCircle className="size-12 text-rose-500 mx-auto mb-4" />
         <h2 className="text-lg font-black text-rose-900 mb-2">Failed to load user details</h2>
         <p className="text-rose-600 font-medium">{(userError as Error)?.message || 'Something went wrong.'}</p>
@@ -114,7 +117,7 @@ export const AdminUserDetailPage = () => {
       </Link>
 
       {/* Header & Basic Profile Info */}
-      <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+      <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
         <div className="flex items-center gap-4">
           <div className={cn(
             "size-14 rounded-full flex items-center justify-center text-lg font-bold text-white shadow-inner",
@@ -128,21 +131,21 @@ export const AdminUserDetailPage = () => {
             <p className="text-xs text-slate-500 font-medium">{user.email}</p>
             <div className="flex flex-wrap gap-2 mt-2">
               <span className={cn(
-                "px-2 py-0.5 rounded-full text-[9px] font-semibold border",
+                "px-2 py-0.5 rounded-full text-xs font-semibold border",
                 user.role === 'Admin' ? "bg-purple-50 text-purple-600 border-purple-100" :
                 user.role === 'Client' ? "bg-blue-50 text-blue-600 border-blue-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"
               )}>
                 {user.role}
               </span>
               <span className={cn(
-                "px-2 py-0.5 rounded-full text-[9px] font-semibold border",
+                "px-2 py-0.5 rounded-full text-xs font-semibold border",
                 user.status === 'Active' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : 
                 user.status === 'Suspended' ? "bg-rose-50 text-rose-600 border-rose-100" : "bg-orange-50 text-orange-600 border-orange-100"
               )}>
                 {user.status}
               </span>
               <span className={cn(
-                "px-2 py-0.5 rounded-full text-[9px] font-semibold border",
+                "px-2 py-0.5 rounded-full text-xs font-semibold border",
                 user.verificationState === 'Verified' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-slate-50 text-slate-600 border-slate-200"
               )}>
                 {user.verificationState}
@@ -175,7 +178,7 @@ export const AdminUserDetailPage = () => {
           
           {/* Admin Specific Content */}
           {user.role === 'Admin' && (
-            <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+            <div className="bg-white border border-slate-100 rounded-xl p-6 shadow-sm">
               <h3 className="text-lg font-black text-slate-900 mb-4">Admin Privileges</h3>
               <p className="text-sm text-slate-500">This user has full access to the AIVORA admin dashboard, including user management, dispute resolution, and system settings.</p>
               <div className="mt-6 flex items-center gap-3 p-4 bg-purple-50 rounded-xl border border-purple-100">
@@ -188,17 +191,17 @@ export const AdminUserDetailPage = () => {
           {/* Client Specific Content */}
           {user.role === 'Client' && (
             <>
-              <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+              <div className="bg-white border border-slate-100 rounded-xl p-6 shadow-sm">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-black text-slate-900">Job Posts & Projects</h3>
                 </div>
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Open Jobs</p>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Open Jobs</p>
                     <p className="text-2xl font-black text-slate-900">3</p>
                   </div>
                   <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Active Projects</p>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Active Projects</p>
                     <p className="text-2xl font-black text-slate-900">{user.projectsCount ?? 0}</p>
                   </div>
                 </div>
@@ -214,13 +217,13 @@ export const AdminUserDetailPage = () => {
           {/* Expert Specific Content */}
           {user.role === 'Expert' && (
             <>
-              <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+              <div className="bg-white border border-slate-100 rounded-xl p-6 shadow-sm">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-black text-slate-900">Expertise & Verification</h3>
                   {user.verificationState !== 'Verified' && (
                     <div className="flex gap-2">
-                       <button className="px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-[10px] font-bold hover:bg-emerald-100 transition-colors">Approve</button>
-                       <button className="px-3 py-1.5 bg-rose-50 text-rose-600 rounded-lg text-[10px] font-bold hover:bg-rose-100 transition-colors">Reject</button>
+                       <button className="px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-colors">Approve</button>
+                       <button className="px-3 py-1.5 bg-rose-50 text-rose-600 rounded-lg text-xs font-bold hover:bg-rose-100 transition-colors">Reject</button>
                     </div>
                   )}
                 </div>
@@ -230,7 +233,7 @@ export const AdminUserDetailPage = () => {
                     <AlertCircle className="size-5 text-orange-500 shrink-0 mt-0.5" />
                     <div>
                       <p className="text-xs font-bold text-orange-800">Review Requested</p>
-                      <p className="text-[10px] text-orange-600 mt-1">This expert has submitted new portfolio items and skill verifications that require manual admin approval.</p>
+                      <p className="text-xs text-orange-600 mt-1">This expert has submitted new portfolio items and skill verifications that require manual admin approval.</p>
                     </div>
                   </div>
                 ) : user.verificationState === 'Verified' ? (
@@ -238,7 +241,7 @@ export const AdminUserDetailPage = () => {
                     <CheckCircle2 className="size-5 text-emerald-500 shrink-0 mt-0.5" />
                     <div>
                       <p className="text-xs font-bold text-emerald-800">Fully Verified</p>
-                      <p className="text-[10px] text-emerald-600 mt-1">Expert identity and skills have been approved.</p>
+                      <p className="text-xs text-emerald-600 mt-1">Expert identity and skills have been approved.</p>
                     </div>
                   </div>
                 ) : user.verificationState === 'Rejected' ? (
@@ -246,19 +249,19 @@ export const AdminUserDetailPage = () => {
                     <XCircle className="size-5 text-rose-500 shrink-0 mt-0.5" />
                     <div>
                       <p className="text-xs font-bold text-rose-800">Verification Rejected</p>
-                      <p className="text-[10px] text-rose-600 mt-1">Previous submission did not meet platform guidelines.</p>
+                      <p className="text-xs text-rose-600 mt-1">Previous submission did not meet platform guidelines.</p>
                     </div>
                   </div>
                 ) : null}
 
                 <div className="space-y-4">
                    <div>
-                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Claimed Skills</p>
+                     <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Claimed Skills</p>
                      <div className="flex flex-wrap gap-2">
-                       <span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg text-[10px] font-semibold">React</span>
-                       <span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg text-[10px] font-semibold">Node.js</span>
-                       <span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg text-[10px] font-semibold">Python</span>
-                       <span className="px-2.5 py-1 bg-primary/10 text-primary rounded-lg text-[10px] font-semibold flex items-center gap-1"><Activity className="size-3" /> AI Integration</span>
+                       <span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold">React</span>
+                       <span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold">Node.js</span>
+                       <span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold">Python</span>
+                       <span className="px-2.5 py-1 bg-primary/10 text-primary rounded-lg text-xs font-semibold flex items-center gap-1"><Activity className="size-3" /> AI Integration</span>
                      </div>
                    </div>
                 </div>
@@ -266,7 +269,7 @@ export const AdminUserDetailPage = () => {
 
               {/* Pending Profile Change Review Section */}
               {pendingReview && (
-                <div className="bg-white border-2 border-primary/20 rounded-2xl overflow-hidden shadow-xl shadow-primary/5 animate-in slide-in-from-bottom-4 duration-500">
+                <div className="bg-white border-2 border-primary/20 rounded-xl overflow-hidden shadow-xl shadow-primary/5 animate-in slide-in-from-bottom-4 duration-500">
                   <div className="bg-primary p-4 flex justify-between items-center">
                     <div className="flex items-center gap-3 text-white">
                       <div className="size-10 rounded-xl bg-white/20 flex items-center justify-center border border-white/30">
@@ -274,10 +277,10 @@ export const AdminUserDetailPage = () => {
                       </div>
                       <div>
                         <h3 className="text-sm font-black uppercase tracking-tight">Pending Profile Changes</h3>
-                        <p className="text-[10px] text-white/70 font-bold">Submitted on {pendingReview.submittedAt}</p>
+                        <p className="text-xs text-white/70 font-bold">Submitted on {pendingReview.submittedAt}</p>
                       </div>
                     </div>
-                    <div className="bg-white/20 text-white px-3 py-1 rounded-full text-[10px] font-bold border border-white/20">
+                    <div className="bg-white/20 text-white px-3 py-1 rounded-full text-xs font-bold border border-white/20">
                       Action Required
                     </div>
                   </div>
@@ -330,7 +333,7 @@ export const AdminUserDetailPage = () => {
                               <FileText className="size-4 text-primary" />
                               Verification Evidence
                             </h4>
-                            <span className="bg-slate-50 text-slate-500 text-[10px] font-black px-2 py-0.5 rounded-full border border-slate-100">
+                            <span className="bg-slate-50 text-slate-500 text-xs font-black px-2 py-0.5 rounded-full border border-slate-100">
                               {currentReviewDetail.portfolio.length} items
                             </span>
                            </div>
@@ -339,16 +342,16 @@ export const AdminUserDetailPage = () => {
                                 <div key={item.id} className="group p-3 bg-slate-50 hover:bg-white rounded-xl border border-slate-100 hover:border-primary/20 transition-all flex items-center justify-between">
                                   <div className="flex items-center gap-3">
                                     <div className="size-10 rounded-lg bg-white flex items-center justify-center border border-slate-100 group-hover:border-primary/20">
-                                      <span className="text-[10px] font-black text-primary">DOC</span>
+                                      <span className="text-xs font-black text-primary">DOC</span>
                                     </div>
                                     <div>
-                                      <p className="text-[11px] font-bold text-slate-900 leading-tight">{item.title}</p>
-                                      <p className="text-[9px] text-slate-500 font-medium mt-0.5">{item.type}</p>
+                                      <p className="text-xs font-bold text-slate-900 leading-tight">{item.title}</p>
+                                      <p className="text-xs text-slate-500 font-medium mt-0.5">{item.type}</p>
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-2">
                                      <span className={cn(
-                                       "px-2 py-0.5 rounded-full text-[9px] font-bold border",
+                                       "px-2 py-0.5 rounded-full text-xs font-bold border",
                                        item.status === 'Verified' || item.status === 'Strong' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-orange-50 text-orange-600 border-orange-100"
                                      )}>
                                        {item.status}
@@ -383,7 +386,7 @@ export const AdminUserDetailPage = () => {
                         </div>
                       </>
                     ) : (
-                      <div className="text-center py-10 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                      <div className="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-200">
                         <AlertCircle className="size-8 text-slate-300 mx-auto mb-2" />
                         <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Failed to load comparison data</p>
                       </div>
@@ -394,21 +397,21 @@ export const AdminUserDetailPage = () => {
 
               {/* Empty state if no pending and user IS expert */}
               {!pendingReview && (
-                <div className="bg-slate-50/50 border border-slate-100 border-dashed rounded-2xl p-6 text-center">
+                <div className="bg-slate-50/50 border border-slate-100 border-dashed rounded-xl p-6 text-center">
                    <CheckCircle2 className="size-8 text-slate-300 mx-auto mb-2" />
                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">No pending profile changes for this expert</p>
                 </div>
               )}
 
-              <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+              <div className="bg-white border border-slate-100 rounded-xl p-6 shadow-sm">
                 <h3 className="text-lg font-black text-slate-900 mb-4">Work History</h3>
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Active Projects</p>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Active Projects</p>
                     <p className="text-2xl font-black text-slate-900">{user.projectsCount ?? 0}</p>
                   </div>
                   <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Proposals Submitted</p>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Proposals Submitted</p>
                     <p className="text-2xl font-black text-slate-900">{user.proposalsCount ?? 0}</p>
                   </div>
                 </div>
@@ -424,7 +427,7 @@ export const AdminUserDetailPage = () => {
 
         {/* Right Column - Stats & Meta */}
         <div className="lg:w-[320px] space-y-6">
-          <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+          <div className="bg-white border border-slate-100 rounded-xl p-6 shadow-sm">
             <h3 className="text-sm font-bold text-slate-900 mb-4">Account Metadata</h3>
             <div className="space-y-4">
               <div className="flex justify-between items-center py-2 border-b border-slate-50">
@@ -464,15 +467,15 @@ export const AdminUserDetailPage = () => {
       {/* Rejection Modal */}
       {showRejectModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-           <div className="bg-white rounded-3xl p-8 max-w-md w-full animate-in zoom-in-95 duration-200 shadow-2xl">
-              <div className="size-16 rounded-2xl bg-rose-50 flex items-center justify-center mb-6">
+           <div className="bg-white rounded-xl p-8 max-w-md w-full animate-in zoom-in-95 duration-200 shadow-2xl">
+              <div className="size-16 rounded-xl bg-rose-50 flex items-center justify-center mb-6">
                  <AlertCircle className="size-8 text-rose-500" />
               </div>
               <h3 className="text-xl font-black text-slate-900 mb-2">Reject profile changes?</h3>
               <p className="text-slate-500 text-sm font-medium mb-6 leading-relaxed">Please provide a reason for rejection. This will be sent to the expert to help them improve their profile.</p>
               
               <textarea 
-                className="w-full h-32 bg-slate-50 border border-slate-100 rounded-2xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-slate-400 placeholder:font-medium mb-6"
+                className="w-full h-32 bg-slate-50 border border-slate-100 rounded-xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-slate-400 placeholder:font-medium mb-6"
                 placeholder="e.g. Portfolio links are broken, experience detail is too vague..."
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
@@ -481,7 +484,7 @@ export const AdminUserDetailPage = () => {
               <div className="flex gap-3">
                 <button 
                   onClick={() => setShowRejectModal(false)}
-                  className="flex-1 bg-slate-50 text-slate-600 py-3 rounded-2xl text-xs font-black hover:bg-slate-100 transition-colors"
+                  className="flex-1 bg-slate-50 text-slate-600 py-3 rounded-xl text-xs font-black hover:bg-slate-100 transition-colors"
                 >
                   Cancel
                 </button>
@@ -489,7 +492,7 @@ export const AdminUserDetailPage = () => {
                   disabled={!rejectionReason || isProcessing}
                   onClick={handleReject}
                   className={cn(
-                    "flex-1 py-3 rounded-2xl text-xs font-black transition-all",
+                    "flex-1 py-3 rounded-xl text-xs font-black transition-all",
                     !rejectionReason ? "bg-slate-200 text-slate-400" : "bg-rose-500 text-white hover:bg-rose-600 shadow-lg shadow-rose-200"
                   )}
                 >
@@ -513,7 +516,7 @@ interface ComparisonFieldProps {
 const ComparisonField = ({ label, current, requested, isChanged }: ComparisonFieldProps) => (
   <div className="space-y-2">
     <div className="flex items-center justify-between">
-      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</span>
+      <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{label}</span>
       {isChanged && (
         <span className="bg-orange-50 text-orange-600 text-[8px] font-black px-1.5 py-0.5 rounded-full border border-orange-100">CHANGED</span>
       )}
@@ -521,11 +524,11 @@ const ComparisonField = ({ label, current, requested, isChanged }: ComparisonFie
     <div className="grid grid-cols-1 gap-2">
       <div className="bg-slate-50 p-2.5 rounded-xl border border-dashed border-slate-200 relative group overflow-hidden">
         <span className="absolute top-1 right-2 text-[8px] font-bold text-slate-300 group-hover:text-slate-400 transition-colors uppercase">Current</span>
-        <p className="text-[10px] font-medium text-slate-400 line-through decoration-slate-300">{current}</p>
+        <p className="text-xs font-medium text-slate-400 line-through decoration-slate-300">{current}</p>
       </div>
       <div className="bg-emerald-50/30 p-2.5 rounded-xl border border-emerald-100 relative group overflow-hidden">
         <span className="absolute top-1 right-2 text-[8px] font-bold text-emerald-400/60 uppercase">Requested</span>
-        <p className="text-[11px] font-bold text-slate-700 leading-relaxed">{requested}</p>
+        <p className="text-xs font-bold text-slate-700 leading-relaxed">{requested}</p>
       </div>
     </div>
   </div>

@@ -20,12 +20,12 @@ export const ProposalListCard = ({
 }: ProposalListCardProps) => {
   return (
     <div className={cn(
-      "group bg-white border border-slate-100 rounded-[28px] p-6 shadow-sm hover:shadow-xl transition-all duration-300 relative overflow-hidden",
+      "group bg-white border border-slate-100 rounded-xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 relative overflow-hidden",
       aiMatchScore >= 90 && "border-brand-accent/30 shadow-brand-accent/5 bg-gradient-to-br from-white to-brand-accent/[0.02]"
     )}>
       {/* AI Best Match Ribbon */}
       {aiMatchScore >= 90 && (
-        <div className="absolute top-4 right-[-35px] rotate-45 bg-brand-accent text-white text-[10px] font-black px-10 py-1 shadow-lg z-10 uppercase tracking-widest">
+        <div className="absolute top-4 right-[-35px] rotate-45 bg-brand-accent text-white text-xs font-black px-10 py-1 shadow-lg z-10 uppercase tracking-widest">
           Best Match
         </div>
       )}
@@ -34,7 +34,7 @@ export const ProposalListCard = ({
         {/* Expert Avatar & Basic Info */}
         <div className="flex flex-col items-center text-center md:items-start md:text-left space-y-3 min-w-[140px]">
            <div className="relative">
-              <div className="size-20 rounded-[24px] bg-slate-100 overflow-hidden border-2 border-white shadow-md">
+              <div className="size-20 rounded-xl bg-slate-100 overflow-hidden border-2 border-white shadow-md">
                  {proposal.expert.avatarUrl ? (
                    <img src={proposal.expert.avatarUrl} alt={proposal.expert.fullName} className="size-full object-cover" />
                  ) : (
@@ -56,7 +56,7 @@ export const ProposalListCard = ({
               <h4 className="font-black text-slate-900 group-hover:text-primary transition-colors">{proposal.expert.fullName}</h4>
               <div className="flex items-center gap-1 mt-1 justify-center md:justify-start">
                  <Star className="size-3 text-amber-400 fill-amber-400" />
-                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">4.9 (24 Reviews)</span>
+                 <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">4.9 (24 Reviews)</span>
               </div>
            </div>
         </div>
@@ -72,7 +72,7 @@ export const ProposalListCard = ({
                  <Clock className="size-3.5 text-blue-600" />
                  <span className="text-sm">{proposal.proposedTimelineDays} Days</span>
               </div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-auto">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-auto">
                  Submitted {new Date(proposal.createdAt).toLocaleDateString()}
               </span>
            </div>
@@ -88,13 +88,13 @@ export const ProposalListCard = ({
 
            {/* Milestones Preview */}
            {proposal.milestones.length > 0 && (
-             <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Proposed Milestones ({proposal.milestones.length})</p>
+             <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Proposed Milestones ({proposal.milestones.length})</p>
                 <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
                    {proposal.milestones.map((m) => (
                       <div key={m.id} className="min-w-[120px] bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm">
-                         <p className="text-[10px] font-bold text-slate-900 truncate">{m.title}</p>
-                         <p className="text-[11px] font-black text-emerald-600 mt-1">${m.amount}</p>
+                         <p className="text-xs font-bold text-slate-900 truncate">{m.title}</p>
+                         <p className="text-xs font-black text-emerald-600 mt-1">${m.amount}</p>
                       </div>
                    ))}
                 </div>

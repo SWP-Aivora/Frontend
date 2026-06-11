@@ -1,5 +1,5 @@
 
-import React from 'react';
+import * as React from 'react';
 import { cn } from '@/lib/utils';
 import { DisputeStatus } from '../types';
 
@@ -36,7 +36,7 @@ export const DisputeStatusBadge: React.FC<DisputeStatusBadgeProps> = ({ status, 
   return (
     <span
       className={cn(
-        'px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border',
+        'px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border',
         config.className,
         className
       )}

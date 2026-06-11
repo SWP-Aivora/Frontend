@@ -78,7 +78,7 @@ export const FindWorkPage = () => {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* Header & Search */}
-      <div className="bg-brand-blue-dark rounded-[40px] p-10 md:p-14 relative overflow-hidden text-white shadow-2xl">
+      <div className="bg-brand-blue-dark rounded-xl p-10 md:p-14 relative overflow-hidden text-white shadow-2xl">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-brand-accent/30 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
         
         <div className="relative z-10 max-w-3xl">
@@ -90,7 +90,7 @@ export const FindWorkPage = () => {
             Browse thousands of high-quality AI jobs from verified clients. Apply, deliver, and get paid securely.
           </p>
 
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-2 flex flex-col md:flex-row gap-2">
+          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-2 flex flex-col md:flex-row gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-white/50" />
               <input 
@@ -118,7 +118,7 @@ export const FindWorkPage = () => {
           </div>
 
           {/* Budget Filter */}
-          <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
+          <div className="bg-white rounded-xl p-6 border border-slate-100 shadow-sm space-y-4">
             <div className="flex items-center gap-2 text-slate-900 font-bold">
                <DollarSign className="size-4 text-brand-accent" />
                Budget Type
@@ -146,7 +146,7 @@ export const FindWorkPage = () => {
           </div>
 
           {/* Domain Filter */}
-          <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
+          <div className="bg-white rounded-xl p-6 border border-slate-100 shadow-sm space-y-4">
             <div className="flex items-center gap-2 text-slate-900 font-bold">
                <BrainCircuit className="size-4 text-brand-accent" />
                AI Domains
@@ -163,7 +163,7 @@ export const FindWorkPage = () => {
 
         {/* Main Job List */}
         <div className="lg:col-span-3 space-y-4">
-          <div className="flex items-center justify-between bg-white border border-slate-100 rounded-2xl p-4 shadow-sm mb-6">
+          <div className="flex items-center justify-between bg-white border border-slate-100 rounded-xl p-4 shadow-sm mb-6">
              <p className="text-sm font-bold text-slate-500">
                Showing <span className="text-slate-900">2,481</span> jobs
              </p>
