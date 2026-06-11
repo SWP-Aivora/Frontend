@@ -8,7 +8,6 @@ import {
   Search,
   Filter,
   ShieldCheck,
-  RefreshCw,
   MoreVertical
 } from 'lucide-react';
 
@@ -22,7 +21,8 @@ import { walletService } from '../services';
 export const WalletPage = () => {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
-  const [isDepositing, setIsDepositing] = useState(false);
+  const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
+  const [depositAmount, setDepositAmount] = useState<number>(1000);
   const isClient = user?.role === Role.CLIENT;
 
   const { data: walletResponse, isLoading: isLoadingWallet } = useQuery({
@@ -45,7 +45,7 @@ export const WalletPage = () => {
     onError: () => {
       toast.error('Failed to deposit funds. Please try again.');
     },
-    onSettled: () => setIsDepositing(false),
+    onSettled: () => setIsDepositModalOpen(false),
   });
 
   const wallet = walletResponse?.data;
@@ -70,8 +70,13 @@ export const WalletPage = () => {
   }, [transactions]);
 
   const handleDeposit = () => {
-    setIsDepositing(true);
-    depositMutation.mutate(1000);
+    setIsDepositModalOpen(true);
+  };
+
+  const confirmDeposit = () => {
+    if (depositAmount > 0) {
+      depositMutation.mutate(depositAmount);
+    }
   };
 
   const getTransactionTypeInfo = (type: number) => {
@@ -115,8 +120,8 @@ export const WalletPage = () => {
         <div className="flex items-center gap-3">
            <Button variant="outline" className="rounded-full border-slate-200">Export PDF</Button>
            {isClient ? (
-             <Button onClick={handleDeposit} disabled={isDepositing} className="rounded-full px-6 shadow-lg shadow-primary/20 flex items-center gap-2">
-                {isDepositing ? <RefreshCw className="size-4 animate-spin" /> : <Plus className="size-4" />}
+             <Button onClick={handleDeposit} className="rounded-full px-6 shadow-lg shadow-primary/20 flex items-center gap-2">
+                <Plus className="size-4" />
                 Deposit Funds
              </Button>
            ) : (
@@ -142,9 +147,9 @@ export const WalletPage = () => {
               <div className="relative z-10 h-full flex flex-col justify-between">
                  <div className="flex justify-between items-start">
                     <div>
-                       <p className="text-blue-100/70 text-xs font-black uppercase tracking-widest mb-1">Available Balance</p>
+                       <p className="text-blue-100/70 text-xs font-black uppercase tracking-widest mb-1">Available Balance (Coins)</p>
                        <h2 className="text-5xl font-black tracking-tighter">
-                          ${wallet?.balance?.toLocaleString() || '0'}.00
+                          {wallet?.balance?.toLocaleString() || '0'} Xu
                        </h2>
                     </div>
                     <div className="size-14 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/10">
@@ -155,14 +160,14 @@ export const WalletPage = () => {
                  <div className="flex items-center gap-10">
                     <div>
                        <p className="text-blue-100/50 text-xs font-bold uppercase tracking-widest mb-1">In Review / Escrow</p>
-                       <p className="text-xl font-black">${totals.inEscrow.toLocaleString()}.00</p>
+                       <p className="text-xl font-black">{totals.inEscrow.toLocaleString()} Xu</p>
                     </div>
                     <div>
                        <p className="text-blue-100/50 text-xs font-bold uppercase tracking-widest mb-1">
                           Total {isClient ? 'Spent' : 'Earned'}
                        </p>
                        <p className="text-xl font-black">
-                          ${(isClient ? totals.spent : totals.earned).toLocaleString()}.00
+                          {(isClient ? totals.spent : totals.earned).toLocaleString()} Xu
                        </p>
                     </div>
                  </div>
@@ -305,7 +310,7 @@ export const WalletPage = () => {
                               "text-base font-black",
                               (t.type === 0 || t.type === 3) ? "text-emerald-600" : "text-slate-900"
                             )}>
-                               {(t.type === 0 || t.type === 3) ? '+' : '-'}${t.amount.toLocaleString()}.00
+                               {(t.type === 0 || t.type === 3) ? '+' : '-'}{t.amount.toLocaleString()} Xu
                             </span>
                          </td>
                       </tr>
@@ -326,6 +331,45 @@ export const WalletPage = () => {
             </div>
          </div>
       </div>
+
+      {/* Deposit Modal */}
+      {isDepositModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsDepositModalOpen(false)} />
+          <div className="bg-white rounded-3xl p-8 w-[90%] max-w-sm relative z-10 shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="text-2xl font-black text-slate-900 mb-2">Deposit Coins</h3>
+            <p className="text-sm text-slate-500 mb-6">Enter the amount of Xu you want to add to your wallet.</p>
+            
+            <div className="space-y-4 mb-8">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Amount (Xu)</label>
+                <div className="relative">
+                  <input 
+                    type="number" 
+                    min="1"
+                    className="w-full rounded-xl border-slate-200 p-3 pl-4 pr-12 text-lg font-bold text-slate-900 focus:ring-primary focus:border-primary" 
+                    placeholder="1000"
+                    value={depositAmount || ''}
+                    onChange={e => setDepositAmount(Number(e.target.value))}
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">Xu</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setIsDepositModalOpen(false)} className="rounded-full font-bold">Cancel</Button>
+              <Button 
+                onClick={confirmDeposit} 
+                disabled={depositMutation.isPending || depositAmount <= 0}
+                className="rounded-full shadow-lg shadow-primary/20 font-black"
+              >
+                {depositMutation.isPending ? 'Processing...' : 'Deposit'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
