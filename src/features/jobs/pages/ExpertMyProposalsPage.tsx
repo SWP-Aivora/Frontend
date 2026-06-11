@@ -125,8 +125,8 @@ export const ExpertMyProposalsPage = () => {
            { label: 'Projects Won', value: proposals.filter(p => p.status === 2).length, icon: CheckCircle2, color: 'text-brand-success', bg: 'bg-brand-success/10' },
            { label: 'Total Bids', value: proposals.length, icon: Briefcase, color: 'text-brand-accent', bg: 'bg-brand-accent/5' },
          ].map((stat, i) => (
-           <div key={i} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex items-center gap-5">
-              <div className={cn("size-14 rounded-2xl flex items-center justify-center", stat.bg)}>
+           <div key={i} className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm flex items-center gap-5">
+              <div className={cn("size-14 rounded-xl flex items-center justify-center", stat.bg)}>
                  <stat.icon className={cn("size-7", stat.color)} />
               </div>
               <div>
@@ -138,14 +138,14 @@ export const ExpertMyProposalsPage = () => {
       </div>
 
       {/* Filter Toolbar */}
-      <div className="bg-white border border-slate-100 rounded-[28px] p-2 flex flex-col md:flex-row gap-4 justify-between items-center shadow-sm">
+      <div className="bg-white border border-slate-100 rounded-xl p-2 flex flex-col md:flex-row gap-4 justify-between items-center shadow-sm">
         <div className="flex items-center gap-2 p-1 overflow-x-auto w-full md:w-auto scrollbar-hide">
           {(['all', 'pending', 'accepted', 'declined'] as const).map((s) => (
             <button
               key={s}
               onClick={() => setFilter(s)}
               className={cn(
-                "px-6 py-2.5 rounded-[18px] text-xs font-black capitalize transition-all duration-300",
+                "px-6 py-2.5 rounded-xl text-xs font-black capitalize transition-all duration-300",
                 filter === s 
                   ? "bg-brand-accent text-white shadow-lg shadow-brand-accent/20" 
                   : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
@@ -161,10 +161,10 @@ export const ExpertMyProposalsPage = () => {
               <input 
                 type="text" 
                 placeholder="Search proposals..." 
-                className="w-full h-11 pl-10 pr-4 rounded-2xl bg-slate-50 border-none focus:ring-2 focus:ring-brand-accent/20 text-sm"
+                className="w-full h-11 pl-10 pr-4 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-brand-accent/20 text-sm"
               />
            </div>
-           <Button variant="outline" size="icon" className="h-11 w-11 rounded-2xl border-slate-100 shrink-0">
+           <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl border-slate-100 shrink-0">
               <Filter className="size-4 text-slate-500" />
            </Button>
         </div>
@@ -177,13 +177,13 @@ export const ExpertMyProposalsPage = () => {
             const StatusIcon = config.icon;
 
             return (
-              <div key={proposal.id} className="group bg-white border border-slate-100 hover:border-brand-accent/30 rounded-[32px] p-8 shadow-sm hover:shadow-xl hover:shadow-brand-accent/5 transition-all duration-300 relative overflow-hidden">
+              <div key={proposal.id} className="group bg-white border border-slate-100 hover:border-brand-accent/30 rounded-xl p-8 shadow-sm hover:shadow-xl hover:shadow-brand-accent/5 transition-all duration-300 relative overflow-hidden">
                  <div className="flex flex-col md:flex-row justify-between gap-8">
                     <div className="flex-1 space-y-5">
                        <div className="flex items-center gap-3">
                           <div className={cn("px-3 py-1 rounded-full flex items-center gap-1.5", config.color)}>
                              <StatusIcon className="size-3.5" />
-                             <span className="text-[10px] font-black uppercase tracking-wider">{config.label}</span>
+                             <span className="text-xs font-black uppercase tracking-wider">{config.label}</span>
                           </div>
                           <span className="text-xs font-bold text-slate-400 flex items-center gap-1.5">
                              <Calendar className="size-3.5" />
@@ -207,7 +207,7 @@ export const ExpertMyProposalsPage = () => {
                              </div>
                              <div>
                                 <p className="text-sm font-black text-slate-900">${proposal.proposedBudget}</p>
-                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">My Bid</p>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">My Bid</p>
                              </div>
                           </div>
                           <div className="flex items-center gap-2">
@@ -216,7 +216,7 @@ export const ExpertMyProposalsPage = () => {
                              </div>
                              <div>
                                 <p className="text-sm font-black text-slate-900">{proposal.proposedTimelineDays} Days</p>
-                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Est. Delivery</p>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Est. Delivery</p>
                              </div>
                           </div>
                        </div>
@@ -234,8 +234,8 @@ export const ExpertMyProposalsPage = () => {
          })}
 
          {filteredProposals.length === 0 && (
-           <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[40px] p-20 flex flex-col items-center justify-center text-center">
-              <div className="size-20 rounded-3xl bg-white flex items-center justify-center shadow-md mb-6">
+           <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl p-20 flex flex-col items-center justify-center text-center">
+              <div className="size-20 rounded-xl bg-white flex items-center justify-center shadow-md mb-6">
                  <Briefcase className="size-10 text-slate-200" />
               </div>
               <h3 className="text-2xl font-black text-slate-900 mb-2">No applications found</h3>

@@ -63,10 +63,10 @@ export const NotificationDropdown = ({ role }: NotificationDropdownProps) => {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-80 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute right-0 mt-3 w-80 bg-white border border-slate-100 rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="p-4 border-b border-slate-50 flex justify-between items-center">
             <h3 className="font-bold text-slate-900 text-sm">Unread Notifications</h3>
-            <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">
+            <span className="bg-primary/10 text-primary text-xs font-bold px-2 py-0.5 rounded-full">
               {unreadCount} New
             </span>
           </div>
@@ -95,8 +95,8 @@ export const NotificationDropdown = ({ role }: NotificationDropdownProps) => {
                       <div className="size-2 mt-1.5 shrink-0 rounded-full bg-primary" />
                       <div className="min-w-0">
                         <p className="text-xs font-bold text-slate-900 truncate">{notification.title}</p>
-                        <p className="text-[11px] text-slate-500 line-clamp-2 mt-1">{notification.message}</p>
-                        <p className="text-[9px] text-slate-400 mt-2">
+                        <p className="text-xs text-slate-500 line-clamp-2 mt-1">{notification.message}</p>
+                        <p className="text-xs text-slate-400 mt-2">
                           {new Date(notification.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </p>
                       </div>
@@ -110,7 +110,7 @@ export const NotificationDropdown = ({ role }: NotificationDropdownProps) => {
           <Link 
             to={notificationPath}
             onClick={() => setIsOpen(false)}
-            className="w-full p-3 bg-slate-50 hover:bg-slate-100 text-primary text-[11px] font-bold flex items-center justify-center gap-2 transition-colors border-t border-slate-100"
+            className="w-full p-3 bg-slate-50 hover:bg-slate-100 text-primary text-xs font-bold flex items-center justify-center gap-2 transition-colors border-t border-slate-100"
           >
             View detail <ArrowRight className="size-3" />
           </Link>

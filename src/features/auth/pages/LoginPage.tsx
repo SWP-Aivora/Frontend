@@ -56,11 +56,11 @@ export const LoginPage = () => {
 
           {/* Tilted Dashboard Preview */}
           <div className="relative mt-auto h-[320px] flex items-center justify-center opacity-0 animate-slide-up [animation-delay:800ms]">
-             <div className="absolute inset-0 bg-primary/5 rounded-3xl -rotate-2 scale-105 blur-2xl" />
-             <div className="relative bg-white border border-border/60 rounded-[24px] shadow-2xl w-[460px] p-6 overflow-hidden animate-float">
+             <div className="absolute inset-0 bg-primary/5 rounded-xl -rotate-2 scale-105 blur-2xl" />
+             <div className="relative bg-white border border-border/60 rounded-xl shadow-2xl w-[460px] p-6 overflow-hidden animate-float">
                 <div className="flex justify-between items-center mb-6">
                   <span className="text-lg font-bold">Role Redirects</span>
-                  <span className="text-[10px] font-mono font-bold text-primary bg-primary/5 px-2 py-0.5 rounded">POST /auth/login</span>
+                  <span className="text-xs font-mono font-bold text-primary bg-primary/5 px-2 py-0.5 rounded">POST /auth/login</span>
                 </div>
                 
                 {/* Visual Elements */}
@@ -101,11 +101,11 @@ export const LoginPage = () => {
               { label: 'Expert', color: 'bg-brand-accent/10 text-brand-accent', desc: 'Jobs & earnings.' },
               { label: 'Admin', color: 'bg-brand-success/10 text-brand-success', desc: 'Users & reports.' },
             ].map((tag, i) => (
-              <div key={i} className="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${tag.color} mb-2 inline-block`}>
+              <div key={i} className="p-4 rounded-xl bg-white border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                <span className={`text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${tag.color} mb-2 inline-block`}>
                   {tag.label}
                 </span>
-                <p className="text-[10px] text-muted-foreground leading-tight">{tag.desc}</p>
+                <p className="text-xs text-muted-foreground leading-tight">{tag.desc}</p>
               </div>
             ))}
           </div>
@@ -113,7 +113,7 @@ export const LoginPage = () => {
 
         {/* Right Panel: Form Card */}
         <div className="flex flex-col justify-center items-center py-12 lg:py-0">
-          <div className="w-full max-w-[580px] bg-white lg:rounded-[32px] p-8 sm:p-12 shadow-2xl border border-slate-100 relative opacity-0 animate-slide-up [animation-delay:300ms]">
+          <div className="w-full max-w-[580px] bg-white lg:rounded-xl p-8 sm:p-12 shadow-2xl border border-slate-100 relative opacity-0 animate-slide-up [animation-delay:300ms]">
             <div className="space-y-8">
               <div className="space-y-4">
                 <p className="text-xs font-bold text-primary tracking-widest uppercase">Login Page — AIVORA</p>
@@ -135,9 +135,9 @@ export const LoginPage = () => {
                    { label: 'Expert', role: 'Expert Dashboard', color: 'bg-brand-accent' },
                    { label: 'Admin', role: 'Admin Dashboard', color: 'bg-brand-success' },
                  ].map((pill, i) => (
-                   <div key={i} className="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                   <div key={i} className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-100">
                       <div className={`size-2 rounded-full ${pill.color}`} />
-                      <span className="text-[10px] font-bold text-slate-600 truncate">{pill.label} → {pill.role}</span>
+                      <span className="text-xs font-bold text-slate-600 truncate">{pill.label} → {pill.role}</span>
                    </div>
                  ))}
               </div>

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { 
@@ -72,14 +72,14 @@ export const AdminDisputeListPage: React.FC = () => {
               placeholder="Search Case ID or Project..." 
               value={localSearchTerm}
               onChange={(e) => setLocalSearchTerm(e.target.value)}
-              className="pl-11 w-72 h-12 bg-white border-transparent shadow-sm rounded-2xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-300 font-medium"
+              className="pl-11 w-72 h-12 bg-white border-transparent shadow-sm rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-300 font-medium"
             />
           </div>
           
           <Button 
             variant="outline" 
             disabled
-            className="h-12 px-5 bg-white border-transparent shadow-sm rounded-2xl text-slate-400 cursor-not-allowed border border-transparent shadow-none hover:bg-white hover:scale-100 flex items-center gap-2 font-bold text-xs uppercase tracking-widest"
+            className="h-12 px-5 bg-white border-transparent shadow-sm rounded-xl text-slate-400 cursor-not-allowed border border-transparent shadow-none hover:bg-white hover:scale-100 flex items-center gap-2 font-bold text-xs uppercase tracking-widest"
             title="Filtering capability coming soon"
           >
             <SlidersHorizontal className="size-4" />
@@ -89,7 +89,7 @@ export const AdminDisputeListPage: React.FC = () => {
       </div>
 
       {/* Main Table Card */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-md overflow-hidden transition-all duration-500">
+      <div className="bg-white rounded-xl border border-slate-100 shadow-md overflow-hidden transition-all duration-500">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -107,20 +107,20 @@ export const AdminDisputeListPage: React.FC = () => {
                 disputes.map((dispute) => (
                   <tr key={dispute.id} className="group hover:bg-slate-50 hover:shadow-[inset_0_0_20px_rgba(0,0,0,0.01)] transition-all duration-300 transform hover:-translate-y-0.5">
                     <td className="pl-10 pr-4 py-7">
-                      <span className="text-[11px] font-mono font-black text-slate-500 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
+                      <span className="text-xs font-mono font-black text-slate-500 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
                         #{String(dispute.id || '').slice(0, 8).toUpperCase()}
                       </span>
                     </td>
                     <td className="px-4 py-7">
                       <div className="flex items-center gap-4">
-                        <div className="size-10 rounded-2xl bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100/50 group-hover:scale-110 transition-transform duration-500">
+                        <div className="size-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100/50 group-hover:scale-110 transition-transform duration-500">
                            <Briefcase className="size-5 text-blue-600" />
                         </div>
                         <div className="flex flex-col">
                           <div className="text-sm font-black text-slate-900 line-clamp-1 group-hover:text-blue-600 transition-colors">
                             {dispute.projectTitle || 'Unknown Project'}
                           </div>
-                          <div className="text-[11px] text-slate-400 mt-0.5 font-bold uppercase tracking-tight">
+                          <div className="text-xs text-slate-400 mt-0.5 font-bold uppercase tracking-tight">
                             {dispute.milestoneTitle || 'General Milestone'}
                           </div>
                         </div>
@@ -129,11 +129,11 @@ export const AdminDisputeListPage: React.FC = () => {
                     <td className="px-4 py-7">
                       <div className="flex flex-col gap-2">
                         <div className="text-xs text-slate-700 font-bold flex items-center gap-2">
-                          <div className="size-6 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] text-slate-400 font-black">C</div>
+                          <div className="size-6 rounded-lg bg-slate-100 flex items-center justify-center text-xs text-slate-400 font-black">C</div>
                           {dispute.clientName}
                         </div>
                         <div className="text-xs text-slate-700 font-bold flex items-center gap-2">
-                          <div className="size-6 rounded-lg bg-blue-600 flex items-center justify-center text-[10px] text-white font-black">E</div>
+                          <div className="size-6 rounded-lg bg-blue-600 flex items-center justify-center text-xs text-white font-black">E</div>
                           {dispute.expertName}
                         </div>
                       </div>
@@ -154,7 +154,7 @@ export const AdminDisputeListPage: React.FC = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => navigate(`/admin/disputes/${dispute.id}`)}
-                        className="rounded-2xl border-slate-200 bg-white hover:border-blue-600 hover:bg-blue-50 hover:text-blue-600 transition-all px-5 h-11 font-black uppercase text-[10px] tracking-widest"
+                        className="rounded-xl border-slate-200 bg-white hover:border-blue-600 hover:bg-blue-50 hover:text-blue-600 transition-all px-5 h-11 font-black uppercase text-xs tracking-widest"
                       >
                         View Details
                         <ChevronRight className="size-4 ml-1.5" />
@@ -166,7 +166,7 @@ export const AdminDisputeListPage: React.FC = () => {
                 <tr>
                   <td colSpan={6} className="px-6 py-32 text-center bg-slate-50/20">
                     <div className="flex flex-col items-center">
-                      <div className="size-20 bg-white rounded-3xl border border-slate-100 shadow-xl flex items-center justify-center mb-6">
+                      <div className="size-20 bg-white rounded-xl border border-slate-100 shadow-xl flex items-center justify-center mb-6">
                         <ShieldAlert className="size-10 text-slate-200" />
                       </div>
                       <h3 className="text-xl font-black text-slate-900">Queue is Clear</h3>
@@ -183,7 +183,7 @@ export const AdminDisputeListPage: React.FC = () => {
         
         {/* Pagination Section */}
         <div className="bg-slate-50/50 px-10 py-5 border-t border-slate-100 flex items-center justify-between">
-           <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+           <div className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">
              Page Integrity: <span className="text-emerald-500">Verified</span> • {metadata?.totalCount || 0} active tasks
            </div>
            

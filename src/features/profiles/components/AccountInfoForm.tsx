@@ -15,7 +15,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/features/auth/store';
 import { Role } from '@/shared/types/enums';
-import { Building2, Code2 } from 'lucide-react';
+import { Building2, Code2, ShieldCheck, Mail, UserCircle2 } from 'lucide-react';
 
 export const AccountInfoForm = () => {
   const [isUserLoading, setIsUserLoading] = useState(false);
@@ -61,11 +61,10 @@ export const AccountInfoForm = () => {
     try {
       const response = await profileService.updateUser(data);
       if (response.success && accessToken) {
-        // Cập nhật lại Auth Store nếu đổi Tên
         setAuth({ ...user!, fullName: data.fullName || user!.fullName }, accessToken);
-        toast.success('Basic information updated');
+        toast.success('Identity information updated');
       } else {
-        toast.error(response.message || 'Failed to update basic info');
+        toast.error(response.message || 'Failed to update info');
       }
     } catch {
       toast.error('An error occurred');
@@ -102,32 +101,68 @@ export const AccountInfoForm = () => {
 
   return (
     <div className="space-y-8">
-      {/* BASE USER SETTINGS */}
-      <div className="bg-white rounded-[32px] p-8 md:p-10 border border-slate-100 shadow-sm relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-        
-        <div className="flex items-center justify-between mb-8 relative z-10">
+      {/* ACCOUNT INFORMATION (READ-ONLY) */}
+      <div className="bg-white rounded-xl p-8 border border-slate-100 shadow-sm relative overflow-hidden">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="size-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
+             <ShieldCheck className="size-5" />
+          </div>
           <div>
-            <h3 className="text-2xl font-black text-slate-900 tracking-tight">Basic Information</h3>
-            <p className="text-sm text-slate-500 font-medium mt-1">Manage your identity across the platform.</p>
+            <h3 className="text-xl font-black text-slate-900 tracking-tight">Account Information</h3>
+            <p className="text-xs text-slate-500 font-medium">System-level account details</p>
           </div>
         </div>
 
-        <form onSubmit={handleUserSubmit(onUserSubmit)} className="space-y-6 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="space-y-1">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+              <Mail className="size-3" /> Email Address
+            </span>
+            <p className="text-sm font-bold text-slate-700">{user?.email || 'N/A'}</p>
+          </div>
+          <div className="space-y-1">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+              <UserCircle2 className="size-3" /> Access Level
+            </span>
+            <p className="text-sm font-bold text-slate-700 uppercase tracking-tight">
+               {user?.role === Role.ADMIN ? 'Administrator' : user?.role === Role.EXPERT ? 'Expert Provider' : 'Client Partner'}
+            </p>
+          </div>
+          <div className="space-y-1">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+              <Building2 className="size-3" /> Organization ID
+            </span>
+            <p className="text-sm font-mono font-bold text-slate-400">
+               {user?.id ? `ORG-${user.id.slice(0, 8).toUpperCase()}` : 'N/A'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* IDENTITY SETTINGS */}
+      <div className="bg-white rounded-xl p-8 border border-slate-100 shadow-sm relative overflow-hidden">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h3 className="text-xl font-black text-slate-900 tracking-tight">Personal Identity</h3>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">How you are identified by other users.</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleUserSubmit(onUserSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">Full Name</label>
-              <Input {...registerUser('fullName')} placeholder="e.g., An Nguyen" className="h-12 rounded-xl bg-slate-50 border-slate-100 focus:bg-white" />
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">Full Name</label>
+              <Input {...registerUser('fullName')} placeholder="An Nguyen" className="h-11 rounded-lg bg-slate-50 border-slate-100 focus:bg-white transition-all font-medium" />
               {userErrors.fullName && <p className="text-[10px] text-destructive font-bold ml-1">{userErrors.fullName.message}</p>}
             </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">Phone Number</label>
-              <Input {...registerUser('phone')} placeholder="+84 912 345 678" className="h-12 rounded-xl bg-slate-50 border-slate-100 focus:bg-white" />
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">Contact Phone</label>
+              <Input {...registerUser('phone')} placeholder="+84 912 345 678" className="h-11 rounded-lg bg-slate-50 border-slate-100 focus:bg-white transition-all font-medium" />
             </div>
           </div>
           <div className="flex justify-end pt-2">
-            <Button type="submit" disabled={isUserLoading} variant="outline" className="rounded-full px-8 h-10 font-bold border-slate-200">
-              {isUserLoading ? 'Saving...' : 'Save Basic Info'}
+            <Button type="submit" disabled={isUserLoading} variant="outline" className="rounded-xl px-6 h-10 font-bold border-slate-200 hover:border-primary hover:text-primary transition-all text-xs">
+              {isUserLoading ? 'Saving...' : 'Update Identity'}
             </Button>
           </div>
         </form>
@@ -135,39 +170,37 @@ export const AccountInfoForm = () => {
 
       {/* ROLE SPECIFIC SETTINGS */}
       {user?.role === Role.CLIENT && (
-        <div className="bg-white rounded-[32px] p-8 md:p-10 border border-slate-100 shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-          
-          <div className="flex items-center gap-4 mb-8 relative z-10">
-            <div className="size-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-               <Building2 className="size-6" />
+        <div className="bg-white rounded-xl p-8 border border-slate-100 shadow-sm relative overflow-hidden">
+          <div className="flex items-center gap-4 mb-8">
+            <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+               <Building2 className="size-5" />
             </div>
             <div>
-              <h3 className="text-2xl font-black text-slate-900 tracking-tight">Company Profile</h3>
-              <p className="text-sm text-slate-500 font-medium mt-1">Information visible to experts when you post a job.</p>
+              <h3 className="text-xl font-black text-slate-900 tracking-tight">Business Profile</h3>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">Corporate details for project collaboration.</p>
             </div>
           </div>
 
-          <form onSubmit={handleClientSubmit(onClientSubmit)} className="space-y-6 relative z-10">
+          <form onSubmit={handleClientSubmit(onClientSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">Company Name</label>
-                <Input {...registerClient('companyName')} placeholder="e.g., Tech Solutions JSC" className="h-12 rounded-xl bg-slate-50 border-slate-100 focus:bg-white" />
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">Company Legal Name</label>
+                <Input {...registerClient('companyName')} placeholder="Tech Solutions JSC" className="h-11 rounded-lg bg-slate-50 border-slate-100 focus:bg-white transition-all font-medium" />
               </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">Website URL</label>
-                <Input {...registerClient('website')} placeholder="https://example.com" className="h-12 rounded-xl bg-slate-50 border-slate-100 focus:bg-white" />
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">Corporate Website</label>
+                <Input {...registerClient('website')} placeholder="https://example.com" className="h-11 rounded-lg bg-slate-50 border-slate-100 focus:bg-white transition-all font-medium" />
                 {clientErrors.website && <p className="text-[10px] text-destructive font-bold ml-1">{clientErrors.website.message}</p>}
               </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">Industry</label>
-                <Input {...registerClient('industry')} placeholder="e.g., Fintech, Healthcare" className="h-12 rounded-xl bg-slate-50 border-slate-100 focus:bg-white" />
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">Industry Domain</label>
+                <Input {...registerClient('industry')} placeholder="Fintech, SaaS" className="h-11 rounded-lg bg-slate-50 border-slate-100 focus:bg-white transition-all font-medium" />
               </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">Company Size</label>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">Company Size</label>
                 <select 
                   {...registerClient('companySize')}
-                  className="w-full h-12 px-4 rounded-xl bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm appearance-none"
+                  className="w-full h-11 px-4 rounded-lg bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm appearance-none font-medium"
                 >
                   <option value="">Select size...</option>
                   <option value="1-10">1-10 employees</option>
@@ -178,18 +211,18 @@ export const AccountInfoForm = () => {
               </div>
             </div>
             
-            <div className="space-y-2">
-               <label className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">Company Description</label>
+            <div className="space-y-1.5">
+               <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">Organization Overview</label>
                <textarea 
                   {...registerClient('description')}
-                  placeholder="Tell experts a little about your business goals..."
-                  className="w-full min-h-[100px] p-4 rounded-xl bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
+                  placeholder="Describe your organization's goals..."
+                  className="w-full min-h-[100px] p-4 rounded-lg bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm font-medium"
                />
             </div>
 
-            <div className="flex justify-end pt-4 border-t border-slate-100">
-              <Button type="submit" disabled={isProfileLoading} className="rounded-full px-8 h-12 font-bold shadow-lg shadow-primary/20">
-                {isProfileLoading ? 'Saving Profile...' : 'Save Company Profile'}
+            <div className="flex justify-end pt-4 border-t border-slate-50">
+              <Button type="submit" disabled={isProfileLoading} className="rounded-xl px-8 h-11 font-bold shadow-lg shadow-blue-100 uppercase tracking-wider text-xs">
+                {isProfileLoading ? 'Saving...' : 'Update Business Profile'}
               </Button>
             </div>
           </form>
@@ -197,50 +230,48 @@ export const AccountInfoForm = () => {
       )}
 
       {user?.role === Role.EXPERT && (
-        <div className="bg-white rounded-[32px] p-8 md:p-10 border border-slate-100 shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-brand-accent/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-          
-          <div className="flex items-center gap-4 mb-8 relative z-10">
-            <div className="size-12 rounded-2xl bg-brand-accent/10 flex items-center justify-center text-brand-accent">
-               <Code2 className="size-6" />
+        <div className="bg-white rounded-xl p-8 border border-slate-100 shadow-sm relative overflow-hidden">
+          <div className="flex items-center gap-4 mb-8">
+            <div className="size-10 rounded-lg bg-brand-accent/10 flex items-center justify-center text-brand-accent">
+               <Code2 className="size-5" />
             </div>
             <div>
-              <h3 className="text-2xl font-black text-slate-900 tracking-tight">Professional Profile</h3>
-              <p className="text-sm text-slate-500 font-medium mt-1">This is how clients see you on the marketplace.</p>
+              <h3 className="text-xl font-black text-slate-900 tracking-tight">Expert Credentials</h3>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">Professional visibility for client matching.</p>
             </div>
           </div>
 
-          <form onSubmit={handleExpertSubmit(onExpertSubmit)} className="space-y-6 relative z-10">
+          <form onSubmit={handleExpertSubmit(onExpertSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2 md:col-span-2">
-                <label className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">Professional Title</label>
-                <Input {...registerExpert('title')} placeholder="e.g., Senior Computer Vision Engineer" className="h-12 rounded-xl bg-slate-50 border-slate-100 focus:bg-white" />
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">Professional Headline</label>
+                <Input {...registerExpert('title')} placeholder="Senior AI Research Engineer" className="h-11 rounded-lg bg-slate-50 border-slate-100 focus:bg-white transition-all font-medium" />
               </div>
               
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">Hourly Rate ($)</label>
-                <Input type="number" {...registerExpert('hourlyRate')} placeholder="0.00" className="h-12 rounded-xl bg-slate-50 border-slate-100 focus:bg-white" />
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">Hourly Rate ($)</label>
+                <Input type="number" {...registerExpert('hourlyRate')} placeholder="0.00" className="h-11 rounded-lg bg-slate-50 border-slate-100 focus:bg-white transition-all font-medium" />
                 {expertErrors.hourlyRate && <p className="text-[10px] text-destructive font-bold ml-1">{expertErrors.hourlyRate.message}</p>}
               </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">Years of Experience</label>
-                <Input type="number" {...registerExpert('experienceYears')} placeholder="0" className="h-12 rounded-xl bg-slate-50 border-slate-100 focus:bg-white" />
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">Experience (Years)</label>
+                <Input type="number" {...registerExpert('experienceYears')} placeholder="0" className="h-11 rounded-lg bg-slate-50 border-slate-100 focus:bg-white transition-all font-medium" />
                 {expertErrors.experienceYears && <p className="text-[10px] text-destructive font-bold ml-1">{expertErrors.experienceYears.message}</p>}
               </div>
             </div>
             
-            <div className="space-y-2">
-               <label className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">Professional Bio</label>
+            <div className="space-y-1.5">
+               <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">Professional Background</label>
                <textarea 
                   {...registerExpert('bio')}
-                  placeholder="Highlight your top AI skills and past project successes..."
-                  className="w-full min-h-[120px] p-4 rounded-xl bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-accent/20 text-sm"
+                  placeholder="Detail your experience with LLMs, Computer Vision, etc..."
+                  className="w-full min-h-[120px] p-4 rounded-lg bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-accent/20 text-sm font-medium"
                />
             </div>
 
-            <div className="flex justify-end pt-4 border-t border-slate-100">
-              <Button type="submit" disabled={isProfileLoading} className="rounded-full px-8 h-12 font-bold bg-brand-accent hover:bg-brand-accent/90 shadow-lg shadow-brand-accent/20">
-                {isProfileLoading ? 'Saving Profile...' : 'Save Professional Profile'}
+            <div className="flex justify-end pt-4 border-t border-slate-50">
+              <Button type="submit" disabled={isProfileLoading} className="rounded-xl px-8 h-11 font-bold bg-brand-accent hover:bg-brand-accent/90 shadow-lg shadow-brand-accent/20 uppercase tracking-wider text-xs">
+                {isProfileLoading ? 'Saving...' : 'Update Expert Credentials'}
               </Button>
             </div>
           </form>

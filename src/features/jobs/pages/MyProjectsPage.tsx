@@ -82,14 +82,14 @@ export const MyProjectsPage = () => {
       </div>
 
       {/* Toolbar */}
-      <div className="bg-white border border-slate-100 rounded-[24px] p-2 flex flex-col md:flex-row gap-4 justify-between items-center shadow-sm relative z-10">
+      <div className="bg-white border border-slate-100 rounded-xl p-2 flex flex-col md:flex-row gap-4 justify-between items-center shadow-sm relative z-10">
         <div className="flex items-center gap-2 p-1 overflow-x-auto w-full md:w-auto scrollbar-hide">
           {(['all', 'draft', 'open', 'in-progress', 'completed'] as StatusFilter[]).map((status) => (
             <button
               key={status}
               onClick={() => setFilter(status)}
               className={cn(
-                "px-5 py-2.5 rounded-[16px] text-sm font-bold capitalize whitespace-nowrap transition-all duration-300",
+                "px-5 py-2.5 rounded-xl text-sm font-bold capitalize whitespace-nowrap transition-all duration-300",
                 filter === status 
                   ? "bg-slate-900 text-white shadow-md" 
                   : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
@@ -123,14 +123,14 @@ export const MyProjectsPage = () => {
           return (
             <div 
               key={project.id} 
-              className="group bg-white border border-slate-100 hover:border-primary/30 rounded-[28px] p-6 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 relative overflow-hidden"
+              className="group bg-white border border-slate-100 hover:border-primary/30 rounded-xl p-6 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 relative overflow-hidden"
             >
               <div className="flex flex-col md:flex-row justify-between gap-6">
                 <div className="space-y-4 flex-1">
                   <div className="flex items-center gap-3">
                     <div className={cn("px-3 py-1 rounded-full flex items-center gap-1.5", config.color)}>
                       <StatusIcon className="size-3.5" />
-                      <span className="text-[10px] font-bold uppercase tracking-wider">{config.label}</span>
+                      <span className="text-xs font-bold uppercase tracking-wider">{config.label}</span>
                     </div>
                     <span className="text-xs font-medium text-slate-400 flex items-center gap-1">
                       <Clock className="size-3" />
@@ -156,7 +156,7 @@ export const MyProjectsPage = () => {
                 <div className="flex md:flex-col items-center md:items-end justify-between md:justify-center gap-4 min-w-[140px] pl-6 md:border-l border-slate-100">
                   <div className="text-center">
                      <p className="text-3xl font-black text-slate-900">{project.proposals}</p>
-                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Proposals</p>
+                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">Proposals</p>
                   </div>
                   <Button asChild variant="ghost" className="rounded-full bg-slate-50 hover:bg-primary hover:text-white group/btn">
                     <Link to={`/client/projects/${project.id}/proposals`}>
@@ -171,8 +171,8 @@ export const MyProjectsPage = () => {
         })}
 
         {filteredProjects.length === 0 && (
-          <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[32px] p-20 flex flex-col items-center justify-center text-center">
-            <div className="size-16 rounded-2xl bg-white flex items-center justify-center shadow-sm mb-4">
+          <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl p-20 flex flex-col items-center justify-center text-center">
+            <div className="size-16 rounded-xl bg-white flex items-center justify-center shadow-sm mb-4">
                <FileText className="size-8 text-slate-300" />
             </div>
             <h3 className="text-xl font-black text-slate-900 mb-2">No projects found</h3>

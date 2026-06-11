@@ -18,11 +18,11 @@ export const NotificationList = ({
 }: NotificationListProps) => {
 
   return (
-    <div className="bg-white border border-slate-200 rounded-[24px] shadow-sm p-6 flex-1 min-h-[400px]">
+    <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 flex-1 min-h-[400px]">
       <div className="flex justify-between items-start mb-6">
         <div>
           <h2 className="text-lg font-bold text-slate-900">Notification History</h2>
-          <p className="text-[11px] text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 mt-1">
             Bulk actions are available after selecting notifications.
           </p>
         </div>

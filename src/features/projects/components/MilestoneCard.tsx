@@ -25,13 +25,13 @@ export const MilestoneCard = ({ milestone, role, onClick }: MilestoneCardProps) 
   return (
     <div 
       onClick={() => onClick(milestone)}
-      className="group bg-white/70 backdrop-blur-md border border-slate-100 rounded-[24px] p-5 shadow-sm hover:shadow-xl hover:border-primary/20 transition-all duration-300 cursor-pointer relative overflow-hidden active:scale-95"
+      className="group bg-white/70 backdrop-blur-md border border-slate-100 rounded-xl p-5 shadow-sm hover:shadow-xl hover:border-primary/20 transition-all duration-300 cursor-pointer relative overflow-hidden active:scale-95"
     >
       {/* Top Row: Status & Amount */}
       <div className="flex justify-between items-start mb-4">
         <div className={cn("px-2.5 py-1 rounded-full flex items-center gap-1.5", config.color)}>
            <StatusIcon className="size-3" />
-           <span className="text-[10px] font-black uppercase tracking-wider">{config.label}</span>
+           <span className="text-xs font-black uppercase tracking-wider">{config.label}</span>
         </div>
         <div className="flex items-center gap-0.5 text-slate-900 font-black">
            <DollarSign className="size-3.5 text-emerald-600" />
@@ -44,7 +44,7 @@ export const MilestoneCard = ({ milestone, role, onClick }: MilestoneCardProps) 
         <h4 className="text-sm font-black text-slate-800 line-clamp-1 group-hover:text-primary transition-colors">
           {milestone.title}
         </h4>
-        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+        <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
            <Clock className="size-3" />
            Due in {milestone.dueDays || 5} days
         </div>
@@ -52,7 +52,7 @@ export const MilestoneCard = ({ milestone, role, onClick }: MilestoneCardProps) 
 
       {/* Action Footer */}
       <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-         <span className="text-[10px] font-black text-slate-500 uppercase">{config.action}</span>
+         <span className="text-xs font-black text-slate-500 uppercase">{config.action}</span>
          <div className="size-6 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
             <ChevronRight className="size-3.5" />
          </div>

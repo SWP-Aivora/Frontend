@@ -39,7 +39,7 @@ export const Sidebar = ({ items, collapsed }: SidebarProps) => {
                 key={item.label}
                 to={item.href}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-200 group relative",
+                  "flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 group relative",
                   isActive 
                     ? "bg-primary text-white shadow-lg shadow-primary/20" 
                     : "text-slate-500 hover:bg-slate-50 hover:text-primary"

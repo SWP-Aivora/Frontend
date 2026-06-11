@@ -129,7 +129,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
       {/* Actual Submit Confirmation Dialog */}
       {showSubmitConfirmation && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-200">
-          <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full mx-4 border border-slate-100 animate-in zoom-in-95 duration-200">
+          <div className="bg-white p-8 rounded-xl shadow-2xl max-w-sm w-full mx-4 border border-slate-100 animate-in zoom-in-95 duration-200">
             <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
               <AlertTriangle className="w-8 h-8 text-blue-600" />
             </div>
@@ -141,7 +141,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
               <Button
                 onClick={onConfirmSubmit}
                 disabled={submitReview.isPending}
-                className="w-full bg-[#1f6eeb] hover:bg-[#1656c0] text-white rounded-2xl font-bold h-12 shadow-lg shadow-blue-200"
+                className="w-full bg-[#1f6eeb] hover:bg-[#1656c0] text-white rounded-xl font-bold h-12 shadow-lg shadow-blue-200"
               >
                 {submitReview.isPending ? 'Submitting...' : 'Confirm & Submit'}
               </Button>
@@ -158,18 +158,18 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
         </div>
       )}
 
-      <div className="bg-white border border-[#c7dbf5] shadow-2xl rounded-[18px] w-full max-w-[720px] max-h-[90vh] overflow-y-auto relative animate-in fade-in zoom-in duration-200">
+      <div className="bg-white border border-[#c7dbf5] shadow-2xl rounded-xl w-full max-w-[720px] max-h-[90vh] overflow-y-auto relative animate-in fade-in zoom-in duration-200">
         {/* Modal Header Wash */}
-        <div className="absolute top-0 left-0 w-full h-[154px] bg-[rgba(227,240,255,0.9)] rounded-t-[18px] -z-10" />
+        <div className="absolute top-0 left-0 w-full h-[154px] bg-[rgba(227,240,255,0.9)] rounded-t-xl -z-10" />
 
         <div className="p-8">
           {/* Top Header Section */}
           <div className="flex justify-between items-start mb-6">
             <div className="flex gap-3">
-              <span className="px-3 py-1 bg-[#e0faed] text-[#14a863] text-[10px] font-semibold rounded-full">
+              <span className="px-3 py-1 bg-[#e0faed] text-[#14a863] text-xs font-semibold rounded-full">
                 Completed project
               </span>
-              <span className="px-3 py-1 bg-[#e0f0ff] text-[#123b9e] text-[10px] font-semibold rounded-full">
+              <span className="px-3 py-1 bg-[#e0f0ff] text-[#123b9e] text-xs font-semibold rounded-full">
                 Role: {user?.role || 'Client'}
               </span>
             </div>
@@ -192,36 +192,36 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
               <h3 className="text-[14px] font-semibold text-[#091329] mb-4">Project and Milestone</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-[10px] font-medium text-[#94a6bd] uppercase tracking-wider mb-1">Project</p>
+                  <p className="text-xs font-medium text-[#94a6bd] uppercase tracking-wider mb-1">Project</p>
                   <p className="text-[12px] font-semibold text-[#091329]">{projectInfo.title}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-medium text-[#94a6bd] uppercase tracking-wider mb-1">Milestone</p>
+                  <p className="text-xs font-medium text-[#94a6bd] uppercase tracking-wider mb-1">Milestone</p>
                   <p className="text-[12px] font-semibold text-[#091329]">{projectInfo.milestone}</p>
                 </div>
               </div>
             </div>
             <div className="col-span-4 flex flex-col items-end">
-              <span className="px-3 py-1 bg-[#e0faed] text-[#14a863] text-[10px] font-semibold rounded-full mb-4">
+              <span className="px-3 py-1 bg-[#e0faed] text-[#14a863] text-xs font-semibold rounded-full mb-4">
                 Completed
               </span>
               <div className="text-right">
-                <p className="text-[10px] font-medium text-[#94a6bd] uppercase tracking-wider mb-1">Completed Date</p>
+                <p className="text-xs font-medium text-[#94a6bd] uppercase tracking-wider mb-1">Completed Date</p>
                 <p className="text-[12px] font-semibold text-[#091329]">{projectInfo.completedDate}</p>
               </div>
             </div>
 
             <div className="col-span-12 grid grid-cols-3 gap-4 border-t border-[#c7dbf5] pt-4 mt-2">
               <div>
-                <p className="text-[10px] font-medium text-[#94a6bd] uppercase mb-1">Client</p>
+                <p className="text-xs font-medium text-[#94a6bd] uppercase mb-1">Client</p>
                 <p className="text-[12px] font-semibold text-[#091329]">{projectInfo.clientName}</p>
               </div>
               <div>
-                <p className="text-[10px] font-medium text-[#94a6bd] uppercase mb-1">Expert</p>
+                <p className="text-xs font-medium text-[#94a6bd] uppercase mb-1">Expert</p>
                 <p className="text-[12px] font-semibold text-[#091329]">{projectInfo.expertName}</p>
               </div>
               <div>
-                <p className="text-[10px] font-medium text-[#94a6bd] uppercase mb-1">Amount</p>
+                <p className="text-xs font-medium text-[#94a6bd] uppercase mb-1">Amount</p>
                 <p className="text-[12px] font-semibold text-[#091329]">{projectInfo.amount}</p>
               </div>
             </div>
@@ -255,11 +255,11 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
                             )}
                           >
                             <span className="text-[22px] leading-none mb-1">★</span>
-                            <span className="text-[9px] font-semibold">{val}</span>
+                            <span className="text-xs font-semibold">{val}</span>
                           </button>
                         ))}
                       </div>
-                      <div className="flex justify-between text-[10px] text-[#94a6bd] px-1">
+                      <div className="flex justify-between text-xs text-[#94a6bd] px-1">
                         <span>Very Poor</span>
                         <span>Poor</span>
                         <span>Average</span>
@@ -271,7 +271,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
                           <p className="text-[13px] font-bold text-[#123b9e]">{ratingLabel(field.value)}</p>
                         )}
                         {errors.rating && (
-                          <p className="text-[11px] text-red-500">{errors.rating.message}</p>
+                          <p className="text-xs text-red-500">{errors.rating.message}</p>
                         )}
                       </div>
                     </div>
@@ -290,7 +290,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
                     { name: 'deadlineRating' as const, label: 'Timeline' },
                   ].map((item) => (
                     <div key={item.name} className="flex items-center justify-between">
-                      <span className="text-[11px] font-medium text-[#4f637d]">{item.label}</span>
+                      <span className="text-xs font-medium text-[#4f637d]">{item.label}</span>
                       <div className="flex items-center gap-3">
                         <Controller
                           name={item.name}
@@ -302,7 +302,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
                             />
                           )}
                         />
-                        <span className="text-[9px] font-semibold text-[#123b9e] w-6 text-right">
+                        <span className="text-xs font-semibold text-[#123b9e] w-6 text-right">
                           {watchedValues[item.name]?.toFixed(1) || '0.0'}
                         </span>
                       </div>
@@ -332,7 +332,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
                       className="min-h-[116px] rounded-[10px] border-[#c7dbf5] text-[12px] p-4 focus:ring-[#1f6eeb]"
                     />
                     {errors.comment && (
-                      <p className="text-[11px] text-red-500">{errors.comment.message}</p>
+                      <p className="text-xs text-red-500">{errors.comment.message}</p>
                     )}
                   </div>
                 )}
@@ -344,13 +344,13 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-[14px] font-semibold text-[#091329]">Review Tags</h3>
-                  <p className="text-[11px] text-[#4f637d]">Add up to 10 AI domains or skills (e.g. Computer Vision)</p>
+                  <p className="text-xs text-[#4f637d]">Add up to 10 AI domains or skills (e.g. Computer Vision)</p>
                 </div>
                 {selectedTags.length < 10 && !isAddingTag && (
                   <button
                     type="button"
                     onClick={() => setIsAddingTag(true)}
-                    className="text-[11px] font-bold text-[#1f6eeb] hover:underline flex items-center gap-1"
+                    className="text-xs font-bold text-[#1f6eeb] hover:underline flex items-center gap-1"
                   >
                     <span className="text-sm">+</span> Add Tag
                   </button>
@@ -361,7 +361,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
                 {selectedTags.map((tag) => (
                   <span
                     key={tag}
-                    className="px-4 py-1.5 rounded-full text-[10px] font-semibold bg-[#e0f0ff] text-[#123b9e] border border-[#a8ccfa] flex items-center gap-2 animate-in fade-in zoom-in duration-200"
+                    className="px-4 py-1.5 rounded-full text-xs font-semibold bg-[#e0f0ff] text-[#123b9e] border border-[#a8ccfa] flex items-center gap-2 animate-in fade-in zoom-in duration-200"
                   >
                     {tag}
                     <button
@@ -389,7 +389,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
                         if (e.key === 'Escape') setIsAddingTag(false);
                       }}
                       placeholder="Enter tag..."
-                      className="px-3 py-1.5 rounded-full text-[10px] border border-[#1f6eeb] focus:outline-none focus:ring-1 focus:ring-[#1f6eeb] w-32 bg-white"
+                      className="px-3 py-1.5 rounded-full text-xs border border-[#1f6eeb] focus:outline-none focus:ring-1 focus:ring-[#1f6eeb] w-32 bg-white"
                     />
                     <button
                       type="button"
@@ -412,11 +412,11 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
                 )}
 
                 {selectedTags.length === 0 && !isAddingTag && (
-                  <p className="text-[11px] text-[#94a6bd] italic">No tags added yet.</p>
+                  <p className="text-xs text-[#94a6bd] italic">No tags added yet.</p>
                 )}
                 
                 {selectedTags.length >= 10 && (
-                  <p className="text-[10px] font-bold text-amber-600 w-full mt-1">Maximum limit of 10 tags reached.</p>
+                  <p className="text-xs font-bold text-amber-600 w-full mt-1">Maximum limit of 10 tags reached.</p>
                 )}
               </div>
             </div>
@@ -425,7 +425,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
               <div className="bg-[#e0f0ff] rounded-[10px] p-5">
                 <h4 className="text-[12px] font-semibold text-[#123b9e] mb-2">Review Visibility</h4>
-                <p className="text-[11px] text-[#4f637d] leading-relaxed">
+                <p className="text-xs text-[#4f637d] leading-relaxed">
                   Your review may appear on expert profiles, project details, user review sections, or
                   public profile pages.
                 </p>
@@ -446,10 +446,10 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
                     {isConfirmed && <Check size={12} strokeWidth={4} />}
                   </button>
                   <div className="flex-1">
-                    <p className="text-[10px] font-medium text-[#4f637d]">
+                    <p className="text-xs font-medium text-[#4f637d]">
                       I confirm that this review is based on my real project experience.
                     </p>
-                    <p className="text-[9px] text-[#94a6bd] mt-1">
+                    <p className="text-xs text-[#94a6bd] mt-1">
                       Abusive, fake, misleading, or unrelated content may be removed by AIVORA.
                     </p>
                   </div>

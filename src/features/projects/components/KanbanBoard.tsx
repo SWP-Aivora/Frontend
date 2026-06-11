@@ -23,12 +23,12 @@ export const KanbanBoard = ({ milestones, role, onMilestoneClick }: KanbanBoardP
         const columnMilestones = milestones.filter(m => column.status.includes(m.status));
         
         return (
-          <div key={column.title} className={cn("flex flex-col rounded-[32px] p-3 border border-slate-100/50 shadow-sm", column.bg)}>
+          <div key={column.title} className={cn("flex flex-col rounded-xl p-3 border border-slate-100/50 shadow-sm", column.bg)}>
             {/* Column Header */}
             <div className="px-4 py-4 flex items-center justify-between">
                <div className="flex items-center gap-2">
                   <h3 className="text-xs font-black text-slate-800 uppercase tracking-widest">{column.title}</h3>
-                  <span className="size-5 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[10px] font-black text-slate-500 shadow-sm">
+                  <span className="size-5 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-xs font-black text-slate-500 shadow-sm">
                     {columnMilestones.length}
                   </span>
                </div>
@@ -49,20 +49,20 @@ export const KanbanBoard = ({ milestones, role, onMilestoneClick }: KanbanBoardP
                ))}
 
                {columnMilestones.length === 0 && (
-                 <div className="h-32 rounded-[24px] border-2 border-dashed border-slate-200/50 flex flex-col items-center justify-center text-slate-300">
+                 <div className="h-32 rounded-xl border-2 border-dashed border-slate-200/50 flex flex-col items-center justify-center text-slate-300">
                     <Info className="size-5 mb-2 opacity-50" />
-                    <span className="text-[10px] font-bold uppercase tracking-tighter">No tasks here</span>
+                    <span className="text-xs font-bold uppercase tracking-tighter">No tasks here</span>
                  </div>
                )}
             </div>
             
             {/* AI Insight Footer (Optional) */}
             {column.status.includes(2) && columnMilestones.length > 0 && (
-               <div className="mt-4 bg-white/50 backdrop-blur-md rounded-2xl p-3 border border-amber-100 flex items-center gap-3">
+               <div className="mt-4 bg-white/50 backdrop-blur-md rounded-xl p-3 border border-amber-100 flex items-center gap-3">
                   <div className="size-8 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
                      <Sparkles className="size-4 text-amber-600" />
                   </div>
-                  <p className="text-[10px] font-bold text-amber-700 leading-tight">
+                  <p className="text-xs font-bold text-amber-700 leading-tight">
                     AI Suggestion: Review the medical dataset documentation for accurate validation.
                   </p>
                </div>

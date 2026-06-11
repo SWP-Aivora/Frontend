@@ -27,7 +27,7 @@ export const JobBoardCard = ({ job }: JobBoardCardProps) => {
   };
 
   return (
-    <div className="group bg-white border border-slate-100 rounded-[32px] p-8 shadow-sm hover:shadow-2xl hover:shadow-brand-accent/10 hover:border-brand-accent/30 transition-all duration-300 relative overflow-hidden flex flex-col h-full">
+    <div className="group bg-white border border-slate-100 rounded-xl p-8 shadow-sm hover:shadow-2xl hover:shadow-brand-accent/10 hover:border-brand-accent/30 transition-all duration-300 relative overflow-hidden flex flex-col h-full">
       {/* Background Accent Glow on Hover */}
       <div className="absolute -right-20 -top-20 size-64 bg-brand-accent/5 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
 
@@ -36,7 +36,7 @@ export const JobBoardCard = ({ job }: JobBoardCardProps) => {
         <h3 className="text-xl font-black text-slate-900 group-hover:text-brand-accent transition-colors leading-tight">
           {job.title}
         </h3>
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0 mt-1.5 flex items-center gap-1">
+        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest shrink-0 mt-1.5 flex items-center gap-1">
           <Clock className="size-3" /> {job.createdAt}
         </span>
       </div>
@@ -60,12 +60,12 @@ export const JobBoardCard = ({ job }: JobBoardCardProps) => {
       {/* Skills */}
       <div className="flex flex-wrap gap-2 mb-8 relative z-10">
         {job.skills.slice(0, 4).map((skill, index) => (
-          <span key={index} className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
+          <span key={index} className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
             {skill}
           </span>
         ))}
         {job.skills.length > 4 && (
-          <span className="text-[11px] font-bold text-slate-400 bg-slate-50 px-2.5 py-1 rounded-full">
+          <span className="text-xs font-bold text-slate-400 bg-slate-50 px-2.5 py-1 rounded-full">
             +{job.skills.length - 4} more
           </span>
         )}
@@ -80,7 +80,7 @@ export const JobBoardCard = ({ job }: JobBoardCardProps) => {
             </div>
             <div>
                <p className="font-bold text-slate-900 leading-none">{formatBudget()}</p>
-               <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wide mt-0.5">{job.budgetType === 1 ? 'Hourly' : 'Fixed Price'}</p>
+               <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mt-0.5">{job.budgetType === 1 ? 'Hourly' : 'Fixed Price'}</p>
             </div>
           </div>
           <div className="flex items-center gap-2 text-sm">
@@ -89,7 +89,7 @@ export const JobBoardCard = ({ job }: JobBoardCardProps) => {
             </div>
             <div>
                <p className="font-bold text-slate-700 leading-none">Remote</p>
-               <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wide mt-0.5">Timeline: {job.timelineDays ? `${job.timelineDays} days` : 'TBD'}</p>
+               <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mt-0.5">Timeline: {job.timelineDays ? `${job.timelineDays} days` : 'TBD'}</p>
             </div>
           </div>
         </div>
@@ -104,7 +104,7 @@ export const JobBoardCard = ({ job }: JobBoardCardProps) => {
                  ) : (
                     <span className="size-1.5 rounded-full bg-slate-300" />
                  )}
-                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">
                     {job.clientVerified ? 'Payment Verified' : 'Unverified'}
                  </span>
               </div>

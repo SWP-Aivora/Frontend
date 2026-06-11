@@ -35,11 +35,11 @@ export const MessageInput = ({ onSendMessage, disabled }: MessageInputProps) => 
   return (
     <div className="p-3 border-t border-slate-200 bg-white">
       {disabled && (
-        <p className="text-[10px] text-slate-500 mb-2 font-medium px-1">
+        <p className="text-xs text-slate-500 mb-2 font-medium px-1">
           Message sending is not available yet.
         </p>
       )}
-      <form onSubmit={handleSubmit} className="relative flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-2 py-1 focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-300 transition-all">
+      <form onSubmit={handleSubmit} className="relative flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-300 transition-all">
         {/* Attachment button hidden in production until media upload API is fully confirmed */}
 
         <textarea

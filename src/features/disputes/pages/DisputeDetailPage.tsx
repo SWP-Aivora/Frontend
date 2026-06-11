@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ShieldAlert, 
@@ -55,7 +55,7 @@ export const DisputeDetailPage: React.FC = () => {
   return (
     <div className="space-y-8 pb-20 animate-in fade-in duration-500">
       {/* Top Header Navigation (Simplified) */}
-      <div className="bg-white border border-slate-100 rounded-2xl px-6 py-4 flex items-center justify-between shadow-sm">
+      <div className="bg-white border border-slate-100 rounded-xl px-6 py-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-4">
           <button 
             onClick={() => navigate(-1)}
@@ -65,7 +65,7 @@ export const DisputeDetailPage: React.FC = () => {
           </button>
           <div className="h-6 w-px bg-slate-200" />
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Case #DSP-{String(dispute.id || '').slice(0, 8).toUpperCase()}</span>
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Case #DSP-{String(dispute.id || '').slice(0, 8).toUpperCase()}</span>
             <h1 className="text-xl font-extrabold text-slate-900 tracking-tight leading-none">Resolve Project Dispute</h1>
           </div>
         </div>
@@ -97,7 +97,7 @@ export const DisputeDetailPage: React.FC = () => {
         <div className="lg:col-span-2 space-y-8">
           
           {/* Dispute Summary Card */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8">
+          <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-8">
             <div className="flex justify-between items-start mb-8">
               <div>
                 <h2 className="text-lg font-black text-slate-900 mb-1">Dispute Summary</h2>
@@ -108,13 +108,13 @@ export const DisputeDetailPage: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
               <div className="space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                   <FileText className="size-3" /> Project Title
                 </span>
                 <p className="font-bold text-slate-900">{dispute.projectTitle || 'N/A'}</p>
               </div>
               <div className="space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                   <Clock className="size-3" /> Milestone
                 </span>
                 <p className="font-bold text-blue-600">{dispute.milestoneTitle || 'N/A'}</p>
@@ -140,7 +140,7 @@ export const DisputeDetailPage: React.FC = () => {
 
           {/* Payment Warning Block */}
           {dispute.milestoneAmount !== undefined && dispute.milestoneAmount > 0 && (
-            <div className="bg-red-50 rounded-2xl border border-red-100 p-6 flex items-start gap-4">
+            <div className="bg-red-50 rounded-xl border border-red-100 p-6 flex items-start gap-4">
               <div className="size-10 rounded-xl bg-white flex items-center justify-center shrink-0 shadow-sm">
                 <AlertCircle className="size-6 text-red-600" />
               </div>
@@ -154,7 +154,7 @@ export const DisputeDetailPage: React.FC = () => {
           )}
 
           {/* Evidence Timeline */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8">
+          <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-8">
             <h2 className="text-lg font-black text-slate-900 mb-8 border-b border-slate-50 pb-4">Evidence & Rebuttals</h2>
             <div className="space-y-8">
               {(dispute.evidences?.length || 0) > 0 ? (
@@ -162,7 +162,7 @@ export const DisputeDetailPage: React.FC = () => {
                   <div key={evidence.id} className="flex gap-4 group">
                     <div className="flex-shrink-0">
                       <div className={cn(
-                        "w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-black shadow-sm border",
+                        "w-12 h-12 rounded-xl flex items-center justify-center text-lg font-black shadow-sm border",
                         evidence.submitterId === dispute.clientId 
                           ? "bg-slate-50 text-slate-600 border-slate-100" 
                           : "bg-blue-50 text-blue-600 border-blue-100"
@@ -173,11 +173,11 @@ export const DisputeDetailPage: React.FC = () => {
                     <div className="flex-1">
                       <div className="flex justify-between items-center mb-2">
                         <span className="font-bold text-slate-900">{evidence.submitterName}</span>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase">
+                        <span className="text-xs font-bold text-slate-400 uppercase">
                           {evidence.createdAt ? new Date(evidence.createdAt).toLocaleString('en-US') : ''}
                         </span>
                       </div>
-                      <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 text-slate-700 group-hover:bg-white group-hover:shadow-md transition-all">
+                      <div className="bg-slate-50 p-5 rounded-xl border border-slate-100 text-slate-700 group-hover:bg-white group-hover:shadow-md transition-all">
                         <p className="whitespace-pre-wrap text-sm leading-relaxed">{evidence.content}</p>
                         {evidence.fileUrl && (
                           <div className="mt-4">
@@ -196,7 +196,7 @@ export const DisputeDetailPage: React.FC = () => {
                   </div>
                 ))
               ) : (
-                <div className="text-center py-12 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                <div className="text-center py-12 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
                   <FileText className="size-10 text-slate-200 mx-auto mb-3" />
                   <p className="text-slate-400 font-bold text-sm uppercase tracking-widest">No evidence submitted yet</p>
                 </div>
@@ -216,19 +216,19 @@ export const DisputeDetailPage: React.FC = () => {
         <div className="space-y-8 lg:sticky lg:top-24">
           
           {/* Involved Parties Card */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+          <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6">
             <h2 className="text-sm font-black text-slate-900 mb-6 uppercase tracking-widest">Involved Parties</h2>
             <div className="space-y-4">
               <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
                 <div className="flex items-center gap-3">
-                  <div className="size-8 rounded-lg bg-white flex items-center justify-center border border-slate-200 text-[10px] font-bold text-slate-400">C</div>
+                  <div className="size-8 rounded-lg bg-white flex items-center justify-center border border-slate-200 text-xs font-bold text-slate-400">C</div>
                   <span className="text-sm font-bold text-slate-600">Client</span>
                 </div>
                 <span className="text-sm font-black text-slate-900">{dispute.clientName}</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-blue-50 rounded-xl border border-blue-100">
                 <div className="flex items-center gap-3">
-                  <div className="size-8 rounded-lg bg-white flex items-center justify-center border border-blue-200 text-[10px] font-bold text-blue-600">E</div>
+                  <div className="size-8 rounded-lg bg-white flex items-center justify-center border border-blue-200 text-xs font-bold text-blue-600">E</div>
                   <span className="text-sm font-bold text-blue-700">Expert</span>
                 </div>
                 <span className="text-sm font-black text-blue-900">{dispute.expertName}</span>
@@ -238,7 +238,7 @@ export const DisputeDetailPage: React.FC = () => {
 
           {/* Resolution Result (If resolved) */}
           {isResolved && (
-            <div className="bg-emerald-50 rounded-2xl border border-emerald-100 p-6 shadow-lg shadow-emerald-100/50">
+            <div className="bg-emerald-50 rounded-xl border border-emerald-100 p-6 shadow-lg shadow-emerald-100/50">
               <div className="flex items-center gap-3 mb-4">
                 <CheckCircle2 className="size-5 text-emerald-600" />
                 <h2 className="text-sm font-black text-emerald-900 uppercase tracking-widest">Resolution Result</h2>
@@ -249,11 +249,11 @@ export const DisputeDetailPage: React.FC = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="p-3 bg-white rounded-xl border border-emerald-100">
-                    <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">To Expert</span>
+                    <span className="text-xs font-black text-slate-400 uppercase block mb-1">To Expert</span>
                     <span className="text-lg font-black text-emerald-700">${dispute.releaseAmount?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                   <div className="p-3 bg-white rounded-xl border border-emerald-100">
-                    <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">To Client</span>
+                    <span className="text-xs font-black text-slate-400 uppercase block mb-1">To Client</span>
                     <span className="text-lg font-black text-emerald-700">${dispute.refundAmount?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                 </div>

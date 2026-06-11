@@ -96,10 +96,10 @@ const Hero: React.FC = () => {
           
           <div className="relative lg:block animate-in fade-in zoom-in duration-1000 delay-300">
             <div className="relative z-10 rotate-3 transition-transform hover:rotate-0 duration-700">
-              <div className="bg-white rounded-3xl p-4 shadow-aivora-large border border-slate-100 overflow-hidden">
-                <div className="bg-slate-50 rounded-2xl aspect-[4/3] flex items-center justify-center border border-slate-100/50">
+              <div className="bg-white rounded-xl p-4 shadow-aivora-large border border-slate-100 overflow-hidden">
+                <div className="bg-slate-50 rounded-xl aspect-[4/3] flex items-center justify-center border border-slate-100/50">
                   <div className="text-center p-8">
-                    <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <div className="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-4">
                       <Zap className="h-8 w-8 text-primary" />
                     </div>
                     <h3 className="text-xl font-bold text-slate-900 mb-2">AI Projects Need Qualified Experts.</h3>
@@ -109,12 +109,12 @@ const Hero: React.FC = () => {
               </div>
               
               {/* Floating elements to mimic the Figma design */}
-              <div className="absolute -top-6 -right-6 bg-primary text-white p-6 rounded-2xl shadow-xl max-w-[200px] hidden sm:block">
+              <div className="absolute -top-6 -right-6 bg-primary text-white p-6 rounded-xl shadow-xl max-w-[200px] hidden sm:block">
                 <p className="text-sm font-bold mb-1">AI-Powered Features</p>
                 <p className="text-xs text-blue-100 leading-relaxed">Make project briefs clear and match-ready in minutes.</p>
               </div>
               
-              <div className="absolute -bottom-10 -left-10 bg-white p-6 rounded-2xl shadow-xl border border-slate-100 hidden sm:block">
+              <div className="absolute -bottom-10 -left-10 bg-white p-6 rounded-xl shadow-xl border border-slate-100 hidden sm:block">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
                     <Users className="h-5 w-5 text-green-600" />
@@ -173,8 +173,8 @@ const Categories: React.FC = () => {
         
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {categories.map((cat, i) => (
-            <div key={i} className="group p-8 rounded-3xl border border-slate-100 bg-white shadow-sm hover:shadow-aivora transition-all duration-300 hover:-translate-y-1">
-              <div className={`w-12 h-12 ${cat.bg} ${cat.color} rounded-2xl flex items-center justify-center font-bold text-lg mb-6 group-hover:scale-110 transition-transform`}>
+            <div key={i} className="group p-8 rounded-xl border border-slate-100 bg-white shadow-sm hover:shadow-aivora transition-all duration-300 hover:-translate-y-1">
+              <div className={`w-12 h-12 ${cat.bg} ${cat.color} rounded-xl flex items-center justify-center font-bold text-lg mb-6 group-hover:scale-110 transition-transform`}>
                 {cat.icon}
               </div>
               <h3 className="text-xl font-bold text-slate-900 mb-3">{cat.title}</h3>
@@ -212,7 +212,7 @@ const Process: React.FC = () => {
         
         <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {steps.map((step, i) => (
-            <div key={i} className={`relative p-8 rounded-3xl border transition-all duration-300 ${step.active ? 'bg-primary text-white border-primary shadow-xl shadow-primary/20 scale-105 z-10' : 'bg-white text-slate-900 border-slate-100 shadow-sm hover:shadow-md'}`}>
+            <div key={i} className={`relative p-8 rounded-xl border transition-all duration-300 ${step.active ? 'bg-primary text-white border-primary shadow-xl shadow-primary/20 scale-105 z-10' : 'bg-white text-slate-900 border-slate-100 shadow-sm hover:shadow-md'}`}>
               <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm mb-12 ${step.active ? 'bg-white/20 text-white' : 'bg-blue-50 text-primary'}`}>
                 {step.number}
               </div>
@@ -276,7 +276,7 @@ const Experts: React.FC = () => {
                 {expert.tags.join(', ')}
               </p>
               
-              <Button variant="outline" className="w-full rounded-2xl group">
+              <Button variant="outline" className="w-full rounded-xl group">
                 View Profile <span className="ml-2 group-hover:translate-x-1 transition-transform">→</span>
               </Button>
             </div>
@@ -306,7 +306,7 @@ const Services: React.FC = () => {
         
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {services.map((service, i) => (
-            <div key={i} className="p-6 rounded-3xl bg-white border border-slate-100 shadow-sm hover:shadow-aivora transition-all group">
+            <div key={i} className="p-6 rounded-xl bg-white border border-slate-100 shadow-sm hover:shadow-aivora transition-all group">
               <div className={`w-10 h-10 ${service.bg} ${service.color} rounded-xl flex items-center justify-center font-bold text-xs mb-4 group-hover:scale-110 transition-transform`}>
                 {service.icon}
               </div>

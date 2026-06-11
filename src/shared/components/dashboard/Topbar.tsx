@@ -71,9 +71,9 @@ export const Topbar = ({ onMenuClick, onToggleSidebar, sidebarCollapsed, role }:
           >
             <div className="text-right hidden sm:block">
               <p className="text-sm font-black text-slate-900 leading-none">{user?.fullName || 'User Name'}</p>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mt-1">{user?.role || 'Role'}</p>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter mt-1">{user?.role || 'Role'}</p>
             </div>
-            <div className="size-11 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/10 flex items-center justify-center group-hover:scale-105 transition-transform duration-300 overflow-hidden shadow-sm">
+            <div className="size-11 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/10 flex items-center justify-center group-hover:scale-105 transition-transform duration-300 overflow-hidden shadow-sm">
               {user?.fullName ? (
                 <span className="text-sm font-black text-primary uppercase">{user.fullName.charAt(0)}</span>
               ) : (

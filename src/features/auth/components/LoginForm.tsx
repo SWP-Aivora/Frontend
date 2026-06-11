@@ -73,14 +73,14 @@ export const LoginForm = () => {
           <div className="relative group">
             <div className="absolute left-4 top-1/2 -translate-y-1/2 size-7 pointer-events-none">
               <img src={ASSETS.iconCircle} alt="" className="size-full opacity-80 group-focus-within:opacity-100 transition-opacity" />
-              <span className="absolute inset-0 flex items-center justify-center font-bold text-primary text-[10px]">@</span>
+              <span className="absolute inset-0 flex items-center justify-center font-bold text-primary text-xs">@</span>
             </div>
             <Input 
               id="email"
               type="email" 
               placeholder="Enter your email address" 
               {...register('email')}
-              className={`pl-14 h-14 bg-slate-50 border-slate-200 rounded-2xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300 ${errors.email ? 'border-destructive' : 'hover:border-slate-300'}`}
+              className={`pl-14 h-14 bg-slate-50 border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300 ${errors.email ? 'border-destructive' : 'hover:border-slate-300'}`}
             />
           </div>
           {errors.email && <p className="text-xs text-destructive font-medium ml-1">{errors.email.message}</p>}
@@ -92,14 +92,14 @@ export const LoginForm = () => {
           <div className="relative group">
             <div className="absolute left-4 top-1/2 -translate-y-1/2 size-7 pointer-events-none">
               <img src={ASSETS.iconCircle} alt="" className="size-full opacity-80 group-focus-within:opacity-100 transition-opacity" />
-              <span className="absolute inset-0 flex items-center justify-center font-bold text-primary text-[10px] tracking-tighter">**</span>
+              <span className="absolute inset-0 flex items-center justify-center font-bold text-primary text-xs tracking-tighter">**</span>
             </div>
             <Input 
               id="password"
               type="password" 
               placeholder="Enter your password" 
               {...register('password')}
-              className={`pl-14 h-14 bg-slate-50 border-slate-200 rounded-2xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300 ${errors.password ? 'border-destructive' : 'hover:border-slate-300'}`}
+              className={`pl-14 h-14 bg-slate-50 border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300 ${errors.password ? 'border-destructive' : 'hover:border-slate-300'}`}
             />
           </div>
           {errors.password && <p className="text-xs text-destructive font-medium ml-1">{errors.password.message}</p>}

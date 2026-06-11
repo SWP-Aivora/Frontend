@@ -132,7 +132,7 @@ export const WalletPage = () => {
         {/* Main Wallet Card */}
         <div className="lg:col-span-2 space-y-8">
            <div className={cn(
-             "relative h-64 rounded-[40px] p-10 text-white overflow-hidden shadow-2xl",
+             "relative h-64 rounded-xl p-10 text-white overflow-hidden shadow-2xl",
              isClient ? "bg-brand-blue-dark" : "bg-indigo-900"
            )}>
               {/* Background Shapes */}
@@ -147,18 +147,18 @@ export const WalletPage = () => {
                           ${wallet?.balance?.toLocaleString() || '0'}.00
                        </h2>
                     </div>
-                    <div className="size-14 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/10">
+                    <div className="size-14 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/10">
                        <WalletIcon className="size-8 text-blue-200" />
                     </div>
                  </div>
 
                  <div className="flex items-center gap-10">
                     <div>
-                       <p className="text-blue-100/50 text-[10px] font-bold uppercase tracking-widest mb-1">In Review / Escrow</p>
+                       <p className="text-blue-100/50 text-xs font-bold uppercase tracking-widest mb-1">In Review / Escrow</p>
                        <p className="text-xl font-black">${totals.inEscrow.toLocaleString()}.00</p>
                     </div>
                     <div>
-                       <p className="text-blue-100/50 text-[10px] font-bold uppercase tracking-widest mb-1">
+                       <p className="text-blue-100/50 text-xs font-bold uppercase tracking-widest mb-1">
                           Total {isClient ? 'Spent' : 'Earned'}
                        </p>
                        <p className="text-xl font-black">
@@ -170,17 +170,17 @@ export const WalletPage = () => {
            </div>
 
            {/* Chart / Analytics Placeholder */}
-           <div className="bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm">
+           <div className="bg-white rounded-xl p-8 border border-slate-100 shadow-sm">
               <div className="flex items-center justify-between mb-8">
                  <h3 className="text-lg font-black text-slate-900">Spending Trends</h3>
                  <div className="flex items-center gap-4">
                     <div className="flex items-center gap-1.5">
                        <span className="size-2 rounded-full bg-primary" />
-                       <span className="text-[10px] font-bold text-slate-400 uppercase">This Month</span>
+                       <span className="text-xs font-bold text-slate-400 uppercase">This Month</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                        <span className="size-2 rounded-full bg-slate-200" />
-                       <span className="text-[10px] font-bold text-slate-400 uppercase">Last Month</span>
+                       <span className="text-xs font-bold text-slate-400 uppercase">Last Month</span>
                     </div>
                  </div>
               </div>
@@ -199,7 +199,7 @@ export const WalletPage = () => {
               </div>
               <div className="flex justify-between mt-4 px-2">
                  {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(m => (
-                   <span key={m} className="text-[9px] font-bold text-slate-400 uppercase">{m}</span>
+                   <span key={m} className="text-xs font-bold text-slate-400 uppercase">{m}</span>
                  ))}
               </div>
            </div>
@@ -208,8 +208,8 @@ export const WalletPage = () => {
         {/* Sidebar Info */}
         <div className="space-y-6">
            {/* Security Box */}
-           <div className="bg-emerald-50 border border-emerald-100 rounded-[32px] p-8">
-              <div className="size-12 rounded-2xl bg-white flex items-center justify-center mb-6 shadow-sm">
+           <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-8">
+              <div className="size-12 rounded-xl bg-white flex items-center justify-center mb-6 shadow-sm">
                  <ShieldCheck className="size-6 text-emerald-600" />
               </div>
               <h3 className="text-lg font-black text-emerald-900 mb-2">Secure Escrow</h3>
@@ -219,15 +219,15 @@ export const WalletPage = () => {
            </div>
 
            {/* Cards Placeholder */}
-           <div className="bg-white border border-slate-100 rounded-[32px] p-8 shadow-sm">
+           <div className="bg-white border border-slate-100 rounded-xl p-8 shadow-sm">
               <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-6">Linked Methods</h3>
               <div className="space-y-4">
-                 <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                 <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
                     <div className="flex items-center gap-3">
                        <div className="size-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center font-black text-xs">VISA</div>
                        <div>
                           <p className="text-xs font-bold text-slate-900">•••• 4242</p>
-                          <p className="text-[10px] text-slate-400 font-medium">Expires 12/28</p>
+                          <p className="text-xs text-slate-400 font-medium">Expires 12/28</p>
                        </div>
                     </div>
                     <MoreVertical className="size-4 text-slate-400" />
@@ -253,14 +253,14 @@ export const WalletPage = () => {
             </div>
          </div>
 
-         <div className="bg-white border border-slate-100 rounded-[32px] overflow-hidden shadow-sm">
+         <div className="bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm">
             <table className="w-full text-left">
                <thead>
                   <tr className="bg-slate-50/50 border-bottom border-slate-100">
-                     <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Transaction</th>
-                     <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</th>
-                     <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                     <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Amount</th>
+                     <th className="px-8 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Transaction</th>
+                     <th className="px-8 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Date</th>
+                     <th className="px-8 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Status</th>
+                     <th className="px-8 py-5 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Amount</th>
                   </tr>
                </thead>
                <tbody className="divide-y divide-slate-50">
@@ -282,7 +282,7 @@ export const WalletPage = () => {
                                   <p className="text-sm font-black text-slate-900 leading-tight">
                                      {t.description || typeInfo.label}
                                   </p>
-                                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mt-1">ID: {t.id.toUpperCase()}</p>
+                                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mt-1">ID: {t.id.toUpperCase()}</p>
                                </div>
                             </div>
                          </td>
@@ -293,7 +293,7 @@ export const WalletPage = () => {
                          </td>
                          <td className="px-8 py-6">
                             <div className={cn(
-                              "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase",
+                              "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase",
                               statusInfo.color
                             )}>
                                <span className="size-1.5 rounded-full bg-current" />
