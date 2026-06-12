@@ -18,17 +18,18 @@ import { walletService } from '../services';
 import { TransactionType, TransactionStatus } from '../types';
 import { DepositModal } from '../components/DepositModal';
 import { WithdrawModal } from '../components/WithdrawModal';
+import { ErrorBoundary } from '@/shared/components/common';
 
 export const WalletPage = () => {
   const { user } = useAuthStore();
   const isClient = user?.role === Role.CLIENT;
 
-  const { data: walletResponse, isLoading: isLoadingWallet } = useQuery({
+  const { data: walletResponse, isLoading: isLoadingWallet, isError: isWalletError, refetch: refetchWallet } = useQuery({
     queryKey: ['wallet'],
     queryFn: () => walletService.getWallet(),
   });
 
-  const { data: historyResponse, isLoading: isLoadingHistory } = useQuery({
+  const { data: historyResponse, isLoading: isLoadingHistory, isError: isHistoryError, refetch: refetchHistory } = useQuery({
     queryKey: ['payments-history'],
     queryFn: () => walletService.getPaymentHistory(),
   });
@@ -38,22 +39,24 @@ export const WalletPage = () => {
   const isLoading = isLoadingWallet || isLoadingHistory;
 
   const totals = useMemo(() => {
-    const spent = transactions
+    const validTx = transactions.filter(t => typeof t.amount === 'number' && !isNaN(t.amount));
+
+    const spent = validTx
       .filter(t => t.type === TransactionType.PAYMENT && t.status === TransactionStatus.COMPLETED)
       .reduce((acc, t) => acc + t.amount, 0);
     
-    const earned = transactions
+    const earned = validTx
       .filter(t => (t.type === TransactionType.DEPOSIT || t.type === TransactionType.REFUND) && t.status === TransactionStatus.COMPLETED)
       .reduce((acc, t) => acc + t.amount, 0);
 
-    const inEscrow = transactions
+    const inEscrow = validTx
       .filter(t => t.status === TransactionStatus.PENDING)
       .reduce((acc, t) => acc + t.amount, 0);
 
     return { spent, earned, inEscrow };
   }, [transactions]);
 
-  const getTransactionTypeInfo = (type: number) => {
+  const getTransactionTypeInfo = (type: TransactionType) => {
     switch (type) {
       case TransactionType.DEPOSIT: return { label: 'Deposit', icon: ArrowDownLeft, color: 'text-emerald-600', bg: 'bg-emerald-50' };
       case TransactionType.WITHDRAWAL: return { label: 'Withdrawal', icon: ArrowUpRight, color: 'text-rose-600', bg: 'bg-rose-50' };
@@ -63,7 +66,7 @@ export const WalletPage = () => {
     }
   };
 
-  const getStatusInfo = (status: number) => {
+  const getStatusInfo = (status: TransactionStatus) => {
     switch (status) {
       case TransactionStatus.PENDING: return { label: 'Pending', color: 'bg-amber-50 text-amber-600' };
       case TransactionStatus.COMPLETED: return { label: 'Completed', color: 'bg-emerald-50 text-emerald-600' };
@@ -77,6 +80,21 @@ export const WalletPage = () => {
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <div className="size-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
         <p className="text-slate-400 font-bold animate-pulse uppercase tracking-widest text-xs">Loading Wallet...</p>
+      </div>
+    );
+  }
+
+  if (isWalletError || isHistoryError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <div className="size-16 rounded-2xl bg-rose-50 flex items-center justify-center mb-4">
+           <ArrowDownLeft className="size-8 text-rose-500" />
+        </div>
+        <h3 className="text-2xl font-black text-slate-900">Failed to load wallet data</h3>
+        <p className="text-slate-500 font-medium max-w-sm text-center">There was a problem retrieving your financial data. Please try again.</p>
+        <Button onClick={() => { refetchWallet(); refetchHistory(); }} className="rounded-full mt-4">
+          Retry Connection
+        </Button>
       </div>
     );
   }
@@ -228,6 +246,11 @@ export const WalletPage = () => {
          </div>
 
          <div className="bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm">
+            <ErrorBoundary fallback={
+              <div className="p-8 text-center border-y border-rose-100 bg-rose-50 text-rose-600 font-medium text-sm">
+                Failed to load the transaction list. The data might be corrupted.
+              </div>
+            }>
             <table className="w-full text-left">
                <thead>
                   <tr className="bg-slate-50/50 border-bottom border-slate-100">
@@ -294,6 +317,7 @@ export const WalletPage = () => {
                   )}
                </tbody>
             </table>
+            </ErrorBoundary>
             
             <div className="p-6 border-t border-slate-50 text-center">
                <button className="text-xs font-black text-primary hover:underline uppercase tracking-widest">Load full history</button>
