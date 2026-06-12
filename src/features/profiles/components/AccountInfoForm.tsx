@@ -11,19 +11,20 @@ import {
   type ExpertProfileFormValues
 } from '../schema';
 import { profileService } from '../services';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/features/auth/store';
 import { Role } from '@/shared/types/enums';
-import { Building2, Code2, ShieldCheck, Mail, UserCircle2 } from 'lucide-react';
+import { Building2, Code2, ShieldCheck, Mail, UserCircle2, Loader2 } from 'lucide-react';
 
 export const AccountInfoForm = () => {
   const [isUserLoading, setIsUserLoading] = useState(false);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
-  const { user, setAuth, accessToken } = useAuthStore();
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const { user, setUser } = useAuthStore();
 
   // Base User Form (Shared)
-  const { register: registerUser, handleSubmit: handleUserSubmit, formState: { errors: userErrors } } = useForm<UserUpdateFormValues>({
+  const { register: registerUser, handleSubmit: handleUserSubmit, reset: resetUser, formState: { errors: userErrors } } = useForm<UserUpdateFormValues>({
     resolver: zodResolver(userUpdateSchema),
     defaultValues: {
       fullName: user?.fullName || '',
@@ -33,7 +34,7 @@ export const AccountInfoForm = () => {
   });
 
   // Client Profile Form
-  const { register: registerClient, handleSubmit: handleClientSubmit, formState: { errors: clientErrors } } = useForm<ClientProfileFormValues>({
+  const { register: registerClient, handleSubmit: handleClientSubmit, reset: resetClient, formState: { errors: clientErrors } } = useForm<ClientProfileFormValues>({
     resolver: zodResolver(clientProfileSchema),
     defaultValues: {
       companyName: '',
@@ -45,7 +46,7 @@ export const AccountInfoForm = () => {
   });
 
   // Expert Profile Form
-  const { register: registerExpert, handleSubmit: handleExpertSubmit, formState: { errors: expertErrors } } = useForm<ExpertProfileFormValues>({
+  const { register: registerExpert, handleSubmit: handleExpertSubmit, reset: resetExpert, formState: { errors: expertErrors } } = useForm<ExpertProfileFormValues>({
     resolver: zodResolver(expertProfileSchema),
     defaultValues: {
       title: '',
@@ -56,12 +57,69 @@ export const AccountInfoForm = () => {
     }
   });
 
+  // Load profile data on mount
+  useEffect(() => {
+    const loadProfileData = async () => {
+      setIsInitialLoading(true);
+      try {
+        // Fetch base user info
+        const userRes = await profileService.getUserProfile();
+        if (userRes.success && userRes.data) {
+          const userData = userRes.data;
+          setUser({
+            id: userData.id,
+            email: userData.email,
+            fullName: userData.fullName || user?.fullName || userData.email.split('@')[0],
+            role: userData.role
+          });
+          
+          resetUser({
+            fullName: userData.fullName || '',
+            phone: userData.phone || '',
+            avatarUrl: userData.avatarUrl || '',
+          });
+        }
+
+        // Fetch role-specific profile
+        if (user?.role === Role.CLIENT) {
+          const clientRes = await profileService.getClientProfile();
+          if (clientRes.success && clientRes.data) {
+            resetClient({
+              companyName: clientRes.data.companyName || '',
+              industry: clientRes.data.industry || '',
+              companySize: clientRes.data.companySize || '',
+              website: clientRes.data.website || '',
+              description: clientRes.data.description || '',
+            });
+          }
+        } else if (user?.role === Role.EXPERT) {
+          const expertRes = await profileService.getExpertProfile();
+          if (expertRes.success && expertRes.data) {
+            resetExpert({
+              title: expertRes.data.title || '',
+              bio: expertRes.data.bio || '',
+              hourlyRate: expertRes.data.hourlyRate || 0,
+              experienceYears: expertRes.data.experienceYears || 0,
+              availabilityStatus: expertRes.data.availabilityStatus || 1,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error loading profile:', error);
+      } finally {
+        setIsInitialLoading(false);
+      }
+    };
+
+    loadProfileData();
+  }, [user?.role, user?.fullName, resetUser, resetClient, resetExpert, setUser]);
+
   const onUserSubmit = async (data: UserUpdateFormValues) => {
     setIsUserLoading(true);
     try {
       const response = await profileService.updateUser(data);
-      if (response.success && accessToken) {
-        setAuth({ ...user!, fullName: data.fullName || user!.fullName }, accessToken);
+      if (response.success && response.data) {
+        setUser({ ...user!, fullName: response.data.fullName || data.fullName || user!.fullName });
         toast.success('Identity information updated');
       } else {
         toast.error(response.message || 'Failed to update info');
@@ -98,6 +156,15 @@ export const AccountInfoForm = () => {
       setIsProfileLoading(false);
     }
   };
+
+  if (isInitialLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 space-y-4">
+        <Loader2 className="size-10 text-primary animate-spin" />
+        <p className="text-slate-500 font-bold text-sm uppercase tracking-widest">Securing your data...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">

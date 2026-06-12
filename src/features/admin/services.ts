@@ -5,7 +5,8 @@ import type {
   AdminUserManagementData, 
   AdminExpertReviewsData, 
   ExpertReviewDetail,
-  ExpertReviewActionParams
+  ExpertReviewActionParams,
+  HealthAlertItem
 } from './types';
 import type { BaseResponse } from '@/shared/types/api';
 import { 
@@ -13,6 +14,16 @@ import {
   ADMIN_EXPERT_REVIEWS_PREVIEW_DATA, 
   ADMIN_EXPERT_REVIEW_DETAIL_PREVIEW_DATA 
 } from './hooks/previewData';
+
+interface BackendStats {
+  totalUsers: number;
+  totalClients: number;
+  totalExperts: number;
+  totalJobs: number;
+  activeProjects: number;
+  openDisputes: number;
+  totalEscrowAmount: number;
+}
 
 /**
  * Admin Services
@@ -27,14 +38,87 @@ import {
  * Real API integration should replace these stubs once the backend endpoints are implemented.
  */
 export const adminService = {
-  getDashboardSummary: async (): Promise<BaseResponse<DashboardSummary>> => {
-    // NOTE: Not in v1.json. Returning local preview data.
-    return {
-      success: true,
-      data: ADMIN_DASHBOARD_PREVIEW_DATA,
-      message: 'UI Preview Mode: Data loaded from local stub',
-      statusCode: 200
-    };
+  getDashboardSummary: async (): Promise<BaseResponse<DashboardSummary & { _isStub?: boolean }>> => {
+    try {
+      const response = await apiClient.get<BaseResponse<BackendStats>>(API_ENDPOINTS.ADMIN.DASHBOARD_SUMMARY);
+      const backendData = response.data.data;
+      
+      // Map backend fields to frontend structure
+      const totalUsers = backendData?.totalUsers ?? 0;
+      const totalClients = backendData?.totalClients ?? 0;
+      const totalExperts = backendData?.totalExperts ?? 0;
+      const openDisputes = backendData?.openDisputes ?? 0;
+
+      // Generate dynamic health alerts based on real metrics
+      const healthAlerts: HealthAlertItem[] = [];
+      if (openDisputes > 0) {
+        healthAlerts.push({
+          title: `${openDisputes} Active Dispute${openDisputes > 1 ? 's' : ''} Found`,
+          description: 'Resolution is required to maintain platform trust and release held funds.',
+          severity: 'critical'
+        });
+      }
+
+      const mappedData: DashboardSummary = {
+        totalUsers,
+        openJobs: backendData?.totalJobs ?? 0,
+        activeProjects: backendData?.activeProjects ?? 0,
+        openDisputes,
+        totalTransactionsValue: backendData?.totalEscrowAmount ?? 0,
+        pendingReviews: 0, 
+        newUsersThisMonth: 0,
+        
+        // Calculate user overview from real counts
+        userOverview: [
+          { 
+            role: 'Clients', 
+            count: totalClients,
+            fillPercentage: totalUsers > 0 ? (totalClients / totalUsers) * 100 : 0
+          },
+          { 
+            role: 'Experts', 
+            count: totalExperts,
+            fillPercentage: totalUsers > 0 ? (totalExperts / totalUsers) * 100 : 0
+          },
+          { 
+            role: 'Admins', 
+            count: Math.max(0, totalUsers - totalClients - totalExperts),
+            fillPercentage: totalUsers > 0 ? (Math.max(0, totalUsers - totalClients - totalExperts) / totalUsers) * 100 : 0
+          },
+        ],
+
+        // Clean empty states for data not yet provided by API
+        transactionSummary: [],
+        activeProjectsList: [],
+        reviewQueue: [],
+        topCategories: [],
+        recentActivity: [],
+        healthAlerts
+      };
+
+      return {
+        ...response.data,
+        data: { ...mappedData, _isStub: false }
+      };
+    } catch (error) {
+      console.error('Admin Dashboard API failed, falling back to preview data:', error);
+      
+      // Update preview data to match "Expert Profile Review" context
+      const dashboardPreview = { ...ADMIN_DASHBOARD_PREVIEW_DATA };
+      dashboardPreview.pendingReviews = ADMIN_EXPERT_REVIEWS_PREVIEW_DATA.totalPending;
+      dashboardPreview.reviewQueue = [
+        { label: 'Pending Review', count: ADMIN_EXPERT_REVIEWS_PREVIEW_DATA.totalPending },
+        { label: 'Requires Revision', count: ADMIN_EXPERT_REVIEWS_PREVIEW_DATA.totalRevisions },
+        { label: 'New Submissions Today', count: ADMIN_EXPERT_REVIEWS_PREVIEW_DATA.newToday },
+      ];
+
+      return {
+        success: true,
+        data: { ...dashboardPreview, _isStub: true },
+        message: 'UI Preview Mode: API request failed. Showing stub data.',
+        statusCode: 200
+      };
+    }
   },
   
   getUsers: async (params?: Record<string, unknown>): Promise<BaseResponse<AdminUserManagementData>> => {

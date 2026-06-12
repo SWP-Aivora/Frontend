@@ -11,17 +11,20 @@ const Navbar: React.FC = () => {
     <nav className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/80 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
         <div className="flex items-center gap-10">
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-bold transition-transform group-hover:scale-105">
-              A
+          <Link to="/" className="flex items-center group shrink-0">
+            <div className="relative w-40 h-14 overflow-hidden flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+              <img 
+                src="/logo.png" 
+                alt="AIVORA" 
+                className="w-full h-full object-contain scale-[1.8]" 
+              />
             </div>
-            <span className="text-xl font-bold text-brand-blue-dark tracking-tight">AIVORA</span>
           </Link>
           <div className="hidden md:flex items-center gap-8">
-            <Link to="/" className="text-sm font-medium text-slate-900">Home</Link>
-            <Link to="/experts" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">Explore Experts</Link>
-            <Link to="/jobs/post" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">Post a Job</Link>
-            <Link to="/about" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">About</Link>
+            <a href="#top" className="text-sm font-medium text-slate-900">Home</a>
+            <a href="#explore-experts" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">Explore Experts</a>
+            <a href="#post-job" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">Post a Job</a>
+            <a href="#about" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">About</a>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -456,6 +459,57 @@ const Footer: React.FC = () => {
   );
 };
 
+const AboutSection: React.FC = () => {
+  return (
+    <section id="about" className="py-24 bg-white overflow-hidden relative">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid lg:grid-cols-2 gap-16 items-center">
+          <div className="relative animate-in fade-in slide-in-from-left duration-1000">
+            <div className="relative z-10 rounded-3xl overflow-hidden shadow-2xl border border-slate-100 bg-slate-50 aspect-video flex items-center justify-center p-12">
+               <div className="text-center">
+                  <div className="size-20 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6 text-primary">
+                     <Users className="size-10" />
+                  </div>
+                  <p className="text-2xl font-black text-slate-900">AIVORA Platform</p>
+                  <p className="text-slate-500 font-medium mt-2 uppercase tracking-widest text-xs">The Future of AI Collaboration</p>
+               </div>
+            </div>
+            {/* Decorative blobs */}
+            <div className="absolute -top-10 -left-10 size-40 bg-blue-100/50 rounded-full blur-3xl -z-10" />
+            <div className="absolute -bottom-10 -right-10 size-40 bg-primary/10 rounded-full blur-3xl -z-10" />
+          </div>
+
+          <div>
+            <SectionHeader 
+              badge="Our Identity"
+              title="The AI Expert Marketplace for Business Solutions"
+              description="AIVORA is built to bridge the gap between complex business needs and qualified AI technical expertise. We provide the tools, protection, and matching logic to ensure projects succeed."
+            />
+            
+            <div className="space-y-6">
+              {[
+                { title: 'Trusted Network', desc: 'Every expert on AIVORA undergoes a verification process to ensure technical capability.' },
+                { title: 'Scoped Success', desc: 'Our AI-assisted job builder helps turn vague ideas into structured, executable project descriptions.' },
+                { title: 'Escrow Protection', desc: 'Payments are held securely and only released when milestones are successfully delivered.' }
+              ].map((item, i) => (
+                <div key={i} className="flex gap-4">
+                  <div className="size-6 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 mt-1">
+                    <CheckCircle className="size-4 text-emerald-500" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 mb-1">{item.title}</h4>
+                    <p className="text-sm text-slate-500 leading-relaxed">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
 /**
  * AIVORA Landing Page
  * 
@@ -463,15 +517,26 @@ const Footer: React.FC = () => {
  */
 export const LandingPage: React.FC = () => {
   return (
-    <div className="min-h-screen bg-white selection:bg-primary/10 selection:text-primary">
+    <div id="top" className="min-h-screen bg-white selection:bg-primary/10 selection:text-primary scroll-smooth">
       <Navbar />
       <main>
         <Hero />
-        <Categories />
-        <Process />
-        <Experts />
-        <Services />
-        <TrustUpdates />
+        
+        <div id="explore-experts">
+           <Categories />
+           <Experts />
+           <Services />
+        </div>
+
+        <div id="post-job">
+           <Process />
+        </div>
+
+        <div id="about">
+           <AboutSection />
+           <TrustUpdates />
+        </div>
+
         <FooterCTA />
       </main>
       <Footer />

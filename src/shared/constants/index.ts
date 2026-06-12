@@ -41,6 +41,9 @@ export const API_ENDPOINTS = {
     UPLOAD_IMAGE: '/api/v1/media/upload-image',
     UPLOAD_FILE: '/api/v1/media/upload-file',
   },
+  USERS: {
+    ME: '/api/v1/users/me',
+  },
   DISPUTES: {
     BASE: '/api/v1/disputes',
     ID: (id: string | number) => `/api/v1/disputes/${id}`,
@@ -60,7 +63,7 @@ export const API_ENDPOINTS = {
     READ_ALL: '/api/v1/notifications/read-all',
   },
   ADMIN: {
-    DASHBOARD_SUMMARY: '/api/v1/admin/dashboard/summary',
+    DASHBOARD_SUMMARY: '/api/v1/admin/stats',
     USERS: '/api/v1/admin/users',
     EXPERT_REVIEWS: '/api/v1/admin/expert-reviews',
     EXPERT_REVIEW_DETAIL: (id: string) => `/api/v1/admin/expert-reviews/${id}`,

@@ -7,7 +7,8 @@ import {
   AlertCircle,
   Clock,
   Layout,
-  ShieldAlert
+  ShieldAlert,
+  CheckCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
@@ -16,9 +17,8 @@ export const AdminDashboardPage = () => {
   const { data: summary, isLoading, isError, error } = useAdminDashboard();
 
   // DASHBOARD PREVIEW MODE: 
-  // This endpoint (GET /admin/dashboard/summary) is not available in v1.json yet.
-  // The service is currently stubbed to return local preview data.
-  const isPreviewMode = true; 
+  // Determine if we are in preview mode based on the source of the data
+  const isPreviewMode = summary?._isStub ?? false; 
 
   if (isLoading) {
     return (
@@ -85,7 +85,7 @@ export const AdminDashboardPage = () => {
            </div>
            <div className="px-4 py-2 bg-orange-50 border border-orange-100 rounded-xl flex items-center gap-2">
               <span className="size-2 bg-orange-500 rounded-full" />
-              <span className="text-orange-600 text-xs font-black uppercase tracking-tight">{summary?.pendingReviews || 0} Pending Verifications</span>
+              <span className="text-orange-600 text-xs font-black uppercase tracking-tight">{summary?.pendingReviews || 0} Pending Reviews</span>
            </div>
         </div>
       </div>
@@ -117,8 +117,8 @@ export const AdminDashboardPage = () => {
             </div>
           </div>
           <div className="p-6 lg:w-fit flex flex-col justify-center gap-3 border-l border-slate-100">
-             <Link to="/admin/verification" className="flex items-center justify-center px-4 py-2 bg-white border border-primary/20 text-primary rounded-xl font-black text-sm hover:bg-primary/5 hover:border-primary transition-all whitespace-nowrap shadow-sm">
-                Review Verifications
+             <Link to="/admin/expert-reviews" className="flex items-center justify-center px-4 py-2 bg-white border border-primary/20 text-primary rounded-xl font-black text-sm hover:bg-primary/5 hover:border-primary transition-all whitespace-nowrap shadow-sm">
+                Expert Profile Review
              </Link>
              <Link to="/admin/disputes" className="flex items-center justify-center px-4 py-2 bg-primary text-white rounded-xl font-black text-sm hover:bg-primary-dark transition-all whitespace-nowrap shadow-lg shadow-primary/20">
                 Manage Disputes
@@ -166,38 +166,42 @@ export const AdminDashboardPage = () => {
             </div>
           </div>
 
-          {/* 2. Verification Module */}
+          {/* 2. Expert Profile Review Module */}
           <div className="shrink-0 w-[400px] bg-white border border-slate-100 rounded-xl p-5 shadow-sm h-[240px] flex flex-col group hover:border-primary/20 transition-all">
             <div className="flex justify-between items-start mb-4 shrink-0">
                <div>
-                  <h3 className="text-lg font-black text-slate-900 tracking-tight">Verification</h3>
-                  <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mt-1">Pending approval</p>
+                  <h3 className="text-lg font-black text-slate-900 tracking-tight">Expert Profile Review</h3>
+                  <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mt-1">Pending Review</p>
                </div>
                <div className="text-right">
                   <div className="text-3xl font-black text-orange-500 tracking-tighter">
                      {summary?.pendingReviews || 0}
                   </div>
-                  <Link to="/admin/verification" className="text-xs font-bold text-primary hover:underline mt-0.5 inline-block">View details &gt;</Link>
+                  <Link to="/admin/expert-reviews" className="text-xs font-bold text-primary hover:underline mt-0.5 inline-block">View details &gt;</Link>
                </div>
             </div>
             <div className="h-1.5 bg-slate-50 rounded-full overflow-hidden border border-slate-100 mb-5 shrink-0">
               <div 
                 className="h-full bg-primary rounded-full shadow-[0_0_8px_rgba(37,99,235,0.3)] transition-all duration-1000" 
-                style={{ width: '65%' }}
+                style={{ width: summary?.pendingReviews ? '65%' : '0%' }}
               />
             </div>
             <div className="flex-1 overflow-x-auto overflow-y-auto pr-1 custom-scrollbar space-y-3">
-               {summary?.reviewQueue?.map((item) => (
-                 <div key={item.label} className="flex items-center justify-between group/item cursor-pointer min-w-[200px]">
-                    <span className="text-slate-600 font-bold text-xs group-hover/item:text-primary transition-colors">{item.label}</span>
-                    <div className={cn(
-                      "px-3 py-1 rounded-full text-xs font-black",
-                      item.count > 10 ? "bg-rose-50 text-rose-600" : "bg-orange-50 text-orange-600"
-                    )}>
-                      {item.count}
-                    </div>
-                 </div>
-               ))}
+               {summary?.reviewQueue && summary.reviewQueue.length > 0 ? (
+                 summary.reviewQueue.map((item) => (
+                   <div key={item.label} className="flex items-center justify-between group/item cursor-pointer min-w-[200px]">
+                      <span className="text-slate-600 font-bold text-xs group-hover/item:text-primary transition-colors">{item.label}</span>
+                      <div className={cn(
+                        "px-3 py-1 rounded-full text-xs font-black",
+                        item.count > 10 ? "bg-rose-50 text-rose-600" : "bg-orange-50 text-orange-600"
+                      )}>
+                        {item.count}
+                      </div>
+                   </div>
+                 ))
+               ) : (
+                 <div className="h-full flex items-center justify-center text-slate-400 text-xs font-bold italic">No pending expert reviews</div>
+               )}
             </div>
           </div>
 
@@ -215,12 +219,22 @@ export const AdminDashboardPage = () => {
                </div>
             </div>
             <div className="flex-1 overflow-x-auto overflow-y-auto pr-1 custom-scrollbar divide-y divide-slate-50">
-               {summary?.transactionSummary?.map((item) => (
-                 <div key={item.type} className="flex items-center justify-between py-2.5 group/item min-w-[200px]">
-                    <span className="text-slate-500 font-bold text-xs uppercase tracking-wider group-hover/item:text-primary transition-colors">{item.type}</span>
-                    <span className="text-slate-900 font-black text-sm tracking-tight">${item.amount.toLocaleString()}</span>
+               {summary?.transactionSummary && summary.transactionSummary.length > 0 ? (
+                 summary.transactionSummary.map((item) => (
+                   <div key={item.type} className="flex items-center justify-between py-2.5 group/item min-w-[200px]">
+                      <span className="text-slate-500 font-bold text-xs uppercase tracking-wider group-hover/item:text-primary transition-colors">{item.type}</span>
+                      <span className="text-slate-900 font-black text-sm tracking-tight">${item.amount.toLocaleString()}</span>
+                   </div>
+                 ))
+               ) : (
+                 <div className="h-full flex flex-col items-center justify-center text-center p-4">
+                    <p className="text-slate-400 text-xs font-bold italic">
+                      {(summary?.totalTransactionsValue || 0) > 0 
+                        ? 'Platform volume exists, but breakdown is unavailable.' 
+                        : 'No financial data yet.'}
+                    </p>
                  </div>
-               ))}
+               )}
             </div>
           </div>
 
@@ -237,14 +251,24 @@ export const AdminDashboardPage = () => {
                 </div>
               </div>
             </div>
-            <p className="text-slate-500 font-bold text-xs uppercase tracking-wider mb-2.5 shrink-0">Top Categories</p>
+            <p className="text-slate-500 font-bold text-xs uppercase tracking-wider mb-2.5 shrink-0">Top Domains</p>
             <div className="flex-1 overflow-x-auto overflow-y-auto pr-1 custom-scrollbar space-y-2.5">
-               {summary?.topCategories?.map((cat) => (
-                  <div key={cat.name} className="flex items-center justify-between group/item min-w-[200px]">
-                     <span className="text-slate-600 font-bold text-xs group-hover/item:text-primary transition-colors">{cat.name}</span>
-                     <span className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-lg text-xs font-black">{cat.jobCount} jobs</span>
-                  </div>
-               ))}
+               {summary?.topCategories && summary.topCategories.length > 0 ? (
+                 summary.topCategories.map((domain) => (
+                    <div key={domain.name} className="flex items-center justify-between group/item min-w-[200px]">
+                       <span className="text-slate-600 font-bold text-xs group-hover/item:text-primary transition-colors">{domain.name}</span>
+                       <span className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-lg text-xs font-black">{domain.jobCount} jobs</span>
+                    </div>
+                 ))
+               ) : (
+                 <div className="h-full flex flex-col items-center justify-center text-center p-4">
+                    <p className="text-slate-400 text-xs font-bold italic leading-relaxed">
+                      {(summary?.openJobs || 0) > 0 
+                        ? `${summary?.openJobs} active listing${(summary?.openJobs || 0) > 1 ? 's' : ''} found, but no domain data is available.` 
+                        : 'No active listings yet.'}
+                    </p>
+                 </div>
+               )}
             </div>
           </div>
 
@@ -263,21 +287,30 @@ export const AdminDashboardPage = () => {
               </div>
             </div>
             <div className="flex-1 flex flex-col gap-4 overflow-x-auto">
-              <div className="flex items-center gap-3 p-3 bg-rose-50/50 rounded-xl border border-rose-100/50 min-w-[200px]">
-                 <ShieldAlert className="size-5 text-rose-400 shrink-0" />
-                 <p className="text-sm font-medium text-rose-700 leading-tight">
-                   Active dispute resolution is required to maintain platform trust.
-                 </p>
-              </div>
-              <div className="space-y-2 min-w-[200px]">
-                 <div className="flex justify-between items-center text-xs font-bold text-slate-400 uppercase tracking-widest px-1">
-                    <span>Priority</span>
-                    <span>High</span>
-                 </div>
-                 <div className="h-1.5 bg-slate-50 rounded-full overflow-hidden">
-                    <div className="h-full bg-rose-500 w-full" />
-                 </div>
-              </div>
+              {(summary?.openDisputes || 0) > 0 ? (
+                <>
+                  <div className="flex items-center gap-3 p-3 bg-rose-50/50 rounded-xl border border-rose-100/50 min-w-[200px]">
+                    <ShieldAlert className="size-5 text-rose-400 shrink-0" />
+                    <p className="text-sm font-medium text-rose-700 leading-tight">
+                      Active dispute resolution is required to maintain platform trust.
+                    </p>
+                  </div>
+                  <div className="space-y-2 min-w-[200px]">
+                    <div className="flex justify-between items-center text-xs font-bold text-slate-400 uppercase tracking-widest px-1">
+                        <span>Priority</span>
+                        <span>High</span>
+                    </div>
+                    <div className="h-1.5 bg-slate-50 rounded-full overflow-hidden">
+                        <div className="h-full bg-rose-500 w-full" />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-slate-400 text-xs font-bold italic text-center gap-2">
+                   <CheckCircle className="size-8 text-emerald-400 opacity-50" />
+                   No active disputes requiring action.
+                </div>
+              )}
             </div>
           </div>
 
@@ -295,18 +328,22 @@ export const AdminDashboardPage = () => {
                </div>
              </div>
              <div className="flex-1 overflow-x-auto overflow-y-auto pr-1 custom-scrollbar divide-y divide-slate-50">
-                {summary?.healthAlerts?.map((alert, idx) => (
-                  <div key={idx} className="flex gap-4 py-3 group/item min-w-[200px]">
-                     <div className={cn(
-                       "size-2 rounded-full mt-1.5 shrink-0",
-                       alert.severity === 'critical' ? "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]" : "bg-orange-500"
-                     )} />
-                     <div>
-                        <p className="text-sm font-bold text-slate-900 leading-tight mb-1 group-hover/item:text-primary transition-colors">{alert.title}</p>
-                        <p className="text-xs text-slate-500 font-medium leading-relaxed line-clamp-1">{alert.description}</p>
-                     </div>
-                  </div>
-                ))}
+                {summary?.healthAlerts && summary.healthAlerts.length > 0 ? (
+                  summary.healthAlerts.map((alert, idx) => (
+                    <div key={idx} className="flex gap-4 py-3 group/item min-w-[200px]">
+                      <div className={cn(
+                        "size-2 rounded-full mt-1.5 shrink-0",
+                        alert.severity === 'critical' ? "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]" : "bg-orange-500"
+                      )} />
+                      <div>
+                          <p className="text-sm font-bold text-slate-900 leading-tight mb-1 group-hover/item:text-primary transition-colors">{alert.title}</p>
+                          <p className="text-xs text-slate-500 font-medium leading-relaxed line-clamp-1">{alert.description}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="h-full flex items-center justify-center text-slate-400 text-xs font-bold italic">No health alerts</div>
+                )}
              </div>
           </div>
 

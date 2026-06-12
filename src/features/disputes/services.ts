@@ -7,6 +7,7 @@ import type {
   AddEvidenceRequest, 
   ResolveDisputeRequest 
 } from './types';
+import { normalizePaginatedResponse, normalizeBaseResponse } from '@/lib/api-utils';
 
 /**
  * Dispute Services
@@ -17,7 +18,7 @@ export const disputeService = {
    */
   async getDisputes(params: { PageIndex?: number; PageSize?: number; SearchTerm?: string }): Promise<PaginatedResponse<Dispute>> {
     const response = await apiClient.get(API_ENDPOINTS.DISPUTES.BASE, { params });
-    return response.data;
+    return normalizePaginatedResponse<Dispute>(response);
   },
 
   /**
@@ -25,7 +26,7 @@ export const disputeService = {
    */
   async getDisputeById(id: string): Promise<BaseResponse<Dispute>> {
     const response = await apiClient.get(API_ENDPOINTS.DISPUTES.ID(id));
-    return response.data;
+    return normalizeBaseResponse<Dispute>(response);
   },
 
   /**
@@ -33,7 +34,7 @@ export const disputeService = {
    */
   async openDispute(data: OpenDisputeRequest): Promise<BaseResponse<Dispute>> {
     const response = await apiClient.post(API_ENDPOINTS.DISPUTES.BASE, data);
-    return response.data;
+    return normalizeBaseResponse<Dispute>(response);
   },
 
   /**
@@ -41,7 +42,7 @@ export const disputeService = {
    */
   async addEvidence(disputeId: string, data: AddEvidenceRequest): Promise<BaseResponse<void>> {
     const response = await apiClient.post(API_ENDPOINTS.DISPUTES.EVIDENCE(disputeId), data);
-    return response.data;
+    return normalizeBaseResponse<void>(response);
   },
 
   /**
@@ -49,6 +50,6 @@ export const disputeService = {
    */
   async resolveDispute(disputeId: string, data: ResolveDisputeRequest): Promise<BaseResponse<void>> {
     const response = await apiClient.put(API_ENDPOINTS.DISPUTES.RESOLVE(disputeId), data);
-    return response.data;
+    return normalizeBaseResponse<void>(response);
   },
 };
