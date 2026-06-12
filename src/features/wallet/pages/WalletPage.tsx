@@ -1,8 +1,7 @@
-import { useState, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { 
   Wallet as WalletIcon, 
-  Plus, 
   ArrowUpRight, 
   ArrowDownLeft, 
   Search,
@@ -15,18 +14,13 @@ import { Button } from '@/shared/components/ui/Button';
 import { useAuthStore } from '@/features/auth/store';
 import { Role } from '@/shared/types/enums';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 import { walletService } from '../services';
 import { TransactionType, TransactionStatus } from '../types';
-import { depositSchema, withdrawSchema } from '../schema';
+import { DepositModal } from '../components/DepositModal';
+import { WithdrawModal } from '../components/WithdrawModal';
 
 export const WalletPage = () => {
   const { user } = useAuthStore();
-  const queryClient = useQueryClient();
-  const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
-  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
-  const [depositAmount, setDepositAmount] = useState<number>(1000);
-  const [withdrawAmount, setWithdrawAmount] = useState<number>(500);
   const isClient = user?.role === Role.CLIENT;
 
   const { data: walletResponse, isLoading: isLoadingWallet } = useQuery({
@@ -37,19 +31,6 @@ export const WalletPage = () => {
   const { data: historyResponse, isLoading: isLoadingHistory } = useQuery({
     queryKey: ['payments-history'],
     queryFn: () => walletService.getPaymentHistory(),
-  });
-
-  const depositMutation = useMutation({
-    mutationFn: (amount: number) => walletService.depositDemo({ amount }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['wallet'] });
-      queryClient.invalidateQueries({ queryKey: ['payments-history'] });
-      toast.success('Successfully deposited funds!');
-    },
-    onError: () => {
-      toast.error('Failed to deposit funds. Please try again.');
-    },
-    onSettled: () => setIsDepositModalOpen(false),
   });
 
   const wallet = walletResponse?.data;
@@ -72,56 +53,21 @@ export const WalletPage = () => {
     return { spent, earned, inEscrow };
   }, [transactions]);
 
-  const handleDeposit = () => {
-    setIsDepositModalOpen(true);
-  };
-
-  const confirmDeposit = () => {
-    const result = depositSchema.safeParse({ amount: depositAmount });
-    if (!result.success) {
-      toast.error('Invalid deposit amount. Please enter a valid number.');
-      return;
-    }
-    depositMutation.mutate(result.data.amount);
-  };
-
-  const handleWithdraw = () => {
-    setIsWithdrawModalOpen(true);
-  };
-
-  const confirmWithdraw = () => {
-    const result = withdrawSchema.safeParse({ amount: withdrawAmount });
-    if (!result.success) {
-      toast.error('Invalid withdraw amount. Please enter a valid number.');
-      return;
-    }
-
-    if (result.data.amount > (wallet?.balance || 0)) {
-      toast.error('Insufficient balance to withdraw this amount.');
-      return;
-    }
-
-    // Mocking the withdrawal since there is no API endpoint for it yet
-    toast.info('Demo mode: no real transaction. Withdrawal API not yet implemented.');
-    setIsWithdrawModalOpen(false);
-    setWithdrawAmount(500);
-  };
-
   const getTransactionTypeInfo = (type: number) => {
     switch (type) {
-      case 0: return { label: 'Deposit', icon: ArrowDownLeft, color: 'text-emerald-600', bg: 'bg-emerald-50' };
-      case 1: return { label: 'Withdrawal', icon: ArrowUpRight, color: 'text-rose-600', bg: 'bg-rose-50' };
-      case 2: return { label: 'Payment', icon: ArrowUpRight, color: 'text-blue-600', bg: 'bg-blue-50' };
-      case 3: return { label: 'Refund', icon: ArrowDownLeft, color: 'text-emerald-600', bg: 'bg-emerald-50' };
+      case TransactionType.DEPOSIT: return { label: 'Deposit', icon: ArrowDownLeft, color: 'text-emerald-600', bg: 'bg-emerald-50' };
+      case TransactionType.WITHDRAWAL: return { label: 'Withdrawal', icon: ArrowUpRight, color: 'text-rose-600', bg: 'bg-rose-50' };
+      case TransactionType.PAYMENT: return { label: 'Payment', icon: ArrowUpRight, color: 'text-blue-600', bg: 'bg-blue-50' };
+      case TransactionType.REFUND: return { label: 'Refund', icon: ArrowDownLeft, color: 'text-emerald-600', bg: 'bg-emerald-50' };
       default: return { label: 'Unknown', icon: ArrowUpRight, color: 'text-slate-600', bg: 'bg-slate-50' };
     }
   };
 
   const getStatusInfo = (status: number) => {
     switch (status) {
-      case 0: return { label: 'Pending', color: 'bg-amber-50 text-amber-600' };
-      case 1: return { label: 'Completed', color: 'bg-emerald-50 text-emerald-600' };
-      case 2: return { label: 'Failed', color: 'bg-rose-50 text-rose-600' };
+      case TransactionStatus.PENDING: return { label: 'Pending', color: 'bg-amber-50 text-amber-600' };
+      case TransactionStatus.COMPLETED: return { label: 'Completed', color: 'bg-emerald-50 text-emerald-600' };
+      case TransactionStatus.FAILED: return { label: 'Failed', color: 'bg-rose-50 text-rose-600' };
       default: return { label: 'Unknown', color: 'bg-slate-50 text-slate-600' };
     }
   };
@@ -148,14 +94,9 @@ export const WalletPage = () => {
         <div className="flex items-center gap-3">
            <Button variant="outline" className="rounded-full border-slate-200">Export PDF</Button>
            {isClient ? (
-             <Button onClick={handleDeposit} className="rounded-full px-6 shadow-lg shadow-primary/20 flex items-center gap-2">
-                <Plus className="size-4" />
-                Deposit Funds
-             </Button>
+             <DepositModal />
            ) : (
-             <Button onClick={handleWithdraw} className="rounded-full px-6 bg-brand-accent hover:bg-brand-accent/90 shadow-lg shadow-brand-accent/20">
-                Withdraw Earnings
-             </Button>
+             <WithdrawModal maxBalance={wallet?.balance || 0} />
            )}
         </div>
       </div>
@@ -336,9 +277,9 @@ export const WalletPage = () => {
                          <td className="px-8 py-6 text-right">
                             <span className={cn(
                               "text-base font-black",
-                              (t.type === 0 || t.type === 3) ? "text-emerald-600" : "text-slate-900"
+                              (t.type === TransactionType.DEPOSIT || t.type === TransactionType.REFUND) ? "text-emerald-600" : "text-slate-900"
                             )}>
-                               {(t.type === 0 || t.type === 3) ? '+' : '-'}{t.amount.toLocaleString()} Xu
+                               {(t.type === TransactionType.DEPOSIT || t.type === TransactionType.REFUND) ? '+' : '-'}{t.amount.toLocaleString()} Xu
                             </span>
                          </td>
                       </tr>
@@ -359,85 +300,6 @@ export const WalletPage = () => {
             </div>
          </div>
       </div>
-
-      {/* Deposit Modal */}
-      {isDepositModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="deposit-modal-title">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsDepositModalOpen(false)} />
-          <div className="bg-white rounded-3xl p-8 w-[90%] max-w-sm relative z-10 shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 id="deposit-modal-title" className="text-2xl font-black text-slate-900 mb-2">Deposit Coins</h3>
-            <p className="text-sm text-slate-500 mb-6">Enter the amount of Xu you want to add to your wallet.</p>
-            
-            <div className="space-y-4 mb-8">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Amount (Xu)</label>
-                <div className="relative">
-                  <input 
-                    type="number" 
-                    min="1"
-                    className="w-full rounded-xl border-slate-200 p-3 pl-4 pr-12 text-lg font-bold text-slate-900 focus:ring-primary focus:border-primary" 
-                    placeholder="1000"
-                    value={depositAmount || ''}
-                    onChange={e => setDepositAmount(Number(e.target.value))}
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">Xu</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setIsDepositModalOpen(false)} className="rounded-full font-bold">Cancel</Button>
-              <Button 
-                onClick={confirmDeposit} 
-                disabled={depositMutation.isPending || depositAmount <= 0}
-                className="rounded-full shadow-lg shadow-primary/20 font-black"
-              >
-                {depositMutation.isPending ? 'Processing...' : 'Deposit'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Withdraw Modal */}
-      {isWithdrawModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="withdraw-modal-title">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsWithdrawModalOpen(false)} />
-          <div className="bg-white rounded-3xl p-8 w-[90%] max-w-sm relative z-10 shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 id="withdraw-modal-title" className="text-2xl font-black text-slate-900 mb-2">Withdraw Earnings</h3>
-            <p className="text-sm text-slate-500 mb-6">Enter the amount of Xu you want to withdraw. The requested amount will be converted and transferred to your linked account.</p>
-            
-            <div className="space-y-4 mb-8">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Amount (Xu)</label>
-                <div className="relative">
-                  <input 
-                    type="number" 
-                    min="1"
-                    max={wallet?.balance || 0}
-                    className="w-full rounded-xl border-slate-200 p-3 pl-4 pr-12 text-lg font-bold text-slate-900 focus:ring-primary focus:border-primary" 
-                    placeholder="500"
-                    value={withdrawAmount || ''}
-                    onChange={e => setWithdrawAmount(Number(e.target.value))}
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">Xu</span>
-                </div>
-                <p className="text-[10px] font-medium text-slate-400 mt-1">Available to withdraw: {wallet?.balance?.toLocaleString() || '0'} Xu</p>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setIsWithdrawModalOpen(false)} className="rounded-full font-bold">Cancel</Button>
-              <Button 
-                onClick={confirmWithdraw} 
-                disabled={withdrawAmount <= 0 || withdrawAmount > (wallet?.balance || 0)}
-                className="rounded-full shadow-lg shadow-brand-accent/20 font-black bg-brand-accent hover:bg-brand-accent/90"
-              >
-                Request Withdrawal
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
