@@ -11,10 +11,10 @@ interface WithdrawModalProps {
 
 export const WithdrawModal = ({ maxBalance }: WithdrawModalProps) => {
   const [open, setOpen] = useState(false);
-  const [amount, setAmount] = useState<number>(500);
+  const [amountStr, setAmountStr] = useState<string>('500');
 
   const confirmWithdraw = () => {
-    const result = withdrawSchema.safeParse({ amount });
+    const result = withdrawSchema.safeParse({ amount: amountStr });
     if (!result.success) {
       toast.error('Invalid withdraw amount. Please enter a valid number (1 - 100,000).');
       return;
@@ -28,11 +28,16 @@ export const WithdrawModal = ({ maxBalance }: WithdrawModalProps) => {
     // Mocking the withdrawal since there is no API endpoint for it yet
     toast.info('Demo mode: no real transaction. Withdrawal API not yet implemented.');
     setOpen(false);
-    setAmount(500);
+    setAmountStr('500');
   };
 
+  const isInvalid = amountStr.trim() === '' || isNaN(Number(amountStr)) || Number(amountStr) <= 0 || Number(amountStr) > maxBalance;
+
   return (
-    <Dialog.Root open={open} onOpenChange={setOpen}>
+    <Dialog.Root open={open} onOpenChange={(o) => {
+      setOpen(o);
+      if (!o) setAmountStr('500');
+    }}>
       <Dialog.Trigger asChild>
         <Button className="rounded-full px-6 bg-brand-accent hover:bg-brand-accent/90 shadow-lg shadow-brand-accent/20 font-bold">
           Withdraw Earnings
@@ -50,7 +55,7 @@ export const WithdrawModal = ({ maxBalance }: WithdrawModalProps) => {
               </Dialog.Description>
             </div>
             <Dialog.Close asChild>
-              <button className="rounded-full p-1.5 hover:bg-slate-100 transition-colors">
+              <button aria-label="Close dialog" className="rounded-full p-1.5 hover:bg-slate-100 transition-colors">
                 <X className="size-5 text-slate-500" />
               </button>
             </Dialog.Close>
@@ -61,13 +66,11 @@ export const WithdrawModal = ({ maxBalance }: WithdrawModalProps) => {
               <label className="block text-xs font-bold text-slate-700 mb-1">Amount (Xu)</label>
               <div className="relative">
                 <input 
-                  type="number" 
-                  min="1"
-                  max={maxBalance}
+                  type="text" 
                   className="w-full rounded-xl border-slate-200 p-3 pl-4 pr-12 text-lg font-bold text-slate-900 focus:ring-primary focus:border-primary" 
                   placeholder="500"
-                  value={amount || ''}
-                  onChange={e => setAmount(Number(e.target.value))}
+                  value={amountStr}
+                  onChange={e => setAmountStr(e.target.value)}
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">Xu</span>
               </div>
@@ -81,7 +84,7 @@ export const WithdrawModal = ({ maxBalance }: WithdrawModalProps) => {
             </Dialog.Close>
             <Button 
               onClick={confirmWithdraw} 
-              disabled={amount <= 0 || amount > maxBalance}
+              disabled={isInvalid}
               className="rounded-full shadow-lg shadow-brand-accent/20 font-black bg-brand-accent hover:bg-brand-accent/90"
             >
               Request Withdrawal

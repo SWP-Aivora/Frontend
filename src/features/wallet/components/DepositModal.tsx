@@ -9,7 +9,7 @@ import { depositSchema } from '../schema';
 
 export const DepositModal = () => {
   const [open, setOpen] = useState(false);
-  const [amount, setAmount] = useState<number>(1000);
+  const [amountStr, setAmountStr] = useState<string>('1000');
   const queryClient = useQueryClient();
 
   const depositMutation = useMutation({
@@ -19,14 +19,16 @@ export const DepositModal = () => {
       queryClient.invalidateQueries({ queryKey: ['payments-history'] });
       toast.success('Successfully deposited funds!');
       setOpen(false);
+      setAmountStr('1000');
     },
-    onError: () => {
-      toast.error('Failed to deposit funds. Please try again.');
+    onError: (error: Error) => {
+      console.error('Deposit error:', error);
+      toast.error(error?.message || 'Failed to deposit funds. Please try again.');
     },
   });
 
   const confirmDeposit = () => {
-    const result = depositSchema.safeParse({ amount });
+    const result = depositSchema.safeParse({ amount: amountStr });
     if (!result.success) {
       toast.error('Invalid deposit amount. Please enter a valid number (1 - 100,000).');
       return;
@@ -34,8 +36,13 @@ export const DepositModal = () => {
     depositMutation.mutate(result.data.amount);
   };
 
+  const isInvalid = amountStr.trim() === '' || isNaN(Number(amountStr)) || Number(amountStr) <= 0;
+
   return (
-    <Dialog.Root open={open} onOpenChange={setOpen}>
+    <Dialog.Root open={open} onOpenChange={(o) => {
+      setOpen(o);
+      if (!o) setAmountStr('1000');
+    }}>
       <Dialog.Trigger asChild>
         <Button disabled={depositMutation.isPending} className="rounded-full px-6 shadow-lg shadow-primary/20 flex items-center gap-2">
           <Plus className="size-4" />
@@ -54,7 +61,7 @@ export const DepositModal = () => {
               </Dialog.Description>
             </div>
             <Dialog.Close asChild>
-              <button className="rounded-full p-1.5 hover:bg-slate-100 transition-colors">
+              <button aria-label="Close dialog" className="rounded-full p-1.5 hover:bg-slate-100 transition-colors">
                 <X className="size-5 text-slate-500" />
               </button>
             </Dialog.Close>
@@ -65,13 +72,11 @@ export const DepositModal = () => {
               <label className="block text-xs font-bold text-slate-700 mb-1">Amount (Xu)</label>
               <div className="relative">
                 <input 
-                  type="number" 
-                  min="1"
-                  max="100000"
+                  type="text" 
                   className="w-full rounded-xl border-slate-200 p-3 pl-4 pr-12 text-lg font-bold text-slate-900 focus:ring-primary focus:border-primary" 
                   placeholder="1000"
-                  value={amount || ''}
-                  onChange={e => setAmount(Number(e.target.value))}
+                  value={amountStr}
+                  onChange={e => setAmountStr(e.target.value)}
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">Xu</span>
               </div>
@@ -84,7 +89,7 @@ export const DepositModal = () => {
             </Dialog.Close>
             <Button 
               onClick={confirmDeposit} 
-              disabled={depositMutation.isPending || amount <= 0}
+              disabled={depositMutation.isPending || isInvalid}
               className="rounded-full shadow-lg shadow-primary/20 font-black"
             >
               {depositMutation.isPending ? 'Processing...' : 'Deposit'}

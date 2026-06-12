@@ -36,11 +36,10 @@ export const WalletPage = () => {
 
   const wallet = walletResponse?.data;
   const transactions = useMemo(() => historyResponse?.data || [], [historyResponse?.data]);
+  const validTx = useMemo(() => transactions.filter(t => typeof t.amount === 'number' && !isNaN(t.amount)), [transactions]);
   const isLoading = isLoadingWallet || isLoadingHistory;
 
   const totals = useMemo(() => {
-    const validTx = transactions.filter(t => typeof t.amount === 'number' && !isNaN(t.amount));
-
     const spent = validTx
       .filter(t => t.type === TransactionType.PAYMENT && t.status === TransactionStatus.COMPLETED)
       .reduce((acc, t) => acc + t.amount, 0);
@@ -54,7 +53,7 @@ export const WalletPage = () => {
       .reduce((acc, t) => acc + t.amount, 0);
 
     return { spent, earned, inEscrow };
-  }, [transactions]);
+  }, [validTx]);
 
   const getTransactionTypeInfo = (type: TransactionType) => {
     switch (type) {
@@ -261,9 +260,12 @@ export const WalletPage = () => {
                   </tr>
                </thead>
                <tbody className="divide-y divide-slate-50">
-                  {transactions.map((t) => {
+                  {validTx.map((t) => {
                     const typeInfo = getTransactionTypeInfo(t.type);
                     const statusInfo = getStatusInfo(t.status);
+                    const date = new Date(t.createdAt);
+                    const dateString = isNaN(date.getTime()) ? 'N/A' : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    
                     return (
                       <tr key={t.id} className="group hover:bg-slate-50/50 transition-colors">
                          <td className="px-8 py-6">
@@ -279,13 +281,13 @@ export const WalletPage = () => {
                                   <p className="text-sm font-black text-slate-900 leading-tight">
                                      {t.description || typeInfo.label}
                                   </p>
-                                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mt-1">ID: {t.id.toUpperCase()}</p>
+                                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mt-1">ID: {t.id?.toUpperCase() ?? 'N/A'}</p>
                                </div>
                             </div>
                          </td>
                          <td className="px-8 py-6">
                             <span className="text-xs font-bold text-slate-500">
-                               {new Date(t.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                               {dateString}
                             </span>
                          </td>
                          <td className="px-8 py-6">
