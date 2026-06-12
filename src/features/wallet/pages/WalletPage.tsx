@@ -17,6 +17,8 @@ import { Role } from '@/shared/types/enums';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { walletService } from '../services';
+import { TransactionType, TransactionStatus } from '../types';
+import { depositSchema, withdrawSchema } from '../schema';
 
 export const WalletPage = () => {
   const { user } = useAuthStore();
@@ -55,17 +57,16 @@ export const WalletPage = () => {
   const isLoading = isLoadingWallet || isLoadingHistory;
 
   const totals = useMemo(() => {
-    // 0: Deposit, 1: Withdrawal, 2: Payment, 3: Refund
     const spent = transactions
-      .filter(t => t.type === 2 && t.status === 1)
+      .filter(t => t.type === TransactionType.PAYMENT && t.status === TransactionStatus.COMPLETED)
       .reduce((acc, t) => acc + t.amount, 0);
     
     const earned = transactions
-      .filter(t => (t.type === 0 || t.type === 3) && t.status === 1)
+      .filter(t => (t.type === TransactionType.DEPOSIT || t.type === TransactionType.REFUND) && t.status === TransactionStatus.COMPLETED)
       .reduce((acc, t) => acc + t.amount, 0);
 
     const inEscrow = transactions
-      .filter(t => t.status === 0)
+      .filter(t => t.status === TransactionStatus.PENDING)
       .reduce((acc, t) => acc + t.amount, 0);
 
     return { spent, earned, inEscrow };
@@ -76,9 +77,12 @@ export const WalletPage = () => {
   };
 
   const confirmDeposit = () => {
-    if (depositAmount > 0) {
-      depositMutation.mutate(depositAmount);
+    const result = depositSchema.safeParse({ amount: depositAmount });
+    if (!result.success) {
+      toast.error('Invalid deposit amount. Please enter a valid number.');
+      return;
     }
+    depositMutation.mutate(result.data.amount);
   };
 
   const handleWithdraw = () => {
@@ -86,17 +90,21 @@ export const WalletPage = () => {
   };
 
   const confirmWithdraw = () => {
-    if (withdrawAmount > 0) {
-      if (withdrawAmount > (wallet?.balance || 0)) {
-        toast.error('Insufficient balance to withdraw this amount.');
-        return;
-      }
-      
-      // Mocking the withdrawal since there is no API endpoint for it yet
-      toast.success(`Successfully submitted withdrawal request for ${withdrawAmount} Xu!`);
-      setIsWithdrawModalOpen(false);
-      setWithdrawAmount(500);
+    const result = withdrawSchema.safeParse({ amount: withdrawAmount });
+    if (!result.success) {
+      toast.error('Invalid withdraw amount. Please enter a valid number.');
+      return;
     }
+
+    if (result.data.amount > (wallet?.balance || 0)) {
+      toast.error('Insufficient balance to withdraw this amount.');
+      return;
+    }
+
+    // Mocking the withdrawal since there is no API endpoint for it yet
+    toast.info('Demo mode: no real transaction. Withdrawal API not yet implemented.');
+    setIsWithdrawModalOpen(false);
+    setWithdrawAmount(500);
   };
 
   const getTransactionTypeInfo = (type: number) => {
@@ -354,10 +362,10 @@ export const WalletPage = () => {
 
       {/* Deposit Modal */}
       {isDepositModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="deposit-modal-title">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsDepositModalOpen(false)} />
           <div className="bg-white rounded-3xl p-8 w-[90%] max-w-sm relative z-10 shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-2xl font-black text-slate-900 mb-2">Deposit Coins</h3>
+            <h3 id="deposit-modal-title" className="text-2xl font-black text-slate-900 mb-2">Deposit Coins</h3>
             <p className="text-sm text-slate-500 mb-6">Enter the amount of Xu you want to add to your wallet.</p>
             
             <div className="space-y-4 mb-8">
@@ -392,10 +400,10 @@ export const WalletPage = () => {
       )}
       {/* Withdraw Modal */}
       {isWithdrawModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="withdraw-modal-title">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsWithdrawModalOpen(false)} />
           <div className="bg-white rounded-3xl p-8 w-[90%] max-w-sm relative z-10 shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-2xl font-black text-slate-900 mb-2">Withdraw Earnings</h3>
+            <h3 id="withdraw-modal-title" className="text-2xl font-black text-slate-900 mb-2">Withdraw Earnings</h3>
             <p className="text-sm text-slate-500 mb-6">Enter the amount of Xu you want to withdraw. The requested amount will be converted and transferred to your linked account.</p>
             
             <div className="space-y-4 mb-8">
