@@ -1,4 +1,4 @@
-import type { Role } from '@/shared/types/enums';
+import type { Role, MilestoneStatus } from '@/shared/types/enums';
 import type { ProjectStatus } from '@/shared/types/enums';
 
 export interface UserSummary {
@@ -17,7 +17,7 @@ export interface Milestone {
   dueDays: number | null;
   acceptanceCriteria: string | null;
   orderIndex: number;
-  status: number; // 0: Pending, 1: Funded, 2: Under Review, 3: Approved/Done
+  status: MilestoneStatus;
   projectId: string;
   createdAt: string;
   updatedAt: string;

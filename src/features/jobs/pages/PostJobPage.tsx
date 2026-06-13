@@ -147,8 +147,13 @@ export const PostJobPage = () => {
     refineMutation.mutate(text);
   };
 
-  const debouncedPatch = useDebouncedCallback((data: PatchAiJobSuggestionRequest) => {
-    patchMutation.mutate(data);
+  const pendingPatchRef = useRef<PatchAiJobSuggestionRequest>({});
+
+  const debouncedPatch = useDebouncedCallback(() => {
+    if (Object.keys(pendingPatchRef.current).length > 0) {
+      patchMutation.mutate(pendingPatchRef.current);
+      pendingPatchRef.current = {}; // Reset after sending
+    }
   }, 800);
 
   const handleManualUpdate = (data: Partial<AiJobSuggestion>) => {
@@ -156,25 +161,31 @@ export const PostJobPage = () => {
       // Optimistic local update
       setSuggestion({ ...suggestion, ...data });
       
-      // Build clean patch request
-      const patchData: PatchAiJobSuggestionRequest = {};
-      if (data.suggestedTitle !== undefined) patchData.suggestedTitle = data.suggestedTitle;
-      if (data.suggestedDescription !== undefined) patchData.suggestedDescription = data.suggestedDescription;
-      if (data.businessDomain !== undefined) patchData.businessDomain = data.businessDomain;
-      if (data.expectedOutcome !== undefined) patchData.expectedOutcome = data.expectedOutcome;
-      if (data.budgetType !== undefined) patchData.budgetType = data.budgetType;
-      if (data.suggestedBudgetMin !== undefined) patchData.suggestedBudgetMin = data.suggestedBudgetMin;
-      if (data.suggestedBudgetMax !== undefined) patchData.suggestedBudgetMax = data.suggestedBudgetMax;
-      if (data.currency !== undefined) patchData.currency = data.currency;
-      if (data.suggestedTimelineDays !== undefined) patchData.suggestedTimelineDays = data.suggestedTimelineDays;
-      if (data.experienceLevel !== undefined) patchData.experienceLevel = data.experienceLevel;
-      if (data.suggestedSkills !== undefined) patchData.suggestedSkills = data.suggestedSkills;
-      if (data.suggestedMilestones !== undefined) patchData.suggestedMilestones = data.suggestedMilestones;
+      // Accumulate patch request
+      if (data.suggestedTitle !== undefined) pendingPatchRef.current.suggestedTitle = data.suggestedTitle;
+      if (data.suggestedDescription !== undefined) pendingPatchRef.current.suggestedDescription = data.suggestedDescription;
+      if (data.businessDomain !== undefined) pendingPatchRef.current.businessDomain = data.businessDomain;
+      if (data.expectedOutcome !== undefined) pendingPatchRef.current.expectedOutcome = data.expectedOutcome;
+      if (data.budgetType !== undefined) pendingPatchRef.current.budgetType = data.budgetType;
+      if (data.suggestedBudgetMin !== undefined) pendingPatchRef.current.suggestedBudgetMin = data.suggestedBudgetMin;
+      if (data.suggestedBudgetMax !== undefined) pendingPatchRef.current.suggestedBudgetMax = data.suggestedBudgetMax;
+      if (data.currency !== undefined) pendingPatchRef.current.currency = data.currency;
+      if (data.suggestedTimelineDays !== undefined) pendingPatchRef.current.suggestedTimelineDays = data.suggestedTimelineDays;
+      if (data.experienceLevel !== undefined) pendingPatchRef.current.experienceLevel = data.experienceLevel;
+      if (data.suggestedSkills !== undefined) pendingPatchRef.current.suggestedSkills = data.suggestedSkills;
+      if (data.suggestedMilestones !== undefined) pendingPatchRef.current.suggestedMilestones = data.suggestedMilestones;
 
-      if (Object.keys(patchData).length > 0) {
-        debouncedPatch(patchData);
-      }
+      debouncedPatch();
     }
+  };
+
+  const handleSaveDraft = () => {
+    // If there are pending patches, flush them immediately
+    if (Object.keys(pendingPatchRef.current).length > 0) {
+      patchMutation.mutate(pendingPatchRef.current);
+      pendingPatchRef.current = {};
+    }
+    toast.success('Draft saved locally');
   };
 
   const handleAccept = () => {
@@ -274,6 +285,7 @@ export const PostJobPage = () => {
               suggestion={suggestion}
               onUpdate={handleManualUpdate}
               onAccept={handleAccept}
+              onSaveDraft={handleSaveDraft}
               isAccepting={acceptMutation.isPending}
             />
           </div>

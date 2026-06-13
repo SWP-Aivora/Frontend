@@ -8,7 +8,7 @@ import {
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
 import { cn } from '@/lib/utils';
-import type { AiJobSuggestion } from '../types';
+import type { AiJobSuggestion, SuggestedMilestone } from '../types';
 import { BudgetType } from '@/shared/types/enums';
 
 const jobDraftSchema = z.object({
@@ -26,6 +26,7 @@ interface JobDraftFormProps {
   suggestion: AiJobSuggestion;
   onUpdate: (data: Partial<AiJobSuggestion>) => void;
   onAccept: () => void;
+  onSaveDraft: () => void;
   isAccepting: boolean;
 }
 
@@ -33,17 +34,18 @@ export const JobDraftForm = ({
   suggestion, 
   onUpdate, 
   onAccept,
+  onSaveDraft,
   isAccepting 
 }: JobDraftFormProps) => {
-  const { register, handleSubmit, formState: { errors } } = useForm<JobDraftFormValues>({
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<JobDraftFormValues>({
     resolver: zodResolver(jobDraftSchema),
     values: {
       title: suggestion.suggestedTitle,
       description: suggestion.suggestedDescription,
       budgetType: suggestion.budgetType,
-      budgetMin: suggestion.suggestedBudgetMin || 0,
-      budgetMax: suggestion.suggestedBudgetMax || 0,
-      timelineDays: suggestion.suggestedTimelineDays || 0,
+      budgetMin: suggestion.suggestedBudgetMin ?? ('' as unknown as number),
+      budgetMax: suggestion.suggestedBudgetMax ?? ('' as unknown as number),
+      timelineDays: suggestion.suggestedTimelineDays ?? ('' as unknown as number),
     }
   });
 
@@ -61,6 +63,17 @@ export const JobDraftForm = ({
   const handleRemoveMilestone = (index: number) => {
     const newMilestones = suggestion.suggestedMilestones.filter((_, i) => i !== index);
     onUpdate({ suggestedMilestones: newMilestones });
+  };
+
+  const handleAddMilestone = () => {
+    const newMilestone: SuggestedMilestone = {
+      title: 'New Milestone',
+      description: '',
+      amount: 0,
+      dueDays: 0,
+      orderIndex: suggestion.suggestedMilestones.length
+    };
+    onUpdate({ suggestedMilestones: [...suggestion.suggestedMilestones, newMilestone] });
   };
 
   return (
@@ -126,18 +139,21 @@ export const JobDraftForm = ({
               <div className="space-y-4">
                  <div className="flex gap-4">
                     <div className="flex-1 space-y-2">
-                       <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Min ({suggestion.currency})</label>
+                       <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Min ({suggestion.currency || 'Xu'})</label>
                        <Input type="number" {...register('budgetMin', { valueAsNumber: true })} className="h-11 rounded-xl bg-slate-50" />
                     </div>
                     <div className="flex-1 space-y-2">
-                       <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Max ({suggestion.currency})</label>
+                       <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Max ({suggestion.currency || 'Xu'})</label>
                        <Input type="number" {...register('budgetMax', { valueAsNumber: true })} className="h-11 rounded-xl bg-slate-50" />
                     </div>
                  </div>
                  <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100">
                     <button 
                       type="button"
-                      onClick={() => onUpdate({ budgetType: BudgetType.FIXED })}
+                      onClick={() => {
+                        setValue('budgetType', BudgetType.FIXED);
+                        onUpdate({ budgetType: BudgetType.FIXED });
+                      }}
                       className={cn(
                         "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
                         suggestion.budgetType === BudgetType.FIXED ? "bg-white shadow-sm text-primary" : "text-slate-500 hover:text-slate-700"
@@ -145,7 +161,10 @@ export const JobDraftForm = ({
                     >Fixed Price</button>
                     <button 
                       type="button"
-                      onClick={() => onUpdate({ budgetType: BudgetType.HOURLY })}
+                      onClick={() => {
+                        setValue('budgetType', BudgetType.HOURLY);
+                        onUpdate({ budgetType: BudgetType.HOURLY });
+                      }}
                       className={cn(
                         "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
                         suggestion.budgetType === BudgetType.HOURLY ? "bg-white shadow-sm text-primary" : "text-slate-500 hover:text-slate-700"
@@ -174,7 +193,7 @@ export const JobDraftForm = ({
                 <ListChecks className="size-4" />
                 <h4 className="text-xs font-black uppercase tracking-widest text-left">Suggested Milestones</h4>
               </div>
-              <Button type="button" variant="ghost" size="sm" className="h-8 rounded-lg text-primary text-xs font-bold gap-1">
+              <Button type="button" onClick={handleAddMilestone} variant="ghost" size="sm" className="h-8 rounded-lg text-primary text-xs font-bold gap-1">
                  <Plus className="size-3" /> Add Milestone
               </Button>
             </div>
@@ -219,7 +238,7 @@ export const JobDraftForm = ({
             <Button 
               variant="outline" 
               className="flex-1 sm:flex-none rounded-full font-bold border-slate-200"
-              onClick={() => onUpdate({})} // Just trigger a save if dirty
+              onClick={onSaveDraft}
             >
               Save Draft
             </Button>

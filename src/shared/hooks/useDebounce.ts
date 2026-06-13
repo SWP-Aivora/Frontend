@@ -1,23 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
-
-/**
- * A hook to debounce a value
- */
-export function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
-}
+import { useEffect, useRef, useCallback } from 'react';
 
 /**
  * A hook to debounce a callback function
@@ -27,6 +8,15 @@ export function useDebouncedCallback<T extends (...args: never[]) => unknown>(
   delay: number
 ): (...args: Parameters<T>) => void {
   const timer = useRef<ReturnType<typeof setTimeout>>();
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (timer.current) {
+        clearTimeout(timer.current);
+      }
+    };
+  }, []);
 
   const debouncedCallback = useCallback(
     (...args: Parameters<T>) => {

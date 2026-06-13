@@ -68,7 +68,6 @@ export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
   createdAt: string;
-  status?: 'sending' | 'sent' | 'failed';
 }
 
 export interface SuggestedMilestone {

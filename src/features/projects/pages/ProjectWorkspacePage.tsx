@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { useAuthStore } from '@/features/auth/store';
-import { Role, ProjectStatus } from '@/shared/types/enums';
+import { Role, ProjectStatus, MilestoneStatus } from '@/shared/types/enums';
 import { cn } from '@/lib/utils';
 
 export const ProjectWorkspacePage = () => {
@@ -240,12 +240,12 @@ export const ProjectWorkspacePage = () => {
 
               {/* Action Buttons based on status and role */}
               <div className="pt-8 border-t border-slate-100 space-y-3">
-                 {selectedMilestone.status === 0 && user?.role === Role.CLIENT && (
+                 {selectedMilestone.status === MilestoneStatus.PENDING && user?.role === Role.CLIENT && (
                    <Button className="w-full h-14 rounded-full font-black text-base shadow-xl shadow-primary/20">
                       Fund Milestone
                    </Button>
                  )}
-                 {selectedMilestone.status === 1 && user?.role === Role.EXPERT && (
+                 {selectedMilestone.status === MilestoneStatus.FUNDED && user?.role === Role.EXPERT && (
                    <Button 
                      onClick={() => setIsSubmitModalOpen(true)}
                      className="w-full h-14 rounded-full font-black text-base bg-brand-accent hover:bg-brand-accent/90 shadow-xl shadow-brand-accent/20 flex items-center justify-center gap-2"
@@ -254,7 +254,7 @@ export const ProjectWorkspacePage = () => {
                       Submit Deliverables
                    </Button>
                  )}
-                 {selectedMilestone.status === 2 && user?.role === Role.CLIENT && (
+                 {selectedMilestone.status === MilestoneStatus.UNDER_REVIEW && user?.role === Role.CLIENT && (
                    <div className="flex gap-3">
                       <Button 
                         onClick={() => setIsRevisionModalOpen(true)}
@@ -272,7 +272,7 @@ export const ProjectWorkspacePage = () => {
                       </Button>
                    </div>
                  )}
-                 {selectedMilestone.status === 3 && (
+                 {selectedMilestone.status === MilestoneStatus.COMPLETED && (
                    <div className="bg-emerald-50 text-emerald-700 p-4 rounded-xl border border-emerald-100 flex items-center gap-3">
                       <CheckCircle2 className="size-6 shrink-0" />
                       <div>

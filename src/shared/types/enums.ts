@@ -45,12 +45,24 @@ export const PaymentStatus = {
 export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
 
 /**
+ * Milestone Status
+ */
+export const MilestoneStatus = {
+  PENDING: 0,
+  FUNDED: 1,
+  UNDER_REVIEW: 2,
+  COMPLETED: 3,
+} as const;
+export type MilestoneStatus = (typeof MilestoneStatus)[keyof typeof MilestoneStatus];
+
+/**
  * Skill Level (from API)
  */
 export const SkillLevel = {
   BEGINNER: 0,
   INTERMEDIATE: 1,
-  EXPERT: 2,
+  EXPERIENCED: 2,
+  EXPERT: 3,
 } as const;
 export type SkillLevel = (typeof SkillLevel)[keyof typeof SkillLevel];
 
