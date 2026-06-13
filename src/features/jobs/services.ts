@@ -1,5 +1,5 @@
 import apiClient from '@/lib/axios';
-import type { Job, Proposal, AiJobSuggestion, ExpertMatch } from './types';
+import type { Job, Proposal, AiJobSuggestion, ExpertMatch, PatchAiJobSuggestionRequest } from './types';
 import type { CreateProposalFormValues } from './schema';
 import type { BaseResponse } from '@/shared/types/api';
 
@@ -51,7 +51,7 @@ export const jobService = {
 
   // AI Job Assistant
   initAiJobAssistant: async (prompt: string): Promise<BaseResponse<AiJobSuggestion>> => {
-    const response = await apiClient.post<BaseResponse<AiJobSuggestion>>('/ai/job-assistant', { prompt });
+    const response = await apiClient.post<BaseResponse<AiJobSuggestion>>('/ai/job-assistant', { rawInput: prompt });
     return response.data;
   },
 
@@ -61,11 +61,11 @@ export const jobService = {
   },
 
   refineAiJobSuggestion: async (id: string, prompt: string): Promise<BaseResponse<AiJobSuggestion>> => {
-    const response = await apiClient.post<BaseResponse<AiJobSuggestion>>(`/ai/job-assistant/${id}/refine`, { prompt });
+    const response = await apiClient.post<BaseResponse<AiJobSuggestion>>(`/ai/job-assistant/${id}/refine`, { message: prompt });
     return response.data;
   },
 
-  patchAiJobSuggestion: async (id: string, data: Partial<AiJobSuggestion>): Promise<BaseResponse<AiJobSuggestion>> => {
+  patchAiJobSuggestion: async (id: string, data: PatchAiJobSuggestionRequest): Promise<BaseResponse<AiJobSuggestion>> => {
     const response = await apiClient.patch<BaseResponse<AiJobSuggestion>>(`/ai/job-assistant/${id}`, data);
     return response.data;
   },
@@ -92,4 +92,3 @@ export const jobService = {
     return response.data;
   },
 };
-

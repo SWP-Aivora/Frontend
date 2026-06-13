@@ -1,11 +1,11 @@
-import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { Sparkles, Rocket } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { Sparkles, Rocket, Loader2 } from 'lucide-react';
 import { AiChatPanel } from '../components/AiChatPanel';
 import { JobDraftForm } from '../components/JobDraftForm';
 import { ExpertMatchInsights } from '../components/ExpertMatchInsights';
 import { jobService } from '../services';
-import type { ChatMessage, AiJobSuggestion } from '../types';
+import type { ChatMessage, AiJobSuggestion, PatchAiJobSuggestionRequest } from '../types';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -24,6 +24,25 @@ export const PostJobPage = () => {
   const [suggestion, setSuggestion] = useState<AiJobSuggestion | null>(null);
   const [createdJobId, setJobId] = useState<string | null>(null);
 
+  // --- Blocking navigation when busy ---
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (initMutation.isPending || refineMutation.isPending || acceptMutation.isPending) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
+  // --- Queries ---
+  const { data: recommendationsResponse, isLoading: isMatching } = useQuery({
+    queryKey: ['jobRecommendations', createdJobId],
+    queryFn: () => jobService.getRecommendations(createdJobId!),
+    enabled: !!createdJobId && step === 'MATCHING',
+  });
+
   // --- Mutations ---
 
   const initMutation = useMutation({
@@ -41,13 +60,17 @@ export const PostJobPage = () => {
         }
       ]);
     },
-    onError: (error: Error) => {
-      toast.error(error?.message || 'Failed to start AI assistant');
+    onError: (error: unknown) => {
+      console.error('AI Init Error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to start AI assistant');
     }
   });
 
   const refineMutation = useMutation({
-    mutationFn: (prompt: string) => jobService.refineAiJobSuggestion(suggestion!.id, prompt),
+    mutationFn: (prompt: string) => {
+      if (!suggestion?.id) throw new Error('No active session');
+      return jobService.refineAiJobSuggestion(suggestion.id, prompt);
+    },
     onSuccess: (response) => {
       setSuggestion(response.data);
       setMessages(prev => [
@@ -59,22 +82,40 @@ export const PostJobPage = () => {
           createdAt: new Date().toISOString()
         }
       ]);
+    },
+    onError: (error: unknown) => {
+      console.error('AI Refine Error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to update draft');
     }
   });
 
   const patchMutation = useMutation({
-    mutationFn: (data: Partial<AiJobSuggestion>) => jobService.patchAiJobSuggestion(suggestion!.id, data),
+    mutationFn: (data: PatchAiJobSuggestionRequest) => {
+      if (!suggestion?.id) throw new Error('No active session');
+      return jobService.patchAiJobSuggestion(suggestion.id, data);
+    },
     onSuccess: (response) => {
       setSuggestion(response.data);
+    },
+    onError: (error: unknown) => {
+      console.error('AI Patch Error:', error);
+      toast.error('Failed to sync changes with AI');
     }
   });
 
   const acceptMutation = useMutation({
-    mutationFn: () => jobService.acceptAiJobSuggestion(suggestion!.id),
+    mutationFn: () => {
+      if (!suggestion?.id) throw new Error('No active session');
+      return jobService.acceptAiJobSuggestion(suggestion.id);
+    },
     onSuccess: (response) => {
       setJobId(response.data.jobId);
       setStep('MATCHING');
       toast.success('Project published successfully!');
+    },
+    onError: (error: unknown) => {
+      console.error('AI Accept Error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to publish project');
     }
   });
 
@@ -91,10 +132,24 @@ export const PostJobPage = () => {
   };
 
   const handleManualUpdate = (data: Partial<AiJobSuggestion>) => {
-    // Optimistic update
     if (suggestion) {
       setSuggestion({ ...suggestion, ...data });
-      patchMutation.mutate(data);
+      // Filter only allowed patchable fields
+      const patchData: PatchAiJobSuggestionRequest = {
+        suggestedTitle: data.suggestedTitle,
+        suggestedDescription: data.suggestedDescription,
+        businessDomain: data.businessDomain,
+        expectedOutcome: data.expectedOutcome,
+        budgetType: data.budgetType,
+        suggestedBudgetMin: data.suggestedBudgetMin,
+        suggestedBudgetMax: data.suggestedBudgetMax,
+        currency: data.currency,
+        suggestedTimelineDays: data.suggestedTimelineDays,
+        experienceLevel: data.experienceLevel,
+        suggestedSkills: data.suggestedSkills,
+        suggestedMilestones: data.suggestedMilestones,
+      };
+      patchMutation.mutate(patchData);
     }
   };
 
@@ -107,14 +162,16 @@ export const PostJobPage = () => {
   if (step === 'MATCHING') {
     return (
       <div className="max-w-6xl mx-auto px-4">
-        <ExpertMatchInsights 
-          jobId={createdJobId || ''}
-          experts={[
-            { id: '1', name: 'An Nguyen', title: 'AI Chatbot Expert', rating: 4.8, matchScore: 98, skills: ['Chatbot', 'RAG', 'Python'] },
-            { id: '2', name: 'Sarah Chen', title: 'ML Engineer', rating: 5.0, matchScore: 94, skills: ['Vision', 'TensorFlow', 'PyTorch'] },
-            { id: '3', name: 'Michael Ross', title: 'LLM Specialist', rating: 4.9, matchScore: 92, skills: ['Prompting', 'LangChain', 'OpenAI'] },
-          ]} 
-        />
+        {isMatching ? (
+          <div className="py-20 flex flex-col items-center justify-center space-y-4">
+            <Loader2 className="size-12 text-primary animate-spin" />
+            <p className="text-slate-500 font-bold animate-pulse uppercase tracking-widest text-xs">Finding best matches...</p>
+          </div>
+        ) : (
+          <ExpertMatchInsights 
+            experts={recommendationsResponse?.data || []} 
+          />
+        )}
       </div>
     );
   }
@@ -128,7 +185,7 @@ export const PostJobPage = () => {
               <Sparkles className="size-5 text-primary" />
            </div>
            <div>
-              <h1 className="text-lg font-black text-slate-900 leading-none">AI Project Architect</h1>
+              <h1 className="text-lg font-black text-slate-900 leading-none text-left">AI Project Architect</h1>
               <p className="text-xs font-medium text-slate-500 mt-1">Transform your ideas into high-quality technical requirements.</p>
            </div>
         </div>
@@ -137,12 +194,11 @@ export const PostJobPage = () => {
            <div className="flex items-center gap-2">
               {[1, 2, 3].map(i => {
                 const isActive = (i === 1 && step === 'PLANNING') || (i === 2 && step === 'DRAFTING');
+                
                 return (
                   <div key={i} className={cn(
                     "size-2.5 rounded-full transition-all duration-500",
-                    isActive && i <= (step === 'PLANNING' ? 1 : 2)
-                      ? "w-8 bg-primary shadow-sm" 
-                      : "bg-slate-200"
+                    isActive ? "w-8 bg-primary shadow-sm" : "bg-slate-200"
                   )} />
                 );
               })}

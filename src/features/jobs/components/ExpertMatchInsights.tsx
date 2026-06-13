@@ -1,23 +1,33 @@
-import { Star, ShieldCheck, Zap, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { Star, ShieldCheck, Zap, ChevronRight, CheckCircle2, Search } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-
-interface ExpertMatch {
-  id: string;
-  name: string;
-  title: string;
-  rating: number;
-  matchScore: number;
-  skills: string[];
-}
+import type { ExpertMatch } from '../types';
 
 interface ExpertMatchInsightsProps {
-  jobId?: string;
   experts: ExpertMatch[];
 }
 
 export const ExpertMatchInsights = ({ experts }: ExpertMatchInsightsProps) => {
+  if (experts.length === 0) {
+    return (
+      <div className="text-center py-20 space-y-6 animate-in fade-in duration-700">
+        <div className="size-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-slate-100 shadow-inner">
+          <Search className="size-10 text-slate-300" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Your Project is Live!</h2>
+          <p className="text-lg text-slate-500 font-medium max-w-lg mx-auto">
+            No immediate matches found yet. Don't worry, the best experts will see your post and submit proposals soon!
+          </p>
+        </div>
+        <Button asChild variant="outline" className="rounded-full px-10 h-14 border-slate-200 font-black text-slate-600 mt-8">
+          <Link to="/client/projects">Go to My Projects</Link>
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 py-10 animate-in fade-in zoom-in-95 duration-700">
       <div className="text-center space-y-4 max-w-2xl mx-auto">

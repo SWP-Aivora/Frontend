@@ -9,14 +9,15 @@ import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
 import { cn } from '@/lib/utils';
 import type { AiJobSuggestion } from '../types';
+import { BudgetType } from '@/shared/types/enums';
 
 const jobDraftSchema = z.object({
-  title: z.string().min(5, 'Title is too short'),
-  description: z.string().min(20, 'Description is too short'),
-  budgetType: z.enum(['FIXED', 'HOURLY']),
-  budgetMin: z.number().min(1),
-  budgetMax: z.number().min(1),
-  timelineDays: z.number().min(1),
+  title: z.string().min(5, 'Title must be at least 5 characters'),
+  description: z.string().min(20, 'Description must be at least 20 characters').max(5000, 'Description is too long'),
+  budgetType: z.nativeEnum(BudgetType),
+  budgetMin: z.number().min(1, 'Minimum budget must be at least 1'),
+  budgetMax: z.number().min(1, 'Maximum budget must be at least 1'),
+  timelineDays: z.number().min(1, 'Timeline must be at least 1 day'),
 });
 
 type JobDraftFormValues = z.infer<typeof jobDraftSchema>;
@@ -55,6 +56,11 @@ export const JobDraftForm = ({
       suggestedBudgetMax: data.budgetMax,
       suggestedTimelineDays: data.timelineDays,
     });
+  };
+
+  const handleRemoveMilestone = (index: number) => {
+    const newMilestones = suggestion.suggestedMilestones.filter((_, i) => i !== index);
+    onUpdate({ suggestedMilestones: newMilestones });
   };
 
   return (
@@ -120,29 +126,29 @@ export const JobDraftForm = ({
               <div className="space-y-4">
                  <div className="flex gap-4">
                     <div className="flex-1 space-y-2">
-                       <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Min (Xu)</label>
+                       <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Min ({suggestion.currency})</label>
                        <Input type="number" {...register('budgetMin', { valueAsNumber: true })} className="h-11 rounded-xl bg-slate-50" />
                     </div>
                     <div className="flex-1 space-y-2">
-                       <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Max (Xu)</label>
+                       <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Max ({suggestion.currency})</label>
                        <Input type="number" {...register('budgetMax', { valueAsNumber: true })} className="h-11 rounded-xl bg-slate-50" />
                     </div>
                  </div>
                  <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100">
                     <button 
                       type="button"
-                      onClick={() => onUpdate({ budgetType: 'FIXED' })}
+                      onClick={() => onUpdate({ budgetType: BudgetType.FIXED })}
                       className={cn(
                         "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
-                        suggestion.budgetType === 'FIXED' ? "bg-white shadow-sm text-primary" : "text-slate-500 hover:text-slate-700"
+                        suggestion.budgetType === BudgetType.FIXED ? "bg-white shadow-sm text-primary" : "text-slate-500 hover:text-slate-700"
                       )}
                     >Fixed Price</button>
                     <button 
                       type="button"
-                      onClick={() => onUpdate({ budgetType: 'HOURLY' })}
+                      onClick={() => onUpdate({ budgetType: BudgetType.HOURLY })}
                       className={cn(
                         "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
-                        suggestion.budgetType === 'HOURLY' ? "bg-white shadow-sm text-primary" : "text-slate-500 hover:text-slate-700"
+                        suggestion.budgetType === BudgetType.HOURLY ? "bg-white shadow-sm text-primary" : "text-slate-500 hover:text-slate-700"
                       )}
                     >Hourly Rate</button>
                  </div>
@@ -187,7 +193,12 @@ export const JobDraftForm = ({
                   </div>
                   <div className="flex items-center gap-4">
                      <span className="text-xs font-black text-slate-700">{ms.amount}%</span>
-                     <button type="button" className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-slate-300 hover:text-rose-500">
+                     <button 
+                       type="button" 
+                       onClick={() => handleRemoveMilestone(idx)}
+                       className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-slate-300 hover:text-rose-500"
+                       aria-label="Remove milestone"
+                     >
                         <Trash2 className="size-4" />
                      </button>
                   </div>

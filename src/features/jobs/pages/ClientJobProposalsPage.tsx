@@ -18,7 +18,7 @@ import {
 import { Button } from '@/shared/components/ui/Button';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { Role } from '@/shared/types/enums';
+import { Role, BudgetType, SkillLevel } from '@/shared/types/enums';
 
 export const ClientJobProposalsPage = () => {
   const { id } = useParams();
@@ -45,7 +45,7 @@ export const ClientJobProposalsPage = () => {
           businessDomain: 'Healthcare',
           expectedOutcome: 'A high-accuracy model for diabetic retinopathy detection.',
           categoryId: 'cv',
-          budgetType: 0,
+          budgetType: BudgetType.FIXED,
           budgetMin: 3000,
           budgetMax: 5000,
           currency: 'USD',
@@ -53,7 +53,7 @@ export const ClientJobProposalsPage = () => {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           deadline: null,
-          experienceLevel: 3,
+          experienceLevel: SkillLevel.EXPERT,
           visibility: 1,
           status: 1,
           clientId: 'me',

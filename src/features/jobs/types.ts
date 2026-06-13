@@ -1,4 +1,4 @@
-import { Role } from '@/shared/types/enums';
+import { Role, BudgetType, SkillLevel } from '@/shared/types/enums';
 
 export interface UserBasicInfo {
   id: string;
@@ -15,13 +15,13 @@ export interface Job {
   businessDomain: string | null;
   expectedOutcome: string | null;
   categoryId: string;
-  budgetType: number; // 0: Fixed, 1: Hourly
+  budgetType: BudgetType;
   budgetMin: number | null;
   budgetMax: number | null;
   currency: string | null;
   timelineDays: number | null;
   deadline: string | null;
-  experienceLevel: number | null;
+  experienceLevel: SkillLevel | null;
   visibility: number;
   status: number;
   clientId: string;
@@ -92,17 +92,32 @@ export interface AiJobSuggestion {
   expectedOutcome: string | null;
   categoryId: string | null;
   categoryName: string | null;
-  budgetType: 'FIXED' | 'HOURLY';
+  budgetType: BudgetType;
   suggestedBudgetMin: number | null;
   suggestedBudgetMax: number | null;
   currency: string;
   suggestedTimelineDays: number | null;
-  experienceLevel: string | null;
+  experienceLevel: SkillLevel | null;
   suggestedSkills: string[];
   suggestedMilestones: SuggestedMilestone[];
   status: AiJobAssistantStatus;
   createdAt: string;
 }
+
+export type PatchAiJobSuggestionRequest = Partial<Pick<AiJobSuggestion, 
+  | 'suggestedTitle' 
+  | 'suggestedDescription' 
+  | 'businessDomain' 
+  | 'expectedOutcome' 
+  | 'budgetType' 
+  | 'suggestedBudgetMin' 
+  | 'suggestedBudgetMax' 
+  | 'currency' 
+  | 'suggestedTimelineDays' 
+  | 'experienceLevel' 
+  | 'suggestedSkills' 
+  | 'suggestedMilestones'
+>>;
 
 export interface ExpertMatch {
   id: string;
@@ -112,5 +127,3 @@ export interface ExpertMatch {
   matchScore: number;
   skills: string[];
 }
-
-
