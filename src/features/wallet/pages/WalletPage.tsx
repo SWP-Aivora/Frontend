@@ -1,42 +1,53 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { 
-  Wallet as WalletIcon, 
-  ArrowUpRight, 
-  ArrowDownLeft, 
-  Search,
-  Filter,
-  ShieldCheck,
-  MoreVertical
-} from 'lucide-react';
-
+import { Search, Filter, ArrowDownLeft } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { useAuthStore } from '@/features/auth/store';
 import { Role } from '@/shared/types/enums';
-import { cn } from '@/lib/utils';
 import { walletService } from '../services';
 import { TransactionType, TransactionStatus } from '../types';
 import { DepositModal } from '../components/DepositModal';
 import { WithdrawModal } from '../components/WithdrawModal';
+import { TransactionTable } from '../components/TransactionTable';
+import { WalletBalanceCard } from '../components/WalletBalanceCard';
+import { SpendingChart } from '../components/SpendingChart';
+import { LinkedMethodsCard } from '../components/LinkedMethodsCard';
+import { EscrowInfoCard } from '../components/EscrowInfoCard';
 import { ErrorBoundary } from '@/shared/components/common';
 
 export const WalletPage = () => {
   const { user } = useAuthStore();
   const isClient = user?.role === Role.CLIENT;
 
-  const { data: walletResponse, isLoading: isLoadingWallet, isError: isWalletError, refetch: refetchWallet } = useQuery({
+  const { 
+    data: walletResponse, 
+    isLoading: isLoadingWallet, 
+    isError: isWalletError, 
+    refetch: refetchWallet 
+  } = useQuery({
     queryKey: ['wallet'],
     queryFn: () => walletService.getWallet(),
   });
 
-  const { data: historyResponse, isLoading: isLoadingHistory, isError: isHistoryError, refetch: refetchHistory } = useQuery({
+  const { 
+    data: historyResponse, 
+    isLoading: isLoadingHistory, 
+    isError: isHistoryError, 
+    refetch: refetchHistory 
+  } = useQuery({
     queryKey: ['payments-history'],
     queryFn: () => walletService.getPaymentHistory(),
   });
 
   const wallet = walletResponse?.data;
   const transactions = useMemo(() => historyResponse?.data || [], [historyResponse?.data]);
-  const validTx = useMemo(() => transactions.filter(t => typeof t.amount === 'number' && !isNaN(t.amount)), [transactions]);
+  
+  // High #2: Runtime type guard for amount to prevent NaN poison
+  const validTx = useMemo(() => 
+    transactions.filter(t => typeof t.amount === 'number' && !isNaN(t.amount)), 
+    [transactions]
+  );
+
   const isLoading = isLoadingWallet || isLoadingHistory;
 
   const totals = useMemo(() => {
@@ -55,25 +66,6 @@ export const WalletPage = () => {
     return { spent, earned, inEscrow };
   }, [validTx]);
 
-  const getTransactionTypeInfo = (type: TransactionType) => {
-    switch (type) {
-      case TransactionType.DEPOSIT: return { label: 'Deposit', icon: ArrowDownLeft, color: 'text-emerald-600', bg: 'bg-emerald-50' };
-      case TransactionType.WITHDRAWAL: return { label: 'Withdrawal', icon: ArrowUpRight, color: 'text-rose-600', bg: 'bg-rose-50' };
-      case TransactionType.PAYMENT: return { label: 'Payment', icon: ArrowUpRight, color: 'text-blue-600', bg: 'bg-blue-50' };
-      case TransactionType.REFUND: return { label: 'Refund', icon: ArrowDownLeft, color: 'text-emerald-600', bg: 'bg-emerald-50' };
-      default: return { label: 'Unknown', icon: ArrowUpRight, color: 'text-slate-600', bg: 'bg-slate-50' };
-    }
-  };
-
-  const getStatusInfo = (status: TransactionStatus) => {
-    switch (status) {
-      case TransactionStatus.PENDING: return { label: 'Pending', color: 'bg-amber-50 text-amber-600' };
-      case TransactionStatus.COMPLETED: return { label: 'Completed', color: 'bg-emerald-50 text-emerald-600' };
-      case TransactionStatus.FAILED: return { label: 'Failed', color: 'bg-rose-50 text-rose-600' };
-      default: return { label: 'Unknown', color: 'bg-slate-50 text-slate-600' };
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
@@ -83,6 +75,7 @@ export const WalletPage = () => {
     );
   }
 
+  // High #1: Error state for failed queries
   if (isWalletError || isHistoryError) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
@@ -119,115 +112,19 @@ export const WalletPage = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Main Wallet Card */}
         <div className="lg:col-span-2 space-y-8">
-           <div className={cn(
-             "relative h-64 rounded-xl p-10 text-white overflow-hidden shadow-2xl",
-             isClient ? "bg-brand-blue-dark" : "bg-indigo-900"
-           )}>
-              {/* Background Shapes */}
-              <div className="absolute top-0 right-0 size-80 bg-brand-accent/30 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
-              <div className="absolute bottom-0 left-0 size-64 bg-primary/20 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/2" />
-              
-              <div className="relative z-10 h-full flex flex-col justify-between">
-                 <div className="flex justify-between items-start">
-                    <div>
-                       <p className="text-blue-100/70 text-xs font-black uppercase tracking-widest mb-1">Available Balance (Coins)</p>
-                       <h2 className="text-5xl font-black tracking-tighter">
-                          {wallet?.balance?.toLocaleString() || '0'} Xu
-                       </h2>
-                    </div>
-                    <div className="size-14 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/10">
-                       <WalletIcon className="size-8 text-blue-200" />
-                    </div>
-                 </div>
-
-                 <div className="flex items-center gap-10">
-                    <div>
-                       <p className="text-blue-100/50 text-xs font-bold uppercase tracking-widest mb-1">In Review / Escrow</p>
-                       <p className="text-xl font-black">{totals.inEscrow.toLocaleString()} Xu</p>
-                    </div>
-                    <div>
-                       <p className="text-blue-100/50 text-xs font-bold uppercase tracking-widest mb-1">
-                          Total {isClient ? 'Spent' : 'Earned'}
-                       </p>
-                       <p className="text-xl font-black">
-                          {(isClient ? totals.spent : totals.earned).toLocaleString()} Xu
-                       </p>
-                    </div>
-                 </div>
-              </div>
-           </div>
-
-           {/* Chart / Analytics Placeholder */}
-           <div className="bg-white rounded-xl p-8 border border-slate-100 shadow-sm">
-              <div className="flex items-center justify-between mb-8">
-                 <h3 className="text-lg font-black text-slate-900">Spending Trends</h3>
-                 <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1.5">
-                       <span className="size-2 rounded-full bg-primary" />
-                       <span className="text-xs font-bold text-slate-400 uppercase">This Month</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                       <span className="size-2 rounded-full bg-slate-200" />
-                       <span className="text-xs font-bold text-slate-400 uppercase">Last Month</span>
-                    </div>
-                 </div>
-              </div>
-              <div className="h-48 flex items-end justify-between gap-2 px-2">
-                 {[40, 70, 45, 90, 65, 80, 50, 95, 60, 85, 40, 75].map((h, i) => (
-                    <div key={i} className="flex-1 space-y-2 group cursor-help">
-                       <div className="relative w-full">
-                          <div className="h-32 w-full bg-slate-50 rounded-t-lg" />
-                          <div 
-                            style={{ height: `${h}%` }} 
-                            className="absolute bottom-0 w-full bg-primary/20 group-hover:bg-primary transition-all rounded-t-lg" 
-                          />
-                       </div>
-                    </div>
-                 ))}
-              </div>
-              <div className="flex justify-between mt-4 px-2">
-                 {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(m => (
-                   <span key={m} className="text-xs font-bold text-slate-400 uppercase">{m}</span>
-                 ))}
-              </div>
-           </div>
+           <WalletBalanceCard 
+             balance={wallet?.balance || 0} 
+             inEscrow={totals.inEscrow}
+             totalStats={isClient ? totals.spent : totals.earned}
+             isClient={isClient}
+           />
+           <SpendingChart />
         </div>
 
-        {/* Sidebar Info */}
         <div className="space-y-6">
-           {/* Security Box */}
-           <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-8">
-              <div className="size-12 rounded-xl bg-white flex items-center justify-center mb-6 shadow-sm">
-                 <ShieldCheck className="size-6 text-emerald-600" />
-              </div>
-              <h3 className="text-lg font-black text-emerald-900 mb-2">Secure Escrow</h3>
-              <p className="text-sm text-emerald-700/70 font-medium leading-relaxed">
-                 All payments are held securely in AIVORA's escrow system. Funds are only released when milestones are approved.
-              </p>
-           </div>
-
-           {/* Cards Placeholder */}
-           <div className="bg-white border border-slate-100 rounded-xl p-8 shadow-sm">
-              <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-6">Linked Methods</h3>
-              <div className="space-y-4">
-                 <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="flex items-center gap-3">
-                       <div className="size-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center font-black text-xs">VISA</div>
-                       <div>
-                          <p className="text-xs font-bold text-slate-900">•••• 4242</p>
-                          <p className="text-xs text-slate-400 font-medium">Expires 12/28</p>
-                       </div>
-                    </div>
-                    <MoreVertical className="size-4 text-slate-400" />
-                 </div>
-                 <Button variant="ghost" className="w-full rounded-xl border border-dashed border-slate-200 text-slate-500 hover:bg-slate-50">
-                    + Add New Method
-                 </Button>
-              </div>
-           </div>
+           <EscrowInfoCard />
+           <LinkedMethodsCard />
         </div>
       </div>
 
@@ -244,85 +141,19 @@ export const WalletPage = () => {
             </div>
          </div>
 
+         {/* High #3 & Leader #1: ErrorBoundary wrapping the data-heavy section */}
          <div className="bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm">
             <ErrorBoundary fallback={
-              <div className="p-8 text-center border-y border-rose-100 bg-rose-50 text-rose-600 font-medium text-sm">
-                Failed to load the transaction list. The data might be corrupted.
+              <div className="p-12 text-center border-y border-rose-100 bg-rose-50/30 text-rose-600">
+                <p className="font-bold mb-2">Failed to load transaction table</p>
+                <p className="text-sm opacity-80">Some transaction data might be corrupted. Try refreshing or contact support.</p>
               </div>
             }>
-            <table className="w-full text-left">
-               <thead>
-                  <tr className="bg-slate-50/50 border-bottom border-slate-100">
-                     <th className="px-8 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Transaction</th>
-                     <th className="px-8 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Date</th>
-                     <th className="px-8 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Status</th>
-                     <th className="px-8 py-5 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Amount</th>
-                  </tr>
-               </thead>
-               <tbody className="divide-y divide-slate-50">
-                  {validTx.map((t) => {
-                    const typeInfo = getTransactionTypeInfo(t.type);
-                    const statusInfo = getStatusInfo(t.status);
-                    const date = new Date(t.createdAt);
-                    const dateString = isNaN(date.getTime()) ? 'N/A' : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                    
-                    return (
-                      <tr key={t.id} className="group hover:bg-slate-50/50 transition-colors">
-                         <td className="px-8 py-6">
-                            <div className="flex items-center gap-4">
-                               <div className={cn(
-                                 "size-10 rounded-xl flex items-center justify-center shadow-sm",
-                                 typeInfo.bg,
-                                 typeInfo.color
-                               )}>
-                                  <typeInfo.icon className="size-5" />
-                               </div>
-                               <div>
-                                  <p className="text-sm font-black text-slate-900 leading-tight">
-                                     {t.description || typeInfo.label}
-                                  </p>
-                                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mt-1">ID: {t.id?.toUpperCase() ?? 'N/A'}</p>
-                               </div>
-                            </div>
-                         </td>
-                         <td className="px-8 py-6">
-                            <span className="text-xs font-bold text-slate-500">
-                               {dateString}
-                            </span>
-                         </td>
-                         <td className="px-8 py-6">
-                            <div className={cn(
-                              "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase",
-                              statusInfo.color
-                            )}>
-                               <span className="size-1.5 rounded-full bg-current" />
-                               {statusInfo.label}
-                            </div>
-                         </td>
-                         <td className="px-8 py-6 text-right">
-                            <span className={cn(
-                              "text-base font-black",
-                              (t.type === TransactionType.DEPOSIT || t.type === TransactionType.REFUND) ? "text-emerald-600" : "text-slate-900"
-                            )}>
-                               {(t.type === TransactionType.DEPOSIT || t.type === TransactionType.REFUND) ? '+' : '-'}{t.amount.toLocaleString()} Xu
-                            </span>
-                         </td>
-                      </tr>
-                    );
-                  })}
-                  {transactions.length === 0 && (
-                    <tr>
-                      <td colSpan={4} className="px-8 py-10 text-center text-slate-400 font-medium">
-                        No transactions found.
-                      </td>
-                    </tr>
-                  )}
-               </tbody>
-            </table>
+              <TransactionTable transactions={validTx} />
             </ErrorBoundary>
             
             <div className="p-6 border-t border-slate-50 text-center">
-               <button className="text-xs font-black text-primary hover:underline uppercase tracking-widest">Load full history</button>
+               <button className="text-xs font-black text-primary hover:underline uppercase tracking-widest transition-colors">Load full history</button>
             </div>
          </div>
       </div>
