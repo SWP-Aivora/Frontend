@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Sparkles, Rocket, Loader2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Sparkles, Rocket, Loader2, AlertCircle } from 'lucide-react';
+import { Button } from '@/shared/components/ui/Button';
 import { AiChatPanel } from '../components/AiChatPanel';
 import { JobDraftForm } from '../components/JobDraftForm';
 import { ExpertMatchInsights } from '../components/ExpertMatchInsights';
@@ -8,6 +10,7 @@ import { jobService } from '../services';
 import type { ChatMessage, AiJobSuggestion, PatchAiJobSuggestionRequest } from '../types';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useDebouncedCallback } from '@/shared/hooks/useDebounce';
 
 type FlowStep = 'PLANNING' | 'DRAFTING' | 'MATCHING';
 
@@ -24,22 +27,21 @@ export const PostJobPage = () => {
   const [suggestion, setSuggestion] = useState<AiJobSuggestion | null>(null);
   const [createdJobId, setJobId] = useState<string | null>(null);
 
-  // --- Blocking navigation when busy ---
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (initMutation.isPending || refineMutation.isPending || acceptMutation.isPending) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, []);
+  // --- Refs for stale closure guards ---
+  const isBusyRef = useRef(false);
 
   // --- Queries ---
-  const { data: recommendationsResponse, isLoading: isMatching } = useQuery({
+  const { 
+    data: recommendationsResponse, 
+    isLoading: isMatching,
+    isError: isMatchError,
+    refetch: refetchMatches
+  } = useQuery({
     queryKey: ['jobRecommendations', createdJobId],
-    queryFn: () => jobService.getRecommendations(createdJobId!),
+    queryFn: () => {
+      if (!createdJobId) throw new Error('Job ID is missing');
+      return jobService.getRecommendations(createdJobId);
+    },
     enabled: !!createdJobId && step === 'MATCHING',
   });
 
@@ -61,14 +63,13 @@ export const PostJobPage = () => {
       ]);
     },
     onError: (error: unknown) => {
-      console.error('AI Init Error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to start AI assistant');
     }
   });
 
   const refineMutation = useMutation({
     mutationFn: (prompt: string) => {
-      if (!suggestion?.id) throw new Error('No active session');
+      if (!suggestion?.id) throw new Error('No active session. Please try restarting the chat.');
       return jobService.refineAiJobSuggestion(suggestion.id, prompt);
     },
     onSuccess: (response) => {
@@ -84,7 +85,6 @@ export const PostJobPage = () => {
       ]);
     },
     onError: (error: unknown) => {
-      console.error('AI Refine Error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to update draft');
     }
   });
@@ -97,8 +97,8 @@ export const PostJobPage = () => {
     onSuccess: (response) => {
       setSuggestion(response.data);
     },
-    onError: (error: unknown) => {
-      console.error('AI Patch Error:', error);
+    onError: () => {
+      // Revert optimistic update or notify user
       toast.error('Failed to sync changes with AI');
     }
   });
@@ -114,10 +114,26 @@ export const PostJobPage = () => {
       toast.success('Project published successfully!');
     },
     onError: (error: unknown) => {
-      console.error('AI Accept Error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to publish project');
     }
   });
+
+  // Track busy state for beforeunload
+  useEffect(() => {
+    isBusyRef.current = initMutation.isPending || refineMutation.isPending || acceptMutation.isPending || patchMutation.isPending;
+  }, [initMutation.isPending, refineMutation.isPending, acceptMutation.isPending, patchMutation.isPending]);
+
+  // --- Blocking navigation when busy ---
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isBusyRef.current) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
 
   // --- Handlers ---
 
@@ -131,25 +147,33 @@ export const PostJobPage = () => {
     refineMutation.mutate(text);
   };
 
+  const debouncedPatch = useDebouncedCallback((data: PatchAiJobSuggestionRequest) => {
+    patchMutation.mutate(data);
+  }, 800);
+
   const handleManualUpdate = (data: Partial<AiJobSuggestion>) => {
     if (suggestion) {
+      // Optimistic local update
       setSuggestion({ ...suggestion, ...data });
-      // Filter only allowed patchable fields
-      const patchData: PatchAiJobSuggestionRequest = {
-        suggestedTitle: data.suggestedTitle,
-        suggestedDescription: data.suggestedDescription,
-        businessDomain: data.businessDomain,
-        expectedOutcome: data.expectedOutcome,
-        budgetType: data.budgetType,
-        suggestedBudgetMin: data.suggestedBudgetMin,
-        suggestedBudgetMax: data.suggestedBudgetMax,
-        currency: data.currency,
-        suggestedTimelineDays: data.suggestedTimelineDays,
-        experienceLevel: data.experienceLevel,
-        suggestedSkills: data.suggestedSkills,
-        suggestedMilestones: data.suggestedMilestones,
-      };
-      patchMutation.mutate(patchData);
+      
+      // Build clean patch request
+      const patchData: PatchAiJobSuggestionRequest = {};
+      if (data.suggestedTitle !== undefined) patchData.suggestedTitle = data.suggestedTitle;
+      if (data.suggestedDescription !== undefined) patchData.suggestedDescription = data.suggestedDescription;
+      if (data.businessDomain !== undefined) patchData.businessDomain = data.businessDomain;
+      if (data.expectedOutcome !== undefined) patchData.expectedOutcome = data.expectedOutcome;
+      if (data.budgetType !== undefined) patchData.budgetType = data.budgetType;
+      if (data.suggestedBudgetMin !== undefined) patchData.suggestedBudgetMin = data.suggestedBudgetMin;
+      if (data.suggestedBudgetMax !== undefined) patchData.suggestedBudgetMax = data.suggestedBudgetMax;
+      if (data.currency !== undefined) patchData.currency = data.currency;
+      if (data.suggestedTimelineDays !== undefined) patchData.suggestedTimelineDays = data.suggestedTimelineDays;
+      if (data.experienceLevel !== undefined) patchData.experienceLevel = data.experienceLevel;
+      if (data.suggestedSkills !== undefined) patchData.suggestedSkills = data.suggestedSkills;
+      if (data.suggestedMilestones !== undefined) patchData.suggestedMilestones = data.suggestedMilestones;
+
+      if (Object.keys(patchData).length > 0) {
+        debouncedPatch(patchData);
+      }
     }
   };
 
@@ -166,6 +190,20 @@ export const PostJobPage = () => {
           <div className="py-20 flex flex-col items-center justify-center space-y-4">
             <Loader2 className="size-12 text-primary animate-spin" />
             <p className="text-slate-500 font-bold animate-pulse uppercase tracking-widest text-xs">Finding best matches...</p>
+          </div>
+        ) : isMatchError ? (
+          <div className="py-20 flex flex-col items-center justify-center space-y-6">
+            <div className="size-16 rounded-2xl bg-rose-50 flex items-center justify-center">
+              <AlertCircle className="size-8 text-rose-500" />
+            </div>
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-black text-slate-900">Unable to load recommendations</h3>
+              <p className="text-slate-500 font-medium max-w-sm">We couldn't analyze matching experts at this moment. You can still manage your project in the dashboard.</p>
+            </div>
+            <div className="flex gap-3">
+              <Button onClick={() => refetchMatches()} variant="outline" className="rounded-full px-8">Retry Analysis</Button>
+              <Button asChild className="rounded-full px-8"><Link to="/client/projects">Go to Projects</Link></Button>
+            </div>
           </div>
         ) : (
           <ExpertMatchInsights 
@@ -186,7 +224,7 @@ export const PostJobPage = () => {
            </div>
            <div>
               <h1 className="text-lg font-black text-slate-900 leading-none text-left">AI Project Architect</h1>
-              <p className="text-xs font-medium text-slate-500 mt-1">Transform your ideas into high-quality technical requirements.</p>
+              <p className="text-xs font-medium text-slate-500 mt-1 text-left">Transform your ideas into high-quality technical requirements.</p>
            </div>
         </div>
         

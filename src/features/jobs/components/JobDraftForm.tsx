@@ -192,7 +192,7 @@ export const JobDraftForm = ({
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
-                     <span className="text-xs font-black text-slate-700">{ms.amount}%</span>
+                     <span className="text-xs font-black text-slate-700">{ms.amount ?? 0}%</span>
                      <button 
                        type="button" 
                        onClick={() => handleRemoveMilestone(idx)}
