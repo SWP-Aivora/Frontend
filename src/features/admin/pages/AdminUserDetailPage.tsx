@@ -2,8 +2,9 @@ import { useParams, Link } from 'react-router-dom';
 import { useState } from 'react';
 import { useAdminUsers } from '../hooks/useAdminUsers';
 import { useAdminExpertReviews, useExpertReviewDetail, useProcessExpertReview } from '../hooks/useAdminExpertReviews';
-import { ADMIN_USER_MANAGEMENT_PREVIEW_DATA, ADMIN_EXPERT_REVIEWS_PREVIEW_DATA, ADMIN_EXPERT_REVIEW_DETAIL_PREVIEW_DATA } from '../hooks/previewData';
 import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { 
   ChevronLeft, 
@@ -19,47 +20,51 @@ import {
   Clock
 } from 'lucide-react';
 import { adminService } from '../services';
-import type { ExpertReviewItem } from '../types';
+import type { ExpertReviewItem, AdminUserManagementData, AdminExpertReviewsData } from '../types';
 
 export const AdminUserDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const queryClient = useQueryClient();
 
   // Fetch all users to find the specific one
-  const { data: realUserData, isLoading: isLoadingUser, isError: isUserError, error: userError } = useAdminUsers();
+  const { data: userDataResponse, isLoading: isLoadingUser, isError: isUserError, error: userError } = useAdminUsers();
   
   // Fetch reviews to find if this expert has a pending one
-  const { data: realReviewsData } = useAdminExpertReviews();
+  const { data: reviewsDataResponse } = useAdminExpertReviews();
 
   // PREVIEW MODE:
-  // Expert reviews and details rely on endpoints not yet in v1.json.
-  // The service is stubbed, but if the main user fetch fails via network error, we also fall back.
-  const isPreviewMode = true; 
+  // Derived from data sources (adminService handles fallback)
+  const isPreviewMode = (userDataResponse as AdminUserManagementData & { _isStub?: boolean })?._isStub || 
+                       (reviewsDataResponse as AdminExpertReviewsData & { _isStub?: boolean })?._isStub || 
+                       false; 
   
-  const userData = isPreviewMode ? ADMIN_USER_MANAGEMENT_PREVIEW_DATA : realUserData;
-  const reviewsData = isPreviewMode ? ADMIN_EXPERT_REVIEWS_PREVIEW_DATA : realReviewsData;
+  const userData = userDataResponse;
+  const reviewsData = reviewsDataResponse;
 
   const user = userData?.users?.find(u => u.id === id);
   const pendingReview = reviewsData?.reviews.find((rev: ExpertReviewItem) => rev.expertId === id && rev.status === 'Pending');
 
-  const { data: realDetailData, isLoading: isLoadingDetail } = useExpertReviewDetail(pendingReview?.id || null);
+  const { data: detailData, isLoading: isLoadingDetail } = useExpertReviewDetail(pendingReview?.id || null);
   const { mutate: processReview, isPending: isProcessing } = useProcessExpertReview();
 
-  const currentReviewDetail = isPreviewMode && pendingReview ? ADMIN_EXPERT_REVIEW_DETAIL_PREVIEW_DATA[pendingReview.id] : realDetailData;
+  const currentReviewDetail = detailData;
 
   const handleSuspend = async () => {
     if (!user) return;
     try {
       if (user.status === 'Suspended') {
         await adminService.unsuspendUser(user.id);
+        toast.success('User unsuspended successfully');
       } else {
         await adminService.suspendUser(user.id, 'Suspended by admin via dashboard');
+        toast.success('User suspended successfully');
       }
-      window.location.reload();
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
     } catch (err) {
       console.error('Failed to update user status', err);
-      if (isPreviewMode) alert('Note: Real API integration attempted, but failed or simulates in preview mode.');
+      toast.error('Failed to update user status');
     }
   };
 
@@ -67,7 +72,6 @@ export const AdminUserDetailPage = () => {
     if (!pendingReview) return;
     if (window.confirm('Are you sure you want to approve these profile changes?')) {
       processReview({ id: pendingReview.id, status: 'Approved' });
-      alert('Preview Mode: Approval simulated. Endpoint not in v1.json.');
     }
   };
 
@@ -76,7 +80,6 @@ export const AdminUserDetailPage = () => {
     processReview({ id: pendingReview.id, status: 'Rejected', note: rejectionReason });
     setShowRejectModal(false);
     setRejectionReason('');
-    alert('Preview Mode: Rejection simulated. Endpoint not in v1.json.');
   };
 
   if (isLoadingUser) {

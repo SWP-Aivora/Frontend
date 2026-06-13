@@ -12,8 +12,10 @@ import type { BaseResponse } from '@/shared/types/api';
 import { 
   ADMIN_DASHBOARD_PREVIEW_DATA, 
   ADMIN_EXPERT_REVIEWS_PREVIEW_DATA, 
-  ADMIN_EXPERT_REVIEW_DETAIL_PREVIEW_DATA 
+  ADMIN_EXPERT_REVIEW_DETAIL_PREVIEW_DATA,
+  ADMIN_USER_MANAGEMENT_PREVIEW_DATA
 } from './hooks/previewData';
+import type { AxiosError } from 'axios';
 
 interface BackendStats {
   totalUsers: number;
@@ -25,17 +27,16 @@ interface BackendStats {
   totalEscrowAmount: number;
 }
 
+const isNetworkOrMissingError = (error: unknown) => {
+  const axiosError = error as AxiosError;
+  return axiosError.message === 'Network Error' || 
+         axiosError.response?.status === 404 || 
+         axiosError.response?.status === 405 ||
+         axiosError.response?.status === 501; // Not Implemented
+};
+
 /**
  * Admin Services
- * 
- * NOTE ON PREVIEW MODE:
- * Several admin endpoints called here (Dashboard Summary, Expert Reviews) are NOT yet 
- * available in the backend API contract (API Note/v1.json).
- * 
- * To prevent failing network requests and allow UI development, these methods 
- * immediately return resolved Promises with temporary preview data.
- * 
- * Real API integration should replace these stubs once the backend endpoints are implemented.
  */
 export const adminService = {
   getDashboardSummary: async (): Promise<BaseResponse<DashboardSummary & { _isStub?: boolean }>> => {
@@ -101,30 +102,46 @@ export const adminService = {
         data: { ...mappedData, _isStub: false }
       };
     } catch (error) {
-      console.error('Admin Dashboard API failed, falling back to preview data:', error);
-      
-      // Update preview data to match "Expert Profile Review" context
-      const dashboardPreview = { ...ADMIN_DASHBOARD_PREVIEW_DATA };
-      dashboardPreview.pendingReviews = ADMIN_EXPERT_REVIEWS_PREVIEW_DATA.totalPending;
-      dashboardPreview.reviewQueue = [
-        { label: 'Pending Review', count: ADMIN_EXPERT_REVIEWS_PREVIEW_DATA.totalPending },
-        { label: 'Requires Revision', count: ADMIN_EXPERT_REVIEWS_PREVIEW_DATA.totalRevisions },
-        { label: 'New Submissions Today', count: ADMIN_EXPERT_REVIEWS_PREVIEW_DATA.newToday },
-      ];
+      if (isNetworkOrMissingError(error)) {
+        // Update preview data to match "Expert Profile Review" context
+        const dashboardPreview = { ...ADMIN_DASHBOARD_PREVIEW_DATA };
+        dashboardPreview.pendingReviews = ADMIN_EXPERT_REVIEWS_PREVIEW_DATA.totalPending;
+        dashboardPreview.reviewQueue = [
+          { label: 'Pending Review', count: ADMIN_EXPERT_REVIEWS_PREVIEW_DATA.totalPending },
+          { label: 'Requires Revision', count: ADMIN_EXPERT_REVIEWS_PREVIEW_DATA.totalRevisions },
+          { label: 'New Submissions Today', count: ADMIN_EXPERT_REVIEWS_PREVIEW_DATA.newToday },
+        ];
 
-      return {
-        success: true,
-        data: { ...dashboardPreview, _isStub: true },
-        message: 'UI Preview Mode: API request failed. Showing stub data.',
-        statusCode: 200
-      };
+        return {
+          success: true,
+          data: { ...dashboardPreview, _isStub: true },
+          message: 'UI Preview Mode: API request failed. Showing stub data.',
+          statusCode: 200
+        };
+      }
+      throw error;
     }
   },
   
-  getUsers: async (params?: Record<string, unknown>): Promise<BaseResponse<AdminUserManagementData>> => {
-    // Valid endpoint in v1.json: GET /api/v1/admin/users
-    const response = await apiClient.get<BaseResponse<AdminUserManagementData>>(API_ENDPOINTS.ADMIN.USERS, { params });
-    return response.data;
+  getUsers: async (params?: Record<string, unknown>): Promise<BaseResponse<AdminUserManagementData & { _isStub?: boolean }>> => {
+    try {
+      // Valid endpoint in v1.json: GET /api/v1/admin/users
+      const response = await apiClient.get<BaseResponse<AdminUserManagementData>>(API_ENDPOINTS.ADMIN.USERS, { params });
+      return {
+        ...response.data,
+        data: { ...response.data.data, _isStub: false }
+      };
+    } catch (error) {
+      if (isNetworkOrMissingError(error)) {
+        return {
+          success: true,
+          data: { ...ADMIN_USER_MANAGEMENT_PREVIEW_DATA, _isStub: true },
+          message: 'UI Preview Mode: API request failed. Showing stub data.',
+          statusCode: 200
+        };
+      }
+      throw error;
+    }
   },
 
   suspendUser: async (id: string, reason?: string): Promise<BaseResponse<void>> => {
@@ -139,37 +156,65 @@ export const adminService = {
     return response.data;
   },
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  getExpertReviews: async (_params?: Record<string, unknown>): Promise<BaseResponse<AdminExpertReviewsData>> => {
-    // NOTE: Not in v1.json. Returning local preview data.
-    return {
-      success: true,
-      data: ADMIN_EXPERT_REVIEWS_PREVIEW_DATA,
-      message: 'UI Preview Mode: Data loaded from local stub',
-      statusCode: 200
-    };
+  getExpertReviews: async (params?: Record<string, unknown>): Promise<BaseResponse<AdminExpertReviewsData & { _isStub?: boolean }>> => {
+    try {
+      const response = await apiClient.get<BaseResponse<AdminExpertReviewsData>>(API_ENDPOINTS.ADMIN.EXPERT_REVIEWS, { params });
+      return {
+        ...response.data,
+        data: { ...response.data.data, _isStub: false }
+      };
+    } catch (error) {
+      if (isNetworkOrMissingError(error)) {
+        return {
+          success: true,
+          data: { ...ADMIN_EXPERT_REVIEWS_PREVIEW_DATA, _isStub: true },
+          message: 'UI Preview Mode: API request failed. Showing stub data.',
+          statusCode: 200
+        };
+      }
+      throw error;
+    }
   },
 
-  getExpertReviewDetail: async (id: string): Promise<BaseResponse<ExpertReviewDetail>> => {
-    // NOTE: Not in v1.json. Returning local preview data.
-    const mockDetail = ADMIN_EXPERT_REVIEW_DETAIL_PREVIEW_DATA[id] || ADMIN_EXPERT_REVIEW_DETAIL_PREVIEW_DATA['rev1'];
-    return {
-      success: true,
-      data: mockDetail,
-      message: 'UI Preview Mode: Data loaded from local stub',
-      statusCode: 200
-    };
+  getExpertReviewDetail: async (id: string): Promise<BaseResponse<ExpertReviewDetail & { _isStub?: boolean }>> => {
+    try {
+      const response = await apiClient.get<BaseResponse<ExpertReviewDetail>>(API_ENDPOINTS.ADMIN.EXPERT_REVIEW_DETAIL(id));
+      return {
+        ...response.data,
+        data: { ...response.data.data, _isStub: false }
+      };
+    } catch (error) {
+      if (isNetworkOrMissingError(error)) {
+        const mockDetail = ADMIN_EXPERT_REVIEW_DETAIL_PREVIEW_DATA[id] || ADMIN_EXPERT_REVIEW_DETAIL_PREVIEW_DATA['rev1'];
+        return {
+          success: true,
+          data: { ...mockDetail, _isStub: true },
+          message: 'UI Preview Mode: API request failed. Showing stub data.',
+          statusCode: 200
+        };
+      }
+      throw error;
+    }
   },
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  processExpertReview: async (_params: ExpertReviewActionParams): Promise<BaseResponse<void>> => {
-    // NOTE: Not in v1.json. Action is preview-only.
-    console.warn('Expert review processing is preview-only. No real API call made.');
-    return {
-      success: true,
-      data: undefined as unknown as void,
-      message: 'UI Preview Mode: This action is not available in the current API contract yet.',
-      statusCode: 200
-    };
+  processExpertReview: async (params: ExpertReviewActionParams): Promise<BaseResponse<void>> => {
+    try {
+      const response = await apiClient.post<BaseResponse<void>>(API_ENDPOINTS.ADMIN.PROCESS_EXPERT_REVIEW(params.id), params);
+      return response.data;
+    } catch (error) {
+      if (isNetworkOrMissingError(error)) {
+        if (import.meta.env.DEV) {
+          console.warn('Expert review processing failed or not implemented. Simulation active in DEV.');
+        }
+        return {
+          success: true,
+          data: undefined as unknown as void,
+          message: 'UI Preview Mode: This action is simulated as the endpoint is not yet connected.',
+          statusCode: 200
+        };
+      }
+      throw error;
+    }
   }
 };
+

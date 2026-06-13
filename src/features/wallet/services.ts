@@ -10,6 +10,10 @@ export const walletService = {
     return normalizeBaseResponse<Wallet>(response);
   },
 
+  /**
+   * Deposit demo funds for testing purposes.
+   * This endpoint is only available in development/demo environments.
+   */
   depositDemo: async (data: DepositRequest): Promise<BaseResponse<Wallet>> => {
     const response = await apiClient.post(API_ENDPOINTS.WALLET.DEPOSIT_DEMO, data);
     return normalizeBaseResponse<Wallet>(response);

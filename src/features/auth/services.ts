@@ -85,8 +85,9 @@ export const authService = {
   },
 
   logout: async (): Promise<void> => {
-    // Optional: Call logout endpoint if exists
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+    /**
+     * NOTE: Backend does not currently provide a logout endpoint in the API contract.
+     * Tokens are stateless (JWT). Logout is handled by clearing the local auth store.
+     */
   },
 };

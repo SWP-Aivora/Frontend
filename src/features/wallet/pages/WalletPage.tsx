@@ -117,7 +117,7 @@ export const WalletPage = () => {
            {isClient ? (
              <Button onClick={handleDeposit} disabled={isDepositing} className="rounded-full px-6 shadow-lg shadow-primary/20 flex items-center gap-2">
                 {isDepositing ? <RefreshCw className="size-4 animate-spin" /> : <Plus className="size-4" />}
-                Deposit Funds
+                Deposit Demo Funds
              </Button>
            ) : (
              <Button className="rounded-full px-6 bg-brand-accent hover:bg-brand-accent/90 shadow-lg shadow-brand-accent/20">

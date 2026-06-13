@@ -27,15 +27,12 @@ export const useAuthStore = create<AuthState>()(
       isLoading: false,
       error: null,
       setAuth: (user, token) => {
-        localStorage.setItem('accessToken', token);
         set({ user, accessToken: token, isAuthenticated: true, error: null });
       },
       setUser: (user) => set({ user }),
       setError: (error) => set({ error }),
       setLoading: (isLoading) => set({ isLoading }),
       logout: () => {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
         set({ user: null, accessToken: null, isAuthenticated: false, error: null });
       },
     }),

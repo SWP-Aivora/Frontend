@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminExpertReviews } from '../hooks/useAdminExpertReviews';
-import { ADMIN_EXPERT_REVIEWS_PREVIEW_DATA } from '../hooks/previewData';
 import { MetricsSummaryCard } from '../components/MetricsSummaryCard';
 import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
 import { cn } from '@/lib/utils';
@@ -26,13 +25,12 @@ export const AdminExpertReviewsPage = () => {
   const [filterStatus, setFilterStatus] = useState<ExpertReviewStatus | 'All'>('Pending');
   const navigate = useNavigate();
 
-  const { data: realData, isLoading } = useAdminExpertReviews();
+  const { data, isLoading } = useAdminExpertReviews();
 
   // PREVIEW MODE:
-  // The endpoints for expert reviews (GET/POST /admin/expert-reviews) are not available in v1.json.
-  // The service is stubbed to return preview data.
-  const isPreviewMode = true;
-  const data = isPreviewMode ? ADMIN_EXPERT_REVIEWS_PREVIEW_DATA : realData;
+  // Derived from data source (adminService handles fallback)
+  const isPreviewMode = data?._isStub ?? false;
+
 
   const filteredReviews = data?.reviews.filter((rev: ExpertReviewItem) => {
     const matchesSearch = rev.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || 

@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
 
 export const AdminDashboardPage = () => {
-  const { data: summary, isLoading, isError, error } = useAdminDashboard();
+  const { data: summary, isLoading, isError, error, refetch } = useAdminDashboard();
 
   // DASHBOARD PREVIEW MODE: 
   // Determine if we are in preview mode based on the source of the data
@@ -35,7 +35,7 @@ export const AdminDashboardPage = () => {
         <h2 className="text-lg font-black text-rose-900 mb-2">Failed to load dashboard summary</h2>
         <p className="text-rose-600 font-medium">{(error as Error)?.message || 'Something went wrong while fetching platform metrics.'}</p>
         <button 
-          onClick={() => window.location.reload()}
+          onClick={() => refetch()}
           className="mt-6 px-4 py-2 bg-rose-600 text-white rounded-xl font-bold hover:bg-rose-700 transition-colors"
         >
           Try Again
