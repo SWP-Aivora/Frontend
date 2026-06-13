@@ -104,3 +104,13 @@ export interface AiJobSuggestion {
   createdAt: string;
 }
 
+export interface ExpertMatch {
+  id: string;
+  name: string;
+  title: string;
+  rating: number;
+  matchScore: number;
+  skills: string[];
+}
+
+

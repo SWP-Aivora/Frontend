@@ -1,5 +1,5 @@
 import apiClient from '@/lib/axios';
-import type { Job, Proposal, AiJobSuggestion } from './types';
+import type { Job, Proposal, AiJobSuggestion, ExpertMatch } from './types';
 import type { CreateProposalFormValues } from './schema';
 import type { BaseResponse } from '@/shared/types/api';
 
@@ -81,8 +81,8 @@ export const jobService = {
     return response.data;
   },
 
-  getRecommendations: async (jobId: string): Promise<BaseResponse<any[]>> => {
-    const response = await apiClient.get<BaseResponse<any[]>>(`/jobs/${jobId}/recommendations`);
+  getRecommendations: async (jobId: string): Promise<BaseResponse<ExpertMatch[]>> => {
+    const response = await apiClient.get<BaseResponse<ExpertMatch[]>>(`/jobs/${jobId}/recommendations`);
     return response.data;
   },
 

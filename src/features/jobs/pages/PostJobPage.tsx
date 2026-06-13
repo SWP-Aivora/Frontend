@@ -41,7 +41,7 @@ export const PostJobPage = () => {
         }
       ]);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error?.message || 'Failed to start AI assistant');
     }
   });
