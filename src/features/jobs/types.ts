@@ -53,3 +53,54 @@ export interface Proposal {
   milestones: ProposalMilestone[];
   expert: UserBasicInfo;
 }
+
+// AI Job Assistant Types
+export const AiJobAssistantStatus = {
+  GENERATED: 'GENERATED',
+  ACCEPTED: 'ACCEPTED',
+  REJECTED: 'REJECTED',
+  FAILED: 'FAILED',
+} as const;
+export type AiJobAssistantStatus = (typeof AiJobAssistantStatus)[keyof typeof AiJobAssistantStatus];
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  createdAt: string;
+  status?: 'sending' | 'sent' | 'failed';
+}
+
+export interface SuggestedMilestone {
+  id?: string;
+  title: string;
+  description?: string | null;
+  amount?: number | null;
+  dueDays?: number | null;
+  acceptanceCriteria?: string | null;
+  orderIndex: number;
+}
+
+export interface AiJobSuggestion {
+  id: string;
+  jobId: string | null;
+  clientId: string;
+  rawInput: string;
+  suggestedTitle: string;
+  suggestedDescription: string;
+  businessDomain: string | null;
+  expectedOutcome: string | null;
+  categoryId: string | null;
+  categoryName: string | null;
+  budgetType: 'FIXED' | 'HOURLY';
+  suggestedBudgetMin: number | null;
+  suggestedBudgetMax: number | null;
+  currency: string;
+  suggestedTimelineDays: number | null;
+  experienceLevel: string | null;
+  suggestedSkills: string[];
+  suggestedMilestones: SuggestedMilestone[];
+  status: AiJobAssistantStatus;
+  createdAt: string;
+}
+

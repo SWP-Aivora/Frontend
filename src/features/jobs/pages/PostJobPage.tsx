@@ -1,75 +1,196 @@
-import { IdeaInputForm } from '../components/IdeaInputForm';
-import { AiAssistantChat } from '../components/AiAssistantChat';
-import { Sparkles, ArrowRight, Lightbulb } from 'lucide-react';
+import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { Sparkles, Rocket } from 'lucide-react';
+import { AiChatPanel } from '../components/AiChatPanel';
+import { JobDraftForm } from '../components/JobDraftForm';
+import { ExpertMatchInsights } from '../components/ExpertMatchInsights';
+import { jobService } from '../services';
+import type { ChatMessage, AiJobSuggestion } from '../types';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
-const ASSETS = {
-  heroGlow: "https://www.figma.com/api/mcp/asset/47fc91e8-2c0d-440d-b7eb-9771cd3e88d7",
-};
+type FlowStep = 'PLANNING' | 'DRAFTING' | 'MATCHING';
 
 export const PostJobPage = () => {
+  const [step, setStep] = useState<FlowStep>('PLANNING');
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: 'welcome',
+      role: 'assistant',
+      content: "Hi! I'm your AIVORA AI Assistant. What project do you have in mind today? Just describe it naturally, and I'll build the full requirements for you.",
+      createdAt: new Date().toISOString()
+    }
+  ]);
+  const [suggestion, setSuggestion] = useState<AiJobSuggestion | null>(null);
+  const [createdJobId, setJobId] = useState<string | null>(null);
+
+  // --- Mutations ---
+
+  const initMutation = useMutation({
+    mutationFn: (prompt: string) => jobService.initAiJobAssistant(prompt),
+    onSuccess: (response) => {
+      setSuggestion(response.data);
+      setStep('DRAFTING');
+      setMessages(prev => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: "I've analyzed your requirements and generated a project draft. You can see the details on the right. Would you like to change anything?",
+          createdAt: new Date().toISOString()
+        }
+      ]);
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || 'Failed to start AI assistant');
+    }
+  });
+
+  const refineMutation = useMutation({
+    mutationFn: (prompt: string) => jobService.refineAiJobSuggestion(suggestion!.id, prompt),
+    onSuccess: (response) => {
+      setSuggestion(response.data);
+      setMessages(prev => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          role: 'system',
+          content: "Draft updated based on your feedback",
+          createdAt: new Date().toISOString()
+        }
+      ]);
+    }
+  });
+
+  const patchMutation = useMutation({
+    mutationFn: (data: Partial<AiJobSuggestion>) => jobService.patchAiJobSuggestion(suggestion!.id, data),
+    onSuccess: (response) => {
+      setSuggestion(response.data);
+    }
+  });
+
+  const acceptMutation = useMutation({
+    mutationFn: () => jobService.acceptAiJobSuggestion(suggestion!.id),
+    onSuccess: (response) => {
+      setJobId(response.data.jobId);
+      setStep('MATCHING');
+      toast.success('Project published successfully!');
+    }
+  });
+
+  // --- Handlers ---
+
+  const handleInitialSend = (text: string) => {
+    setMessages(prev => [...prev, { id: 'user-' + Date.now(), role: 'user', content: text, createdAt: new Date().toISOString() }]);
+    initMutation.mutate(text);
+  };
+
+  const handleRefine = (text: string) => {
+    setMessages(prev => [...prev, { id: 'user-' + Date.now(), role: 'user', content: text, createdAt: new Date().toISOString() }]);
+    refineMutation.mutate(text);
+  };
+
+  const handleManualUpdate = (data: Partial<AiJobSuggestion>) => {
+    // Optimistic update
+    if (suggestion) {
+      setSuggestion({ ...suggestion, ...data });
+      patchMutation.mutate(data);
+    }
+  };
+
+  const handleAccept = () => {
+    acceptMutation.mutate();
+  };
+
+  // --- Render ---
+
+  if (step === 'MATCHING') {
+    return (
+      <div className="max-w-6xl mx-auto px-4">
+        <ExpertMatchInsights 
+          jobId={createdJobId || ''}
+          experts={[
+            { id: '1', name: 'An Nguyen', title: 'AI Chatbot Expert', rating: 4.8, matchScore: 98, skills: ['Chatbot', 'RAG', 'Python'] },
+            { id: '2', name: 'Sarah Chen', title: 'ML Engineer', rating: 5.0, matchScore: 94, skills: ['Vision', 'TensorFlow', 'PyTorch'] },
+            { id: '3', name: 'Michael Ross', title: 'LLM Specialist', rating: 4.9, matchScore: 92, skills: ['Prompting', 'LangChain', 'OpenAI'] },
+          ]} 
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-10 animate-in fade-in duration-500">
-      {/* Hero Section */}
-      <div className="bg-white border border-slate-100 rounded-xl p-10 shadow-2xl relative overflow-hidden">
-        <div className="absolute -right-20 -top-20 size-96 pointer-events-none opacity-40">
-           <img src={ASSETS.heroGlow} alt="" className="size-full" />
+    <div className="h-[calc(100vh-140px)] flex flex-col gap-6 animate-in fade-in duration-700">
+      {/* Header Info */}
+      <div className="flex items-center justify-between shrink-0 bg-white border border-slate-100 p-4 rounded-2xl shadow-sm">
+        <div className="flex items-center gap-4">
+           <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Sparkles className="size-5 text-primary" />
+           </div>
+           <div>
+              <h1 className="text-lg font-black text-slate-900 leading-none">AI Project Architect</h1>
+              <p className="text-xs font-medium text-slate-500 mt-1">Transform your ideas into high-quality technical requirements.</p>
+           </div>
         </div>
         
-        <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-10">
-          <div className="flex-1 space-y-4">
-             <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/5 rounded-full border border-primary/10">
-                <Sparkles className="size-3 text-primary" />
-                <span className="text-xs font-bold text-primary tracking-widest uppercase">AI-Powered Job Creation</span>
-             </div>
-             <h1 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-               Turn Your AI Idea into a <br />
-               <span className="text-primary text-transparent bg-clip-text bg-gradient-to-r from-primary to-brand-accent">Clear Job Post</span>
-             </h1>
-             <p className="text-lg text-slate-500 font-medium max-w-2xl leading-relaxed">
-               Describe your project in simple words, and AIVORA will generate a structured job description with skills, budget suggestions, and milestones.
-             </p>
-             
-             {/* Progress Steps */}
-             <div className="flex items-center gap-3 pt-4">
-                {[1, 2, 3, 4].map((step) => (
-                  <div key={step} className={`h-2 rounded-full transition-all duration-500 ${step === 1 ? 'w-12 bg-primary shadow-[0_0_8px_rgba(37,99,235,0.4)]' : 'w-8 bg-slate-100'}`} />
-                ))}
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-2">Step 1: Input Idea</span>
-             </div>
-          </div>
-
-          <div className="hidden lg:block w-[300px]">
-             <div className="p-6 rounded-xl bg-slate-50 border border-slate-100 space-y-4">
-                <div className="size-10 rounded-xl bg-white flex items-center justify-center shadow-sm">
-                   <Lightbulb className="size-5 text-amber-500" />
-                </div>
-                <h4 className="font-bold text-slate-900">Pro Tip</h4>
-                <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                   The more context you provide about your business goals, the better the AI can structure your milestones.
-                </p>
-                <button className="text-xs font-bold text-primary flex items-center gap-1.5 hover:underline">
-                   View Examples <ArrowRight className="size-3" />
-                </button>
-             </div>
-          </div>
+        <div className="flex items-center gap-6">
+           <div className="flex items-center gap-2">
+              {[1, 2, 3].map(i => {
+                const isActive = (i === 1 && step === 'PLANNING') || (i === 2 && step === 'DRAFTING');
+                return (
+                  <div key={i} className={cn(
+                    "size-2.5 rounded-full transition-all duration-500",
+                    isActive && i <= (step === 'PLANNING' ? 1 : 2)
+                      ? "w-8 bg-primary shadow-sm" 
+                      : "bg-slate-200"
+                  )} />
+                );
+              })}
+           </div>
+           <div className="hidden sm:block text-right">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</p>
+              <p className="text-xs font-black text-slate-900">
+                {step === 'PLANNING' ? 'Exploring Idea' : 'Refining Draft'}
+              </p>
+           </div>
         </div>
       </div>
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-        <IdeaInputForm />
-        <AiAssistantChat />
+      {/* Main Interaction Area */}
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-hidden">
+        
+        {/* Left: Chat Assistant */}
+        <div className={cn(
+          "h-full transition-all duration-500 flex flex-col",
+          step === 'PLANNING' ? "lg:col-span-12 max-w-3xl mx-auto w-full" : "lg:col-span-5"
+        )}>
+          <AiChatPanel 
+            messages={messages}
+            onSendMessage={handleInitialSend}
+            onRefine={handleRefine}
+            isGenerating={initMutation.isPending || refineMutation.isPending}
+            hasSuggestion={!!suggestion}
+          />
+        </div>
+
+        {/* Right: Preview Form (Only if draft exists) */}
+        {step === 'DRAFTING' && suggestion && (
+          <div className="lg:col-span-7 h-full animate-in slide-in-from-right-10 duration-700">
+            <JobDraftForm 
+              suggestion={suggestion}
+              onUpdate={handleManualUpdate}
+              onAccept={handleAccept}
+              isAccepting={acceptMutation.isPending}
+            />
+          </div>
+        )}
       </div>
 
-      {/* Footer Info */}
-      <div className="bg-slate-50 border border-slate-100 rounded-xl p-6 flex flex-wrap items-center justify-center gap-8">
-         <div className="flex items-center gap-3">
-            <div className="size-2 bg-brand-success rounded-full" />
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">AI Progress: Preview Ready</span>
-         </div>
-         <div className="h-4 w-px bg-slate-200 hidden sm:block" />
-         <div className="flex items-center gap-3">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Estimated Match: 94 Experts</span>
+      {/* Footer Branding */}
+      <div className="shrink-0 flex items-center justify-center gap-8 py-2">
+         <div className="flex items-center gap-2">
+            <Rocket className="size-3 text-slate-400" />
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Powered by AIVORA Intelligence v2.0</span>
          </div>
       </div>
     </div>
