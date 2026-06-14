@@ -104,10 +104,7 @@ export const WalletPage = () => {
         <div className="flex items-center gap-3">
            <Button variant="outline" className="rounded-full border-slate-200">Export PDF</Button>
            {isClient ? (
-             <Button onClick={handleDeposit} disabled={isDepositing} className="rounded-full px-6 shadow-lg shadow-primary/20 flex items-center gap-2">
-                {isDepositing ? <RefreshCw className="size-4 animate-spin" /> : <Plus className="size-4" />}
-                Deposit Demo Funds
-             </Button>
+             <DepositModal />
            ) : (
              <WithdrawModal maxBalance={wallet?.balance || 0} />
            )}

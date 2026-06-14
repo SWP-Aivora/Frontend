@@ -9,6 +9,7 @@ import { useAuthStore } from '@/features/auth/store';
 import { UserMenu } from '../components/common';
 import { authService } from '@/features/auth/services';
 import { profileService } from '@/features/profiles/services';
+import { categoryService, type Category } from '../services/categoryService';
 
 const Navbar: React.FC = () => {
   const { isAuthenticated, user, setUser } = useAuthStore();
@@ -181,8 +182,6 @@ const SectionHeader: React.FC<{
     </div>
   );
 };
-
-import { categoryService, type Category } from '../services/categoryService';
 
 const Categories: React.FC = () => {
   const [categories, setCategories] = React.useState<Category[]>([]);
