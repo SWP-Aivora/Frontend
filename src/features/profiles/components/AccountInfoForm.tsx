@@ -302,23 +302,23 @@ export const AccountInfoForm = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">Company Legal Name</label>
-                <Input {...registerClient('companyName')} placeholder="Tech Solutions JSC" className="h-11 rounded-lg bg-slate-50 border-slate-100 focus:bg-white transition-all font-medium" disabled={isInitialLoading || !!loadError} />
+                <Input {...registerClient('companyName')} placeholder="Tech Solutions JSC" className="h-11 rounded-lg bg-slate-50 border-slate-100 focus:bg-white transition-all font-medium" disabled={isUserLoading || !!loadError} />
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">Corporate Website</label>
-                <Input {...registerClient('website')} placeholder="https://example.com" className="h-11 rounded-lg bg-slate-50 border-slate-100 focus:bg-white transition-all font-medium" disabled={isInitialLoading || !!loadError} />
+                <Input {...registerClient('website')} placeholder="https://example.com" className="h-11 rounded-lg bg-slate-50 border-slate-100 focus:bg-white transition-all font-medium" disabled={isUserLoading || !!loadError} />
                 {clientErrors.website && <p className="text-[10px] text-destructive font-bold ml-1">{clientErrors.website.message}</p>}
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">Industry Domain</label>
-                <Input {...registerClient('industry')} placeholder="Fintech, SaaS" className="h-11 rounded-lg bg-slate-50 border-slate-100 focus:bg-white transition-all font-medium" disabled={isInitialLoading || !!loadError} />
+                <Input {...registerClient('industry')} placeholder="Fintech, SaaS" className="h-11 rounded-lg bg-slate-50 border-slate-100 focus:bg-white transition-all font-medium" disabled={isUserLoading || !!loadError} />
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">Company Size</label>
                 <select 
                   {...registerClient('companySize')}
                   className="w-full h-11 px-4 rounded-lg bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm appearance-none font-medium"
-                  disabled={isInitialLoading || !!loadError}
+                  disabled={isUserLoading || !!loadError}
                 >
                   <option value="">Select size...</option>
                   <option value="1-10">1-10 employees</option>
@@ -335,12 +335,12 @@ export const AccountInfoForm = () => {
                   {...registerClient('description')}
                   placeholder="Describe your organization's goals..."
                   className="w-full min-h-[100px] p-4 rounded-lg bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm font-medium"
-                  disabled={isInitialLoading || !!loadError}
+                  disabled={isUserLoading || !!loadError}
                />
             </div>
 
             <div className="flex justify-end pt-4 border-t border-slate-50">
-              <Button type="submit" disabled={isProfileLoading || isInitialLoading || !!loadError} className="rounded-xl px-8 h-11 font-bold shadow-lg shadow-blue-100 uppercase tracking-wider text-xs">
+              <Button type="submit" disabled={isProfileLoading || isUserLoading || !!loadError} className="rounded-xl px-8 h-11 font-bold shadow-lg shadow-blue-100 uppercase tracking-wider text-xs">
                 {isProfileLoading ? 'Saving...' : 'Update Business Profile'}
               </Button>
             </div>
