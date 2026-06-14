@@ -364,7 +364,7 @@ export const AccountInfoForm = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1.5 md:col-span-2">
                 <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">Professional Headline</label>
-                <Input {...registerExpert('title')} placeholder="Senior AI Research Engineer" className="h-11 rounded-lg bg-slate-50 border-slate-100 focus:bg-white transition-all font-medium" disabled={isInitialLoading || !!loadError} />
+                <Input {...registerExpert('title')} placeholder="Senior AI Research Engineer" className="h-11 rounded-lg bg-slate-50 border-slate-100 focus:bg-white transition-all font-medium" disabled={!!loadError} />
               </div>
               
               <div className="space-y-1.5">
@@ -374,7 +374,7 @@ export const AccountInfoForm = () => {
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">Experience (Years)</label>
-                <Input type="number" {...registerExpert('experienceYears')} placeholder="0" className="h-11 rounded-lg bg-slate-50 border-slate-100 focus:bg-white transition-all font-medium" disabled={isInitialLoading || !!loadError} />
+                <Input type="number" {...registerExpert('experienceYears')} placeholder="0" className="h-11 rounded-lg bg-slate-50 border-slate-100 focus:bg-white transition-all font-medium" disabled={!!loadError} />
                 {expertErrors.experienceYears && <p className="text-[10px] text-destructive font-bold ml-1">{expertErrors.experienceYears.message}</p>}
               </div>
             </div>
@@ -385,12 +385,12 @@ export const AccountInfoForm = () => {
                   {...registerExpert('bio')}
                   placeholder="Detail your experience with LLMs, Computer Vision, etc..."
                   className="w-full min-h-[120px] p-4 rounded-lg bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-accent/20 text-sm font-medium"
-                  disabled={isInitialLoading || !!loadError}
+                  disabled={!!loadError}
                />
             </div>
 
             <div className="flex justify-end pt-4 border-t border-slate-50">
-              <Button type="submit" disabled={isProfileLoading || isInitialLoading || !!loadError} className="rounded-xl px-8 h-11 font-bold bg-brand-accent hover:bg-brand-accent/90 shadow-lg shadow-brand-accent/20 uppercase tracking-wider text-xs">
+              <Button type="submit" disabled={isProfileLoading || !!loadError} className="rounded-xl px-8 h-11 font-bold bg-brand-accent hover:bg-brand-accent/90 shadow-lg shadow-brand-accent/20 uppercase tracking-wider text-xs">
                 {isProfileLoading ? 'Saving...' : 'Update Expert Credentials'}
               </Button>
             </div>
