@@ -5,9 +5,9 @@ import type { ChatMessage } from '../types';
 
 interface AiChatPanelProps {
   messages: ChatMessage[];
-  onSendMessage: (text: string) => void;
+  onSendMessage: (text: string) => Promise<unknown> | void;
   isGenerating: boolean;
-  onRefine: (text: string) => void;
+  onRefine: (text: string) => Promise<unknown> | void;
   hasSuggestion: boolean;
 }
 
@@ -27,16 +27,23 @@ export const AiChatPanel = ({
     }
   }, [messages, isGenerating]);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!inputValue.trim() || isGenerating) return;
     
-    if (hasSuggestion) {
-      onRefine(inputValue);
-    } else {
-      onSendMessage(inputValue);
+    const text = inputValue;
+    setInputValue(''); // Optimistically clear input
+    
+    try {
+      if (hasSuggestion) {
+        await onRefine(text);
+      } else {
+        await onSendMessage(text);
+      }
+    } catch {
+      // Restore input on failure
+      setInputValue(text);
     }
-    setInputValue('');
   };
 
   return (

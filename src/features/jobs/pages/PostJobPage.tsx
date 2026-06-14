@@ -29,6 +29,7 @@ export const PostJobPage = () => {
 
   // --- Refs for stale closure guards ---
   const isBusyRef = useRef(false);
+  const prevSuggestionRef = useRef<AiJobSuggestion | null>(null);
 
   // --- Queries ---
   const { 
@@ -98,7 +99,10 @@ export const PostJobPage = () => {
       setSuggestion(response.data);
     },
     onError: () => {
-      // Revert optimistic update or notify user
+      // Revert optimistic update
+      if (prevSuggestionRef.current) {
+        setSuggestion(prevSuggestionRef.current);
+      }
       toast.error('Failed to sync changes with AI');
     }
   });
@@ -137,14 +141,14 @@ export const PostJobPage = () => {
 
   // --- Handlers ---
 
-  const handleInitialSend = (text: string) => {
-    setMessages(prev => [...prev, { id: 'user-' + Date.now(), role: 'user', content: text, createdAt: new Date().toISOString() }]);
-    initMutation.mutate(text);
+  const handleInitialSend = async (text: string) => {
+    setMessages(prev => [...prev, { id: `user-${crypto.randomUUID()}`, role: 'user', content: text, createdAt: new Date().toISOString() }]);
+    return initMutation.mutateAsync(text);
   };
 
-  const handleRefine = (text: string) => {
-    setMessages(prev => [...prev, { id: 'user-' + Date.now(), role: 'user', content: text, createdAt: new Date().toISOString() }]);
-    refineMutation.mutate(text);
+  const handleRefine = async (text: string) => {
+    setMessages(prev => [...prev, { id: `user-${crypto.randomUUID()}`, role: 'user', content: text, createdAt: new Date().toISOString() }]);
+    return refineMutation.mutateAsync(text);
   };
 
   const pendingPatchRef = useRef<PatchAiJobSuggestionRequest>({});
