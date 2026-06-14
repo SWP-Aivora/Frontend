@@ -269,7 +269,7 @@ export const AccountInfoForm = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-1.5">
               <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">Full Name</label>
-              <Input {...registerUser('fullName')} placeholder="An Nguyen" className="h-11 rounded-lg bg-slate-50 border-slate-100 focus:bg-white transition-all font-medium" disabled={isInitialLoading || !!loadError} />
+              <Input {...registerUser('fullName')} placeholder="An Nguyen" className="h-11 rounded-lg bg-slate-50 border-slate-100 focus:bg-white transition-all font-medium" disabled={!!loadError} />
               {userErrors.fullName && <p className="text-[10px] text-destructive font-bold ml-1">{userErrors.fullName.message}</p>}
             </div>
             <div className="space-y-1.5">
