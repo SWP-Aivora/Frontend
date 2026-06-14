@@ -274,7 +274,7 @@ export const AccountInfoForm = () => {
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">Contact Phone</label>
-              <Input {...registerUser('phone')} placeholder="+84 912 345 678" className="h-11 rounded-lg bg-slate-50 border-slate-100 focus:bg-white transition-all font-medium" disabled={isInitialLoading || !!loadError} />
+              <Input {...registerUser('phone')} placeholder="+84 912 345 678" className="h-11 rounded-lg bg-slate-50 border-slate-100 focus:bg-white transition-all font-medium" disabled={!!loadError} />
             </div>
           </div>
           <div className="flex justify-end pt-2">
