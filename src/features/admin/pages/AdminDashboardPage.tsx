@@ -69,7 +69,7 @@ export const AdminDashboardPage = () => {
     );
   }
 
-  const isPartialData = !isLoading && !isError && summary?.healthAlerts?.some(a => a.title.includes('API Unavailable'));
+  const isPartialData = !isError && summary?.healthAlerts?.some(a => a.title.includes('API Unavailable'));
 
   return (
     <div className="space-y-5 pb-10">
