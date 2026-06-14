@@ -38,7 +38,7 @@ export const ChatWorkspacePage = () => {
 
   // Strictly use API data
   const conversations = useMemo(() => {
-    return conversationsData?.data ?? [];
+    return Array.isArray(conversationsData?.data) ? conversationsData.data : [];
   }, [conversationsData]);
 
   const selectedConversation = useMemo(() => 
@@ -46,7 +46,7 @@ export const ChatWorkspacePage = () => {
   [conversations, selectedConversationId]);
 
   const messages = useMemo(() => {
-    return selectedConversationId ? (messagesData?.data ?? []) : [];
+    return selectedConversationId ? (Array.isArray(messagesData?.data) ? messagesData.data : []) : [];
   }, [messagesData, selectedConversationId]);
 
   // Mark as read when conversation is selected and has unread messages

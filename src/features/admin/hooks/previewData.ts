@@ -9,12 +9,17 @@ import type { DashboardSummary, AdminUserManagementData, AdminExpertReviewsData,
 
 export const ADMIN_DASHBOARD_PREVIEW_DATA: DashboardSummary = {
   totalUsers: 12540,
-  newUsersThisMonth: 450,
+  newUsers7d: 450,
   openJobs: 86,
+  newJobs7d: 12,
   activeProjects: 142,
+  newProjects7d: 18,
   totalTransactionsValue: 450800,
+  newTransactions7d: 35,
   pendingReviews: 12,
+  newExpertReviews7d: 8,
   openDisputes: 4,
+  newDisputes7d: 1,
   userOverview: [
     { role: 'Client', count: 8400, fillPercentage: 67 },
     { role: 'Expert', count: 3200, fillPercentage: 25 },

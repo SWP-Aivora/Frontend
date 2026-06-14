@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from '../components/dashboard/Sidebar';
 import { Topbar } from '../components/dashboard/Topbar';
 import { NAV_ITEMS } from '../components/dashboard/NavItems';
 import { Role } from '@/shared/types/enums';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/features/auth/store';
+import { authService } from '@/features/auth/services';
+import { toast } from 'sonner';
 
 interface DashboardLayoutProps {
   role: Role;
@@ -13,10 +16,31 @@ interface DashboardLayoutProps {
 export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, isAuthenticated, setUser } = useAuthStore();
   const location = useLocation();
   const items = NAV_ITEMS[role] || [];
 
   const isMessagePage = location.pathname.endsWith('/messages');
+
+  // Hydrate user data on mount
+  useEffect(() => {
+    const fetchUser = async () => {
+      if (isAuthenticated && !user?.fullName) {
+        try {
+          const response = await authService.getMe();
+          if (response.success && response.data) {
+            setUser(response.data);
+          } else {
+            toast.error(response.message || 'Failed to sync account data');
+          }
+        } catch (error) {
+          toast.error('Session error: Unable to load profile data');
+          console.error('Failed to fetch current user:', error);
+        }
+      }
+    };
+    fetchUser();
+  }, [isAuthenticated, user?.fullName, setUser]);
 
   return (
     <div className="h-screen bg-slate-50 flex flex-col overflow-hidden">

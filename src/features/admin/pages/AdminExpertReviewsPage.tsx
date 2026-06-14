@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminExpertReviews } from '../hooks/useAdminExpertReviews';
-import { ADMIN_EXPERT_REVIEWS_PREVIEW_DATA } from '../hooks/previewData';
 import { MetricsSummaryCard } from '../components/MetricsSummaryCard';
 import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
 import { cn } from '@/lib/utils';
@@ -26,13 +25,7 @@ export const AdminExpertReviewsPage = () => {
   const [filterStatus, setFilterStatus] = useState<ExpertReviewStatus | 'All'>('Pending');
   const navigate = useNavigate();
 
-  const { data: realData, isLoading } = useAdminExpertReviews();
-
-  // PREVIEW MODE:
-  // The endpoints for expert reviews (GET/POST /admin/expert-reviews) are not available in v1.json.
-  // The service is stubbed to return preview data.
-  const isPreviewMode = true;
-  const data = isPreviewMode ? ADMIN_EXPERT_REVIEWS_PREVIEW_DATA : realData;
+  const { data, isLoading, isError, error, refetch } = useAdminExpertReviews();
 
   const filteredReviews = data?.reviews.filter((rev: ExpertReviewItem) => {
     const matchesSearch = rev.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -49,25 +42,24 @@ export const AdminExpertReviewsPage = () => {
     );
   }
 
+  if (isError) {
+    return (
+      <div className="bg-rose-50 border border-rose-100 rounded-xl p-10 text-center max-w-2xl mx-auto my-10">
+        <AlertCircle className="size-12 text-rose-500 mx-auto mb-4" />
+        <h2 className="text-lg font-black text-rose-900 mb-2">Failed to load expert reviews</h2>
+        <p className="text-rose-600 font-medium">{(error as Error)?.message || 'Something went wrong while fetching reviews.'}</p>
+        <button 
+          onClick={() => refetch()}
+          className="mt-6 px-4 py-2 bg-rose-600 text-white rounded-xl font-bold hover:bg-rose-700 transition-colors"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 pb-10">
-      {isPreviewMode && (
-        <div className="bg-indigo-600 rounded-xl p-4 shadow-xl shadow-indigo-200 border border-indigo-500 animate-in fade-in slide-in-from-top-4 duration-500 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-fit bg-white/10 skew-x-12 -mr-16" />
-          <div className="flex flex-col md:flex-row items-center gap-4 relative z-10">
-            <div className="size-14 rounded-xl bg-white/20 flex items-center justify-center border border-white/30 shrink-0">
-               <Layout className="size-7 text-white" />
-            </div>
-            <div className="flex-1 text-center md:text-left">
-              <h3 className="text-white font-black text-lg tracking-tight">UI Preview Mode Active</h3>
-              <p className="text-indigo-100 text-xs font-bold mt-1 opacity-90 leading-relaxed">
-                Backend is currently disconnected or the endpoint is missing. Showing high-fidelity preview data to demonstrate layout and aesthetics.
-                <span className="block md:inline md:ml-2 text-white font-black underline underline-offset-2">Real API integration remains active and will take over automatically once connected.</span>
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Header */}
       <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">

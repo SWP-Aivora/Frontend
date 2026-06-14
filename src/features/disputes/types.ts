@@ -1,11 +1,11 @@
 /**
- * Dispute Status Enum (as const object forerasableSyntaxOnly compliance)
+ * Dispute Status Enum (matching Backend string enum serialization)
  */
 export const DisputeStatus = {
-  PENDING: 0,
-  RESOLVING: 1,
-  RESOLVED: 2,
-  CANCELLED: 3,
+  OPEN: 'OPEN',
+  UNDER_REVIEW: 'UNDER_REVIEW',
+  RESOLVED: 'RESOLVED',
+  CLOSED: 'CLOSED',
 } as const;
 
 export type DisputeStatus = typeof DisputeStatus[keyof typeof DisputeStatus];
@@ -14,10 +14,10 @@ export type DisputeStatus = typeof DisputeStatus[keyof typeof DisputeStatus];
  * Dispute Resolution Types
  */
 export const DisputeResolutionType = {
-  RELEASE_TO_EXPERT: 0,
-  REFUND_TO_CLIENT: 1,
-  SPLIT_PAYMENT: 2,
-  EXPERT_WORK_REDO: 3,
+  RELEASE_TO_EXPERT: 'RELEASE_TO_EXPERT',
+  REFUND_TO_CLIENT: 'REFUND_TO_CLIENT',
+  SPLIT_PAYMENT: 'SPLIT_PAYMENT',
+  REQUEST_REVISION: 'REQUEST_REVISION',
 } as const;
 
 export type DisputeResolutionType = typeof DisputeResolutionType[keyof typeof DisputeResolutionType];
@@ -49,6 +49,8 @@ export interface Dispute {
   clientName: string;
   expertId: string;
   expertName: string;
+  openerName?: string; // Backend field
+  againstUserName?: string; // Backend field
   reason: string;
   description?: string | null;
   status: DisputeStatus;

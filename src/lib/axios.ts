@@ -1,6 +1,7 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { env } from './env';
 import { API_ENDPOINTS } from '@/shared/constants';
+import { useAuthStore } from '@/features/auth/store';
 
 // Axios Instance Configuration
 const axiosInstance = axios.create({
@@ -28,7 +29,7 @@ const processQueue = (error: AxiosError | null, token: string | null = null) => 
 // Request Interceptor: Attach Bearer Token
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('accessToken');
+    const token = useAuthStore.getState().accessToken;
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }

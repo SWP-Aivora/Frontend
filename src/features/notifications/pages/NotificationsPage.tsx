@@ -16,8 +16,7 @@ export const NotificationsPage = () => {
   });
   
   const { data: unreadResponse } = useUnreadCount();
-  const unreadData = unreadResponse?.data;
-  const unreadCount = typeof unreadData === 'number' ? unreadData : unreadData?.count || 0;
+  const unreadCount = unreadResponse?.data || 0;
 
   // Mutations
   const { markAsRead, markAllAsRead } = useNotificationActions();
@@ -55,7 +54,7 @@ export const NotificationsPage = () => {
               onClick={() => markAllAsRead()}
               className="bg-primary text-white px-5 py-2.5 rounded-full text-xs font-semibold shadow-sm hover:bg-primary/90 transition-colors w-full"
             >
-              Mark Read
+              Mark All Read
             </button>
             <button className="bg-white border border-slate-200 text-primary px-5 py-2.5 rounded-full text-xs font-semibold hover:bg-slate-50 transition-colors w-full">
               Settings
@@ -65,7 +64,7 @@ export const NotificationsPage = () => {
       </div>
 
       {/* Metrics */}
-      <NotificationStats unreadCount={unreadCount} />
+      <NotificationStats unreadCount={unreadCount} totalCount={notificationsData?.metadata?.totalCount || 0} />
 
       {/* Filters */}
       <NotificationFilters searchTerm={searchTerm} onSearchChange={setSearchTerm} />

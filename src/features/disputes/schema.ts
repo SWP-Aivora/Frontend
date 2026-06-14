@@ -15,6 +15,7 @@ export type OpenDisputeFormData = z.infer<typeof openDisputeSchema>;
  */
 export const addEvidenceSchema = z.object({
   content: z.string().min(20, 'Evidence content must be at least 20 characters'),
+  fileUrl: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
 });
 
 export type AddEvidenceFormData = z.infer<typeof addEvidenceSchema>;
@@ -23,7 +24,7 @@ export type AddEvidenceFormData = z.infer<typeof addEvidenceSchema>;
  * Zod Schema for Resolving a Dispute (Admin)
  */
 export const resolveDisputeSchema = z.object({
-  resolutionType: z.number({ required_error: 'Please select a resolution type' }),
+  resolutionType: z.string({ required_error: 'Please select a resolution type' }),
   resolutionNote: z.string().min(50, 'Resolution note must be at least 50 characters'),
   releaseAmount: z.number().min(0).optional().nullable(),
   refundAmount: z.number().min(0).optional().nullable(),

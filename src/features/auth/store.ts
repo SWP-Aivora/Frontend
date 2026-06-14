@@ -6,9 +6,13 @@ interface AuthState {
   user: User | null;
   accessToken: string | null;
   isAuthenticated: boolean;
+  isHydrated: boolean;
+  isLoading: boolean;
   error: string | null;
-  setAuth: (user: User, token: string) => void;
+  setAuth: (user: User, token: string, refreshToken?: string) => void;
+  setUser: (user: User) => void;
   setError: (error: string | null) => void;
+  setLoading: (isLoading: boolean) => void;
   logout: () => void;
 }
 
@@ -21,12 +25,17 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       accessToken: null,
       isAuthenticated: false,
+      isHydrated: false,
+      isLoading: false,
       error: null,
-      setAuth: (user, token) => {
+      setAuth: (user, token, refreshToken) => {
         localStorage.setItem('accessToken', token);
+        if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
         set({ user, accessToken: token, isAuthenticated: true, error: null });
       },
+      setUser: (user) => set({ user }),
       setError: (error) => set({ error }),
+      setLoading: (isLoading) => set({ isLoading }),
       logout: () => {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
@@ -35,6 +44,16 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'aivora-auth-store',
+      partialize: (state) => ({ 
+        user: state.user, 
+        accessToken: state.accessToken, 
+        isAuthenticated: state.isAuthenticated 
+      }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.isHydrated = true;
+        }
+      },
     }
   )
 );

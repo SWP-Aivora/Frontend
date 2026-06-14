@@ -1,36 +1,69 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Search, Users, Zap, Clock, Star, 
   CheckCircle, Twitter, Github, Linkedin 
 } from 'lucide-react';
 import { Button, Input } from '../components/ui';
+import { useAuthStore } from '@/features/auth/store';
+import { UserMenu } from '../components/common';
+import { authService } from '@/features/auth/services';
+import { profileService } from '@/features/profiles/services';
+import { categoryService, type Category } from '../services/categoryService';
 
 const Navbar: React.FC = () => {
+  const { isAuthenticated, user, setUser } = useAuthStore();
+
+  // Hydrate user data if authenticated but user details are missing
+  useEffect(() => {
+    const hydrateUser = async () => {
+      if (isAuthenticated && !user?.fullName) {
+        try {
+          const response = await authService.getMe();
+          if (response.success && response.data) {
+            setUser(response.data);
+          }
+        } catch {
+          // Silent fail on landing page to avoid distracting errors
+        }
+      }
+    };
+    hydrateUser();
+  }, [isAuthenticated, user?.fullName, setUser]);
+
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/80 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
         <div className="flex items-center gap-10">
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-bold transition-transform group-hover:scale-105">
-              A
+          <Link to="/" className="flex items-center group shrink-0">
+            <div className="relative w-40 h-14 overflow-hidden flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+              <img 
+                src="/logo.png" 
+                alt="AIVORA" 
+                className="w-full h-full object-contain scale-[1.8]" 
+              />
             </div>
-            <span className="text-xl font-bold text-brand-blue-dark tracking-tight">AIVORA</span>
           </Link>
           <div className="hidden md:flex items-center gap-8">
-            <Link to="/" className="text-sm font-medium text-slate-900">Home</Link>
-            <Link to="/experts" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">Explore Experts</Link>
-            <Link to="/jobs/post" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">Post a Job</Link>
-            <Link to="/about" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">About</Link>
+            <a href="#top" className="text-sm font-medium text-slate-900">Home</a>
+            <a href="#explore-experts" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">Explore Experts</a>
+            <a href="#post-job" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">Post a Job</a>
+            <a href="#about" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">About</a>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/login">Sign in</Link>
-          </Button>
-          <Button size="sm" asChild className="shadow-aivora">
-            <Link to="/register">Get Started</Link>
-          </Button>
+          {isAuthenticated ? (
+            <UserMenu />
+          ) : (
+            <>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/login">Sign in</Link>
+              </Button>
+              <Button size="sm" asChild className="shadow-aivora">
+                <Link to="/register">Get Started</Link>
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </nav>
@@ -39,9 +72,7 @@ const Navbar: React.FC = () => {
 
 const Hero: React.FC = () => {
   return (
-    <section className="relative pt-16 pb-24 lg:pt-24 lg:pb-32 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-hero -z-10" />
-      
+    <section className="relative pt-12 pb-16 lg:pt-16 lg:pb-24 overflow-hidden bg-[#F3F6FA]">
       {/* Decorative elements */}
       <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 -z-10" />
       <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-blue-100/20 rounded-full blur-3xl translate-x-1/4 translate-y-1/4 -z-10" />
@@ -153,37 +184,59 @@ const SectionHeader: React.FC<{
 };
 
 const Categories: React.FC = () => {
-  const categories = [
-    { title: 'Chatbot Development', icon: 'CH', description: 'Build intelligent customer support chatbots for websites, apps, and business platforms.', color: 'text-blue-600', bg: 'bg-blue-50' },
-    { title: 'RAG Systems', icon: 'RA', description: 'Create AI systems that retrieve accurate information from documents and knowledge bases.', color: 'text-purple-600', bg: 'bg-purple-50' },
-    { title: 'Natural Language Processing', icon: 'NA', description: 'Analyze, classify, summarize, and process text data using advanced NLP techniques.', color: 'text-sky-600', bg: 'bg-sky-50' },
-    { title: 'AI Automation', icon: 'AI', description: 'Automate repetitive business tasks using AI workflows and smart integrations.', color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { title: 'Prompt Engineering', icon: 'PR', description: 'Design effective prompts for assistants, content generation, and business workflows.', color: 'text-orange-600', bg: 'bg-orange-50' },
-    { title: 'AI Integration', icon: 'AI', description: 'Connect AI features with existing systems, applications, and internal tools.', color: 'text-pink-600', bg: 'bg-pink-50' },
-  ];
+  const [categories, setCategories] = React.useState<Category[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await categoryService.getCategories();
+        if (response.success && response.data) {
+          setCategories(response.data.slice(0, 7));
+        }
+      } catch {
+        // Silent fail to keep landing page clean
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   return (
-    <section className="py-24 bg-white">
+    <section className="py-16 lg:py-20 bg-white overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeader 
           badge="Popular AI Service Areas"
           title="Featured AI Categories"
-          description="Quickly explore the most requested expert categories for AI-powered business projects."
+          description="Browse AI service categories available on AIVORA and find the right expert faster."
         />
         
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {categories.map((cat, i) => (
-            <div key={i} className="group p-8 rounded-xl border border-slate-100 bg-white shadow-sm hover:shadow-aivora transition-all duration-300 hover:-translate-y-1">
-              <div className={`w-12 h-12 ${cat.bg} ${cat.color} rounded-xl flex items-center justify-center font-bold text-lg mb-6 group-hover:scale-110 transition-transform`}>
-                {cat.icon}
+        <div className="relative">
+          <div className="flex flex-nowrap gap-6 overflow-x-auto pb-8 custom-scrollbar scroll-smooth -mx-4 px-4 sm:mx-0 sm:px-0">
+            {isLoading ? (
+               // Loading skeletons
+               Array.from({ length: 5 }).map((_, i) => (
+                 <div key={i} className="shrink-0 w-[260px] h-[160px] bg-slate-50 border border-slate-100 rounded-xl animate-pulse" />
+               ))
+            ) : categories.length > 0 ? (
+              categories.map((cat) => (
+                <div key={cat.id} className="shrink-0 w-[260px] p-6 rounded-xl border border-slate-100 bg-white shadow-sm hover:shadow-aivora transition-all duration-300 hover:-translate-y-1">
+                  <div className="w-10 h-10 bg-primary/5 text-primary rounded-xl flex items-center justify-center font-bold text-xs mb-4">
+                    {cat.name.substring(0, 2).toUpperCase()}
+                  </div>
+                  <h3 className="text-base font-bold text-slate-900 mb-1.5 truncate" title={cat.name}>{cat.name}</h3>
+                  <p className="text-slate-500 text-[11px] leading-relaxed line-clamp-2 h-8">
+                    {cat.description || 'Explore expert services in this category.'}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <div className="w-full py-12 text-center text-slate-400 text-sm italic">
+                No categories available yet.
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-3">{cat.title}</h3>
-              <p className="text-slate-600 text-sm leading-relaxed mb-6">{cat.description}</p>
-              <Link to={`/categories/${cat.title.toLowerCase().replace(/\s+/g, '-')}`} className="inline-flex items-center text-sm font-bold text-primary hover:gap-2 transition-all">
-                Explore <span>→</span>
-              </Link>
-            </div>
-          ))}
+            )}
+          </div>
         </div>
       </div>
     </section>
@@ -193,16 +246,16 @@ const Categories: React.FC = () => {
 const Process: React.FC = () => {
   const steps = [
     { title: 'Describe Your AI Project', description: 'Enter the idea, expected outcome, budget, and timeline.', number: '01' },
-    { title: 'Get AI Assistance', description: 'AIVORA clarifies requirements and generates a better project description.', number: '02', active: true },
+    { title: 'Get AI Assistance', description: 'AIVORA clarifies requirements and generates a better project description.', number: '02' },
     { title: 'Find Suitable Experts', description: 'Qualified experts are recommended based on project needs.', number: '03' },
     { title: 'Start Collaboration', description: 'Discuss details, agree on milestones, and begin the work.', number: '04' },
     { title: 'Complete, Pay, Review', description: 'Release payment and leave feedback after delivery.', number: '05' },
   ];
 
   return (
-    <section className="py-24 bg-slate-50">
+    <section className="py-16 lg:py-20 bg-slate-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-16 gap-6">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-8 gap-6">
           <SectionHeader 
             badge="How AIVORA Works"
             title="A simple path to trusted AI work"
@@ -212,12 +265,19 @@ const Process: React.FC = () => {
         
         <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {steps.map((step, i) => (
-            <div key={i} className={`relative p-8 rounded-xl border transition-all duration-300 ${step.active ? 'bg-primary text-white border-primary shadow-xl shadow-primary/20 scale-105 z-10' : 'bg-white text-slate-900 border-slate-100 shadow-sm hover:shadow-md'}`}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm mb-12 ${step.active ? 'bg-white/20 text-white' : 'bg-blue-50 text-primary'}`}>
+            <div 
+              key={i} 
+              className="group relative p-8 rounded-xl border bg-white text-slate-900 border-slate-100 shadow-sm transition-all duration-300 hover:bg-primary hover:text-white hover:border-primary hover:shadow-xl hover:shadow-primary/20 hover:scale-105 hover:z-20 cursor-default"
+            >
+              <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm mb-12 bg-blue-50 text-primary transition-colors duration-300 group-hover:bg-white/20 group-hover:text-white">
                 {step.number}
               </div>
-              <h3 className={`text-lg font-bold mb-3 ${step.active ? 'text-white' : 'text-slate-900'}`}>{step.title}</h3>
-              <p className={`text-sm leading-relaxed ${step.active ? 'text-blue-100' : 'text-slate-600'}`}>{step.description}</p>
+              <h3 className="text-lg font-bold mb-3 transition-colors duration-300 group-hover:text-white">
+                {step.title}
+              </h3>
+              <p className="text-sm leading-relaxed text-slate-600 transition-colors duration-300 group-hover:text-blue-100">
+                {step.description}
+              </p>
             </div>
           ))}
         </div>
@@ -226,61 +286,121 @@ const Process: React.FC = () => {
   );
 };
 
+type FeaturedExpert = {
+  userId: string;
+  fullName: string;
+  avatarUrl: string | null;
+  title: string;
+  bio: string;
+  experienceYears: number;
+  rating: number;
+  role: string;
+};
+
 const Experts: React.FC = () => {
-  const experts = [
-    { name: 'An Nguyen', role: 'AI Chatbot Expert', experience: '3+ years', rating: 4.9, tags: ['Chatbots', 'NLP', 'Automation'], initials: 'AN' },
-    { name: 'Binh Tran', role: 'NLP Engineer', experience: '4+ years', rating: 4.9, tags: ['Text processing', 'Extraction', 'Language'], initials: 'BT' },
-    { name: 'Chi Le', role: 'AI Backend Developer', experience: '5+ years', rating: 4.9, tags: ['Scalable AI', 'Backend', 'Integrations'], initials: 'CL' },
-  ];
+  const [experts, setExperts] = React.useState<FeaturedExpert[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchExperts = async () => {
+      try {
+        const response = await profileService.getFeaturedExperts(4);
+        if (response.success && response.data) {
+          const rawItems = response.data;
+          
+          // Map and normalize fields
+          const normalized: FeaturedExpert[] = rawItems.map((item): FeaturedExpert => ({
+            userId: item.userId || '',
+            fullName: item.fullName || 'Anonymous Expert',
+            avatarUrl: item.avatarUrl || null,
+            title: item.title || 'AI Expert',
+            bio: item.bio || 'Highly skilled AI professional specialized in delivering impactful technology solutions.',
+            experienceYears: item.experienceYears ?? 0,
+            rating: item.rating ?? 0,
+            role: 'EXPERT'
+          }));
+
+          // Filter by Expert role just in case
+          const expertOnly = normalized.filter(u => 
+            u.role.toUpperCase() === 'EXPERT'
+          );
+
+          setExperts(expertOnly.slice(0, 4));
+        }
+      } catch {
+        // Silent fail
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchExperts();
+  }, []);
 
   return (
-    <section className="py-24 bg-white">
+    <section className="py-16 lg:py-20 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeader 
           badge="Featured Experts"
           title="Trusted AI experts ready for project work"
-          description="Sample profile cards show the trust-building information clients expect before starting a project."
+          description="Meet selected AI experts from AIVORA who are ready to support real project work."
         />
         
-        <div className="grid md:grid-cols-3 gap-8">
-          {experts.map((expert, i) => (
-            <div key={i} className="p-8 rounded-[2rem] border border-slate-100 bg-white shadow-sm hover:shadow-aivora-large transition-all duration-500 hover:-translate-y-2">
-              <div className="flex items-start justify-between mb-8">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-full bg-slate-900 flex items-center justify-center text-white font-bold text-xl">
-                    {expert.initials}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {isLoading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-[400px] rounded-[2rem] border border-slate-100 bg-slate-50 animate-pulse" />
+            ))
+          ) : experts.length > 0 ? (
+            experts.map((expert) => (
+              <div key={expert.userId} className="flex flex-col p-6 rounded-[2rem] border border-slate-100 bg-white shadow-sm hover:shadow-aivora-large transition-all duration-500 hover:-translate-y-2 h-full">
+                <div className="flex items-start justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="size-12 rounded-full bg-slate-900 flex items-center justify-center text-white font-bold text-lg overflow-hidden shrink-0 shadow-sm border border-slate-200">
+                      {expert.avatarUrl ? (
+                        <img src={expert.avatarUrl} alt={expert.fullName} className="w-full h-full object-cover" />
+                      ) : (
+                        (expert.fullName || 'U').split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-black text-slate-900 truncate" title={expert.fullName}>{expert.fullName}</h3>
+                      <p className="text-slate-500 text-[10px] font-black uppercase tracking-tighter truncate opacity-70">{expert.title}</p>
+                    </div>
                   </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2 mb-4 pt-4 border-t border-slate-50">
                   <div>
-                    <h3 className="text-xl font-bold text-slate-900">{expert.name}</h3>
-                    <p className="text-slate-500 text-sm font-medium">{expert.role}</p>
+                    <p className="text-xs font-bold text-slate-900">{expert.experienceYears}+ years</p>
+                    <p className="text-[10px] text-slate-400 uppercase font-black">Exp.</p>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <div className="flex items-center gap-1 text-xs font-bold text-slate-900">
+                      <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                      <span>{expert.rating.toFixed(1)}</span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 uppercase font-black">Rating</p>
                   </div>
                 </div>
-                <div className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-xs font-bold">Available</div>
+                
+                <p className="text-slate-500 text-xs mb-6 leading-relaxed line-clamp-3 flex-1 overflow-hidden">
+                  {expert.bio}
+                </p>
+                
+                <Link 
+                  to={expert.userId ? `/experts/${expert.userId}` : '#'} 
+                  className="w-full py-2.5 px-4 rounded-xl border border-slate-200 text-slate-700 text-[10px] font-black uppercase tracking-widest text-center hover:bg-slate-50 transition-colors mt-auto shadow-sm"
+                >
+                  View Profile
+                </Link>
               </div>
-              
-              <div className="grid grid-cols-2 gap-4 mb-6 pt-6 border-t border-slate-50">
-                <div>
-                  <p className="text-sm font-bold text-slate-900">{expert.experience}</p>
-                  <p className="text-xs text-slate-500">Experience</p>
-                </div>
-                <div className="flex flex-col items-end">
-                  <div className="flex items-center gap-1 text-sm font-bold text-slate-900">
-                    <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                    <span>{expert.rating}</span>
-                  </div>
-                  <p className="text-xs text-slate-500">Rating</p>
-                </div>
-              </div>
-              
-              <p className="text-slate-600 text-sm mb-8 leading-relaxed">
-                {expert.tags.join(', ')}
-              </p>
-              
-              <Button variant="outline" className="w-full rounded-xl group">
-                View Profile <span className="ml-2 group-hover:translate-x-1 transition-transform">→</span>
-              </Button>
+            ))
+          ) : (
+            <div className="col-span-full py-20 text-center flex flex-col items-center gap-4">
+              <Users className="size-12 text-slate-100" />
+              <p className="text-slate-400 text-sm font-bold italic">No featured experts available yet.</p>
             </div>
-          ))}
+          )}
         </div>
       </div>
     </section>
@@ -296,7 +416,7 @@ const Services: React.FC = () => {
   ];
 
   return (
-    <section className="py-24 bg-slate-50">
+    <section className="py-16 lg:py-20 bg-slate-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeader 
           badge="Featured AI Services"
@@ -323,7 +443,7 @@ const Services: React.FC = () => {
 
 const TrustUpdates: React.FC = () => {
   return (
-    <section className="py-24 bg-white">
+    <section className="py-16 lg:py-20 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-8">
           <div className="p-10 rounded-[2.5rem] bg-gradient-to-br from-white to-blue-50 border border-slate-100 shadow-aivora-large relative overflow-hidden">
@@ -378,7 +498,7 @@ const FooterCTA: React.FC = () => {
           <p className="text-blue-200 text-sm font-bold tracking-widest uppercase mb-4">Start building with AI experts today</p>
           <h2 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">From idea to verified expert shortlist.</h2>
           <p className="text-blue-100 text-lg mb-10 leading-relaxed">Whether you need an AI solution or want to offer your expertise, AIVORA gives you a clear, trusted way to collaborate.</p>
-          <div className="flex flex-wrap gap-4">
+          <div className="flex-wrap flex gap-4">
             <Button size="lg" className="bg-white text-primary hover:bg-blue-50 border-none px-10 rounded-full font-bold">
               Sign Up as Client
             </Button>
@@ -398,7 +518,7 @@ const FooterCTA: React.FC = () => {
 
 const Footer: React.FC = () => {
   return (
-    <footer className="bg-white pt-24 pb-12">
+    <footer className="bg-white pt-16 lg:pt-20 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
           <div className="col-span-1 lg:col-span-1">
@@ -456,6 +576,57 @@ const Footer: React.FC = () => {
   );
 };
 
+const AboutSection: React.FC = () => {
+  return (
+    <section id="about" className="py-16 lg:py-20 bg-white overflow-hidden relative">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid lg:grid-cols-2 gap-16 items-center">
+          <div className="relative animate-in fade-in slide-in-from-left duration-1000">
+            <div className="relative z-10 rounded-3xl overflow-hidden shadow-2xl border border-slate-100 bg-slate-50 aspect-video flex items-center justify-center p-12">
+               <div className="text-center">
+                  <div className="size-20 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6 text-primary">
+                     <Users className="size-10" />
+                  </div>
+                  <p className="text-2xl font-black text-slate-900">AIVORA Platform</p>
+                  <p className="text-slate-500 font-medium mt-2 uppercase tracking-widest text-xs">The Future of AI Collaboration</p>
+               </div>
+            </div>
+            {/* Decorative blobs */}
+            <div className="absolute -top-10 -left-10 size-40 bg-blue-100/50 rounded-full blur-3xl -z-10" />
+            <div className="absolute -bottom-10 -right-10 size-40 bg-primary/10 rounded-full blur-3xl -z-10" />
+          </div>
+
+          <div>
+            <SectionHeader 
+              badge="Our Identity"
+              title="The AI Expert Marketplace for Business Solutions"
+              description="AIVORA is built to bridge the gap between complex business needs and qualified AI technical expertise. We provide the tools, protection, and matching logic to ensure projects succeed."
+            />
+            
+            <div className="space-y-6">
+              {[
+                { title: 'Trusted Network', desc: 'Every expert on AIVORA undergoes a verification process to ensure technical capability.' },
+                { title: 'Scoped Success', desc: 'Our AI-assisted job builder helps turn vague ideas into structured, executable project descriptions.' },
+                { title: 'Escrow Protection', desc: 'Payments are held securely and only released when milestones are successfully delivered.' }
+              ].map((item, i) => (
+                <div key={i} className="flex gap-4">
+                  <div className="size-6 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 mt-1">
+                    <CheckCircle className="size-4 text-emerald-500" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 mb-1">{item.title}</h4>
+                    <p className="text-sm text-slate-500 leading-relaxed">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
 /**
  * AIVORA Landing Page
  * 
@@ -463,15 +634,26 @@ const Footer: React.FC = () => {
  */
 export const LandingPage: React.FC = () => {
   return (
-    <div className="min-h-screen bg-white selection:bg-primary/10 selection:text-primary">
+    <div id="top" className="min-h-screen bg-white selection:bg-primary/10 selection:text-primary scroll-smooth">
       <Navbar />
       <main>
         <Hero />
-        <Categories />
-        <Process />
-        <Experts />
-        <Services />
-        <TrustUpdates />
+        
+        <div id="explore-experts">
+           <Categories />
+           <Experts />
+           <Services />
+        </div>
+
+        <div id="post-job">
+           <Process />
+        </div>
+
+        <div id="about">
+           <AboutSection />
+           <TrustUpdates />
+        </div>
+
         <FooterCTA />
       </main>
       <Footer />

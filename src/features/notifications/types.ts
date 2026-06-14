@@ -50,7 +50,3 @@ export interface NotificationsQuery {
   DateRange?: string;
 }
 
-export interface UnreadCountResponse {
-  count: number;
-}
-

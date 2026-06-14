@@ -31,7 +31,7 @@ export const LoginForm = () => {
       if (response.success) {
         const authData = response.data;
         // Pass the entire flat response as the user object since it contains user fields
-        setAuth(authData, authData.accessToken);
+        setAuth(authData, authData.accessToken, authData.refreshToken);
         
         toast.success('Login successful!');
         

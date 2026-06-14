@@ -20,11 +20,11 @@ export const NotificationDropdown = ({ role }: NotificationDropdownProps) => {
   });
 
   const { data: unreadResponse } = useUnreadCount();
-  const unreadData = unreadResponse?.data;
-  const unreadCount = typeof unreadData === 'number' ? unreadData : unreadData?.count || 0;
+  const unreadCount = unreadResponse?.data || 0;
 
   // Filter unread notifications on frontend as API doesn't support unread filter yet
-  const unreadNotifications = (notificationsData?.data || [])
+  const notificationsArray = Array.isArray(notificationsData?.data) ? notificationsData.data : [];
+  const unreadNotifications = notificationsArray
     .filter(n => !n.isRead && n.status !== NotificationStatus.READ)
     .slice(0, 5);
 
