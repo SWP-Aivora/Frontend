@@ -145,6 +145,7 @@ export const JobDraftForm = ({
                     <div className="flex-1 space-y-2">
                        <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Max ({suggestion.currency || 'Xu'})</label>
                        <Input type="number" {...register('budgetMax', { valueAsNumber: true })} className="h-11 rounded-xl bg-slate-50" />
+                       {errors.budgetMax && <p className="text-xs text-rose-500 font-bold ml-1">{errors.budgetMax.message}</p>}
                     </div>
                  </div>
                  <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100">
