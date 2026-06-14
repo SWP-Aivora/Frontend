@@ -1,75 +1,306 @@
-import { IdeaInputForm } from '../components/IdeaInputForm';
-import { AiAssistantChat } from '../components/AiAssistantChat';
-import { Sparkles, ArrowRight, Lightbulb } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
+import { Sparkles, Rocket, Loader2, AlertCircle } from 'lucide-react';
+import { Button } from '@/shared/components/ui/Button';
+import { AiChatPanel } from '../components/AiChatPanel';
+import { JobDraftForm } from '../components/JobDraftForm';
+import { ExpertMatchInsights } from '../components/ExpertMatchInsights';
+import { jobService } from '../services';
+import type { ChatMessage, AiJobSuggestion, PatchAiJobSuggestionRequest } from '../types';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+import { useDebouncedCallback } from '@/shared/hooks/useDebounce';
 
-const ASSETS = {
-  heroGlow: "https://www.figma.com/api/mcp/asset/47fc91e8-2c0d-440d-b7eb-9771cd3e88d7",
-};
+type FlowStep = 'PLANNING' | 'DRAFTING' | 'MATCHING';
 
 export const PostJobPage = () => {
+  const [step, setStep] = useState<FlowStep>('PLANNING');
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: 'welcome',
+      role: 'assistant',
+      content: "Hi! I'm your AIVORA AI Assistant. What project do you have in mind today? Just describe it naturally, and I'll build the full requirements for you.",
+      createdAt: new Date().toISOString()
+    }
+  ]);
+  const [suggestion, setSuggestion] = useState<AiJobSuggestion | null>(null);
+  const [createdJobId, setJobId] = useState<string | null>(null);
+
+  // --- Refs for stale closure guards ---
+  const isBusyRef = useRef(false);
+  const prevSuggestionRef = useRef<AiJobSuggestion | null>(null);
+
+  // --- Queries ---
+  const { 
+    data: recommendationsResponse, 
+    isLoading: isMatching,
+    isError: isMatchError,
+    refetch: refetchMatches
+  } = useQuery({
+    queryKey: ['jobRecommendations', createdJobId],
+    queryFn: () => {
+      if (!createdJobId) throw new Error('Job ID is missing');
+      return jobService.getRecommendations(createdJobId);
+    },
+    enabled: !!createdJobId && step === 'MATCHING',
+  });
+
+  // --- Mutations ---
+
+  const initMutation = useMutation({
+    mutationFn: (prompt: string) => jobService.initAiJobAssistant(prompt),
+    onSuccess: (response) => {
+      setSuggestion(response.data);
+      setStep('DRAFTING');
+      setMessages(prev => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: "I've analyzed your requirements and generated a project draft. You can see the details on the right. Would you like to change anything?",
+          createdAt: new Date().toISOString()
+        }
+      ]);
+    },
+    onError: (error: unknown) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to start AI assistant');
+    }
+  });
+
+  const refineMutation = useMutation({
+    mutationFn: (prompt: string) => {
+      if (!suggestion?.id) throw new Error('No active session. Please try restarting the chat.');
+      return jobService.refineAiJobSuggestion(suggestion.id, prompt);
+    },
+    onSuccess: (response) => {
+      setSuggestion(response.data);
+      setMessages(prev => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          role: 'system',
+          content: "Draft updated based on your feedback",
+          createdAt: new Date().toISOString()
+        }
+      ]);
+    },
+    onError: (error: unknown) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to update draft');
+    }
+  });
+
+  const patchMutation = useMutation({
+    mutationFn: (data: PatchAiJobSuggestionRequest) => {
+      if (!suggestion?.id) throw new Error('No active session');
+      return jobService.patchAiJobSuggestion(suggestion.id, data);
+    },
+    onSuccess: (response) => {
+      setSuggestion(response.data);
+    },
+    onError: () => {
+      // Revert optimistic update
+      if (prevSuggestionRef.current) {
+        setSuggestion(prevSuggestionRef.current);
+      }
+      toast.error('Failed to sync changes with AI');
+    }
+  });
+
+  const acceptMutation = useMutation({
+    mutationFn: () => {
+      if (!suggestion?.id) throw new Error('No active session');
+      return jobService.acceptAiJobSuggestion(suggestion.id);
+    },
+    onSuccess: (response) => {
+      setJobId(response.data.jobId);
+      setStep('MATCHING');
+      toast.success('Project published successfully!');
+    },
+    onError: (error: unknown) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to publish project');
+    }
+  });
+
+  // Track busy state for beforeunload
+  useEffect(() => {
+    isBusyRef.current = initMutation.isPending || refineMutation.isPending || acceptMutation.isPending || patchMutation.isPending;
+  }, [initMutation.isPending, refineMutation.isPending, acceptMutation.isPending, patchMutation.isPending]);
+
+  // --- Blocking navigation when busy ---
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isBusyRef.current) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
+  // --- Handlers ---
+
+  const handleInitialSend = async (text: string) => {
+    setMessages(prev => [...prev, { id: `user-${crypto.randomUUID()}`, role: 'user', content: text, createdAt: new Date().toISOString() }]);
+    return initMutation.mutateAsync(text);
+  };
+
+  const handleRefine = async (text: string) => {
+    setMessages(prev => [...prev, { id: `user-${crypto.randomUUID()}`, role: 'user', content: text, createdAt: new Date().toISOString() }]);
+    return refineMutation.mutateAsync(text);
+  };
+
+  const pendingPatchRef = useRef<PatchAiJobSuggestionRequest>({});
+
+  const debouncedPatch = useDebouncedCallback(() => {
+    if (Object.keys(pendingPatchRef.current).length > 0) {
+      patchMutation.mutate(pendingPatchRef.current);
+      pendingPatchRef.current = {}; // Reset after sending
+    }
+  }, 800);
+
+  const handleManualUpdate = (data: Partial<AiJobSuggestion>) => {
+    if (suggestion) {
+      // Optimistic local update
+      setSuggestion({ ...suggestion, ...data });
+      
+      // Accumulate patch request
+      if (data.suggestedTitle !== undefined) pendingPatchRef.current.suggestedTitle = data.suggestedTitle;
+      if (data.suggestedDescription !== undefined) pendingPatchRef.current.suggestedDescription = data.suggestedDescription;
+      if (data.businessDomain !== undefined) pendingPatchRef.current.businessDomain = data.businessDomain;
+      if (data.expectedOutcome !== undefined) pendingPatchRef.current.expectedOutcome = data.expectedOutcome;
+      if (data.budgetType !== undefined) pendingPatchRef.current.budgetType = data.budgetType;
+      if (data.suggestedBudgetMin !== undefined) pendingPatchRef.current.suggestedBudgetMin = data.suggestedBudgetMin;
+      if (data.suggestedBudgetMax !== undefined) pendingPatchRef.current.suggestedBudgetMax = data.suggestedBudgetMax;
+      if (data.currency !== undefined) pendingPatchRef.current.currency = data.currency;
+      if (data.suggestedTimelineDays !== undefined) pendingPatchRef.current.suggestedTimelineDays = data.suggestedTimelineDays;
+      if (data.experienceLevel !== undefined) pendingPatchRef.current.experienceLevel = data.experienceLevel;
+      if (data.suggestedSkills !== undefined) pendingPatchRef.current.suggestedSkills = data.suggestedSkills;
+      if (data.suggestedMilestones !== undefined) pendingPatchRef.current.suggestedMilestones = data.suggestedMilestones;
+
+      debouncedPatch();
+    }
+  };
+
+  const handleSaveDraft = () => {
+    // If there are pending patches, flush them immediately
+    if (Object.keys(pendingPatchRef.current).length > 0) {
+      patchMutation.mutate(pendingPatchRef.current);
+      pendingPatchRef.current = {};
+    }
+    toast.success('Draft saved locally');
+  };
+
+  const handleAccept = () => {
+    acceptMutation.mutate();
+  };
+
+  // --- Render ---
+
+  if (step === 'MATCHING') {
+    return (
+      <div className="max-w-6xl mx-auto px-4">
+        {isMatching ? (
+          <div className="py-20 flex flex-col items-center justify-center space-y-4">
+            <Loader2 className="size-12 text-primary animate-spin" />
+            <p className="text-slate-500 font-bold animate-pulse uppercase tracking-widest text-xs">Finding best matches...</p>
+          </div>
+        ) : isMatchError ? (
+          <div className="py-20 flex flex-col items-center justify-center space-y-6">
+            <div className="size-16 rounded-2xl bg-rose-50 flex items-center justify-center">
+              <AlertCircle className="size-8 text-rose-500" />
+            </div>
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-black text-slate-900">Unable to load recommendations</h3>
+              <p className="text-slate-500 font-medium max-w-sm">We couldn't analyze matching experts at this moment. You can still manage your project in the dashboard.</p>
+            </div>
+            <div className="flex gap-3">
+              <Button onClick={() => refetchMatches()} variant="outline" className="rounded-full px-8">Retry Analysis</Button>
+              <Button asChild className="rounded-full px-8"><Link to="/client/projects">Go to Projects</Link></Button>
+            </div>
+          </div>
+        ) : (
+          <ExpertMatchInsights 
+            experts={recommendationsResponse?.data || []} 
+          />
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-10 animate-in fade-in duration-500">
-      {/* Hero Section */}
-      <div className="bg-white border border-slate-100 rounded-xl p-10 shadow-2xl relative overflow-hidden">
-        <div className="absolute -right-20 -top-20 size-96 pointer-events-none opacity-40">
-           <img src={ASSETS.heroGlow} alt="" className="size-full" />
+    <div className="h-[calc(100vh-140px)] flex flex-col gap-6 animate-in fade-in duration-700">
+      {/* Header Info */}
+      <div className="flex items-center justify-between shrink-0 bg-white border border-slate-100 p-4 rounded-2xl shadow-sm">
+        <div className="flex items-center gap-4">
+           <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Sparkles className="size-5 text-primary" />
+           </div>
+           <div>
+              <h1 className="text-lg font-black text-slate-900 leading-none text-left">AI Project Architect</h1>
+              <p className="text-xs font-medium text-slate-500 mt-1 text-left">Transform your ideas into high-quality technical requirements.</p>
+           </div>
         </div>
         
-        <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-10">
-          <div className="flex-1 space-y-4">
-             <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/5 rounded-full border border-primary/10">
-                <Sparkles className="size-3 text-primary" />
-                <span className="text-xs font-bold text-primary tracking-widest uppercase">AI-Powered Job Creation</span>
-             </div>
-             <h1 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-               Turn Your AI Idea into a <br />
-               <span className="text-primary text-transparent bg-clip-text bg-gradient-to-r from-primary to-brand-accent">Clear Job Post</span>
-             </h1>
-             <p className="text-lg text-slate-500 font-medium max-w-2xl leading-relaxed">
-               Describe your project in simple words, and AIVORA will generate a structured job description with skills, budget suggestions, and milestones.
-             </p>
-             
-             {/* Progress Steps */}
-             <div className="flex items-center gap-3 pt-4">
-                {[1, 2, 3, 4].map((step) => (
-                  <div key={step} className={`h-2 rounded-full transition-all duration-500 ${step === 1 ? 'w-12 bg-primary shadow-[0_0_8px_rgba(37,99,235,0.4)]' : 'w-8 bg-slate-100'}`} />
-                ))}
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-2">Step 1: Input Idea</span>
-             </div>
-          </div>
-
-          <div className="hidden lg:block w-[300px]">
-             <div className="p-6 rounded-xl bg-slate-50 border border-slate-100 space-y-4">
-                <div className="size-10 rounded-xl bg-white flex items-center justify-center shadow-sm">
-                   <Lightbulb className="size-5 text-amber-500" />
-                </div>
-                <h4 className="font-bold text-slate-900">Pro Tip</h4>
-                <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                   The more context you provide about your business goals, the better the AI can structure your milestones.
-                </p>
-                <button className="text-xs font-bold text-primary flex items-center gap-1.5 hover:underline">
-                   View Examples <ArrowRight className="size-3" />
-                </button>
-             </div>
-          </div>
+        <div className="flex items-center gap-6">
+           <div className="flex items-center gap-2">
+              {[1, 2, 3].map(i => {
+                const isActive = (i === 1 && step === 'PLANNING') || (i === 2 && step === 'DRAFTING');
+                
+                return (
+                  <div key={i} className={cn(
+                    "size-2.5 rounded-full transition-all duration-500",
+                    isActive ? "w-8 bg-primary shadow-sm" : "bg-slate-200"
+                  )} />
+                );
+              })}
+           </div>
+           <div className="hidden sm:block text-right">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</p>
+              <p className="text-xs font-black text-slate-900">
+                {step === 'PLANNING' ? 'Exploring Idea' : 'Refining Draft'}
+              </p>
+           </div>
         </div>
       </div>
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-        <IdeaInputForm />
-        <AiAssistantChat />
+      {/* Main Interaction Area */}
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-hidden">
+        
+        {/* Left: Chat Assistant */}
+        <div className={cn(
+          "h-full transition-all duration-500 flex flex-col",
+          step === 'PLANNING' ? "lg:col-span-12 max-w-3xl mx-auto w-full" : "lg:col-span-5"
+        )}>
+          <AiChatPanel 
+            messages={messages}
+            onSendMessage={handleInitialSend}
+            onRefine={handleRefine}
+            isGenerating={initMutation.isPending || refineMutation.isPending}
+            hasSuggestion={!!suggestion}
+          />
+        </div>
+
+        {/* Right: Preview Form (Only if draft exists) */}
+        {step === 'DRAFTING' && suggestion && (
+          <div className="lg:col-span-7 h-full animate-in slide-in-from-right-10 duration-700">
+            <JobDraftForm 
+              suggestion={suggestion}
+              onUpdate={handleManualUpdate}
+              onAccept={handleAccept}
+              onSaveDraft={handleSaveDraft}
+              isAccepting={acceptMutation.isPending}
+            />
+          </div>
+        )}
       </div>
 
-      {/* Footer Info */}
-      <div className="bg-slate-50 border border-slate-100 rounded-xl p-6 flex flex-wrap items-center justify-center gap-8">
-         <div className="flex items-center gap-3">
-            <div className="size-2 bg-brand-success rounded-full" />
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">AI Progress: Preview Ready</span>
-         </div>
-         <div className="h-4 w-px bg-slate-200 hidden sm:block" />
-         <div className="flex items-center gap-3">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Estimated Match: 94 Experts</span>
+      {/* Footer Branding */}
+      <div className="shrink-0 flex items-center justify-center gap-8 py-2">
+         <div className="flex items-center gap-2">
+            <Rocket className="size-3 text-slate-400" />
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Powered by AIVORA Intelligence v2.0</span>
          </div>
       </div>
     </div>
