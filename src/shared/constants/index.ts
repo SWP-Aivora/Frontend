@@ -36,6 +36,7 @@ export const API_ENDPOINTS = {
     CLIENT: '/api/v1/profiles/client',
     EXPERT: '/api/v1/profiles/expert',
     EXPERT_BY_ID: (id: string) => `/api/v1/profiles/expert/${id}`,
+    FEATURED_EXPERTS: '/api/v1/profiles/experts/featured',
   },
   MEDIA: {
     UPLOAD_IMAGE: '/api/v1/media/upload-image',
@@ -61,6 +62,10 @@ export const API_ENDPOINTS = {
     UNREAD_COUNT: '/api/v1/notifications/unread-count',
     READ: (id: string) => `/api/v1/notifications/${id}/read`,
     READ_ALL: '/api/v1/notifications/read-all',
+  },
+  CATEGORIES: {
+    BASE: '/api/v1/categories',
+    ID: (id: string) => `/api/v1/categories/${id}`,
   },
   ADMIN: {
     DASHBOARD_SUMMARY: '/api/v1/admin/stats',

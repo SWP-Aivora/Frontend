@@ -7,6 +7,7 @@ import { Role } from '@/shared/types/enums';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/features/auth/store';
 import { authService } from '@/features/auth/services';
+import { toast } from 'sonner';
 
 interface DashboardLayoutProps {
   role: Role;
@@ -29,8 +30,11 @@ export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
           const response = await authService.getMe();
           if (response.success && response.data) {
             setUser(response.data);
+          } else {
+            toast.error(response.message || 'Failed to sync account data');
           }
         } catch (error) {
+          toast.error('Session error: Unable to load profile data');
           console.error('Failed to fetch current user:', error);
         }
       }

@@ -53,7 +53,7 @@ export const ProfilePage = () => {
                 <span className="text-[10px] font-bold text-primary tracking-widest uppercase">Active Member</span>
              </div>
              <h1 className="text-3xl font-black text-slate-900 tracking-tight">
-               Howdy, <span className="text-primary">{(user?.fullName || user?.email || 'User').split(' ')[0]}</span>!
+               Welcome, <span className="text-primary">{(user?.fullName || user?.email || 'User').split(' ')[0]}</span>!
              </h1>
              <p className="text-base text-slate-500 font-medium max-w-xl leading-snug">
                Manage your account details and security preferences. 

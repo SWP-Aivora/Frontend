@@ -1,3 +1,4 @@
+import type { AxiosError } from 'axios';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -32,7 +33,7 @@ export const AdminDisputeListPage: React.FC = () => {
     return () => clearTimeout(handler);
   }, [localSearchTerm]);
   
-  const { data: response, isLoading } = useQuery({
+  const { data: response, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['disputes', pageIndex, searchTerm],
     queryFn: () => disputeService.getDisputes({ 
       PageIndex: pageIndex, 
@@ -45,6 +46,35 @@ export const AdminDisputeListPage: React.FC = () => {
     <div className="flex flex-col items-center justify-center min-h-[60vh]">
       <LoadingSpinner size="xl" />
       <p className="mt-4 text-slate-500 font-medium">Syncing resolution center...</p>
+    </div>
+  );
+
+  if (isError) return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4 px-6">
+      <div className="size-20 bg-rose-50 rounded-xl border border-rose-100 shadow-xl flex items-center justify-center mb-2">
+        <ShieldAlert className="size-10 text-rose-500" />
+      </div>
+      <h3 className="text-xl font-black text-slate-900">Unable to load disputes</h3>
+      <div className="bg-slate-50 border border-slate-100 rounded-xl p-6 max-w-lg w-full text-center">
+        <p className="text-slate-600 text-sm font-medium leading-relaxed">
+          {(error as AxiosError<{ message?: string }>)?.response?.data?.message || (error as Error)?.message || 'We encountered a problem while connecting to the arbitration server. This might be a temporary connection issue.'}
+        </p>
+      </div>
+      <div className="flex items-center gap-3">
+        <Button 
+          onClick={() => refetch()}
+          className="px-6 rounded-xl font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-200"
+        >
+          Retry Connection
+        </Button>
+        <Button 
+          variant="ghost"
+          onClick={() => window.location.reload()}
+          className="text-slate-500 font-bold"
+        >
+          Reload Page
+        </Button>
+      </div>
     </div>
   );
 
@@ -129,12 +159,12 @@ export const AdminDisputeListPage: React.FC = () => {
                     <td className="px-4 py-7">
                       <div className="flex flex-col gap-2">
                         <div className="text-xs text-slate-700 font-bold flex items-center gap-2">
-                          <div className="size-6 rounded-lg bg-slate-100 flex items-center justify-center text-xs text-slate-400 font-black">C</div>
-                          {dispute.clientName}
+                          <div className="size-6 rounded-lg bg-slate-100 flex items-center justify-center text-xs text-slate-400 font-black" title="Case Opener">O</div>
+                          {dispute.openerName || 'Platform User'}
                         </div>
-                        <div className="text-xs text-slate-700 font-bold flex items-center gap-2">
-                          <div className="size-6 rounded-lg bg-blue-600 flex items-center justify-center text-xs text-white font-black">E</div>
-                          {dispute.expertName}
+                        <div className="text-xs text-slate-400 font-medium flex items-center gap-2 italic">
+                          <div className="size-6 rounded-lg bg-slate-50 flex items-center justify-center text-[10px] text-slate-300 font-black">?</div>
+                          Target info in details
                         </div>
                       </div>
                     </td>

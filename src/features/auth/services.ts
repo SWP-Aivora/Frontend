@@ -25,9 +25,17 @@ export const authService = {
     const response = await apiClient.post<BaseResponse<LoginBackendResponse>>(API_ENDPOINTS.AUTH.LOGIN, data);
     const axiosData = response.data;
     
-    // Normalize backend IdentityResponse to frontend AuthResponse
+    if (!axiosData.success) {
+      return {
+        success: false,
+        message: axiosData.message || 'Login failed',
+        statusCode: axiosData.statusCode || 400,
+        data: {} as AuthResponse // Use empty object as placeholder for failed response
+      };
+    }
+
     const backendData = axiosData.data;
-    if (axiosData.success && backendData) {
+    if (backendData) {
       const roleStr = (backendData.role || backendData.Role || '').toUpperCase();
       const mappedRole = Object.values(Role).find(r => r === roleStr) || Role.CLIENT;
 
@@ -48,7 +56,12 @@ export const authService = {
       };
     }
 
-    return axiosData as unknown as BaseResponse<AuthResponse>;
+    return {
+      success: false,
+      message: 'Invalid response format from server',
+      statusCode: 500,
+      data: {} as AuthResponse
+    };
   },
   
   register: async (data: RegisterFormValues): Promise<BaseResponse<void>> => {
@@ -62,9 +75,18 @@ export const authService = {
   getMe: async (): Promise<BaseResponse<User>> => {
     const response = await apiClient.get<BaseResponse<MeBackendResponse>>(API_ENDPOINTS.AUTH.ME);
     const axiosData = response.data;
-    const backendData = axiosData.data;
 
-    if (axiosData.success && backendData) {
+    if (!axiosData.success) {
+       return {
+        success: false,
+        message: axiosData.message || 'Failed to fetch user data',
+        statusCode: axiosData.statusCode || 400,
+        data: {} as User
+      };
+    }
+
+    const backendData = axiosData.data;
+    if (backendData) {
       const roleStr = (backendData.role || backendData.Role || '').toUpperCase();
       const mappedRole = Object.values(Role).find(r => r === roleStr) || Role.CLIENT;
 
@@ -81,7 +103,12 @@ export const authService = {
       };
     }
 
-    return axiosData as unknown as BaseResponse<User>;
+    return {
+      success: false,
+      message: 'Invalid response format from server',
+      statusCode: 500,
+      data: {} as User
+    };
   },
 
   logout: async (): Promise<void> => {

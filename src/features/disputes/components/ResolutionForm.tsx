@@ -55,9 +55,8 @@ export const ResolutionForm: React.FC<ResolutionFormProps> = ({ disputeId, total
           </label>
           <select
             {...register('resolutionType', { 
-              valueAsNumber: true,
               onChange: (e) => {
-                const val = parseInt(e.target.value);
+                const val = e.target.value;
                 setValue('resolutionType', val, { shouldValidate: true });
                 if (totalAmount !== undefined) {
                   if (val === DisputeResolutionType.RELEASE_TO_EXPERT) {
@@ -77,7 +76,7 @@ export const ResolutionForm: React.FC<ResolutionFormProps> = ({ disputeId, total
             {totalAmount !== undefined && (
               <option value={DisputeResolutionType.SPLIT_PAYMENT}>Split payment (Custom)</option>
             )}
-            <option value={DisputeResolutionType.EXPERT_WORK_REDO}>Request expert redo</option>
+            <option value={DisputeResolutionType.REQUEST_REVISION}>Request expert redo</option>
           </select>
         </div>
 
@@ -126,7 +125,7 @@ export const ResolutionForm: React.FC<ResolutionFormProps> = ({ disputeId, total
           disabled={isPending}
           className="w-full bg-blue-600 hover:bg-blue-700"
         >
-          {isPending ? 'Saving decision...' : 'Issue final decision'}
+          {isPending ? 'Saving decision...' : 'Submit Decision'}
         </Button>
       </form>
     </div>

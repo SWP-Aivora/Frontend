@@ -12,6 +12,23 @@ export function normalizePaginatedResponse<T>(response: unknown): PaginatedRespo
   const resObj = response as Record<string, unknown> | undefined;
   const axiosData = (resObj?.data as Record<string, unknown>) || resObj;
   
+  const success = (axiosData?.success as boolean) ?? true;
+  const statusCode = (axiosData?.statusCode as number) ?? 200;
+  const message = (axiosData?.message as string) ?? '';
+
+  // If backend returns failure, preserve it
+  if (success === false) {
+    return {
+      success: false,
+      message: message || 'An error occurred',
+      statusCode: statusCode || 500,
+      data: [],
+      metadata: {
+        pageIndex: 1, pageSize: 20, totalCount: 0, totalPages: 0, hasPreviousPage: false, hasNextPage: false
+      }
+    };
+  }
+
   let items: T[] = [];
   let metadata = {
     pageIndex: 1,
@@ -23,17 +40,22 @@ export function normalizePaginatedResponse<T>(response: unknown): PaginatedRespo
   };
 
   // Case 1: Backend PageResult shape { data: { items: [], totalItems: 0, ... } }
-  if (axiosData?.data && typeof axiosData.data === 'object') {
+  if (axiosData?.data && typeof axiosData.data === 'object' && !Array.isArray(axiosData.data)) {
     const pageResult = axiosData.data as Record<string, unknown>;
     if (pageResult.items && Array.isArray(pageResult.items)) {
       items = pageResult.items as T[];
+      const pageIndex = (pageResult.pageIndex as number) || 1;
+      const pageSize = (pageResult.pageSize as number) || 20;
+      const totalItems = (pageResult.totalItems as number) || 0;
+      const totalPages = (pageResult.totalPages as number) || Math.ceil(totalItems / pageSize) || 0;
+
       metadata = {
-        pageIndex: (pageResult.pageIndex as number) || 1,
-        pageSize: (pageResult.pageSize as number) || 20,
-        totalCount: (pageResult.totalItems as number) || 0,
-        totalPages: (pageResult.totalPages as number) || Math.ceil(((pageResult.totalItems as number) || 0) / ((pageResult.pageSize as number) || 20)) || 0,
-        hasPreviousPage: ((pageResult.pageIndex as number) || 1) > 1,
-        hasNextPage: ((pageResult.pageIndex as number) || 1) < ((pageResult.totalPages as number) || Math.ceil(((pageResult.totalItems as number) || 0) / ((pageResult.pageSize as number) || 20))),
+        pageIndex,
+        pageSize,
+        totalCount: totalItems,
+        totalPages,
+        hasPreviousPage: pageIndex > 1,
+        hasNextPage: pageIndex < totalPages,
       };
     }
   } 
@@ -57,9 +79,9 @@ export function normalizePaginatedResponse<T>(response: unknown): PaginatedRespo
   }
 
   return {
-    success: (axiosData?.success as boolean) ?? true,
-    message: (axiosData?.message as string) ?? '',
-    statusCode: (axiosData?.statusCode as number) ?? 200,
+    success,
+    message,
+    statusCode,
     data: items,
     metadata
   };
@@ -72,10 +94,23 @@ export function normalizeBaseResponse<T>(response: unknown): BaseResponse<T> {
   const resObj = response as Record<string, unknown> | undefined;
   const axiosData = (resObj?.data as Record<string, unknown>) || resObj;
   
+  const success = (axiosData?.success as boolean) ?? true;
+  const statusCode = (axiosData?.statusCode as number) ?? 200;
+  const message = (axiosData?.message as string) ?? '';
+
+  if (success === false) {
+    return {
+      success: false,
+      message: message || 'An error occurred',
+      statusCode: statusCode || 500,
+      data: undefined as unknown as T
+    };
+  }
+
   return {
-    success: (axiosData?.success as boolean) ?? true,
-    message: (axiosData?.message as string) ?? '',
-    statusCode: (axiosData?.statusCode as number) ?? 200,
+    success,
+    message,
+    statusCode,
     data: (axiosData?.data !== undefined ? axiosData.data : axiosData) as T
   };
 }

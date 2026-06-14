@@ -26,6 +26,8 @@ export const DisputeDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { data: response, isLoading, error } = useDisputeDetails(id || '');
+  const [isRequestEvidenceModalOpen, setIsRequestEvidenceModalOpen] = React.useState(false);
+  const [requestMessage, setRequestEvidenceMessage] = React.useState('');
 
   if (isLoading) return (
     <div className="flex flex-col items-center justify-center min-h-[80vh]">
@@ -155,7 +157,19 @@ export const DisputeDetailPage: React.FC = () => {
 
           {/* Evidence Timeline */}
           <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-8">
-            <h2 className="text-lg font-black text-slate-900 mb-8 border-b border-slate-50 pb-4">Evidence & Rebuttals</h2>
+            <div className="flex justify-between items-center mb-8 border-b border-slate-50 pb-4">
+              <h2 className="text-lg font-black text-slate-900">Evidence & Rebuttals</h2>
+              {isAdmin && !isResolved && (
+                <Button 
+                  onClick={() => setIsRequestEvidenceModalOpen(true)}
+                  variant="outline"
+                  size="sm"
+                  className="rounded-lg border-blue-200 text-blue-600 hover:bg-blue-50 font-bold"
+                >
+                  Request for more evidence
+                </Button>
+              )}
+            </div>
             <div className="space-y-8">
               {(dispute.evidences?.length || 0) > 0 ? (
                 dispute.evidences.map((evidence) => (
@@ -204,8 +218,8 @@ export const DisputeDetailPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Add Evidence (If not resolved) */}
-          {!isResolved && (
+          {/* Add Evidence (If not resolved and not admin) */}
+          {!isAdmin && !isResolved && (
             <div className="animate-in slide-in-from-bottom-4 duration-700">
                <EvidenceSubmitZone disputeId={dispute.id} />
             </div>
@@ -213,7 +227,7 @@ export const DisputeDetailPage: React.FC = () => {
         </div>
 
         {/* Right Column - Involved Parties & Actions */}
-        <div className="space-y-8 lg:sticky lg:top-24">
+        <div className="space-y-8">
           
           {/* Involved Parties Card */}
           <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6">
@@ -244,17 +258,19 @@ export const DisputeDetailPage: React.FC = () => {
                 <h2 className="text-sm font-black text-emerald-900 uppercase tracking-widest">Resolution Result</h2>
               </div>
               <div className="space-y-4">
-                <div className="bg-white p-4 rounded-xl border border-emerald-100 italic text-sm text-emerald-800 leading-relaxed">
-                  "{dispute.resolutionNote}"
-                </div>
+                {dispute.resolutionNote && (
+                  <div className="bg-white p-4 rounded-xl border border-emerald-100 italic text-sm text-emerald-800 leading-relaxed">
+                    "{dispute.resolutionNote}"
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="p-3 bg-white rounded-xl border border-emerald-100">
                     <span className="text-xs font-black text-slate-400 uppercase block mb-1">To Expert</span>
-                    <span className="text-lg font-black text-emerald-700">${dispute.releaseAmount?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <span className="text-lg font-black text-emerald-700">${(dispute.releaseAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                   <div className="p-3 bg-white rounded-xl border border-emerald-100">
                     <span className="text-xs font-black text-slate-400 uppercase block mb-1">To Client</span>
-                    <span className="text-lg font-black text-emerald-700">${dispute.refundAmount?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <span className="text-lg font-black text-emerald-700">${(dispute.refundAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                 </div>
               </div>
@@ -272,6 +288,54 @@ export const DisputeDetailPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Request Evidence Modal */}
+      {isRequestEvidenceModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-slate-100 animate-in zoom-in-95 duration-200 overflow-hidden">
+            <div className="p-6 border-b border-slate-50 bg-slate-50/50">
+              <h3 className="text-xl font-black text-slate-900">Request Evidence</h3>
+              <p className="text-slate-500 text-sm font-medium">Ask the dispute creator for more information.</p>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700">Message to Creator</label>
+                <textarea 
+                  value={requestMessage}
+                  onChange={(e) => setRequestEvidenceMessage(e.target.value)}
+                  placeholder="Explain what information or files are missing..."
+                  rows={4}
+                  className="w-full rounded-xl border border-slate-200 p-4 text-sm focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all"
+                />
+              </div>
+              
+              <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 flex gap-3">
+                <AlertCircle className="size-5 text-amber-600 shrink-0" />
+                <p className="text-xs text-amber-800 font-medium leading-relaxed">
+                  <strong>Notice:</strong> The request evidence API is currently missing. Sending this request will not be processed by the server.
+                </p>
+              </div>
+            </div>
+            
+            <div className="p-6 bg-slate-50/50 border-t border-slate-50 flex gap-3">
+              <Button 
+                onClick={() => setIsRequestEvidenceModalOpen(false)}
+                variant="ghost"
+                className="flex-1 rounded-xl font-bold text-slate-500"
+              >
+                Cancel
+              </Button>
+              <Button 
+                disabled={true}
+                className="flex-1 rounded-xl font-bold bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Send Request
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

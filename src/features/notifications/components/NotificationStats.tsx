@@ -1,11 +1,16 @@
 import { Bell, Activity, CreditCard, FolderOpen } from 'lucide-react';
 
-export const NotificationStats = ({ unreadCount }: { unreadCount: number }) => {
+interface NotificationStatsProps {
+  unreadCount: number;
+  totalCount: number;
+}
+
+export const NotificationStats = ({ unreadCount, totalCount }: NotificationStatsProps) => {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
       <StatCard 
         icon={<Bell className="size-5 text-primary" />} 
-        value="--" 
+        value={totalCount.toString()} 
         label="All Notifications" 
         subtext="History" 
       />
