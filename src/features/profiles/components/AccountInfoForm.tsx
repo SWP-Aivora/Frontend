@@ -369,7 +369,7 @@ export const AccountInfoForm = () => {
               
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">Hourly Rate ($)</label>
-                <Input type="number" {...registerExpert('hourlyRate')} placeholder="0.00" className="h-11 rounded-lg bg-slate-50 border-slate-100 focus:bg-white transition-all font-medium" disabled={isInitialLoading || !!loadError} />
+                <Input type="number" {...registerExpert('hourlyRate')} placeholder="0.00" className="h-11 rounded-lg bg-slate-50 border-slate-100 focus:bg-white transition-all font-medium" disabled={!!loadError} />
                 {expertErrors.hourlyRate && <p className="text-[10px] text-destructive font-bold ml-1">{expertErrors.hourlyRate.message}</p>}
               </div>
               <div className="space-y-1.5">
