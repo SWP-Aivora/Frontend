@@ -1,65 +1,63 @@
-import { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { useAdminDashboard, useAdminRecentActivity } from '../hooks/useAdminDashboard';
-import { 
-  Activity, 
-  ChevronRight,
-  AlertCircle,
-  Clock,
-  Layout,
-  ShieldAlert,
-  CheckCircle,
-  ChevronLeft
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
+ import { useState, useMemo } from 'react';
+ import { Link } from 'react-router-dom';
+ import { useAdminDashboard, useAdminRecentActivity } from '../hooks/useAdminDashboard';
+ import { 
+   Activity, 
+   ChevronRight,
+   AlertCircle,
+   Clock,
+   Layout,
+   ShieldAlert,
+   CheckCircle,
+   ChevronLeft
+ } from 'lucide-react';
+ import { cn } from '@/lib/utils';
+ import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
+ import type { AdminProjectItem } from '../types';
 
-export const AdminDashboardPage = () => {
-  const { data: summary, isLoading, isError, refetch } = useAdminDashboard();
-  const { 
-    data: recentActivityResponse, 
-    isLoading: isActivityLoading,
-    isError: isActivityError,
-    refetch: refetchActivity
-  } = useAdminRecentActivity();
-  
-  const recentActivity = recentActivityResponse?.data || [];
-  const activityFailed = isActivityError || recentActivityResponse?.success === false;
+ export const AdminDashboardPage = () => {
+   const { data: summary, isLoading, isError, refetch } = useAdminDashboard();
+   const { 
+     data: recentActivityResponse, 
+     isLoading: isActivityLoading,
+     isError: isActivityError,
+     refetch: refetchActivity
+   } = useAdminRecentActivity();
 
-  const [projectPage, setProjectPage] = useState(1);
-  const PROJECTS_PER_PAGE = 10;
+   const recentActivity = recentActivityResponse?.data || [];
+   const activityFailed = isActivityError || recentActivityResponse?.success === false;
 
-  // ... (MetricBadge and other logic) ...
+   const [projectPage, setProjectPage] = useState(1);
+   const PROJECTS_PER_PAGE = 10;
 
-  const RecentActivityError = () => (
-    <div className="py-10 text-center px-4">
-      <AlertCircle className="size-8 text-rose-300 mx-auto mb-3" />
-      <p className="text-xs font-bold text-slate-500 mb-4">Failed to load recent activity</p>
-      <button 
-        onClick={() => refetchActivity()}
-        className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline"
-      >
-        Retry Action
-      </button>
-    </div>
-  );
+   const isPreviewMode = (summary as unknown as Record<string, unknown>)?._isStub === true;
 
-  return (
-    <div className="space-y-5 pb-10">
-      {/* ... (Warning Banners and Header) ...
+   const RecentActivityError = () => (
+     <div className="py-10 text-center px-4">
+       <AlertCircle className="size-8 text-rose-300 mx-auto mb-3" />
+       <p className="text-xs font-bold text-slate-500 mb-4">Failed to load recent activity</p>
+       <button 
+         onClick={() => refetchActivity()}
+         className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline"
+       >
+         Retry Action
+       </button>
+     </div>
+   );
 
-  // Local Pagination Logic for Active Projects
-  const { paginatedProjects, totalProjectPages } = useMemo(() => {
-    const projects = summary?.activeProjectsList || [];
-    const totalPages = Math.ceil(projects.length / PROJECTS_PER_PAGE) || 1;
-    const start = (projectPage - 1) * PROJECTS_PER_PAGE;
-    const end = start + PROJECTS_PER_PAGE;
-    
-    return {
-      paginatedProjects: projects.slice(start, end),
-      totalProjectPages: totalPages
-    };
-  }, [summary?.activeProjectsList, projectPage]);
+   // Local Pagination Logic for Active Projects
+   const { paginatedProjects, totalProjectPages } = useMemo(() => {
+     const projects = summary?.activeProjectsList || [];
+     const totalPages = Math.ceil(projects.length / PROJECTS_PER_PAGE) || 1;
+     const start = (projectPage - 1) * PROJECTS_PER_PAGE;
+     const end = start + PROJECTS_PER_PAGE;
+
+     return {
+       paginatedProjects: projects.slice(start, end),
+       totalProjectPages: totalPages
+     };
+   }, [summary?.activeProjectsList, projectPage]);
+
 
   const MetricBadge = ({ count, type }: { count: number, type: 'positive' | 'negative' | 'attention' }) => {
     if (count === 0) {
@@ -452,7 +450,7 @@ export const AdminDashboardPage = () => {
                        </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
-                       {paginatedProjects.map((project) => (
+                       {paginatedProjects.map((project: AdminProjectItem) => (
                          <tr key={project.id} className="hover:bg-slate-50/50 transition-colors group">
                             <td className="px-6 py-4">
                                <p className="text-sm font-bold text-slate-900 line-clamp-1">{project.title}</p>

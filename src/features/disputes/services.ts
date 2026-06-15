@@ -88,23 +88,23 @@ export const disputeService = {
         // Try to fetch project to get enriched details (client/expert names, milestone amount)
         try {
           const projectResponse = await apiClient.get(API_ENDPOINTS.PROJECTS.ID(beData.projectId));
-          const projectBaseResponse = normalizeBaseResponse<any>(projectResponse);
+          const projectBaseResponse = normalizeBaseResponse<Record<string, unknown>>(projectResponse);
           const projectData = projectBaseResponse.data;
           
           if (projectData) {
-            const milestone = projectData.milestones?.find((m: { id: string }) => m.id === beData.milestoneId);
+            const milestone = (projectData.milestones as Record<string, unknown>[])?.find((m) => m.id === beData.milestoneId);
             
             const mappedData: Dispute = {
               id: beData.id,
               projectId: beData.projectId,
-              projectTitle: beData.projectTitle || projectData.title,
+              projectTitle: (beData.projectTitle || projectData.title) as string,
               milestoneId: beData.milestoneId,
-              milestoneTitle: beData.milestoneTitle || milestone?.title || '',
-              milestoneAmount: milestone?.amount,
-              clientId: projectData.clientId,
-              clientName: projectData.clientName,
-              expertId: projectData.expertId,
-              expertName: projectData.expertName,
+              milestoneTitle: (beData.milestoneTitle || milestone?.title || '') as string,
+              milestoneAmount: milestone?.amount as number,
+              clientId: projectData.clientId as string,
+              clientName: projectData.clientName as string,
+              expertId: projectData.expertId as string,
+              expertName: projectData.expertName as string,
               reason: beData.reason,
               description: beData.description,
               status: beData.status as DisputeStatus,
@@ -163,8 +163,8 @@ export const disputeService = {
           createdAt: beData.createdAt,
           updatedAt: beData.createdAt,
           resolvedAt: beData.resolvedAt,
-          releaseAmount: Number(beData.releaseAmount || beData.ReleaseAmount || 0),
-          refundAmount: Number(beData.refundAmount || beData.RefundAmount || 0),
+          releaseAmount: Number(beData.releaseAmount || 0),
+          refundAmount: Number(beData.refundAmount || 0),
         };
         
         return {

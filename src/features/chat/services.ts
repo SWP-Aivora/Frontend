@@ -22,8 +22,10 @@ class ChatService extends BaseService<Conversation> {
     
     const currentUserId = useAuthStore.getState().user?.id;
 
+    const items = paginated.data || [];
+
     // Map Backend ConversationResponse to Frontend Conversation
-    const mappedItems = paginated.data.map((item: Record<string, unknown>) => {
+    const mappedItems = items.map((item: Record<string, unknown>) => {
       const isClient = item.clientId === currentUserId;
       
       return {
@@ -57,7 +59,9 @@ class ChatService extends BaseService<Conversation> {
     const response = await apiClient.get(API_ENDPOINTS.MESSAGES.MESSAGES(conversationId), { params });
     const paginated = normalizePaginatedResponse<Record<string, unknown>>(response as AxiosResponse);
 
-    const mappedItems = paginated.data.map((item: Record<string, unknown>) => ({
+    const items = paginated.data || [];
+
+    const mappedItems = items.map((item: Record<string, unknown>) => ({
       id: item.id as string,
       conversationId: item.conversationId as string,
       senderId: item.senderId as string,

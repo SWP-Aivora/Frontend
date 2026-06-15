@@ -17,8 +17,10 @@ export const notificationService = {
     const response = await apiClient.get(API_ENDPOINTS.NOTIFICATIONS.BASE, { params: validParams });
     const paginated = normalizePaginatedResponse<Record<string, unknown>>(response as AxiosResponse);
 
+    const items = paginated.data || [];
+
     // Map Backend NotificationResponse to Frontend Notification
-    const mappedItems = paginated.data.map((item: Record<string, unknown>) => ({
+    const mappedItems = items.map((item: Record<string, unknown>) => ({
       id: item.id as string,
       type: (item.type as string) || 'GENERAL',
       title: item.title as string,

@@ -8,6 +8,7 @@ export const useUpload = () => {
     setIsUploading(true);
     try {
       const response = await mediaService.uploadFile(file, folder);
+      if (!response.data?.url) throw new Error('Upload failed: Invalid response');
       return { url: response.data.url };
     } catch {
       throw new Error('File upload failed. Please try again later.');

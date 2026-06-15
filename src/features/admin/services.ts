@@ -514,7 +514,7 @@ export const adminService = {
       const response = await apiClient.get<BaseResponse<AdminExpertReviewsData>>(API_ENDPOINTS.ADMIN.EXPERT_REVIEWS, { params });
       return {
         ...response.data,
-        data: { ...response.data.data, _isStub: false }
+        data: response.data.data ? { ...response.data.data, _isStub: false } : null
       };
     } catch (error) {
       if (isNetworkOrMissingError(error)) {
@@ -541,7 +541,7 @@ export const adminService = {
       const response = await apiClient.get<BaseResponse<ExpertReviewDetail>>(API_ENDPOINTS.ADMIN.EXPERT_REVIEW_DETAIL(id));
       return {
         ...response.data,
-        data: { ...response.data.data, _isStub: false }
+        data: response.data.data ? { ...response.data.data, _isStub: false } : null
       };
     } catch (error) {
       if (isNetworkOrMissingError(error)) {

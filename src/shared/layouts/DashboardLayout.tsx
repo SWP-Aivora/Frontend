@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from '../components/dashboard/Sidebar';
 import { Topbar } from '../components/dashboard/Topbar';
@@ -21,7 +21,7 @@ export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
   const items = NAV_ITEMS[role] || [];
 
   const isMessagePage = location.pathname.endsWith('/messages');
-  const isHydrating = React.useRef(false);
+  const isHydrating = useRef(false);
 
   // Hydrate user data on mount
   useEffect(() => {
