@@ -1,5 +1,5 @@
 import apiClient from '@/lib/axios';
-import type { Job, Proposal } from './types';
+import type { Job, Proposal, AiJobSuggestion, ExpertMatch, PatchAiJobSuggestionRequest } from './types';
 import type { CreateProposalFormValues } from './schema';
 import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
 import { normalizePaginatedResponse, normalizeBaseResponse } from '@/lib/api-utils';
@@ -55,15 +55,41 @@ export const jobService = {
     return normalizeBaseResponse<void>(response);
   },
 
+  // AI Job Assistant
+  initAiJobAssistant: async (prompt: string): Promise<BaseResponse<AiJobSuggestion>> => {
+    const response = await apiClient.post<BaseResponse<AiJobSuggestion>>('/ai/job-assistant', { rawInput: prompt });
+    return response.data;
+  },
+
+  getAiJobSuggestion: async (id: string): Promise<BaseResponse<AiJobSuggestion>> => {
+    const response = await apiClient.get<BaseResponse<AiJobSuggestion>>(`/ai/job-assistant/${id}`);
+    return response.data;
+  },
+
+  refineAiJobSuggestion: async (id: string, prompt: string): Promise<BaseResponse<AiJobSuggestion>> => {
+    const response = await apiClient.post<BaseResponse<AiJobSuggestion>>(`/ai/job-assistant/${id}/refine`, { message: prompt });
+    return response.data;
+  },
+
+  patchAiJobSuggestion: async (id: string, data: PatchAiJobSuggestionRequest): Promise<BaseResponse<AiJobSuggestion>> => {
+    const response = await apiClient.patch<BaseResponse<AiJobSuggestion>>(`/ai/job-assistant/${id}`, data);
+    return response.data;
+  },
+
+  acceptAiJobSuggestion: async (id: string): Promise<BaseResponse<{ jobId: string }>> => {
+    const response = await apiClient.post<BaseResponse<{ jobId: string }>>(`/ai/job-assistant/${id}/accept`);
+    return response.data;
+  },
+
   // AI Recommendations
   generateRecommendations: async (jobId: string): Promise<BaseResponse<void>> => {
     const response = await apiClient.post(`/jobs/${jobId}/recommendations/generate`);
     return normalizeBaseResponse<void>(response);
   },
 
-  getRecommendations: async (jobId: string): Promise<PaginatedResponse<unknown>> => {
-    const response = await apiClient.get(`/jobs/${jobId}/recommendations`);
-    return normalizePaginatedResponse<unknown>(response);
+  getRecommendations: async (jobId: string): Promise<BaseResponse<ExpertMatch[]>> => {
+    const response = await apiClient.get<BaseResponse<ExpertMatch[]>>(`/jobs/${jobId}/recommendations`);
+    return response.data;
   },
 
   // Expert specific
