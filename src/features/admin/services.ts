@@ -38,7 +38,7 @@ const isNetworkOrMissingError = (error: unknown) => {
 /**
  * Robustly normalize various list shapes from backend
  */
-const normalizeList = (data: unknown): Record<string, unknown>[] => {
+export const normalizeList = (data: unknown): Record<string, unknown>[] => {
   if (!data || typeof data !== 'object') return [];
   if (Array.isArray(data)) return data as Record<string, unknown>[];
   
@@ -54,7 +54,7 @@ const normalizeList = (data: unknown): Record<string, unknown>[] => {
 /**
  * Safely check if a project status is "Ongoing"
  */
-const isOngoingStatus = (status: unknown): boolean => {
+export const isOngoingStatus = (status: unknown): boolean => {
   if (status === undefined || status === null) return true;
   if (typeof status === 'number') {
     return [0, 1, 2, 3, 6].includes(status);
@@ -67,7 +67,7 @@ const isOngoingStatus = (status: unknown): boolean => {
 /**
  * Check if a dispute is "Open"
  */
-const isOpenDisputeStatus = (status: unknown): boolean => {
+export const isOpenDisputeStatus = (status: unknown): boolean => {
   if (status === undefined || status === null) return true;
   const s = String(status).toUpperCase().replace(/\s+|_/g, '');
   const openStatuses = ['OPEN', 'UNDERREVIEW', 'INREVIEW', 'PENDING', 'PENDINGREVIEW'];
@@ -77,7 +77,7 @@ const isOpenDisputeStatus = (status: unknown): boolean => {
 /**
  * Format status label for UI
  */
-const getStatusLabel = (status: unknown): string => {
+export const getStatusLabel = (status: unknown): string => {
   if (typeof status === 'number') {
     switch (status) {
       case 0: return 'Pending Payment';
@@ -104,7 +104,7 @@ const getStatusLabel = (status: unknown): string => {
 /**
  * Helper to calculate items created in the last 7 days
  */
-const countNewInLast7Days = (items: Record<string, unknown>[], dateField: string): number => {
+export const countNewInLast7Days = (items: Record<string, unknown>[], dateField: string): number => {
   if (!items || !Array.isArray(items)) return 0;
   
   const sevenDaysAgo = new Date();
@@ -123,7 +123,7 @@ const countNewInLast7Days = (items: Record<string, unknown>[], dateField: string
 /**
  * Helper to format date for activity timestamp
  */
-const formatActivityDate = (dateString: string): string => {
+export const formatActivityDate = (dateString: string): string => {
   if (!dateString) return '';
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return '';

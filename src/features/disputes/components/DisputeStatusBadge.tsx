@@ -1,48 +1,36 @@
-
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 import { DisputeStatus } from '../types';
+import { normalizeDisputeStatus } from '../services';
 
 interface DisputeStatusBadgeProps {
-  status: DisputeStatus;
+  status: DisputeStatus | string | number;
   className?: string;
 }
 
 const statusConfig = {
   [DisputeStatus.OPEN]: {
     label: 'Open',
-    className: 'bg-[#fff3e0] text-[#e65100] border-[#ffe0b2]',
+    className: 'bg-rose-50 text-rose-700 border-rose-200',
   },
   [DisputeStatus.UNDER_REVIEW]: {
     label: 'Under Review',
-    className: 'bg-[#fff3e0] text-[#e65100] border-[#ffe0b2]',
+    className: 'bg-amber-50 text-amber-700 border-amber-200',
   },
   [DisputeStatus.RESOLVED]: {
     label: 'Resolved',
-    className: 'bg-[#e8f5e9] text-[#2e7d32] border-[#c8e6c9]',
+    className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   },
   [DisputeStatus.CLOSED]: {
     label: 'Closed',
-    className: 'bg-slate-100 text-slate-600 border-slate-200',
+    className: 'bg-slate-50 text-slate-700 border-slate-200',
   },
 };
 
 export const DisputeStatusBadge: React.FC<DisputeStatusBadgeProps> = ({ status, className }) => {
-  // Map numeric backend enum to string if needed
-  let statusKey = String(status || '').toUpperCase();
-  
-  if (typeof status === 'number') {
-    const numericMap: Record<number, string> = {
-      0: DisputeStatus.OPEN,
-      1: DisputeStatus.UNDER_REVIEW,
-      2: DisputeStatus.RESOLVED,
-      3: DisputeStatus.CLOSED
-    };
-    statusKey = numericMap[status] || statusKey;
-  }
-
-  const config = statusConfig[statusKey as keyof typeof statusConfig] || {
-    label: statusKey || 'Unknown',
+  const normalizedStatus = normalizeDisputeStatus(status);
+  const config = statusConfig[normalizedStatus] || {
+    label: String(normalizedStatus),
     className: 'bg-slate-100 text-slate-600 border-slate-200'
   };
 
@@ -58,4 +46,3 @@ export const DisputeStatusBadge: React.FC<DisputeStatusBadgeProps> = ({ status, 
     </span>
   );
 };
-

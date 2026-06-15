@@ -1,6 +1,13 @@
 import type { PaginatedResponse, BaseResponse } from '@/shared/types/api';
 
 /**
+ * Type guard for record objects
+ */
+function isRecord(val: unknown): val is Record<string, unknown> {
+  return typeof val === 'object' && val !== null && !Array.isArray(val);
+}
+
+/**
  * Normalizes an API response that might come in different shapes:
  * 1. { data: { items: [...] } } - Standard Backend PageResult
  * 2. { data: [...] } - BaseResponse with array
@@ -9,12 +16,24 @@ import type { PaginatedResponse, BaseResponse } from '@/shared/types/api';
  * Returns a PaginatedResponse structure where 'data' is always the array of items.
  */
 export function normalizePaginatedResponse<T>(response: unknown): PaginatedResponse<T> {
-  const resObj = response as Record<string, unknown> | undefined;
-  const axiosData = (resObj?.data as Record<string, unknown>) || resObj;
+  const axiosData = isRecord(response) && isRecord(response.data) ? response.data : (isRecord(response) ? response : null);
   
-  const success = (axiosData?.success as boolean) ?? true;
-  const statusCode = (axiosData?.statusCode as number) ?? 200;
-  const message = (axiosData?.message as string) ?? '';
+  if (!axiosData) {
+    console.warn('[api-utils] Unexpected paginated response shape (no axiosData):', response);
+    return {
+      success: false,
+      message: 'Invalid response shape',
+      statusCode: 500,
+      data: [],
+      metadata: {
+        pageIndex: 1, pageSize: 20, totalCount: 0, totalPages: 0, hasPreviousPage: false, hasNextPage: false
+      }
+    };
+  }
+
+  const success = (typeof axiosData.success === 'boolean') ? axiosData.success : true;
+  const statusCode = (typeof axiosData.statusCode === 'number') ? axiosData.statusCode : 200;
+  const message = (typeof axiosData.message === 'string') ? axiosData.message : '';
 
   // If backend returns failure, preserve it
   if (success === false) {
@@ -39,15 +58,17 @@ export function normalizePaginatedResponse<T>(response: unknown): PaginatedRespo
     hasNextPage: false
   };
 
+  let shapeMatched = false;
+
   // Case 1: Backend PageResult shape { data: { items: [], totalItems: 0, ... } }
-  if (axiosData?.data && typeof axiosData.data === 'object' && !Array.isArray(axiosData.data)) {
-    const pageResult = axiosData.data as Record<string, unknown>;
-    if (pageResult.items && Array.isArray(pageResult.items)) {
+  if (isRecord(axiosData.data)) {
+    const pageResult = axiosData.data;
+    if (Array.isArray(pageResult.items)) {
       items = pageResult.items as T[];
-      const pageIndex = (pageResult.pageIndex as number) || 1;
-      const pageSize = (pageResult.pageSize as number) || 20;
-      const totalItems = (pageResult.totalItems as number) || 0;
-      const totalPages = (pageResult.totalPages as number) || Math.ceil(totalItems / pageSize) || 0;
+      const pageIndex = (typeof pageResult.pageIndex === 'number') ? pageResult.pageIndex : 1;
+      const pageSize = (typeof pageResult.pageSize === 'number') ? pageResult.pageSize : 20;
+      const totalItems = (typeof pageResult.totalItems === 'number') ? pageResult.totalItems : items.length;
+      const totalPages = (typeof pageResult.totalPages === 'number') ? pageResult.totalPages : Math.ceil(totalItems / pageSize) || 0;
 
       metadata = {
         pageIndex,
@@ -57,25 +78,46 @@ export function normalizePaginatedResponse<T>(response: unknown): PaginatedRespo
         hasPreviousPage: pageIndex > 1,
         hasNextPage: pageIndex < totalPages,
       };
+      shapeMatched = true;
+    } else if (Array.isArray(axiosData.data)) {
+      // Case 2: Standard BaseResponse with array { data: [...] }
+      items = axiosData.data as T[];
+      metadata.totalCount = items.length;
+      metadata.totalPages = 1;
+      shapeMatched = true;
     }
   } 
-  // Case 2: Standard BaseResponse with array { data: [...] }
-  else if (Array.isArray(axiosData?.data)) {
+  // Case 3: Standard BaseResponse with array { data: [...] } directly under axiosData
+  else if (Array.isArray(axiosData.data)) {
     items = axiosData.data as T[];
     metadata.totalCount = items.length;
     metadata.totalPages = 1;
+    shapeMatched = true;
   }
-  // Case 3: Raw array [...]
+  // Case 4: Raw array [...]
   else if (Array.isArray(axiosData)) {
     items = axiosData as T[];
     metadata.totalCount = items.length;
     metadata.totalPages = 1;
+    shapeMatched = true;
   }
-  // Case 4: Deep items without data wrapper (unlikely)
-  else if (axiosData?.items && Array.isArray(axiosData.items)) {
+  // Case 5: Deep items without data wrapper (unlikely)
+  else if (Array.isArray(axiosData.items)) {
     items = axiosData.items as T[];
-    metadata.totalCount = (axiosData.totalItems as number) || items.length;
-    metadata.totalPages = (axiosData.totalPages as number) || 1;
+    metadata.totalCount = (typeof axiosData.totalItems === 'number') ? axiosData.totalItems : items.length;
+    metadata.totalPages = (typeof axiosData.totalPages === 'number') ? axiosData.totalPages : 1;
+    shapeMatched = true;
+  }
+
+  if (!shapeMatched) {
+    console.warn('[api-utils] Unexpected paginated response shape:', axiosData);
+    return {
+      success: false,
+      message: 'Unexpected paginated response shape',
+      statusCode: 500,
+      data: [],
+      metadata: { pageIndex: 1, pageSize: 20, totalCount: 0, totalPages: 0, hasPreviousPage: false, hasNextPage: false }
+    };
   }
 
   return {
@@ -91,12 +133,31 @@ export function normalizePaginatedResponse<T>(response: unknown): PaginatedRespo
  * Normalizes a single item response
  */
 export function normalizeBaseResponse<T>(response: unknown): BaseResponse<T> {
-  const resObj = response as Record<string, unknown> | undefined;
-  const axiosData = (resObj?.data as Record<string, unknown>) || resObj;
+  const axiosData = isRecord(response) && isRecord(response.data) ? response.data : (isRecord(response) ? response : null);
   
-  const success = (axiosData?.success as boolean) ?? true;
-  const statusCode = (axiosData?.statusCode as number) ?? 200;
-  const message = (axiosData?.message as string) ?? '';
+  if (axiosData === null && response !== undefined && response !== null) {
+     // Might be raw primitive data
+     return {
+        success: true,
+        message: '',
+        statusCode: 200,
+        data: response as T
+     };
+  }
+
+  if (!axiosData) {
+     console.warn('[api-utils] Unexpected base response shape (no axiosData):', response);
+     return {
+        success: false,
+        message: 'Invalid response shape',
+        statusCode: 500,
+        data: null
+     };
+  }
+  
+  const success = (typeof axiosData.success === 'boolean') ? axiosData.success : true;
+  const statusCode = (typeof axiosData.statusCode === 'number') ? axiosData.statusCode : 200;
+  const message = (typeof axiosData.message === 'string') ? axiosData.message : '';
 
   if (success === false) {
     return {
@@ -107,11 +168,36 @@ export function normalizeBaseResponse<T>(response: unknown): BaseResponse<T> {
     };
   }
 
+  let finalData: T | null = null;
+  let shapeMatched = false;
+
+  if ('data' in axiosData) {
+    finalData = axiosData.data as T;
+    shapeMatched = true;
+  } else if (('success' in axiosData || 'statusCode' in axiosData) && Object.keys(axiosData).length <= 5) {
+    // Looks like an empty envelope without a 'data' payload
+    finalData = null;
+    shapeMatched = true;
+  } else if (!('success' in axiosData) && !('statusCode' in axiosData)) {
+    // Likely raw data without an envelope
+    finalData = axiosData as unknown as T;
+    shapeMatched = true;
+  }
+
+  if (!shapeMatched) {
+    console.warn('[api-utils] Unexpected base response shape:', axiosData);
+    return {
+      success: false,
+      message: 'Unexpected base response shape',
+      statusCode: 500,
+      data: null
+    };
+  }
+
   return {
     success,
     message,
     statusCode,
-    data: (axiosData?.data !== undefined ? axiosData.data : axiosData) as T
+    data: finalData
   };
 }
-

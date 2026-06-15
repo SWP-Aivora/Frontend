@@ -80,8 +80,9 @@ export const CreateDisputeModal: React.FC<CreateDisputeModalProps> = ({ isOpen, 
         
         <form onSubmit={handleCreateDispute} className="p-6 space-y-5">
           <div className="space-y-1.5">
-            <label className="text-sm font-bold text-slate-700">Select Project</label>
+            <label htmlFor="project-select" className="text-sm font-bold text-slate-700">Select Project</label>
             <select
+              id="project-select"
               value={selectedProjectId}
               onChange={(e) => {
                 setSelectedProjectId(e.target.value);
@@ -106,8 +107,9 @@ export const CreateDisputeModal: React.FC<CreateDisputeModalProps> = ({ isOpen, 
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-bold text-slate-700">Select Milestone</label>
+            <label htmlFor="milestone-select" className="text-sm font-bold text-slate-700">Select Milestone</label>
             <select
+              id="milestone-select"
               value={milestoneId}
               onChange={(e) => setMilestoneId(e.target.value)}
               className="w-full h-10 px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -132,8 +134,9 @@ export const CreateDisputeModal: React.FC<CreateDisputeModalProps> = ({ isOpen, 
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-bold text-slate-700">Reason</label>
+            <label htmlFor="dispute-reason" className="text-sm font-bold text-slate-700">Reason</label>
             <Input 
+              id="dispute-reason"
               placeholder="Short reason (e.g. Deliverable doesn't meet criteria)" 
               value={reason}
               onChange={(e) => setReason(e.target.value)}
@@ -143,8 +146,9 @@ export const CreateDisputeModal: React.FC<CreateDisputeModalProps> = ({ isOpen, 
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-bold text-slate-700">Detailed Description</label>
+            <label htmlFor="dispute-description" className="text-sm font-bold text-slate-700">Detailed Description</label>
             <Textarea 
+              id="dispute-description"
               placeholder="Explain exactly what is wrong or why you are opening this dispute..." 
               value={description}
               onChange={(e) => setDescription(e.target.value)}

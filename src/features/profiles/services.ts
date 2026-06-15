@@ -52,7 +52,8 @@ export const profileService = {
     try {
       const response = await apiClient.get(API_ENDPOINTS.PROFILES.FEATURED_EXPERTS, { params: { count } });
       return normalizePaginatedResponse<ExpertProfileResponse>(response);
-    } catch {
+    } catch (error) {
+      console.error('[profileService] getFeaturedExperts failed:', error);
       // Fallback for list endpoints
       return {
         success: false,

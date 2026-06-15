@@ -37,13 +37,26 @@ export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
           } else {
             // Only show error if not aborted
             if (!controller.signal.aborted) {
-              toast.error(response.message || 'Failed to sync account data');
+              if (response.statusCode === 401 || response.statusCode === 403) {
+                useAuthStore.getState().logout();
+                toast.error('Session expired. Please log in again.');
+                // Redirection will be handled by ProtectedRoute once isAuthenticated becomes false
+              } else {
+                toast.error(response.message || 'Failed to sync account data');
+              }
             }
           }
-        } catch (error) {
+        } catch (error: unknown) {
           if (!controller.signal.aborted) {
-            toast.error('Session error: Unable to load profile data');
-            console.error('Failed to fetch current user:', error);
+            const axiosError = error as { response?: { status?: number } };
+            const status = axiosError?.response?.status;
+            if (status === 401 || status === 403) {
+              useAuthStore.getState().logout();
+              toast.error('Session expired. Please log in again.');
+            } else {
+              toast.error('Session error: Unable to load profile data');
+              console.error('Failed to fetch current user:', error);
+            }
           }
         } finally {
           isHydrating.current = false;

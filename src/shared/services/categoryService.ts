@@ -30,13 +30,26 @@ export const categoryService = {
    * Fetch all categories from the backend
    */
   getCategories: async (): Promise<BaseResponse<Category[]>> => {
-    const response = await apiClient.get<BaseResponse<unknown>>(API_ENDPOINTS.CATEGORIES.BASE);
-    const normalizedData = normalizeList(response.data?.data) as unknown as Category[];
-    
-    return {
-      ...response.data,
-      data: normalizedData
-    };
+    try {
+      const response = await apiClient.get<BaseResponse<unknown>>(API_ENDPOINTS.CATEGORIES.BASE);
+      const normalizedData = normalizeList(response?.data?.data) as unknown as Category[];
+      
+      return {
+        ...(response?.data || {}),
+        success: response?.data?.success ?? true,
+        message: response?.data?.message ?? '',
+        statusCode: response?.status ?? 200,
+        data: normalizedData
+      };
+    } catch (error) {
+      console.error('[categoryService] getCategories failed:', error);
+      return {
+        success: false,
+        message: 'Failed to fetch categories',
+        statusCode: 500,
+        data: []
+      };
+    }
   }
 };
 

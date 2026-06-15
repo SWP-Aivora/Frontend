@@ -61,7 +61,12 @@ axiosInstance.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const refreshToken = localStorage.getItem('refreshToken');
+      const refreshToken = useAuthStore.getState().refreshToken;
+
+      if (!refreshToken) {
+        useAuthStore.getState().logout();
+        return Promise.reject(error);
+      }
 
       return new Promise((resolve, reject) => {
         axios
@@ -74,20 +79,23 @@ axiosInstance.interceptors.response.use(
               throw new Error('Invalid refresh token response');
             }
 
-            localStorage.setItem('accessToken', accessToken);
-            localStorage.setItem('refreshToken', newRefreshToken);
+            // Update store
+            const user = useAuthStore.getState().user;
+            if (user) {
+              useAuthStore.getState().setAuth(user, accessToken, newRefreshToken);
+            }
             
             axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+            if (originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+            }
             
             processQueue(null, accessToken);
             resolve(axiosInstance(originalRequest));
           })
           .catch((err) => {
             processQueue(err, null);
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
-            window.location.href = '/login';
+            useAuthStore.getState().logout();
             reject(err);
           })
           .finally(() => {
