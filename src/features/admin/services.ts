@@ -239,7 +239,7 @@ export const adminService = {
       // 5. Transaction Summary
       const transactionSummary: TransactionSummaryItem[] = [];
       if (recentPayments.length > 0) {
-        const total = recentPayments.reduce((sum, p) => sum + ((p.amount || p.Amount || 0) as number), 0);
+        const total = recentPayments.reduce((sum, p) => sum + (Number(p.amount || p.Amount || 0)), 0);
         transactionSummary.push({ type: 'Recent Volume', amount: total });
       }
 
@@ -409,7 +409,8 @@ export const adminService = {
         message: 'Recent activity retrieved',
         statusCode: 200
       };
-    } catch {
+    } catch (error) {
+      console.error('[AdminService] Failed to fetch recent activity:', error);
       return {
         success: false,
         data: [],
@@ -420,55 +421,82 @@ export const adminService = {
   },
   
   getUsers: async (params?: Record<string, unknown>): Promise<BaseResponse<AdminUserManagementData & { _isStub?: boolean }>> => {
-    const requestParams = {
-      PageSize: 10,
-      PageIndex: 1,
-      ...params
-    };
-
-    const response = await apiClient.get<BaseResponse<Record<string, unknown>>>(API_ENDPOINTS.ADMIN.USERS, { params: requestParams });
-    const pageResult = response.data.data;
-    const items = normalizeList(pageResult);
-    
-    // Map backend users to frontend AdminUserItem
-    const mappedUsers = items.map((u: Record<string, unknown>) => {
-      const lastLoginRaw = u.lastLoginAt || u.LastLoginAt;
-      return {
-        id: (u.id || u.Id) as string,
-        fullName: (u.fullName || u.FullName) as string,
-        email: (u.email || u.Email) as string,
-        role: (u.role || u.Role) as 'Admin' | 'Expert' | 'Client',
-        status: (u.status || u.Status) as 'Active' | 'Suspended' | 'Pending',
-        verificationState: 'N/A' as const,
-        createdAt: (u.createdAt || u.CreatedAt || 'N/A') as string,
-        lastLoginAt: lastLoginRaw ? new Date(lastLoginRaw as string).toISOString() : null,
-        avatarUrl: (u.avatarUrl || u.AvatarUrl) as string,
-        initials: (u.fullName || u.FullName) 
-          ? String(u.fullName || u.FullName).split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() 
-          : 'U'
+    try {
+      const requestParams = {
+        PageSize: 10,
+        PageIndex: 1,
+        ...params
       };
-    });
 
-    return {
-      ...response.data,
-      data: { 
-        users: mappedUsers,
-        totalUsers: (pageResult?.totalItems || pageResult?.TotalItems || 0) as number,
-        activeUsers: 0, 
-        suspendedUsers: 0, 
-        pendingVerify: 0,
-        totalClients: 0,
-        totalExperts: 0,
-        reviewQueue: [],
-        recentActions: [],
-        
-        pageIndex: (pageResult?.pageIndex || pageResult?.PageIndex || 1) as number,
-        pageSize: (pageResult?.pageSize || pageResult?.PageSize || 10) as number,
-        totalPages: (pageResult?.totalPages || pageResult?.TotalPages || 1) as number,
-        
-        _isStub: false 
-      } as AdminUserManagementData & { _isStub?: boolean }
-    };
+      const response = await apiClient.get<BaseResponse<Record<string, unknown>>>(API_ENDPOINTS.ADMIN.USERS, { params: requestParams });
+      const pageResult = response.data.data;
+      const items = normalizeList(pageResult);
+      
+      // Map backend users to frontend AdminUserItem
+      const mappedUsers = items.map((u: Record<string, unknown>) => {
+        const lastLoginRaw = u.lastLoginAt || u.LastLoginAt;
+        return {
+          id: (u.id || u.Id) as string,
+          fullName: (u.fullName || u.FullName) as string,
+          email: (u.email || u.Email) as string,
+          role: (u.role || u.Role) as 'Admin' | 'Expert' | 'Client',
+          status: (u.status || u.Status) as 'Active' | 'Suspended' | 'Pending',
+          verificationState: 'N/A' as const,
+          createdAt: (u.createdAt || u.CreatedAt || 'N/A') as string,
+          lastLoginAt: lastLoginRaw ? new Date(lastLoginRaw as string).toISOString() : null,
+          avatarUrl: (u.avatarUrl || u.AvatarUrl) as string,
+          initials: (u.fullName || u.FullName) 
+            ? String(u.fullName || u.FullName).split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() 
+            : 'U'
+        };
+      });
+
+      return {
+        ...response.data,
+        data: { 
+          users: mappedUsers,
+          totalUsers: (pageResult?.totalItems || pageResult?.TotalItems || 0) as number,
+          activeUsers: 0, 
+          suspendedUsers: 0, 
+          pendingVerify: 0,
+          totalClients: 0,
+          totalExperts: 0,
+          reviewQueue: [],
+          recentActions: [],
+          
+          pageIndex: (pageResult?.pageIndex || pageResult?.PageIndex || 1) as number,
+          pageSize: (pageResult?.pageSize || pageResult?.PageSize || 10) as number,
+          totalPages: (pageResult?.totalPages || pageResult?.TotalPages || 1) as number,
+          
+          _isStub: false 
+        } as AdminUserManagementData & { _isStub?: boolean }
+      };
+    } catch (error) {
+      console.error('[AdminService] Failed to fetch users:', error);
+      if (isNetworkOrMissingError(error)) {
+        return {
+          success: false,
+          data: {
+            users: [],
+            totalUsers: 0,
+            activeUsers: 0,
+            suspendedUsers: 0,
+            pendingVerify: 0,
+            totalClients: 0,
+            totalExperts: 0,
+            reviewQueue: [],
+            recentActions: [],
+            pageIndex: 1,
+            pageSize: 10,
+            totalPages: 1,
+            _isStub: false
+          } as AdminUserManagementData & { _isStub?: boolean },
+          message: 'Users API is currently unavailable.',
+          statusCode: 503
+        };
+      }
+      throw error;
+    }
   },
 
   suspendUser: async (id: string, reason?: string): Promise<BaseResponse<void>> => {
@@ -540,3 +568,4 @@ export const adminService = {
     }
   }
 };
+

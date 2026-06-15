@@ -22,9 +22,12 @@ const Navbar: React.FC = () => {
           const response = await authService.getMe();
           if (response.success && response.data) {
             setUser(response.data);
+          } else if (response.statusCode === 401 || response.statusCode === 403) {
+            // Clear stale session
+            useAuthStore.getState().logout();
           }
-        } catch {
-          // Silent fail on landing page to avoid distracting errors
+        } catch (error) {
+          console.error('Failed to hydrate user:', error);
         }
       }
     };
@@ -194,8 +197,8 @@ const Categories: React.FC = () => {
         if (response.success && response.data) {
           setCategories(response.data.slice(0, 7));
         }
-      } catch {
-        // Silent fail to keep landing page clean
+      } catch (error) {
+        console.error('Failed to fetch categories:', error);
       } finally {
         setIsLoading(false);
       }
@@ -232,8 +235,8 @@ const Categories: React.FC = () => {
                 </div>
               ))
             ) : (
-              <div className="w-full py-12 text-center text-slate-400 text-sm italic">
-                No categories available yet.
+              <div className="w-full py-12 text-center text-slate-400 text-sm font-medium">
+                Unable to load categories. Please try again later.
               </div>
             )}
           </div>
@@ -327,8 +330,8 @@ const Experts: React.FC = () => {
 
           setExperts(expertOnly.slice(0, 4));
         }
-      } catch {
-        // Silent fail
+      } catch (error) {
+        console.error('Failed to fetch featured experts:', error);
       } finally {
         setIsLoading(false);
       }
@@ -398,7 +401,7 @@ const Experts: React.FC = () => {
           ) : (
             <div className="col-span-full py-20 text-center flex flex-col items-center gap-4">
               <Users className="size-12 text-slate-100" />
-              <p className="text-slate-400 text-sm font-bold italic">No featured experts available yet.</p>
+              <p className="text-slate-400 text-sm font-medium">Unable to load featured experts. Please try again later.</p>
             </div>
           )}
         </div>
@@ -660,3 +663,4 @@ export const LandingPage: React.FC = () => {
     </div>
   );
 };
+

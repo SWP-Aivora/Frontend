@@ -21,25 +21,41 @@ export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
   const items = NAV_ITEMS[role] || [];
 
   const isMessagePage = location.pathname.endsWith('/messages');
+  const isHydrating = React.useRef(false);
 
   // Hydrate user data on mount
   useEffect(() => {
+    const controller = new AbortController();
+    
     const fetchUser = async () => {
-      if (isAuthenticated && !user?.fullName) {
+      if (isAuthenticated && !user?.fullName && !isHydrating.current) {
+        isHydrating.current = true;
         try {
           const response = await authService.getMe();
           if (response.success && response.data) {
             setUser(response.data);
           } else {
-            toast.error(response.message || 'Failed to sync account data');
+            // Only show error if not aborted
+            if (!controller.signal.aborted) {
+              toast.error(response.message || 'Failed to sync account data');
+            }
           }
         } catch (error) {
-          toast.error('Session error: Unable to load profile data');
-          console.error('Failed to fetch current user:', error);
+          if (!controller.signal.aborted) {
+            toast.error('Session error: Unable to load profile data');
+            console.error('Failed to fetch current user:', error);
+          }
+        } finally {
+          isHydrating.current = false;
         }
       }
     };
+    
     fetchUser();
+    
+    return () => {
+      controller.abort();
+    };
   }, [isAuthenticated, user?.fullName, setUser]);
 
   return (
@@ -95,3 +111,4 @@ export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
     </div>
   );
 };
+

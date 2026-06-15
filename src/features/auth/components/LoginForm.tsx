@@ -28,7 +28,7 @@ export const LoginForm = () => {
     setIsLoading(true);
     try {
       const response = await authService.login(data);
-      if (response.success) {
+      if (response.success && response.data) {
         const authData = response.data;
         // Pass the entire flat response as the user object since it contains user fields
         setAuth(authData, authData.accessToken, authData.refreshToken);
@@ -135,3 +135,4 @@ export const LoginForm = () => {
     </form>
   );
 };
+

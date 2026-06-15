@@ -115,8 +115,10 @@ export const AccountInfoForm = () => {
           }
         }
       } catch (error) {
-        setLoadError((error as Error).message || 'Failed to load profile data');
-        toast.error('Failed to load profile data');
+        const message = error instanceof Error ? error.message : 'Failed to load profile data';
+        setLoadError(message);
+        toast.error(message);
+        console.error('[AccountInfoForm] Load Error:', error);
       } finally {
         setIsInitialLoading(false);
       }
@@ -128,7 +130,7 @@ export const AccountInfoForm = () => {
   }, [user?.id, user?.role, resetUser, resetClient, resetExpert]);
 
   const onUserSubmit = async (data: UserUpdateFormValues) => {
-    if (loadError || isInitialLoading) return;
+    if (loadError || isInitialLoading || !user) return;
     setIsUserLoading(true);
     
     try {
@@ -139,8 +141,8 @@ export const AccountInfoForm = () => {
       if (response.success && response.data) {
         // Update store with new name for Topbar consistency
         setUser({ 
-          ...user!, 
-          fullName: response.data.fullName || data.fullName || user!.fullName 
+          ...user, 
+          fullName: response.data.fullName || data.fullName || user.fullName 
         });
         
         toast.success('Identity information updated');
@@ -154,8 +156,9 @@ export const AccountInfoForm = () => {
       } else {
         toast.error(response.message || 'Failed to update identity');
       }
-    } catch {
+    } catch (error) {
       toast.error('A network error occurred while updating identity');
+      console.error('[AccountInfoForm] User update error:', error);
     } finally {
       setIsUserLoading(false);
     }
@@ -168,8 +171,9 @@ export const AccountInfoForm = () => {
       const response = await profileService.updateClientProfile(data);
       if (response.success) toast.success('Company profile updated');
       else toast.error(response.message || 'Failed to update profile');
-    } catch {
-      toast.error('An error occurred');
+    } catch (error) {
+      toast.error('An error occurred while updating company profile');
+      console.error('[AccountInfoForm] Client profile update error:', error);
     } finally {
       setIsProfileLoading(false);
     }
@@ -182,8 +186,9 @@ export const AccountInfoForm = () => {
       const response = await profileService.updateExpertProfile(data);
       if (response.success) toast.success('Expert profile updated');
       else toast.error(response.message || 'Failed to update profile');
-    } catch {
-      toast.error('An error occurred');
+    } catch (error) {
+      toast.error('An error occurred while updating expert profile');
+      console.error('[AccountInfoForm] Expert profile update error:', error);
     } finally {
       setIsProfileLoading(false);
     }
@@ -400,3 +405,4 @@ export const AccountInfoForm = () => {
     </div>
   );
 };
+

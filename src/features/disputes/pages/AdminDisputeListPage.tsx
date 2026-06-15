@@ -40,6 +40,7 @@ export const AdminDisputeListPage: React.FC = () => {
       PageSize: pageSize, 
       SearchTerm: searchTerm 
     }),
+    enabled: searchTerm === localSearchTerm || localSearchTerm === '',
   });
 
   if (isLoading) return (
@@ -248,3 +249,4 @@ export const AdminDisputeListPage: React.FC = () => {
     </div>
   );
 };
+

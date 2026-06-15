@@ -88,7 +88,8 @@ export const disputeService = {
         // Try to fetch project to get enriched details (client/expert names, milestone amount)
         try {
           const projectResponse = await apiClient.get(API_ENDPOINTS.PROJECTS.ID(beData.projectId));
-          const projectData = projectResponse.data?.data;
+          const projectBaseResponse = normalizeBaseResponse<any>(projectResponse);
+          const projectData = projectBaseResponse.data;
           
           if (projectData) {
             const milestone = projectData.milestones?.find((m: { id: string }) => m.id === beData.milestoneId);
@@ -131,7 +132,7 @@ export const disputeService = {
             };
           }
         } catch (projectErr) {
-          console.warn('[DisputeService] Could not fetch project details for dispute enrichment:', projectErr);
+          console.error('[DisputeService] Could not fetch project details for dispute enrichment. Party names will be unavailable.', projectErr);
         }
 
         // Fallback mapping if project fetch fails or is incomplete
@@ -141,10 +142,10 @@ export const disputeService = {
           projectTitle: beData.projectTitle || 'N/A',
           milestoneId: beData.milestoneId,
           milestoneTitle: beData.milestoneTitle || 'N/A',
-          clientId: beData.openedBy,
-          clientName: beData.openerName,
-          expertId: beData.againstUserId,
-          expertName: beData.againstUserName,
+          clientId: '', // Safe value as verified ID is missing
+          clientName: 'Unknown Client',
+          expertId: '', // Safe value as verified ID is missing
+          expertName: 'Unknown Expert',
           reason: beData.reason,
           description: beData.description,
           status: beData.status as DisputeStatus,
@@ -162,6 +163,8 @@ export const disputeService = {
           createdAt: beData.createdAt,
           updatedAt: beData.createdAt,
           resolvedAt: beData.resolvedAt,
+          releaseAmount: Number(beData.releaseAmount || beData.ReleaseAmount || 0),
+          refundAmount: Number(beData.refundAmount || beData.RefundAmount || 0),
         };
         
         return {
@@ -201,3 +204,4 @@ export const disputeService = {
     return normalizeBaseResponse<void>(response);
   },
 };
+

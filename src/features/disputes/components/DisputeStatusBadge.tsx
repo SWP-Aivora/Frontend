@@ -28,10 +28,22 @@ const statusConfig = {
 };
 
 export const DisputeStatusBadge: React.FC<DisputeStatusBadgeProps> = ({ status, className }) => {
-  const normalizedStatus = String(status || '').toUpperCase() as DisputeStatus;
-  const config = statusConfig[normalizedStatus] || {
-    label: status || 'Unknown',
-    className: 'bg-slate-100 text-slate-600 border-slate-200',
+  // Map numeric backend enum to string if needed
+  let statusKey = String(status || '').toUpperCase();
+  
+  if (typeof status === 'number') {
+    const numericMap: Record<number, string> = {
+      0: DisputeStatus.OPEN,
+      1: DisputeStatus.UNDER_REVIEW,
+      2: DisputeStatus.RESOLVED,
+      3: DisputeStatus.CLOSED
+    };
+    statusKey = numericMap[status] || statusKey;
+  }
+
+  const config = statusConfig[statusKey as keyof typeof statusConfig] || {
+    label: statusKey || 'Unknown',
+    className: 'bg-slate-100 text-slate-600 border-slate-200'
   };
 
   return (
@@ -46,3 +58,4 @@ export const DisputeStatusBadge: React.FC<DisputeStatusBadgeProps> = ({ status, 
     </span>
   );
 };
+

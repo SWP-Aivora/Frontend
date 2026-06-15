@@ -30,7 +30,7 @@ export const authService = {
         success: false,
         message: axiosData.message || 'Login failed',
         statusCode: axiosData.statusCode || 400,
-        data: {} as AuthResponse // Use empty object as placeholder for failed response
+        data: null // Failed response
       };
     }
 
@@ -60,7 +60,7 @@ export const authService = {
       success: false,
       message: 'Invalid response format from server',
       statusCode: 500,
-      data: {} as AuthResponse
+      data: null
     };
   },
   
@@ -81,7 +81,7 @@ export const authService = {
         success: false,
         message: axiosData.message || 'Failed to fetch user data',
         statusCode: axiosData.statusCode || 400,
-        data: {} as User
+        data: null
       };
     }
 
@@ -107,7 +107,7 @@ export const authService = {
       success: false,
       message: 'Invalid response format from server',
       statusCode: 500,
-      data: {} as User
+      data: null
     };
   },
 
@@ -118,3 +118,4 @@ export const authService = {
      */
   },
 };
+

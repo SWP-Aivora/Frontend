@@ -39,6 +39,11 @@ export const EvidenceSubmitZone: React.FC<EvidenceSubmitZoneProps> = ({ disputeI
       // Let's assume if file is uploaded, we use its URL. If not, we use the manual URL.
       if (file) {
         const uploadResult = await uploadFile(file, 'disputes');
+        if (!uploadResult?.url) {
+          console.error('[EvidenceSubmitZone] Upload succeeded but returned no URL:', uploadResult);
+          toast.error("File upload failed to return a valid URL. Please try again.");
+          return;
+        }
         finalFileUrl = uploadResult.url;
       }
 
@@ -124,3 +129,4 @@ export const EvidenceSubmitZone: React.FC<EvidenceSubmitZoneProps> = ({ disputeI
     </div>
   );
 };
+

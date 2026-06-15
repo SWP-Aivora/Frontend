@@ -5,6 +5,7 @@ import type { User } from './types';
 interface AuthState {
   user: User | null;
   accessToken: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
   isHydrated: boolean;
   isLoading: boolean;
@@ -24,22 +25,34 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       accessToken: null,
+      refreshToken: null,
       isAuthenticated: false,
       isHydrated: false,
       isLoading: false,
       error: null,
       setAuth: (user, token, refreshToken) => {
-        localStorage.setItem('accessToken', token);
-        if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
-        set({ user, accessToken: token, isAuthenticated: true, error: null });
+        set({ 
+          user, 
+          accessToken: token, 
+          refreshToken: refreshToken || null, 
+          isAuthenticated: true, 
+          error: null 
+        });
       },
       setUser: (user) => set({ user }),
       setError: (error) => set({ error }),
       setLoading: (isLoading) => set({ isLoading }),
       logout: () => {
+        // Clear legacy tokens if they exist
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
-        set({ user: null, accessToken: null, isAuthenticated: false, error: null });
+        set({ 
+          user: null, 
+          accessToken: null, 
+          refreshToken: null, 
+          isAuthenticated: false, 
+          error: null 
+        });
       },
     }),
     {
@@ -47,6 +60,7 @@ export const useAuthStore = create<AuthState>()(
       partialize: (state) => ({ 
         user: state.user, 
         accessToken: state.accessToken, 
+        refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated 
       }),
       onRehydrateStorage: () => (state) => {
@@ -57,3 +71,4 @@ export const useAuthStore = create<AuthState>()(
     }
   )
 );
+

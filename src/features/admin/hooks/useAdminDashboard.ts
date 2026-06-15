@@ -13,6 +13,6 @@ export const useAdminRecentActivity = () => {
   return useQuery({
     queryKey: ['admin', 'recent-activity'],
     queryFn: () => adminService.getRecentActivity(),
-    select: (response) => response.data,
   });
 };
+

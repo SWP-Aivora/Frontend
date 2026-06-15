@@ -26,8 +26,20 @@ export const DisputeDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { data: response, isLoading, error } = useDisputeDetails(id || '');
-  const [isRequestEvidenceModalOpen, setIsRequestEvidenceModalOpen] = React.useState(false);
-  const [requestMessage, setRequestEvidenceMessage] = React.useState('');
+
+  if (!id) return (
+    <div className="flex flex-col items-center justify-center min-h-[80vh] p-8 text-center">
+      <div className="size-20 bg-white rounded-full flex items-center justify-center mb-6 border border-slate-100 shadow-sm">
+        <AlertCircle className="size-10 text-rose-500" />
+      </div>
+      <h2 className="text-2xl font-bold text-slate-900 mb-2">Invalid dispute URL</h2>
+      <p className="text-slate-500 max-w-md mb-8">The dispute identifier is missing or malformed.</p>
+      <Button onClick={() => navigate(-1)} variant="outline" className="rounded-xl px-8">
+        <ArrowLeft className="size-4 mr-2" />
+        Go Back
+      </Button>
+    </div>
+  );
 
   if (isLoading) return (
     <div className="flex flex-col items-center justify-center min-h-[80vh]">
@@ -41,8 +53,12 @@ export const DisputeDetailPage: React.FC = () => {
       <div className="size-20 bg-white rounded-full flex items-center justify-center mb-6 border border-slate-100 shadow-sm">
         <ShieldAlert className="size-10 text-slate-300" />
       </div>
-      <h2 className="text-2xl font-bold text-slate-900 mb-2">No dispute data found</h2>
-      <p className="text-slate-500 max-w-md mb-8">The requested dispute case could not be retrieved from the server.</p>
+      <h2 className="text-2xl font-bold text-slate-900 mb-2">
+        {error ? 'Failed to load dispute' : 'No dispute data found'}
+      </h2>
+      <p className="text-slate-500 max-w-md mb-8">
+        {error ? (error as Error).message : 'The requested dispute case could not be retrieved from the server.'}
+      </p>
       <Button onClick={() => navigate(-1)} variant="outline" className="rounded-xl px-8">
         <ArrowLeft className="size-4 mr-2" />
         Go Back
@@ -159,16 +175,6 @@ export const DisputeDetailPage: React.FC = () => {
           <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-8">
             <div className="flex justify-between items-center mb-8 border-b border-slate-50 pb-4">
               <h2 className="text-lg font-black text-slate-900">Evidence & Rebuttals</h2>
-              {isAdmin && !isResolved && (
-                <Button 
-                  onClick={() => setIsRequestEvidenceModalOpen(true)}
-                  variant="outline"
-                  size="sm"
-                  className="rounded-lg border-blue-200 text-blue-600 hover:bg-blue-50 font-bold"
-                >
-                  Request for more evidence
-                </Button>
-              )}
             </div>
             <div className="space-y-8">
               {(dispute.evidences?.length || 0) > 0 ? (
@@ -181,7 +187,7 @@ export const DisputeDetailPage: React.FC = () => {
                           ? "bg-slate-50 text-slate-600 border-slate-100" 
                           : "bg-blue-50 text-blue-600 border-blue-100"
                       )}>
-                        {(evidence.submitterName || 'U').charAt(0)}
+                        {String(evidence.submitterName || 'U').trim().charAt(0).toUpperCase()}
                       </div>
                     </div>
                     <div className="flex-1">
@@ -235,14 +241,18 @@ export const DisputeDetailPage: React.FC = () => {
             <div className="space-y-4">
               <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
                 <div className="flex items-center gap-3">
-                  <div className="size-8 rounded-lg bg-white flex items-center justify-center border border-slate-200 text-xs font-bold text-slate-400">C</div>
+                  <div className="size-8 rounded-lg bg-white flex items-center justify-center border border-slate-200 text-xs font-bold text-slate-400">
+                    {String(dispute.clientName || 'C').trim().charAt(0).toUpperCase()}
+                  </div>
                   <span className="text-sm font-bold text-slate-600">Client</span>
                 </div>
                 <span className="text-sm font-black text-slate-900">{dispute.clientName}</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-blue-50 rounded-xl border border-blue-100">
                 <div className="flex items-center gap-3">
-                  <div className="size-8 rounded-lg bg-white flex items-center justify-center border border-blue-200 text-xs font-bold text-blue-600">E</div>
+                  <div className="size-8 rounded-lg bg-white flex items-center justify-center border border-blue-200 text-xs font-bold text-blue-600">
+                    {String(dispute.expertName || 'E').trim().charAt(0).toUpperCase()}
+                  </div>
                   <span className="text-sm font-bold text-blue-700">Expert</span>
                 </div>
                 <span className="text-sm font-black text-blue-900">{dispute.expertName}</span>
@@ -288,54 +298,7 @@ export const DisputeDetailPage: React.FC = () => {
           )}
         </div>
       </div>
-
-      {/* Request Evidence Modal */}
-      {isRequestEvidenceModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-slate-100 animate-in zoom-in-95 duration-200 overflow-hidden">
-            <div className="p-6 border-b border-slate-50 bg-slate-50/50">
-              <h3 className="text-xl font-black text-slate-900">Request Evidence</h3>
-              <p className="text-slate-500 text-sm font-medium">Ask the dispute creator for more information.</p>
-            </div>
-            
-            <div className="p-6 space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700">Message to Creator</label>
-                <textarea 
-                  value={requestMessage}
-                  onChange={(e) => setRequestEvidenceMessage(e.target.value)}
-                  placeholder="Explain what information or files are missing..."
-                  rows={4}
-                  className="w-full rounded-xl border border-slate-200 p-4 text-sm focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all"
-                />
-              </div>
-              
-              <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 flex gap-3">
-                <AlertCircle className="size-5 text-amber-600 shrink-0" />
-                <p className="text-xs text-amber-800 font-medium leading-relaxed">
-                  <strong>Notice:</strong> The request evidence API is currently missing. Sending this request will not be processed by the server.
-                </p>
-              </div>
-            </div>
-            
-            <div className="p-6 bg-slate-50/50 border-t border-slate-50 flex gap-3">
-              <Button 
-                onClick={() => setIsRequestEvidenceModalOpen(false)}
-                variant="ghost"
-                className="flex-1 rounded-xl font-bold text-slate-500"
-              >
-                Cancel
-              </Button>
-              <Button 
-                disabled={true}
-                className="flex-1 rounded-xl font-bold bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                Send Request
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
+

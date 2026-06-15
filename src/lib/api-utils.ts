@@ -103,7 +103,7 @@ export function normalizeBaseResponse<T>(response: unknown): BaseResponse<T> {
       success: false,
       message: message || 'An error occurred',
       statusCode: statusCode || 500,
-      data: undefined as unknown as T
+      data: null
     };
   }
 
@@ -114,3 +114,4 @@ export function normalizeBaseResponse<T>(response: unknown): BaseResponse<T> {
     data: (axiosData?.data !== undefined ? axiosData.data : axiosData) as T
   };
 }
+

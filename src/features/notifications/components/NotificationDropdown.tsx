@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bell, ArrowRight } from 'lucide-react';
+import { Bell, ArrowRight, AlertCircle } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useNotifications, useUnreadCount } from '../hooks/useNotifications';
+import { useNotificationActions } from '../hooks/useNotificationActions';
 import { NotificationStatus } from '../types';
 import { cn } from '@/lib/utils';
 
@@ -14,19 +15,22 @@ export const NotificationDropdown = ({ role }: NotificationDropdownProps) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  const { data: notificationsData, isLoading } = useNotifications({
+  const { data: notificationsData, isLoading, error: listError } = useNotifications({
     PageSize: 10, // Fetch a few to filter unread
     PageIndex: 1,
   });
 
-  const { data: unreadResponse } = useUnreadCount();
+  const { data: unreadResponse, error: unreadError } = useUnreadCount();
   const unreadCount = unreadResponse?.data || 0;
+  const hasError = !!listError || !!unreadError;
 
   // Filter unread notifications on frontend as API doesn't support unread filter yet
   const notificationsArray = Array.isArray(notificationsData?.data) ? notificationsData.data : [];
   const unreadNotifications = notificationsArray
     .filter(n => !n.isRead && n.status !== NotificationStatus.READ)
     .slice(0, 5);
+
+  const { markAsRead } = useNotificationActions();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -37,6 +41,11 @@ export const NotificationDropdown = ({ role }: NotificationDropdownProps) => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleNotificationClick = (notificationId: string) => {
+    markAsRead(notificationId);
+    handleViewDetail();
+  };
 
   const handleViewDetail = () => {
     setIsOpen(false);
@@ -76,6 +85,11 @@ export const NotificationDropdown = ({ role }: NotificationDropdownProps) => {
               <div className="p-8 flex justify-center">
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
               </div>
+            ) : hasError ? (
+              <div className="p-8 text-center flex flex-col items-center gap-2">
+                <AlertCircle className="size-5 text-rose-400" />
+                <p className="text-xs text-slate-400 font-medium">Unable to load updates</p>
+              </div>
             ) : unreadNotifications.length === 0 ? (
               <div className="p-8 text-center">
                 <p className="text-xs text-slate-400 font-medium">No unread notifications</p>
@@ -86,10 +100,7 @@ export const NotificationDropdown = ({ role }: NotificationDropdownProps) => {
                   <div 
                     key={notification.id}
                     className="p-4 hover:bg-slate-50 cursor-pointer transition-colors"
-                    onClick={() => {
-                      // Optionally mark as read here or just navigate
-                      handleViewDetail();
-                    }}
+                    onClick={() => handleNotificationClick(notification.id)}
                   >
                     <div className="flex gap-3">
                       <div className="size-2 mt-1.5 shrink-0 rounded-full bg-primary" />
@@ -97,7 +108,9 @@ export const NotificationDropdown = ({ role }: NotificationDropdownProps) => {
                         <p className="text-xs font-bold text-slate-900 truncate">{notification.title}</p>
                         <p className="text-xs text-slate-500 line-clamp-2 mt-1">{notification.message}</p>
                         <p className="text-xs text-slate-400 mt-2">
-                          {new Date(notification.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          {notification.createdAt 
+                            ? new Date(notification.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+                            : 'Recently'}
                         </p>
                       </div>
                     </div>
@@ -119,3 +132,4 @@ export const NotificationDropdown = ({ role }: NotificationDropdownProps) => {
     </div>
   );
 };
+

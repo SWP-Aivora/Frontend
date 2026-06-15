@@ -16,13 +16,37 @@ import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
 
 export const AdminDashboardPage = () => {
   const { data: summary, isLoading, isError, refetch } = useAdminDashboard();
-  const { data: recentActivity, isLoading: isActivityLoading } = useAdminRecentActivity();
+  const { 
+    data: recentActivityResponse, 
+    isLoading: isActivityLoading,
+    isError: isActivityError,
+    refetch: refetchActivity
+  } = useAdminRecentActivity();
   
+  const recentActivity = recentActivityResponse?.data || [];
+  const activityFailed = isActivityError || recentActivityResponse?.success === false;
+
   const [projectPage, setProjectPage] = useState(1);
   const PROJECTS_PER_PAGE = 10;
 
-  // DASHBOARD PREVIEW MODE: 
-  const isPreviewMode = summary?._isStub ?? false; 
+  // ... (MetricBadge and other logic) ...
+
+  const RecentActivityError = () => (
+    <div className="py-10 text-center px-4">
+      <AlertCircle className="size-8 text-rose-300 mx-auto mb-3" />
+      <p className="text-xs font-bold text-slate-500 mb-4">Failed to load recent activity</p>
+      <button 
+        onClick={() => refetchActivity()}
+        className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline"
+      >
+        Retry Action
+      </button>
+    </div>
+  );
+
+  return (
+    <div className="space-y-5 pb-10">
+      {/* ... (Warning Banners and Header) ...
 
   // Local Pagination Logic for Active Projects
   const { paginatedProjects, totalProjectPages } = useMemo(() => {
@@ -501,6 +525,8 @@ export const AdminDashboardPage = () => {
               <div className="flex-1 space-y-6">
                  {isActivityLoading ? (
                     <div className="py-10 flex justify-center"><LoadingSpinner size="sm" /></div>
+                 ) : activityFailed ? (
+                    <RecentActivityError />
                  ) : recentActivity && recentActivity.length > 0 ? (
                    recentActivity.map((activity, idx) => (
                      <div key={idx} className="flex gap-4 relative">
@@ -535,3 +561,4 @@ export const AdminDashboardPage = () => {
     </div>
   );
 };
+

@@ -5,6 +5,7 @@ import { Button, Input, Textarea } from '@/shared/components/ui';
 import { useProjects } from '@/features/projects/hooks/useProjects';
 import { useProjectMilestones } from '@/features/projects/hooks/useProjectMilestones';
 import type { Project, Milestone } from '@/features/projects/types';
+import { toast } from 'sonner';
 
 interface CreateDisputeModalProps {
   isOpen: boolean;
@@ -29,7 +30,7 @@ export const CreateDisputeModal: React.FC<CreateDisputeModalProps> = ({ isOpen, 
   const handleCreateDispute = (e: React.FormEvent) => {
     e.preventDefault();
     if (!milestoneId || !reason) {
-      alert('Milestone and Reason are required');
+      toast.error('Milestone and Reason are required');
       return;
     }
 
@@ -37,14 +38,14 @@ export const CreateDisputeModal: React.FC<CreateDisputeModalProps> = ({ isOpen, 
       { milestoneId, reason, description },
       {
         onSuccess: () => {
-          alert('Dispute created successfully');
+          toast.success('Dispute created successfully. Our team will review it shortly.');
           onSuccess();
           resetForm();
           onClose();
         },
         onError: (err: unknown) => {
           const errorMessage = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || (err as Error).message || 'Failed to create dispute';
-          alert(errorMessage);
+          toast.error(errorMessage);
         }
       }
     );
@@ -173,3 +174,4 @@ export const CreateDisputeModal: React.FC<CreateDisputeModalProps> = ({ isOpen, 
     </div>
   );
 };
+

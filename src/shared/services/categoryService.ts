@@ -31,7 +31,7 @@ export const categoryService = {
    */
   getCategories: async (): Promise<BaseResponse<Category[]>> => {
     const response = await apiClient.get<BaseResponse<unknown>>(API_ENDPOINTS.CATEGORIES.BASE);
-    const normalizedData = normalizeList(response.data.data) as unknown as Category[];
+    const normalizedData = normalizeList(response.data?.data) as unknown as Category[];
     
     return {
       ...response.data,
@@ -39,3 +39,4 @@ export const categoryService = {
     };
   }
 };
+

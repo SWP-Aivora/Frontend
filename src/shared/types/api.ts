@@ -4,7 +4,7 @@
 export interface BaseResponse<T> {
   success: boolean;
   message: string;
-  data: T;
+  data: T | null;
   statusCode: number;
 }
 
@@ -31,3 +31,4 @@ export interface PaginatedResponse<T> extends BaseResponse<T[]> {
     hasNextPage: boolean;
   };
 }
+
