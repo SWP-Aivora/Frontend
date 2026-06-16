@@ -24,8 +24,8 @@ interface MeBackendResponse {
 export const authService = {
   login: async (data: LoginFormValues): Promise<BaseResponse<AuthResponse | null>> => {
     try {
-      const response = await apiClient.post<BaseResponse<LoginBackendResponse>>(API_ENDPOINTS.AUTH.LOGIN, data);
-      const normalized = normalizeBaseResponse<LoginBackendResponse>(response);
+      const response = await apiClient.post<BaseResponse<LoginBackendResponse | null>>(API_ENDPOINTS.AUTH.LOGIN, data);
+      const normalized = normalizeBaseResponse<LoginBackendResponse | null>(response);
       
       if (!normalized.success) {
         return {

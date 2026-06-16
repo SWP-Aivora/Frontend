@@ -1,6 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { normalizePaginatedResponse, normalizeBaseResponse } from '../../lib/api-utils';
 
+interface TestItem {
+  id: number;
+}
+
+const isTestItem = (value: unknown): value is TestItem => (
+  typeof value === 'object'
+  && value !== null
+  && !Array.isArray(value)
+  && typeof (value as { id?: unknown }).id === 'number'
+);
+
 describe('api-utils', () => {
   beforeEach(() => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -46,6 +57,18 @@ describe('api-utils', () => {
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(2);
       expect(result.metadata.totalCount).toBe(2);
+      expect(console.warn).not.toHaveBeenCalled();
+    });
+
+    it('handles raw array response', () => {
+      const response = [{ id: 1 }, { id: 2 }];
+
+      const result = normalizePaginatedResponse(response, isTestItem);
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(response);
+      expect(result.metadata.totalCount).toBe(2);
+      expect(result.metadata.totalPages).toBe(1);
       expect(console.warn).not.toHaveBeenCalled();
     });
 
@@ -127,6 +150,22 @@ describe('api-utils', () => {
       expect(result.metadata.totalCount).toBe(100);
       expect(result.metadata.totalPages).toBe(10);
     });
+
+    it('returns failure when array items do not match provided guard', () => {
+      const response = {
+        data: {
+          data: [{ id: 1 }, { id: 'wrong-type' }],
+          success: true,
+        }
+      };
+
+      const result = normalizePaginatedResponse(response, isTestItem);
+
+      expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('Unexpected paginated response shape'), expect.anything());
+      expect(result.success).toBe(false);
+      expect(result.message).toBe('Unexpected paginated response shape');
+      expect(result.data).toEqual([]);
+    });
   });
 
   describe('normalizeBaseResponse', () => {
@@ -199,6 +238,45 @@ describe('api-utils', () => {
       const result = normalizeBaseResponse(response);
       expect(result.success).toBe(true);
       expect(result.data).toBe(42);
+    });
+
+    it('accepts payload when it matches provided guard', () => {
+      const response = {
+        data: {
+          data: { id: 7 },
+          success: true
+        }
+      };
+
+      const result = normalizeBaseResponse(response, isTestItem);
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual({ id: 7 });
+      expect(console.warn).not.toHaveBeenCalled();
+    });
+
+    it('returns failure when payload does not match provided guard', () => {
+      const response = {
+        data: {
+          data: { id: 'wrong-type' },
+          success: true
+        }
+      };
+
+      const result = normalizeBaseResponse(response, isTestItem);
+
+      expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('Unexpected base response payload'), expect.anything());
+      expect(result.success).toBe(false);
+      expect(result.message).toBe('Unexpected base response payload');
+      expect(result.data).toBeNull();
+    });
+
+    it('returns failure when raw payload does not match provided guard', () => {
+      const result = normalizeBaseResponse({ id: 'wrong-type' }, isTestItem);
+
+      expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('Unexpected base response payload'), expect.anything());
+      expect(result.success).toBe(false);
+      expect(result.data).toBeNull();
     });
 
     it('handles explicit null in data.data', () => {

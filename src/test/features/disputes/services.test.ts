@@ -31,6 +31,25 @@ describe('disputeService', () => {
       }
     });
 
+    it('sends only non-empty pagination and search params', async () => {
+      (vi.mocked(apiClient.get)).mockResolvedValue({
+        data: {
+          success: true,
+          data: {
+            items: [],
+            totalItems: 0
+          }
+        }
+      });
+
+      await disputeService.getDisputes({ PageIndex: 2, PageSize: 20, SearchTerm: '   ' });
+
+      expect(apiClient.get).toHaveBeenCalledWith(
+        expect.any(String),
+        { params: { PageIndex: 2, PageSize: 20 } }
+      );
+    });
+
     it('throws error if API call fails', async () => {
       (vi.mocked(apiClient.get)).mockRejectedValue(new Error('Network error'));
       await expect(disputeService.getDisputes({})).rejects.toThrow('Network error');
@@ -82,6 +101,64 @@ describe('disputeService', () => {
       });
 
       await expect(disputeService.getDisputeById('d1')).rejects.toThrow('Unauthorized');
+    });
+
+    it('throws enrichment error if project response is unsuccessful', async () => {
+      (vi.mocked(apiClient.get)).mockImplementation((url: string) => {
+        if (url.includes('projects')) {
+          return Promise.resolve({
+            data: {
+              success: false,
+              message: 'Project not found',
+              statusCode: 404
+            }
+          });
+        }
+        return Promise.resolve({
+          data: {
+            success: true,
+            data: { id: 'd1', projectId: 'p1', milestoneId: 'm1', status: 'OPEN' }
+          }
+        });
+      });
+
+      await expect(disputeService.getDisputeById('d1')).rejects.toThrow('Could not fetch project details for enrichment.');
+    });
+  });
+
+  describe('openDispute', () => {
+    it('posts open dispute payload to disputes endpoint', async () => {
+      const payload = {
+        milestoneId: 'm1',
+        reason: 'Work not delivered',
+        description: 'The submitted work was not delivered as agreed.'
+      };
+      (vi.mocked(apiClient.post)).mockResolvedValue({
+        data: {
+          success: true,
+          data: { id: 'd1', ...payload }
+        }
+      });
+
+      const result = await disputeService.openDispute(payload);
+
+      expect(result.success).toBe(true);
+      expect(apiClient.post).toHaveBeenCalledWith(expect.stringContaining('/disputes'), payload);
+    });
+  });
+
+  describe('addEvidence', () => {
+    it('posts evidence payload to dispute evidence endpoint', async () => {
+      const payload = {
+        content: 'This evidence explains the dispute context in enough detail.',
+        fileUrl: 'https://example.com/evidence.png'
+      };
+      (vi.mocked(apiClient.post)).mockResolvedValue({ data: { success: true } });
+
+      const result = await disputeService.addEvidence('d1', payload);
+
+      expect(result.success).toBe(true);
+      expect(apiClient.post).toHaveBeenCalledWith(expect.stringContaining('/d1/evidence'), payload);
     });
   });
 

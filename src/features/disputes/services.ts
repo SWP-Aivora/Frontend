@@ -156,7 +156,11 @@ export const disputeService = {
           const projectResponse = await apiClient.get(API_ENDPOINTS.PROJECTS.ID(beData.projectId));
           const projectBaseResponse = normalizeBaseResponse<Record<string, unknown>>(projectResponse);
           const projectData = projectBaseResponse.data;
-          
+
+          if (!projectBaseResponse.success || !projectData) {
+            throw new Error('Could not fetch project details for enrichment.');
+          }
+
           if (projectData) {
             const milestone = (projectData.milestones as Record<string, unknown>[])?.find((m) => m.id === beData.milestoneId);
             
