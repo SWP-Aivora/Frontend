@@ -131,11 +131,9 @@ export const disputeService = {
       };
     } catch (error: unknown) {
       const axiosError = error as AxiosError<{ message?: string }>;
-      console.error('[DisputeService] API Error:', {
-        url: API_ENDPOINTS.DISPUTES.BASE,
-        params,
+      console.error('[DisputeService] getDisputes failed', {
         status: axiosError.response?.status,
-        data: axiosError.response?.data
+        message: 'Failed to fetch disputes.'
       });
       
       throw error;
@@ -202,14 +200,25 @@ export const disputeService = {
             };
           }
         } catch (projectErr) {
-          console.error('[DisputeService] Could not fetch project details for dispute enrichment.', projectErr);
+          const axiosError = projectErr as AxiosError;
+          console.error('[DisputeService] Enrichment failed: fetchProjectDetailsForDisputeEnrichment', {
+            disputeId: id,
+            projectId: beData.projectId,
+            status: axiosError.response?.status,
+            message: 'Could not fetch project details for enrichment.'
+          });
           throw projectErr; // Rethrow to surface enrichment failure instead of silently faking data
         }
       }
       
       return baseResponse as unknown as BaseResponse<Dispute>;
     } catch (error) {
-      console.error('[DisputeService] Error in getDisputeById:', error);
+      const axiosError = error as AxiosError;
+      console.error('[DisputeService] getDisputeById failed', {
+        disputeId: id,
+        status: axiosError.response?.status,
+        message: 'Failed to retrieve dispute details.'
+      });
       throw error;
     }
   },

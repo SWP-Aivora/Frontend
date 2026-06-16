@@ -12,10 +12,7 @@ import type {
   TransactionSummaryItem
 } from './types';
 import type { BaseResponse } from '@/shared/types/api';
-import { 
-  ADMIN_DASHBOARD_PREVIEW_DATA
-} from './hooks/previewData';
-import type { AxiosError } from 'axios';
+import { normalizeBaseResponse } from '@/lib/api-utils';
 
 interface BackendStats {
   totalUsers: number;
@@ -26,14 +23,6 @@ interface BackendStats {
   openDisputes: number;
   totalEscrowAmount: number;
 }
-
-const isNetworkOrMissingError = (error: unknown) => {
-  const axiosError = error as AxiosError;
-  return axiosError.message === 'Network Error' || 
-         axiosError.response?.status === 404 || 
-         axiosError.response?.status === 405 ||
-         axiosError.response?.status === 501; // Not Implemented
-};
 
 /**
  * Robustly normalize various list shapes from backend
@@ -148,180 +137,168 @@ export const formatActivityDate = (dateString: string): string => {
  */
 export const adminService = {
   getDashboardSummary: async (): Promise<BaseResponse<DashboardSummary & { _isStub?: boolean }>> => {
-    try {
-      const results = await Promise.allSettled([
-        apiClient.get<BaseResponse<BackendStats>>(API_ENDPOINTS.ADMIN.DASHBOARD_SUMMARY),
-        apiClient.get<BaseResponse<Record<string, unknown>>>(API_ENDPOINTS.JOBS.BASE, { params: { PageSize: 100 } }),
-        apiClient.get<BaseResponse<Record<string, unknown>[]>>('/api/v1/categories'),
-        apiClient.get<BaseResponse<Record<string, unknown>>>(API_ENDPOINTS.PROJECTS.BASE, { params: { PageSize: 100 } }), 
-        apiClient.get<BaseResponse<Record<string, unknown>>>(API_ENDPOINTS.DISPUTES.BASE, { params: { PageSize: 50 } }), 
-        apiClient.get<BaseResponse<Record<string, unknown>>>(API_ENDPOINTS.ADMIN.USERS, { params: { PageSize: 50 } }), 
-        apiClient.get<BaseResponse<AdminExpertReviewsData>>(API_ENDPOINTS.ADMIN.EXPERT_REVIEWS, { params: { PageSize: 50 } }),
-        apiClient.get<BaseResponse<Record<string, unknown>>>(API_ENDPOINTS.WALLET.HISTORY, { params: { PageSize: 50 } })
-      ]);
+    const results = await Promise.allSettled([
+      apiClient.get<BaseResponse<BackendStats>>(API_ENDPOINTS.ADMIN.DASHBOARD_SUMMARY),
+      apiClient.get<BaseResponse<Record<string, unknown>>>(API_ENDPOINTS.JOBS.BASE, { params: { PageSize: 100 } }),
+      apiClient.get<BaseResponse<Record<string, unknown>[]>>('/api/v1/categories'),
+      apiClient.get<BaseResponse<Record<string, unknown>>>(API_ENDPOINTS.PROJECTS.BASE, { params: { PageSize: 100 } }),
+      apiClient.get<BaseResponse<Record<string, unknown>>>(API_ENDPOINTS.DISPUTES.BASE, { params: { PageSize: 50 } }),
+      apiClient.get<BaseResponse<Record<string, unknown>>>(API_ENDPOINTS.ADMIN.USERS, { params: { PageSize: 50 } }),
+      apiClient.get<BaseResponse<AdminExpertReviewsData>>(API_ENDPOINTS.ADMIN.EXPERT_REVIEWS, { params: { PageSize: 50 } }),
+      apiClient.get<BaseResponse<Record<string, unknown>>>(API_ENDPOINTS.WALLET.HISTORY, { params: { PageSize: 50 } })
+    ]);
 
-      const statsRes = results[0].status === 'fulfilled' ? results[0].value : null;
-      const jobsRes = results[1].status === 'fulfilled' ? results[1].value : null;
-      const categoriesRes = results[2].status === 'fulfilled' ? results[2].value : null;
-      const projectsRes = results[3].status === 'fulfilled' ? results[3].value : null;
-      const disputesRes = results[4].status === 'fulfilled' ? results[4].value : null;
-      const usersRes = results[5].status === 'fulfilled' ? results[5].value : null;
-      const expertReviewsRes = results[6].status === 'fulfilled' ? results[6].value : null;
-      const paymentsRes = results[7].status === 'fulfilled' ? results[7].value : null;
+    const statsRes = results[0].status === 'fulfilled' ? results[0].value : null;
+    const jobsRes = results[1].status === 'fulfilled' ? results[1].value : null;
+    const categoriesRes = results[2].status === 'fulfilled' ? results[2].value : null;
+    const projectsRes = results[3].status === 'fulfilled' ? results[3].value : null;
+    const disputesRes = results[4].status === 'fulfilled' ? results[4].value : null;
+    const usersRes = results[5].status === 'fulfilled' ? results[5].value : null;
+    const expertReviewsRes = results[6].status === 'fulfilled' ? results[6].value : null;
+    const paymentsRes = results[7].status === 'fulfilled' ? results[7].value : null;
 
-      const backendStats = statsRes?.data?.data;
-      const usersPayload = usersRes?.data?.data as Record<string, unknown>;
-      const expertReviewsPayload = expertReviewsRes?.data?.data as unknown as Record<string, unknown>;
-      const projectsPayload = projectsRes?.data?.data as Record<string, unknown>;
-      
-      const allJobs = normalizeList(jobsRes?.data?.data);
-      const allCategories = normalizeList(categoriesRes?.data?.data);
-      const allProjectsRaw = normalizeList(projectsRes?.data?.data);
-      const allDisputes = normalizeList(disputesRes?.data?.data);
-      const allUsers = normalizeList(usersRes?.data?.data);
-      const allExpertReviews = normalizeList(expertReviewsRes?.data?.data);
-      const recentPayments = normalizeList(paymentsRes?.data?.data);
-      
-      // 1. Process Job Market
-      const activeJobs = allJobs.filter(job => {
-        const s = String(job.status || job.Status || '').toUpperCase();
-        return s === 'OPEN' || s === 'IN_PROGRESS' || s === 'PUBLISHED' || s === 'INPROGRESS';
-      });
+    const backendStats = statsRes?.data?.data;
+    const usersPayload = usersRes?.data?.data as Record<string, unknown>;
+    const expertReviewsPayload = expertReviewsRes?.data?.data as unknown as Record<string, unknown>;
+    const projectsPayload = projectsRes?.data?.data as Record<string, unknown>;
 
-      const categoryMap = new Map<string, string>();
-      allCategories.forEach((cat: Record<string, unknown>) => categoryMap.set(cat.id as string, cat.name as string));
+    const allJobs = normalizeList(jobsRes?.data?.data);
+    const allCategories = normalizeList(categoriesRes?.data?.data);
+    const allProjectsRaw = normalizeList(projectsRes?.data?.data);
+    const allDisputes = normalizeList(disputesRes?.data?.data);
+    const allUsers = normalizeList(usersRes?.data?.data);
+    const allExpertReviews = normalizeList(expertReviewsRes?.data?.data);
+    const recentPayments = normalizeList(paymentsRes?.data?.data);
 
-      const domainCounts: Record<string, number> = {};
-      activeJobs.forEach(job => {
-        const domain = (job.businessDomain as string) || (job.categoryName as string) || (job.CategoryName as string) || categoryMap.get((job.categoryId || job.CategoryId) as string) || 'General';
-        domainCounts[domain] = (domainCounts[domain] || 0) + 1;
-      });
+    // 1. Process Job Market
+    const activeJobs = allJobs.filter(job => {
+      const s = String(job.status || job.Status || '').toUpperCase();
+      return s === 'OPEN' || s === 'IN_PROGRESS' || s === 'PUBLISHED' || s === 'INPROGRESS';
+    });
 
-      const topCategories = Object.entries(domainCounts)
-        .map(([name, jobCount]) => ({ name, jobCount, totalValue: 0 }))
-        .sort((a, b) => b.jobCount - a.jobCount)
-        .slice(0, 5);
+    const categoryMap = new Map<string, string>();
+    allCategories.forEach((cat: Record<string, unknown>) => categoryMap.set(cat.id as string, cat.name as string));
 
-      // 2. Process Projects (Filter ongoing only)
-      const ongoingProjects = allProjectsRaw.filter(p => isOngoingStatus(p.status ?? p.Status));
+    const domainCounts: Record<string, number> = {};
+    activeJobs.forEach(job => {
+      const domain = (job.businessDomain as string) || (job.categoryName as string) || (job.CategoryName as string) || categoryMap.get((job.categoryId || job.CategoryId) as string) || 'General';
+      domainCounts[domain] = (domainCounts[domain] || 0) + 1;
+    });
 
-      const mappedProjects: AdminProjectItem[] = ongoingProjects.map((p: Record<string, unknown>) => {
-        return {
-          id: (p.id || p.Id) as string,
-          title: (p.title || p.Title) as string,
-          clientName: (p.clientName || p.ClientName || (p.client as Record<string, unknown>)?.fullName || (p.client as Record<string, unknown>)?.FullName || 'Unknown Client') as string,
-          expertName: (p.expertName || p.ExpertName || (p.expert as Record<string, unknown>)?.fullName || (p.expert as Record<string, unknown>)?.FullName || 'Unknown Expert') as string,
-          status: getStatusLabel(p.status ?? p.Status),
-          amount: (p.totalBudget || p.TotalBudget || 0) as number,
-          paymentStatus: (p.remainingBudget === 0 || p.RemainingBudget === 0) ? 'Paid' : 'Escrow'
-        };
-      });
+    const topCategories = Object.entries(domainCounts)
+      .map(([name, jobCount]) => ({ name, jobCount, totalValue: 0 }))
+      .sort((a, b) => b.jobCount - a.jobCount)
+      .slice(0, 5);
 
-      // 3. Process Counts with robust fallbacks
-      const totalUsers = backendStats?.totalUsers ?? (usersPayload?.totalUsers || usersPayload?.TotalUsers) as number ?? allUsers.length;
-      const totalClients = backendStats?.totalClients ?? (usersPayload?.totalClients || usersPayload?.TotalClients) as number ?? 0;
-      const totalExperts = backendStats?.totalExperts ?? (usersPayload?.totalExperts || usersPayload?.TotalExperts) as number ?? 0;
-      
-      const realOpenDisputes = allDisputes.filter(d => isOpenDisputeStatus(d.status ?? d.Status));
-      const openDisputesCount = backendStats?.openDisputes ?? realOpenDisputes.length;
-      
-      const pendingReviewsCount = (expertReviewsPayload?.totalPending || expertReviewsPayload?.TotalPending) as number ?? allExpertReviews.length;
-      const openJobsCount = Math.max(activeJobs.length, backendStats?.totalJobs || 0);
+    // 2. Process Projects (Filter ongoing only)
+    const ongoingProjects = allProjectsRaw.filter(p => isOngoingStatus(p.status ?? p.Status));
 
-      // 4. Calculate 7-day NEW counts
-      const newUsers7d = countNewInLast7Days(allUsers, 'createdAt');
-      const newJobs7d = countNewInLast7Days(allJobs, 'publishedAt');
-      const newProjects7d = countNewInLast7Days(allProjectsRaw, 'createdAt');
-      const newDisputes7d = countNewInLast7Days(allDisputes, 'createdAt');
-      const newExpertReviews7d = countNewInLast7Days(allExpertReviews, 'submittedAt');
-      const newTransactions7d = countNewInLast7Days(recentPayments, 'createdAt');
-
-      // 5. Transaction Summary
-      const transactionSummary: TransactionSummaryItem[] = [];
-      if (recentPayments.length > 0) {
-        const total = recentPayments.reduce((sum, p) => sum + (Number(p.amount || p.Amount || 0)), 0);
-        transactionSummary.push({ type: 'Recent Volume', amount: total });
-      }
-
-      // 6. Health Alerts
-      const healthAlerts: HealthAlertItem[] = [];
-      if (openDisputesCount > 0) {
-        healthAlerts.push({
-          title: `${openDisputesCount} Unresolved Dispute${openDisputesCount > 1 ? 's' : ''}`,
-          description: 'Resolution is required to maintain platform trust.',
-          severity: 'critical'
-        });
-      }
-      if (pendingReviewsCount > 10) {
-        healthAlerts.push({
-          title: 'High Volume of Expert Reviews',
-          description: `${pendingReviewsCount} profiles are waiting for verification.`,
-          severity: 'warning'
-        });
-      }
-
-      const mappedData: DashboardSummary = {
-        totalUsers,
-        openJobs: openJobsCount,
-        activeProjects: (projectsPayload?.totalItems || projectsPayload?.TotalItems) as number ?? mappedProjects.length,
-        openDisputes: openDisputesCount,
-        totalTransactionsValue: backendStats?.totalEscrowAmount ?? 0,
-        pendingReviews: pendingReviewsCount, 
-        
-        newUsers7d,
-        newJobs7d,
-        newProjects7d,
-        newDisputes7d,
-        newExpertReviews7d,
-        newTransactions7d,
-        
-        userOverview: [
-          { 
-            role: 'Clients', 
-            count: totalClients,
-            fillPercentage: totalUsers > 0 ? (totalClients / totalUsers) * 100 : 0
-          },
-          { 
-            role: 'Experts', 
-            count: totalExperts,
-            fillPercentage: totalUsers > 0 ? (totalExperts / totalUsers) * 100 : 0
-          },
-          { 
-            role: 'Admins', 
-            count: Math.max(0, totalUsers - totalClients - totalExperts),
-            fillPercentage: totalUsers > 0 ? (Math.max(0, totalUsers - totalClients - totalExperts) / totalUsers) * 100 : 0
-          },
-        ],
-
-        transactionSummary,
-        activeProjectsList: mappedProjects,
-        reviewQueue: allExpertReviews.slice(0, 5).map(r => ({
-          label: (r.fullName || r.FullName) as string,
-          count: 1 
-        })),
-        topCategories,
-        recentActivity: [], 
-        healthAlerts,
-        _rawJobs: activeJobs.slice(0, 5).map(j => ({ title: (j.title || j.Title) as string, status: (j.status || j.Status) as string }))
-      };
-
+    const mappedProjects: AdminProjectItem[] = ongoingProjects.map((p: Record<string, unknown>) => {
       return {
-        success: true,
-        data: { ...mappedData, _isStub: false },
-        message: statsRes === null ? 'Partial data loaded' : 'Dashboard summary retrieved',
-        statusCode: 200,
+        id: (p.id || p.Id) as string,
+        title: (p.title || p.Title) as string,
+        clientName: (p.clientName || p.ClientName || (p.client as Record<string, unknown>)?.fullName || (p.client as Record<string, unknown>)?.FullName || 'Unknown Client') as string,
+        expertName: (p.expertName || p.ExpertName || (p.expert as Record<string, unknown>)?.fullName || (p.expert as Record<string, unknown>)?.FullName || 'Unknown Expert') as string,
+        status: getStatusLabel(p.status ?? p.Status),
+        amount: (p.totalBudget || p.TotalBudget || 0) as number,
+        paymentStatus: (p.remainingBudget === 0 || p.RemainingBudget === 0) ? 'Paid' : 'Escrow'
       };
-    } catch (error) {
-      if (isNetworkOrMissingError(error)) {
-        return {
-          success: false,
-          data: { ...ADMIN_DASHBOARD_PREVIEW_DATA, _isStub: true } as DashboardSummary & { _isStub?: boolean },
-          message: 'Backend service unavailable. Showing preview data.',
-          statusCode: 503
-        };
-      }
-      throw error;
+    });
+
+    // 3. Process Counts with robust fallbacks
+    const totalUsers = backendStats?.totalUsers ?? (usersPayload?.totalUsers || usersPayload?.TotalUsers) as number ?? allUsers.length;
+    const totalClients = backendStats?.totalClients ?? (usersPayload?.totalClients || usersPayload?.TotalClients) as number ?? 0;
+    const totalExperts = backendStats?.totalExperts ?? (usersPayload?.totalExperts || usersPayload?.TotalExperts) as number ?? 0;
+
+    const realOpenDisputes = allDisputes.filter(d => isOpenDisputeStatus(d.status ?? d.Status));
+    const openDisputesCount = backendStats?.openDisputes ?? realOpenDisputes.length;
+
+    const pendingReviewsCount = (expertReviewsPayload?.totalPending || expertReviewsPayload?.TotalPending) as number ?? allExpertReviews.length;
+    const openJobsCount = Math.max(activeJobs.length, backendStats?.totalJobs || 0);
+
+    // 4. Calculate 7-day NEW counts
+    const newUsers7d = countNewInLast7Days(allUsers, 'createdAt');
+    const newJobs7d = countNewInLast7Days(allJobs, 'publishedAt');
+    const newProjects7d = countNewInLast7Days(allProjectsRaw, 'createdAt');
+    const newDisputes7d = countNewInLast7Days(allDisputes, 'createdAt');
+    const newExpertReviews7d = countNewInLast7Days(allExpertReviews, 'submittedAt');
+    const newTransactions7d = countNewInLast7Days(recentPayments, 'createdAt');
+
+    // 5. Transaction Summary
+    const transactionSummary: TransactionSummaryItem[] = [];
+    if (recentPayments.length > 0) {
+      const total = recentPayments.reduce((sum, p) => sum + (Number(p.amount || p.Amount || 0)), 0);
+      transactionSummary.push({ type: 'Recent Volume', amount: total });
     }
+
+    // 6. Health Alerts
+    const healthAlerts: HealthAlertItem[] = [];
+    if (openDisputesCount > 0) {
+      healthAlerts.push({
+        title: `${openDisputesCount} Unresolved Dispute${openDisputesCount > 1 ? 's' : ''}`,
+        description: 'Resolution is required to maintain platform trust.',
+        severity: 'critical'
+      });
+    }
+    if (pendingReviewsCount > 10) {
+      healthAlerts.push({
+        title: 'High Volume of Expert Reviews',
+        description: `${pendingReviewsCount} profiles are waiting for verification.`,
+        severity: 'warning'
+      });
+    }
+
+    const mappedData: DashboardSummary = {
+      totalUsers,
+      openJobs: openJobsCount,
+      activeProjects: (projectsPayload?.totalItems || projectsPayload?.TotalItems) as number ?? mappedProjects.length,
+      openDisputes: openDisputesCount,
+      totalTransactionsValue: backendStats?.totalEscrowAmount ?? 0,
+      pendingReviews: pendingReviewsCount,
+      
+      newUsers7d,
+      newJobs7d,
+      newProjects7d,
+      newDisputes7d,
+      newExpertReviews7d,
+      newTransactions7d,
+      
+      userOverview: [
+        {
+          role: 'Clients',
+          count: totalClients,
+          fillPercentage: totalUsers > 0 ? (totalClients / totalUsers) * 100 : 0
+        },
+        {
+          role: 'Experts',
+          count: totalExperts,
+          fillPercentage: totalUsers > 0 ? (totalExperts / totalUsers) * 100 : 0
+        },
+        {
+          role: 'Admins',
+          count: Math.max(0, totalUsers - totalClients - totalExperts),
+          fillPercentage: totalUsers > 0 ? (Math.max(0, totalUsers - totalClients - totalExperts) / totalUsers) * 100 : 0
+        },
+      ],
+
+      transactionSummary,
+      activeProjectsList: mappedProjects,
+      reviewQueue: allExpertReviews.slice(0, 5).map(r => ({
+        label: (r.fullName || r.FullName) as string,
+        count: 1
+      })),
+      topCategories,
+      recentActivity: [],
+      healthAlerts,
+      _rawJobs: activeJobs.slice(0, 5).map(j => ({ title: (j.title || j.Title) as string, status: (j.status || j.Status) as string }))
+    };
+
+    return {
+      success: true,
+      data: { ...mappedData, _isStub: false },
+      message: statsRes === null ? 'Partial data loaded' : 'Dashboard summary retrieved',
+      statusCode: 200,
+    };
   },
 
   getRecentActivity: async (): Promise<BaseResponse<RecentActivityItem[]>> => {
@@ -473,99 +450,40 @@ export const adminService = {
       };
     } catch (error) {
       console.error('[AdminService] Failed to fetch users:', error);
-      if (isNetworkOrMissingError(error)) {
-        return {
-          success: false,
-          data: {
-            users: [],
-            totalUsers: 0,
-            activeUsers: 0,
-            suspendedUsers: 0,
-            pendingVerify: 0,
-            totalClients: 0,
-            totalExperts: 0,
-            reviewQueue: [],
-            recentActions: [],
-            pageIndex: 1,
-            pageSize: 10,
-            totalPages: 1,
-            _isStub: false
-          } as AdminUserManagementData & { _isStub?: boolean },
-          message: 'Users API is currently unavailable.',
-          statusCode: 503
-        };
-      }
       throw error;
     }
   },
 
   suspendUser: async (id: string, reason?: string): Promise<BaseResponse<void>> => {
     const response = await apiClient.put<BaseResponse<void>>(`${API_ENDPOINTS.ADMIN.USERS}/${id}/suspend`, { reason });
-    return response.data;
+    return normalizeBaseResponse<void>(response);
   },
 
   unsuspendUser: async (id: string): Promise<BaseResponse<void>> => {
     const response = await apiClient.put<BaseResponse<void>>(`${API_ENDPOINTS.ADMIN.USERS}/${id}/unsuspend`);
-    return response.data;
+    return normalizeBaseResponse<void>(response);
   },
 
   getExpertReviews: async (params?: Record<string, unknown>): Promise<BaseResponse<AdminExpertReviewsData & { _isStub?: boolean }>> => {
-    try {
-      const response = await apiClient.get<BaseResponse<AdminExpertReviewsData>>(API_ENDPOINTS.ADMIN.EXPERT_REVIEWS, { params });
-      return {
-        ...response.data,
-        data: response.data.data ? { ...response.data.data, _isStub: false } : null
-      };
-    } catch (error) {
-      if (isNetworkOrMissingError(error)) {
-        return {
-          success: false,
-          data: {
-            reviews: [],
-            totalPending: 0,
-            totalRevisions: 0,
-            newToday: 0,
-            totalRejected: 0,
-            _isStub: false
-          } as AdminExpertReviewsData & { _isStub?: boolean },
-          message: 'Expert reviews API is currently unavailable.',
-          statusCode: 501
-        };
-      }
-      throw error;
-    }
+    const response = await apiClient.get<BaseResponse<AdminExpertReviewsData>>(API_ENDPOINTS.ADMIN.EXPERT_REVIEWS, { params });
+    const normalized = normalizeBaseResponse<AdminExpertReviewsData>(response);
+    return {
+      ...normalized,
+      data: normalized.data ? { ...normalized.data, _isStub: false } : null
+    };
   },
 
   getExpertReviewDetail: async (id: string): Promise<BaseResponse<ExpertReviewDetail & { _isStub?: boolean }>> => {
-    try {
-      const response = await apiClient.get<BaseResponse<ExpertReviewDetail>>(API_ENDPOINTS.ADMIN.EXPERT_REVIEW_DETAIL(id));
-      return {
-        ...response.data,
-        data: response.data.data ? { ...response.data.data, _isStub: false } : null
-      };
-    } catch (error) {
-      if (isNetworkOrMissingError(error)) {
-        throw new Error('Expert review detail API is currently unavailable.');
-      }
-      throw error;
-    }
+    const response = await apiClient.get<BaseResponse<ExpertReviewDetail>>(API_ENDPOINTS.ADMIN.EXPERT_REVIEW_DETAIL(id));
+    const normalized = normalizeBaseResponse<ExpertReviewDetail>(response);
+    return {
+      ...normalized,
+      data: normalized.data ? { ...normalized.data, _isStub: false } : null
+    };
   },
 
   processExpertReview: async (params: ExpertReviewActionParams): Promise<BaseResponse<void>> => {
-    try {
-      const response = await apiClient.post<BaseResponse<void>>(API_ENDPOINTS.ADMIN.PROCESS_EXPERT_REVIEW(params.id), params);
-      return response.data;
-    } catch (error) {
-      if (isNetworkOrMissingError(error)) {
-        return {
-          success: false,
-          message: 'This feature is currently unavailable. Please try again later.',
-          statusCode: 503,
-          data: undefined as unknown as void
-        };
-      }
-      throw error;
-    }
+    const response = await apiClient.post<BaseResponse<void>>(API_ENDPOINTS.ADMIN.PROCESS_EXPERT_REVIEW(params.id), params);
+    return normalizeBaseResponse<void>(response);
   }
 };
-

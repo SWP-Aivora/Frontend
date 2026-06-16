@@ -3,6 +3,7 @@ import { API_ENDPOINTS } from '@/shared/constants';
 import type { LoginFormValues, AuthResponse, RegisterFormValues, User } from './types';
 import type { BaseResponse } from '@/shared/types/api';
 import { Role } from '@/shared/types/enums';
+import { normalizeBaseResponse } from '@/lib/api-utils';
 
 interface LoginBackendResponse {
   role?: string; Role?: string;
@@ -24,18 +25,18 @@ export const authService = {
   login: async (data: LoginFormValues): Promise<BaseResponse<AuthResponse | null>> => {
     try {
       const response = await apiClient.post<BaseResponse<LoginBackendResponse>>(API_ENDPOINTS.AUTH.LOGIN, data);
-      const axiosData = response.data;
+      const normalized = normalizeBaseResponse<LoginBackendResponse>(response);
       
-      if (!axiosData.success) {
+      if (!normalized.success) {
         return {
           success: false,
-          message: axiosData.message || 'Login failed',
-          statusCode: axiosData.statusCode || 400,
+          message: normalized.message || 'Login failed',
+          statusCode: normalized.statusCode || 400,
           data: null
         };
       }
 
-      const backendData = axiosData.data;
+      const backendData = normalized.data;
       if (!backendData) {
         return { success: false, message: 'No data received from server', statusCode: 500, data: null };
       }
@@ -70,7 +71,7 @@ export const authService = {
       };
 
       return {
-        ...axiosData,
+        ...normalized,
         data: {
           ...user,
           accessToken,
@@ -93,23 +94,23 @@ export const authService = {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { confirmPassword, ...registerData } = data;
     const response = await apiClient.post<BaseResponse<void>>(API_ENDPOINTS.AUTH.REGISTER, registerData);
-    return response.data;
+    return normalizeBaseResponse<void>(response);
   },
 
   getMe: async (): Promise<BaseResponse<User | null>> => {
     const response = await apiClient.get<BaseResponse<MeBackendResponse>>(API_ENDPOINTS.AUTH.ME);
-    const axiosData = response.data;
+    const normalized = normalizeBaseResponse<MeBackendResponse>(response);
 
-    if (!axiosData.success) {
+    if (!normalized.success) {
        return {
         success: false,
-        message: axiosData.message || 'Failed to fetch user data',
-        statusCode: axiosData.statusCode || 400,
+        message: normalized.message || 'Failed to fetch user data',
+        statusCode: normalized.statusCode || 400,
         data: null
       };
     }
 
-    const backendData = axiosData.data;
+    const backendData = normalized.data;
     if (backendData) {
       const roleStr = (backendData.role || backendData.Role || '').toUpperCase();
       const mappedRole = Object.values(Role).find(r => r === roleStr) || Role.CLIENT;
@@ -122,7 +123,7 @@ export const authService = {
       };
 
       return {
-        ...axiosData,
+        ...normalized,
         data: user
       };
     }

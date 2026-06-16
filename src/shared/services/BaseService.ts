@@ -1,5 +1,6 @@
 import apiClient from '@/lib/axios';
 import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
+import { normalizeBaseResponse, normalizePaginatedResponse } from '@/lib/api-utils';
 
 /**
  * Generic Base Service for CRUD operations.
@@ -20,10 +21,7 @@ export class BaseService<TEntity, TCreateDto = Partial<TEntity>, TUpdateDto = Pa
    */
   async getAll(params?: Record<string, unknown>): Promise<PaginatedResponse<TEntity>> {
     const response = await apiClient.get<PaginatedResponse<TEntity>>(this.endpoint, { params });
-    // In our interceptor, we might have unwrapped the data, but if we haven't, it returns the whole response.
-    // Assuming interceptor unwraps `response.data` or `response.data.data` as per standard.
-    // If we use standard axios without interceptor unwrap, we'd do response.data.
-    return response.data as unknown as PaginatedResponse<TEntity>;
+    return normalizePaginatedResponse<TEntity>(response);
   }
 
   /**
@@ -31,7 +29,7 @@ export class BaseService<TEntity, TCreateDto = Partial<TEntity>, TUpdateDto = Pa
    */
   async getById(id: string): Promise<BaseResponse<TEntity>> {
     const response = await apiClient.get<BaseResponse<TEntity>>(`${this.endpoint}/${id}`);
-    return response.data as unknown as BaseResponse<TEntity>;
+    return normalizeBaseResponse<TEntity>(response);
   }
 
   /**
@@ -39,7 +37,7 @@ export class BaseService<TEntity, TCreateDto = Partial<TEntity>, TUpdateDto = Pa
    */
   async create(data: TCreateDto): Promise<BaseResponse<TEntity>> {
     const response = await apiClient.post<BaseResponse<TEntity>>(this.endpoint, data);
-    return response.data as unknown as BaseResponse<TEntity>;
+    return normalizeBaseResponse<TEntity>(response);
   }
 
   /**
@@ -47,7 +45,7 @@ export class BaseService<TEntity, TCreateDto = Partial<TEntity>, TUpdateDto = Pa
    */
   async update(id: string, data: TUpdateDto): Promise<BaseResponse<TEntity>> {
     const response = await apiClient.put<BaseResponse<TEntity>>(`${this.endpoint}/${id}`, data);
-    return response.data as unknown as BaseResponse<TEntity>;
+    return normalizeBaseResponse<TEntity>(response);
   }
 
   /**
@@ -55,6 +53,6 @@ export class BaseService<TEntity, TCreateDto = Partial<TEntity>, TUpdateDto = Pa
    */
   async delete(id: string): Promise<BaseResponse<null>> {
     const response = await apiClient.delete<BaseResponse<null>>(`${this.endpoint}/${id}`);
-    return response.data as unknown as BaseResponse<null>;
+    return normalizeBaseResponse<null>(response);
   }
 }

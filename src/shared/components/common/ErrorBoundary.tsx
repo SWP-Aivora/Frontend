@@ -1,5 +1,5 @@
 import { Component } from 'react';
-import type { ErrorInfo, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 interface Props {
   children?: ReactNode;
@@ -18,10 +18,6 @@ export class ErrorBoundary extends Component<Props, State> {
   public static getDerivedStateFromError(): State {
     // Update state so the next render will show the fallback UI.
     return { hasError: true };
-  }
-
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Uncaught error:', error, errorInfo);
   }
 
   public componentDidUpdate(prevProps: Props) {

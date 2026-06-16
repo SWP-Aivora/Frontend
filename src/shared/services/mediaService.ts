@@ -1,6 +1,7 @@
 import apiClient from '@/lib/axios';
 import { API_ENDPOINTS } from '@/shared/constants';
 import type { BaseResponse } from '@/shared/types/api';
+import { normalizeBaseResponse } from '@/lib/api-utils';
 
 /**
  * Service for handling media uploads.
@@ -21,7 +22,7 @@ export const mediaService = {
         'Content-Type': 'multipart/form-data',
       },
     });
-    return response.data as unknown as BaseResponse<{ url: string; publicId: string }>;
+    return normalizeBaseResponse<{ url: string; publicId: string }>(response);
   },
 
   /**
@@ -39,6 +40,6 @@ export const mediaService = {
         'Content-Type': 'multipart/form-data',
       },
     });
-    return response.data as unknown as BaseResponse<{ url: string; publicId: string }>;
+    return normalizeBaseResponse<{ url: string; publicId: string }>(response);
   },
 };

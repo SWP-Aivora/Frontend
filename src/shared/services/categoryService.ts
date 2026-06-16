@@ -1,6 +1,7 @@
 import apiClient from '@/lib/axios';
 import { API_ENDPOINTS } from '@/shared/constants';
 import type { BaseResponse } from '@/shared/types/api';
+import { normalizeBaseResponse } from '@/lib/api-utils';
 
 export interface Category {
   id: string;
@@ -32,13 +33,11 @@ export const categoryService = {
   getCategories: async (): Promise<BaseResponse<Category[]>> => {
     try {
       const response = await apiClient.get<BaseResponse<unknown>>(API_ENDPOINTS.CATEGORIES.BASE);
-      const normalizedData = normalizeList(response?.data?.data) as unknown as Category[];
+      const normalized = normalizeBaseResponse<unknown>(response);
+      const normalizedData = normalizeList(normalized.data) as unknown as Category[];
       
       return {
-        ...(response?.data || {}),
-        success: response?.data?.success ?? true,
-        message: response?.data?.message ?? '',
-        statusCode: response?.status ?? 200,
+        ...normalized,
         data: normalizedData
       };
     } catch (error) {

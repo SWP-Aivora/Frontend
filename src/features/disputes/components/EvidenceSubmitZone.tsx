@@ -7,6 +7,7 @@ import { useUpload } from '@/shared/hooks/useUpload';
 import { addEvidenceSchema, type AddEvidenceFormData } from '../schema';
 import { useSubmitEvidence } from '../hooks/useSubmitEvidence';
 import { toast } from 'sonner';
+import { sanitizeDisputeError } from '../utils';
 
 interface EvidenceSubmitZoneProps {
   disputeId: string;
@@ -40,7 +41,7 @@ export const EvidenceSubmitZone: React.FC<EvidenceSubmitZoneProps> = ({ disputeI
       if (file) {
         const uploadResult = await uploadFile(file, 'disputes');
         if (!uploadResult?.url) {
-          console.error('[EvidenceSubmitZone] Upload succeeded but returned no URL:', uploadResult);
+          console.error('[EvidenceSubmitZone] Upload succeeded but returned no URL');
           toast.error("File upload failed to return a valid URL. Please try again.");
           return;
         }
@@ -57,14 +58,12 @@ export const EvidenceSubmitZone: React.FC<EvidenceSubmitZoneProps> = ({ disputeI
           toast.success("Evidence submitted successfully");
         },
         onError: (error: unknown) => {
-          const message = error instanceof Error ? error.message : "Evidence submission failed. Please try again.";
-          toast.error(message);
+          toast.error(sanitizeDisputeError(error, "Evidence submission failed. Please try again."));
         }
       });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Evidence submission failed. Your files were not uploaded.";
-      toast.error(message);
-      console.error('Error submitting evidence:', error);
+      toast.error(sanitizeDisputeError(error, "Evidence submission failed. Your files were not uploaded."));
+      console.error('Error submitting evidence:', (error as Error)?.message || error);
     }
   };
 

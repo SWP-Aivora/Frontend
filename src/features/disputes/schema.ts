@@ -4,8 +4,11 @@ import { z } from 'zod';
  * Zod Schema for Opening a Dispute
  */
 export const openDisputeSchema = z.object({
-  reason: z.string().min(10, 'Dispute reason must be at least 10 characters'),
-  description: z.string().min(50, 'Detailed description must be at least 50 characters').optional().or(z.literal('')),
+  projectId: z.string().min(1, 'Project must be selected'),
+  milestoneId: z.string().min(1, 'Milestone must be selected'),
+  reason: z.string().trim().min(1, 'Reason must be selected or provided'),
+  description: z.string().trim().min(20, 'Description must be at least 20 characters').max(2000, 'Description cannot exceed 2000 characters'),
+  evidenceUrl: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
 });
 
 export type OpenDisputeFormData = z.infer<typeof openDisputeSchema>;

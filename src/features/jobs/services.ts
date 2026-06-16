@@ -58,27 +58,27 @@ export const jobService = {
   // AI Job Assistant
   initAiJobAssistant: async (prompt: string): Promise<BaseResponse<AiJobSuggestion>> => {
     const response = await apiClient.post<BaseResponse<AiJobSuggestion>>('/ai/job-assistant', { rawInput: prompt });
-    return response.data;
+    return normalizeBaseResponse<AiJobSuggestion>(response);
   },
 
   getAiJobSuggestion: async (id: string): Promise<BaseResponse<AiJobSuggestion>> => {
     const response = await apiClient.get<BaseResponse<AiJobSuggestion>>(`/ai/job-assistant/${id}`);
-    return response.data;
+    return normalizeBaseResponse<AiJobSuggestion>(response);
   },
 
   refineAiJobSuggestion: async (id: string, prompt: string): Promise<BaseResponse<AiJobSuggestion>> => {
     const response = await apiClient.post<BaseResponse<AiJobSuggestion>>(`/ai/job-assistant/${id}/refine`, { message: prompt });
-    return response.data;
+    return normalizeBaseResponse<AiJobSuggestion>(response);
   },
 
   patchAiJobSuggestion: async (id: string, data: PatchAiJobSuggestionRequest): Promise<BaseResponse<AiJobSuggestion>> => {
     const response = await apiClient.patch<BaseResponse<AiJobSuggestion>>(`/ai/job-assistant/${id}`, data);
-    return response.data;
+    return normalizeBaseResponse<AiJobSuggestion>(response);
   },
 
   acceptAiJobSuggestion: async (id: string): Promise<BaseResponse<{ jobId: string }>> => {
     const response = await apiClient.post<BaseResponse<{ jobId: string }>>(`/ai/job-assistant/${id}/accept`);
-    return response.data;
+    return normalizeBaseResponse<{ jobId: string }>(response);
   },
 
   // AI Recommendations
@@ -89,7 +89,7 @@ export const jobService = {
 
   getRecommendations: async (jobId: string): Promise<BaseResponse<ExpertMatch[]>> => {
     const response = await apiClient.get<BaseResponse<ExpertMatch[]>>(`/jobs/${jobId}/recommendations`);
-    return response.data;
+    return normalizeBaseResponse<ExpertMatch[]>(response);
   },
 
   // Expert specific

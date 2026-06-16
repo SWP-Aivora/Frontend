@@ -1,10 +1,29 @@
 import { useQuery } from '@tanstack/react-query';
 import { adminService } from '../services';
+import { previewAdminService } from '../mocks/previewAdminService';
+import type { AxiosError } from 'axios';
+
+const isNetworkOrMissingError = (error: unknown) => {
+  const axiosError = error as AxiosError;
+  return axiosError.message === 'Network Error' ||
+         axiosError.response?.status === 404 ||
+         axiosError.response?.status === 405 ||
+         axiosError.response?.status === 501;
+};
 
 export const useAdminDashboard = () => {
   return useQuery({
     queryKey: ['admin', 'dashboard-summary'],
-    queryFn: () => adminService.getDashboardSummary(),
+    queryFn: async () => {
+      try {
+        return await adminService.getDashboardSummary();
+      } catch (error) {
+        if (isNetworkOrMissingError(error)) {
+          return await previewAdminService.getDashboardSummaryPreview();
+        }
+        throw error;
+      }
+    },
     select: (response) => response.data,
   });
 };
