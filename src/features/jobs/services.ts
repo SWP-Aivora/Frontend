@@ -61,7 +61,7 @@ export const jobService = {
     return response.data;
   },
 
-  refineAiJobAssistant: async (id: string, prompt: string): Promise<BaseResponse<AiJobSuggestion>> => {
+  refineAiJobSuggestion: async (id: string, prompt: string): Promise<BaseResponse<AiJobSuggestion>> => {
     const response = await apiClient.post<BaseResponse<AiJobSuggestion>>(API_ENDPOINTS.AI.JOB_ASSISTANT_REFINE(id), { message: prompt });
     return response.data;
   },
