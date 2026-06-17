@@ -10,10 +10,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Role } from '@/shared/types/enums';
-
-const ASSETS = {
-  iconCircle: "https://www.figma.com/api/mcp/asset/b5419652-1b98-4868-81dd-4af0923d3db0",
-};
+import { Mail, Lock } from 'lucide-react';
 
 export const LoginForm = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -71,16 +68,15 @@ export const LoginForm = () => {
         <div className="space-y-2">
           <label htmlFor="email" className="text-sm font-bold text-slate-700 ml-1">Email Address</label>
           <div className="relative group">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 size-7 pointer-events-none">
-              <img src={ASSETS.iconCircle} alt="" className="size-full opacity-80 group-focus-within:opacity-100 transition-opacity" />
-              <span className="absolute inset-0 flex items-center justify-center font-bold text-primary text-xs">@</span>
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 size-9 flex items-center justify-center rounded-xl bg-primary/5 text-primary border border-primary/10 pointer-events-none group-focus-within:bg-primary group-focus-within:text-white transition-all duration-300">
+              <Mail className="size-5" />
             </div>
             <Input 
               id="email"
               type="email" 
               placeholder="Enter your email address" 
               {...register('email')}
-              className={`pl-14 h-14 bg-slate-50 border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300 ${errors.email ? 'border-destructive' : 'hover:border-slate-300'}`}
+              className={`pl-16 h-14 bg-slate-50 border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300 ${errors.email ? 'border-destructive' : 'hover:border-slate-300'}`}
             />
           </div>
           {errors.email && <p className="text-xs text-destructive font-medium ml-1">{errors.email.message}</p>}
@@ -90,16 +86,15 @@ export const LoginForm = () => {
         <div className="space-y-2">
           <label htmlFor="password" className="text-sm font-bold text-slate-700 ml-1">Password</label>
           <div className="relative group">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 size-7 pointer-events-none">
-              <img src={ASSETS.iconCircle} alt="" className="size-full opacity-80 group-focus-within:opacity-100 transition-opacity" />
-              <span className="absolute inset-0 flex items-center justify-center font-bold text-primary text-xs tracking-tighter">**</span>
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 size-9 flex items-center justify-center rounded-xl bg-primary/5 text-primary border border-primary/10 pointer-events-none group-focus-within:bg-primary group-focus-within:text-white transition-all duration-300">
+              <Lock className="size-5" />
             </div>
             <Input 
               id="password"
               type="password" 
               placeholder="Enter your password" 
               {...register('password')}
-              className={`pl-14 h-14 bg-slate-50 border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300 ${errors.password ? 'border-destructive' : 'hover:border-slate-300'}`}
+              className={`pl-16 h-14 bg-slate-50 border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300 ${errors.password ? 'border-destructive' : 'hover:border-slate-300'}`}
             />
           </div>
           {errors.password && <p className="text-xs text-destructive font-medium ml-1">{errors.password.message}</p>}

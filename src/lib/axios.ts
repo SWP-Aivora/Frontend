@@ -38,9 +38,23 @@ axiosInstance.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response Interceptor: Handle 401 & Token Refresh
+// Response Interceptor: Handle normalization & 401 Token Refresh
 axiosInstance.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Standardize response format if it doesn't already follow BaseResponse
+    const data = response.data;
+    const isBaseResponse = data && typeof data === 'object' && 'success' in data;
+
+    if (!isBaseResponse && response.status >= 200 && response.status < 300) {
+      response.data = {
+        success: true,
+        message: data?.message || 'Operation successful',
+        data: data,
+        statusCode: response.status,
+      };
+    }
+    return response;
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 

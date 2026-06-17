@@ -2,30 +2,23 @@ import { LoginForm } from '@/features/auth/components/LoginForm';
 import { Link } from 'react-router-dom';
 
 const ASSETS = {
-  bgBlueWashLeft: "https://www.figma.com/api/mcp/asset/831be4b9-07e3-4a9f-8f14-27d345ad5e93",
-  bgBlueWashRight: "https://www.figma.com/api/mcp/asset/f8b8860a-0acf-427f-acbd-b52139f91452",
-  bgRing1: "https://www.figma.com/api/mcp/asset/45fc19ef-047b-4f19-bcbb-ed3948535434",
-  bgRing2: "https://www.figma.com/api/mcp/asset/24b23800-9e98-4e1d-b2c2-7d02a8a63345",
   logoCircle: "/logo.png",
-  leftPanelGlow: "https://www.figma.com/api/mcp/asset/57d33c6f-ca38-4428-8b24-6422ecaada28",
-  redirectDot: "https://www.figma.com/api/mcp/asset/b0a526e4-8c51-49ad-9d0f-3f19b5e58d9e",
 };
 
 export const LoginPage = () => {
   return (
     <div className="min-h-screen w-full bg-white relative overflow-hidden flex items-center justify-center lg:p-12 font-sans selection:bg-primary/10">
       {/* Background Ornaments */}
-      <img src={ASSETS.bgBlueWashLeft} alt="" className="absolute left-[-10%] top-0 w-[60%] opacity-40 pointer-events-none" />
-      <img src={ASSETS.bgBlueWashRight} alt="" className="absolute right-[-10%] bottom-[-10%] w-[60%] opacity-40 pointer-events-none" />
-      <img src={ASSETS.bgRing1} alt="" className="absolute -left-12 -top-12 w-64 opacity-20 pointer-events-none" />
-      <img src={ASSETS.bgRing2} alt="" className="absolute -left-20 -top-20 w-80 opacity-10 pointer-events-none" />
+      <div className="absolute left-[-10%] top-0 w-[60%] h-[60%] bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute right-[-10%] bottom-[-10%] w-[60%] h-[60%] bg-brand-accent/5 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute -left-12 -top-12 size-64 border-[32px] border-primary/5 rounded-full pointer-events-none" />
 
       {/* Main Container */}
       <div className="container relative z-10 w-full max-w-7xl grid lg:grid-cols-2 gap-12 items-stretch">
         
         {/* Left Panel: Branding & Workspace */}
         <div className="hidden lg:flex flex-col bg-gradient-to-br from-brand-blue-light/80 to-white/40 backdrop-blur-xl border border-white/50 rounded-panel p-12 shadow-2xl relative overflow-hidden animate-slide-in-left">
-          <img src={ASSETS.leftPanelGlow} alt="" className="absolute -left-20 top-20 w-[400px] opacity-30 pointer-events-none" />
+          <div className="absolute -left-20 top-20 w-[400px] h-[400px] bg-primary/10 blur-[80px] rounded-full pointer-events-none" />
           
           {/* Logo Section */}
           <Link to="/" className="flex items-center mb-16 opacity-0 animate-fade-in [animation-delay:200ms] w-fit group">
@@ -145,9 +138,9 @@ export const LoginPage = () => {
               <div className="flex justify-center pt-2">
                 <p className="text-sm text-muted-foreground font-medium">
                   Do not have an account?{' '}
-                  <a href="/register" className="text-primary font-bold hover:underline transition-all underline-offset-4">
+                  <Link to="/register" className="text-primary font-bold hover:underline transition-all underline-offset-4">
                     Create an Account
-                  </a>
+                  </Link>
                 </p>
               </div>
             </div>

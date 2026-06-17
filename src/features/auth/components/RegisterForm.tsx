@@ -10,10 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Role } from '@/shared/types/enums';
 import { cn } from '@/lib/utils';
-
-const ASSETS = {
-  iconCircle: "https://www.figma.com/api/mcp/asset/fcaaabae-fe9a-4782-9a0c-33099504df26",
-};
+import { User, Mail, Lock, ShieldCheck } from 'lucide-react';
 
 interface RegisterFormProps {
   selectedRole: typeof Role.CLIENT | typeof Role.EXPERT;
@@ -64,16 +61,15 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
         <div className="space-y-2">
           <label htmlFor="fullName" className="text-sm font-bold text-slate-700 ml-1">Full Name</label>
           <div className="relative group">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 size-7 pointer-events-none">
-              <img src={ASSETS.iconCircle} alt="" className="size-full opacity-80 group-focus-within:opacity-100 transition-opacity" />
-              <span className="absolute inset-0 flex items-center justify-center font-bold text-primary text-xs">FN</span>
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 size-9 flex items-center justify-center rounded-xl bg-primary/5 text-primary border border-primary/10 pointer-events-none group-focus-within:bg-primary group-focus-within:text-white transition-all duration-300">
+              <User className="size-5" />
             </div>
             <Input 
               id="fullName"
               placeholder="Enter your full name" 
               {...register('fullName')}
               className={cn(
-                "pl-14 h-14 bg-slate-50 border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300",
+                "pl-16 h-14 bg-slate-50 border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300",
                 errors.fullName ? 'border-destructive' : 'hover:border-slate-300'
               )}
             />
@@ -85,9 +81,8 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
         <div className="space-y-2">
           <label htmlFor="email" className="text-sm font-bold text-slate-700 ml-1">Email Address</label>
           <div className="relative group">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 size-7 pointer-events-none">
-              <img src={ASSETS.iconCircle} alt="" className="size-full opacity-80 group-focus-within:opacity-100 transition-opacity" />
-              <span className="absolute inset-0 flex items-center justify-center font-bold text-primary text-xs">@</span>
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 size-9 flex items-center justify-center rounded-xl bg-primary/5 text-primary border border-primary/10 pointer-events-none group-focus-within:bg-primary group-focus-within:text-white transition-all duration-300">
+              <Mail className="size-5" />
             </div>
             <Input 
               id="email"
@@ -95,7 +90,7 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
               placeholder="name@example.com" 
               {...register('email')}
               className={cn(
-                "pl-14 h-14 bg-slate-50 border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300",
+                "pl-16 h-14 bg-slate-50 border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300",
                 errors.email ? 'border-destructive' : 'hover:border-slate-300'
               )}
             />
@@ -109,9 +104,8 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
         <div className="space-y-2">
           <label htmlFor="password" className="text-sm font-bold text-slate-700 ml-1">Password</label>
           <div className="relative group">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 size-7 pointer-events-none">
-              <img src={ASSETS.iconCircle} alt="" className="size-full opacity-80 group-focus-within:opacity-100 transition-opacity" />
-              <span className="absolute inset-0 flex items-center justify-center font-bold text-primary text-xs tracking-tighter">**</span>
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 size-9 flex items-center justify-center rounded-xl bg-primary/5 text-primary border border-primary/10 pointer-events-none group-focus-within:bg-primary group-focus-within:text-white transition-all duration-300">
+              <Lock className="size-5" />
             </div>
             <Input 
               id="password"
@@ -119,7 +113,7 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
               placeholder="••••••••" 
               {...register('password')}
               className={cn(
-                "pl-14 h-14 bg-slate-50 border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300",
+                "pl-16 h-14 bg-slate-50 border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300",
                 errors.password ? 'border-destructive' : 'hover:border-slate-300'
               )}
             />
@@ -131,9 +125,8 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
         <div className="space-y-2">
           <label htmlFor="confirmPassword" className="text-sm font-bold text-slate-700 ml-1">Confirm Password</label>
           <div className="relative group">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 size-7 pointer-events-none">
-              <img src={ASSETS.iconCircle} alt="" className="size-full opacity-80 group-focus-within:opacity-100 transition-opacity" />
-              <span className="absolute inset-0 flex items-center justify-center font-bold text-primary text-xs tracking-tighter">**</span>
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 size-9 flex items-center justify-center rounded-xl bg-primary/5 text-primary border border-primary/10 pointer-events-none group-focus-within:bg-primary group-focus-within:text-white transition-all duration-300">
+              <ShieldCheck className="size-5" />
             </div>
             <Input 
               id="confirmPassword"
@@ -141,7 +134,7 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
               placeholder="••••••••" 
               {...register('confirmPassword')}
               className={cn(
-                "pl-14 h-14 bg-slate-50 border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300",
+                "pl-16 h-14 bg-slate-50 border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300",
                 errors.confirmPassword ? 'border-destructive' : 'hover:border-slate-300'
               )}
             />

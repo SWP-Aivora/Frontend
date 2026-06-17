@@ -103,7 +103,7 @@ export const AdminExpertReviewsPage = () => {
         <div className="absolute top-0 right-0 w-1/3 h-full bg-white/5 skew-x-12 -mr-16 pointer-events-none" />
         <div className="relative z-10 flex-1">
           <div className="inline-flex items-center bg-white/20 border border-white/20 text-white px-3 py-1 rounded-full text-xs font-semibold mb-4">
-            GET /api/v1/admin/expert-reviews
+            GET {API_ENDPOINTS.ADMIN.EXPERT_REVIEWS}
           </div>
           <h2 className="text-white text-2xl lg:text-[28px] font-black leading-tight mb-2">Expert Verification</h2>
           <p className="text-white/80 text-xs font-normal">Check profiles, skills, certificates, proof files, and links before approval.</p>

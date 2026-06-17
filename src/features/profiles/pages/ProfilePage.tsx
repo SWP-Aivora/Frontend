@@ -4,10 +4,6 @@ import { User, Shield, Bell, Settings, CreditCard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
-const ASSETS = {
-  heroGlow: "https://www.figma.com/api/mcp/asset/07fcdf20-e40b-4098-b7e5-350569312fbe",
-};
-
 type TabId = 'account' | 'security' | 'notifications' | 'billing';
 
 export const ProfilePage = () => {
@@ -25,10 +21,8 @@ export const ProfilePage = () => {
     <div className="space-y-8">
       {/* Hero Overview - Compact Version */}
       <div className="bg-white border border-slate-100 rounded-xl p-6 shadow-xl relative overflow-hidden">
-        <div className="absolute -left-20 -top-20 size-64 pointer-events-none opacity-30">
-           <img src={ASSETS.heroGlow} alt="" className="size-full" />
-        </div>
-        
+        <div className="absolute -left-20 -top-20 size-64 pointer-events-none opacity-30 bg-primary/20 blur-[100px] rounded-full" />
+
         <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
           {/* Avatar Section */}
           <div className="relative group">
