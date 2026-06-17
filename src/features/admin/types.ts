@@ -18,6 +18,12 @@ export interface DashboardSummary {
   healthAlerts: HealthAlertItem[];
   topCategories: TopCategoryItem[];
   recentActivity: RecentActivityItem[];
+  activeProjectsPagination?: {
+    pageIndex: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+  };
   _rawJobs?: { title: string; status: string }[];
 }
 

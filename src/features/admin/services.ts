@@ -14,6 +14,11 @@ import type {
 import type { BaseResponse } from '@/shared/types/api';
 import { normalizeBaseResponse } from '@/lib/api-utils';
 
+interface DashboardSummaryParams {
+  projectPage?: number;
+  projectLimit?: number;
+}
+
 interface BackendStats {
   totalUsers: number;
   totalClients: number;
@@ -136,12 +141,24 @@ export const formatActivityDate = (dateString: string): string => {
  * Admin Services
  */
 export const adminService = {
-  getDashboardSummary: async (): Promise<BaseResponse<DashboardSummary & { _isStub?: boolean }>> => {
+  getDashboardSummary: async (params: DashboardSummaryParams = {}): Promise<BaseResponse<DashboardSummary & { _isStub?: boolean }>> => {
+    const projectPage = params.projectPage ?? 1;
+    const projectLimit = params.projectLimit ?? 10;
+    const ongoingProjectStatuses = [0, 1, 2, 3, 6].join(',');
+
     const results = await Promise.allSettled([
       apiClient.get<BaseResponse<BackendStats>>(API_ENDPOINTS.ADMIN.DASHBOARD_SUMMARY),
       apiClient.get<BaseResponse<Record<string, unknown>>>(API_ENDPOINTS.JOBS.BASE, { params: { PageSize: 100 } }),
       apiClient.get<BaseResponse<Record<string, unknown>[]>>('/api/v1/categories'),
-      apiClient.get<BaseResponse<Record<string, unknown>>>(API_ENDPOINTS.PROJECTS.BASE, { params: { PageSize: 100 } }),
+      apiClient.get<BaseResponse<Record<string, unknown>>>(API_ENDPOINTS.PROJECTS.BASE, {
+        params: {
+          PageIndex: projectPage,
+          PageSize: projectLimit,
+          page: projectPage,
+          limit: projectLimit,
+          statuses: ongoingProjectStatuses,
+        },
+      }),
       apiClient.get<BaseResponse<Record<string, unknown>>>(API_ENDPOINTS.DISPUTES.BASE, { params: { PageSize: 50 } }),
       apiClient.get<BaseResponse<Record<string, unknown>>>(API_ENDPOINTS.ADMIN.USERS, { params: { PageSize: 50 } }),
       apiClient.get<BaseResponse<AdminExpertReviewsData>>(API_ENDPOINTS.ADMIN.EXPERT_REVIEWS, { params: { PageSize: 50 } }),
@@ -283,6 +300,12 @@ export const adminService = {
 
       transactionSummary,
       activeProjectsList: mappedProjects,
+      activeProjectsPagination: {
+        pageIndex: (projectsPayload?.pageIndex || projectsPayload?.PageIndex || projectPage) as number,
+        pageSize: (projectsPayload?.pageSize || projectsPayload?.PageSize || projectLimit) as number,
+        totalItems: (projectsPayload?.totalItems || projectsPayload?.TotalItems || mappedProjects.length) as number,
+        totalPages: (projectsPayload?.totalPages || projectsPayload?.TotalPages || Math.ceil(mappedProjects.length / projectLimit) || 1) as number,
+      },
       reviewQueue: allExpertReviews.slice(0, 5).map(r => ({
         label: (r.fullName || r.FullName) as string,
         count: 1

@@ -11,12 +11,17 @@ const isNetworkOrMissingError = (error: unknown) => {
          axiosError.response?.status === 501;
 };
 
-export const useAdminDashboard = () => {
+interface UseAdminDashboardParams {
+  projectPage?: number;
+  projectLimit?: number;
+}
+
+export const useAdminDashboard = (params: UseAdminDashboardParams = {}) => {
   return useQuery({
-    queryKey: ['admin', 'dashboard-summary'],
+    queryKey: ['admin', 'dashboard-summary', params],
     queryFn: async () => {
       try {
-        return await adminService.getDashboardSummary();
+        return await adminService.getDashboardSummary(params);
       } catch (error) {
         if (isNetworkOrMissingError(error)) {
           return await previewAdminService.getDashboardSummaryPreview();
