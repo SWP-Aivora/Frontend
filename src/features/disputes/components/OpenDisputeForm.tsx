@@ -28,8 +28,8 @@ export const OpenDisputeForm: React.FC<OpenDisputeFormProps> = ({
 
   const onSubmit = (data: OpenDisputeFormData) => {
     openDispute({
-      milestoneId,
       ...data,
+      milestoneId, // Prop value takes precedence
     }, {
       onSuccess: () => {
         if (onSuccess) onSuccess();

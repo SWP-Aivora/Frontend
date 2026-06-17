@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { Role } from '@/shared/types/enums';
 import { useAuthStore } from '@/features/auth/store';
+import { LoadingSpinner } from './LoadingSpinner';
 
 interface ProtectedRouteProps {
   children?: React.ReactNode;
@@ -13,8 +14,13 @@ interface ProtectedRouteProps {
  */
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
   const location = useLocation();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, isHydrated } = useAuthStore();
   const role = user?.role;
+
+  // Wait for store to hydrate from localStorage
+  if (!isHydrated) {
+    return <LoadingSpinner className="min-h-screen" size="xl" />;
+  }
 
   // Chưa đăng nhập -> redirect về login
   if (!isAuthenticated) {

@@ -2,11 +2,12 @@ import * as React from 'react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Textarea } from '@/shared/components/ui';
+import { Button, Textarea, Input } from '@/shared/components/ui';
 import { useUpload } from '@/shared/hooks/useUpload';
 import { addEvidenceSchema, type AddEvidenceFormData } from '../schema';
 import { useSubmitEvidence } from '../hooks/useSubmitEvidence';
 import { toast } from 'sonner';
+import { sanitizeDisputeError } from '../utils';
 
 interface EvidenceSubmitZoneProps {
   disputeId: string;
@@ -24,33 +25,45 @@ export const EvidenceSubmitZone: React.FC<EvidenceSubmitZoneProps> = ({ disputeI
     formState: { errors },
   } = useForm<AddEvidenceFormData>({
     resolver: zodResolver(addEvidenceSchema),
+    defaultValues: {
+      content: '',
+      fileUrl: '',
+    }
   });
 
   const onSubmit = async (data: AddEvidenceFormData) => {
     try {
-      let fileUrl: string | undefined;
+      let finalFileUrl = data.fileUrl;
+      
+      // If a local file is selected, it takes precedence over the manual URL field 
+      // or we can handle both. The task says "When submitting evidence, send both content and fileUrl".
+      // Let's assume if file is uploaded, we use its URL. If not, we use the manual URL.
       if (file) {
         const uploadResult = await uploadFile(file, 'disputes');
-        fileUrl = uploadResult.url;
+        if (!uploadResult?.url) {
+          console.error('[EvidenceSubmitZone] Upload succeeded but returned no URL');
+          toast.error("File upload failed to return a valid URL. Please try again.");
+          return;
+        }
+        finalFileUrl = uploadResult.url;
       }
 
       submitEvidence({
-        ...data,
-        fileUrl,
+        content: data.content,
+        fileUrl: finalFileUrl || null,
       }, {
         onSuccess: () => {
           reset();
           setFile(null);
+          toast.success("Evidence submitted successfully");
         },
         onError: (error: unknown) => {
-          const message = error instanceof Error ? error.message : "Evidence submission failed. Please try again.";
-          toast.error(message);
+          toast.error(sanitizeDisputeError(error, "Evidence submission failed. Please try again."));
         }
       });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Evidence submission failed. Your files were not uploaded.";
-      toast.error(message);
-      console.error('Error submitting evidence:', error);
+      toast.error(sanitizeDisputeError(error, "Evidence submission failed. Your files were not uploaded."));
+      console.error('Error submitting evidence:', (error as Error)?.message || error);
     }
   };
 
@@ -75,7 +88,21 @@ export const EvidenceSubmitZone: React.FC<EvidenceSubmitZoneProps> = ({ disputeI
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Attachments (Images, PDF, Docx...)
+            Evidence URL (Screenshot, Drive Link, etc.)
+          </label>
+          <Input
+            {...register('fileUrl')}
+            placeholder="https://example.com/evidence-file-or-screenshot"
+            className={errors.fileUrl ? 'border-red-500' : ''}
+          />
+          {errors.fileUrl && (
+            <p className="mt-1 text-sm text-red-500">{errors.fileUrl.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Direct File Upload
           </label>
           <input
             type="file"
@@ -87,6 +114,7 @@ export const EvidenceSubmitZone: React.FC<EvidenceSubmitZoneProps> = ({ disputeI
               file:bg-blue-50 file:text-blue-700
               hover:file:bg-blue-100"
           />
+          <p className="mt-1 text-[10px] text-gray-400 italic">If selected, this file will override the URL field above.</p>
         </div>
 
         <Button 
@@ -100,3 +128,4 @@ export const EvidenceSubmitZone: React.FC<EvidenceSubmitZoneProps> = ({ disputeI
     </div>
   );
 };
+

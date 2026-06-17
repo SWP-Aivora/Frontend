@@ -4,25 +4,46 @@ import { useNotificationActions } from '../hooks/useNotificationActions';
 import { NotificationList } from '../components/NotificationList';
 import { NotificationFilters } from '../components/NotificationFilters';
 import { NotificationStats } from '../components/NotificationStats';
+import { AlertCircle, RefreshCw } from 'lucide-react';
+import { Button } from '@/shared/components/ui';
 
 export const NotificationsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   
   // Fetch data
-  const { data: notificationsData, isLoading } = useNotifications({
+  const { 
+    data: notificationsData, 
+    isLoading, 
+    error: listError,
+    refetch: refetchNotifications 
+  } = useNotifications({
     PageSize: 20,
     PageIndex: 1,
     SearchTerm: searchTerm,
   });
   
-  const { data: unreadResponse } = useUnreadCount();
-  const unreadData = unreadResponse?.data;
-  const unreadCount = typeof unreadData === 'number' ? unreadData : unreadData?.count || 0;
+  const { 
+    data: unreadResponse, 
+    error: unreadError,
+    refetch: refetchUnread 
+  } = useUnreadCount();
+  
+  const unreadCount = unreadResponse?.data || 0;
 
   // Mutations
-  const { markAsRead, markAllAsRead } = useNotificationActions();
+  const { 
+    markAsRead, 
+    markAllAsRead, 
+    isMarkingAllAsRead 
+  } = useNotificationActions();
+
+  const handleRetry = () => {
+    refetchNotifications();
+    refetchUnread();
+  };
 
   const notifications = notificationsData?.data || [];
+  const hasError = !!listError || !!unreadError;
 
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto w-full pb-8">
@@ -53,9 +74,10 @@ export const NotificationsPage = () => {
           <div className="flex flex-col gap-2">
             <button 
               onClick={() => markAllAsRead()}
-              className="bg-primary text-white px-5 py-2.5 rounded-full text-xs font-semibold shadow-sm hover:bg-primary/90 transition-colors w-full"
+              disabled={isMarkingAllAsRead || hasError}
+              className="bg-primary text-white px-5 py-2.5 rounded-full text-xs font-semibold shadow-sm hover:bg-primary/90 transition-colors w-full disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Mark Read
+              {isMarkingAllAsRead ? 'Marking...' : 'Mark All Read'}
             </button>
             <button className="bg-white border border-slate-200 text-primary px-5 py-2.5 rounded-full text-xs font-semibold hover:bg-slate-50 transition-colors w-full">
               Settings
@@ -65,7 +87,7 @@ export const NotificationsPage = () => {
       </div>
 
       {/* Metrics */}
-      <NotificationStats unreadCount={unreadCount} />
+      <NotificationStats unreadCount={unreadCount} totalCount={notificationsData?.metadata?.totalCount || 0} />
 
       {/* Filters */}
       <NotificationFilters searchTerm={searchTerm} onSearchChange={setSearchTerm} />
@@ -73,12 +95,30 @@ export const NotificationsPage = () => {
       {/* Content Area */}
       <div className="flex flex-col xl:flex-row gap-6">
         {/* Main List */}
-        <NotificationList 
-          notifications={notifications}
-          isLoading={isLoading}
-          onMarkAsRead={markAsRead}
-          onMarkAllAsRead={markAllAsRead}
-        />
+        <div className="flex-1">
+          {hasError ? (
+            <div className="bg-white border border-slate-200 rounded-xl p-12 text-center flex flex-col items-center">
+              <div className="size-16 bg-rose-50 rounded-full flex items-center justify-center mb-4">
+                <AlertCircle className="size-8 text-rose-500" />
+              </div>
+              <h2 className="text-xl font-bold text-slate-900 mb-2">Failed to load notifications</h2>
+              <p className="text-slate-500 mb-8 max-w-sm mx-auto">
+                There was a problem connecting to the notification service. Please try again.
+              </p>
+              <Button onClick={handleRetry} className="rounded-full px-8 gap-2">
+                <RefreshCw className="size-4" />
+                Retry Loading
+              </Button>
+            </div>
+          ) : (
+            <NotificationList 
+              notifications={notifications}
+              isLoading={isLoading}
+              onMarkAsRead={markAsRead}
+              onMarkAllAsRead={markAllAsRead}
+            />
+          )}
+        </div>
 
         {/* Right Rail (High Priority Alert Info) */}
         <div className="w-full xl:w-[320px] shrink-0 flex flex-col gap-4">
@@ -125,3 +165,4 @@ export const NotificationsPage = () => {
     </div>
   );
 };
+

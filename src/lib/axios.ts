@@ -1,6 +1,7 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { env } from './env';
 import { API_ENDPOINTS } from '@/shared/constants';
+import { useAuthStore } from '@/features/auth/store';
 
 // Axios Instance Configuration
 const axiosInstance = axios.create({
@@ -28,7 +29,7 @@ const processQueue = (error: AxiosError | null, token: string | null = null) => 
 // Request Interceptor: Attach Bearer Token
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('accessToken');
+    const token = useAuthStore.getState().accessToken;
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -60,7 +61,12 @@ axiosInstance.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const refreshToken = localStorage.getItem('refreshToken');
+      const refreshToken = useAuthStore.getState().refreshToken;
+
+      if (!refreshToken) {
+        useAuthStore.getState().logout();
+        return Promise.reject(error);
+      }
 
       return new Promise((resolve, reject) => {
         axios
@@ -73,20 +79,23 @@ axiosInstance.interceptors.response.use(
               throw new Error('Invalid refresh token response');
             }
 
-            localStorage.setItem('accessToken', accessToken);
-            localStorage.setItem('refreshToken', newRefreshToken);
+            // Update store
+            const user = useAuthStore.getState().user;
+            if (user) {
+              useAuthStore.getState().setAuth(user, accessToken, newRefreshToken);
+            }
             
             axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+            if (originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+            }
             
             processQueue(null, accessToken);
             resolve(axiosInstance(originalRequest));
           })
           .catch((err) => {
             processQueue(err, null);
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
-            window.location.href = '/login';
+            useAuthStore.getState().logout();
             reject(err);
           })
           .finally(() => {

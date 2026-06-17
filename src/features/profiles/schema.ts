@@ -1,25 +1,40 @@
 import { z } from 'zod';
 
+/**
+ * Reusable helper for optional URL fields.
+ * - Allows valid URLs.
+ * - Allows empty strings (converts to null or keeps as-is depending on requirement).
+ * - Allows null or undefined.
+ */
+const optionalUrlSchema = z
+  .union([
+    z.string().url('Invalid URL format'),
+    z.literal(''),
+    z.null(),
+    z.undefined()
+  ])
+  .transform((val) => (val === '' ? null : val));
+
 // Base User Schema (PUT /api/v1/users/me)
 export const userUpdateSchema = z.object({
-  fullName: z.string().min(2, 'Full name must be at least 2 characters').optional().nullable(),
-  avatarUrl: z.string().url('Invalid URL').optional().nullable(),
-  phone: z.string().optional().nullable(),
+  fullName: z.string().min(2, 'Full name must be at least 2 characters').trim().optional().nullable(),
+  avatarUrl: optionalUrlSchema,
+  phone: z.string().trim().optional().nullable(),
 });
 
 // Client Profile Schema (PUT /api/v1/profiles/client)
 export const clientProfileSchema = z.object({
-  companyName: z.string().optional().nullable(),
-  industry: z.string().optional().nullable(),
+  companyName: z.string().trim().optional().nullable(),
+  industry: z.string().trim().optional().nullable(),
   companySize: z.string().optional().nullable(),
-  website: z.string().url('Invalid URL').optional().nullable(),
-  description: z.string().optional().nullable(),
+  website: optionalUrlSchema,
+  description: z.string().trim().optional().nullable(),
 });
 
 // Expert Profile Schema (PUT /api/v1/profiles/expert)
 export const expertProfileSchema = z.object({
-  title: z.string().optional().nullable(),
-  bio: z.string().optional().nullable(),
+  title: z.string().trim().optional().nullable(),
+  bio: z.string().trim().optional().nullable(),
   hourlyRate: z.coerce.number().min(0, 'Rate cannot be negative').optional().nullable(),
   experienceYears: z.coerce.number().int().min(0).optional().nullable(),
   availabilityStatus: z.coerce.number().int().optional().nullable(),

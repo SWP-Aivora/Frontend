@@ -113,9 +113,13 @@ export const PostJobPage = () => {
       return jobService.acceptAiJobSuggestion(suggestion.id);
     },
     onSuccess: (response) => {
-      setJobId(response.data.jobId);
-      setStep('MATCHING');
-      toast.success('Project published successfully!');
+      if (response.data) {
+        setJobId(response.data.jobId);
+        setStep('MATCHING');
+        toast.success('Project published successfully!');
+      } else {
+        toast.error('Failed to get project ID');
+      }
     },
     onError: (error: unknown) => {
       toast.error(error instanceof Error ? error.message : 'Failed to publish project');

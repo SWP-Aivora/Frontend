@@ -35,6 +35,8 @@ export const ProfilePage = () => {
             <div className="size-24 rounded-xl bg-gradient-to-br from-primary to-brand-blue-dark flex items-center justify-center shadow-lg shadow-primary/20 relative z-10 overflow-hidden">
                {user?.fullName ? (
                  <span className="text-3xl font-black text-white uppercase">{user.fullName.charAt(0)}</span>
+               ) : user?.email ? (
+                 <span className="text-3xl font-black text-white uppercase">{user.email.charAt(0)}</span>
                ) : (
                  <User className="size-12 text-white" />
                )}
@@ -51,7 +53,7 @@ export const ProfilePage = () => {
                 <span className="text-[10px] font-bold text-primary tracking-widest uppercase">Active Member</span>
              </div>
              <h1 className="text-3xl font-black text-slate-900 tracking-tight">
-               Howdy, <span className="text-primary">{user?.fullName?.split(' ')[0] || 'User'}</span>!
+               Welcome, <span className="text-primary">{(user?.fullName || user?.email || 'User').split(' ')[0]}</span>!
              </h1>
              <p className="text-base text-slate-500 font-medium max-w-xl leading-snug">
                Manage your account details and security preferences. 
@@ -71,7 +73,7 @@ export const ProfilePage = () => {
       </div>
 
       {/* Tabs Navigation */}
-      <div className="bg-white border border-slate-100 rounded-xl p-1.5 shadow-sm flex flex-wrap gap-1.5 sticky top-24 z-20 overflow-x-auto scrollbar-hide">
+      <div className="bg-white border border-slate-100 rounded-xl p-1.5 shadow-sm flex flex-wrap gap-1.5 overflow-x-auto scrollbar-hide">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;

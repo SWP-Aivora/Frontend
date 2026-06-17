@@ -22,7 +22,7 @@ export const ExpertDashboardPage = () => {
     queryFn: () => walletService.getWallet(),
   });
 
-  const projects = projectsResponse?.data || [];
+  const projects = Array.isArray(projectsResponse?.data) ? projectsResponse.data : [];
   const wallet = walletResponse?.data;
   
   const activeProjects = projects.filter(p => p.status === ProjectStatus.IN_PROGRESS);

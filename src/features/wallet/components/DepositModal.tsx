@@ -39,7 +39,7 @@ export const DepositModal = () => {
   const isInvalid = amountStr.trim() === '' || isNaN(Number(amountStr)) || Number(amountStr) <= 0;
 
   return (
-    <Dialog.Root open={open} onOpenChange={(o) => {
+    <Dialog.Root open={open} onOpenChange={(o: boolean) => {
       setOpen(o);
       if (!o) setAmountStr('1000');
     }}>

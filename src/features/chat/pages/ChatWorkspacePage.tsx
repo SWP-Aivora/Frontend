@@ -6,7 +6,7 @@ import { EmptyState } from '../components/EmptyState';
 import { useConversations } from '../hooks/useConversations';
 import { useMessages, useMarkRead } from '../hooks/useMessages';
 import type { Conversation } from '../types';
-import { Info, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Info, ChevronLeft, ChevronRight, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
@@ -28,17 +28,31 @@ export const ChatWorkspacePage = () => {
   }, [searchTerm]);
   
   // Real API hooks
-  const { data: conversationsData, isLoading: isLoadingConversations } = useConversations({ 
+  const { 
+    data: conversationsData, 
+    isLoading: isLoadingConversations,
+    isError: isConversationsError,
+    error: conversationsError,
+    refetch: refetchConversations
+  } = useConversations({ 
     SearchTerm: debouncedSearch,
     PageIndex: 1,
     PageSize: 100
   });
-  const { data: messagesData, isLoading: isLoadingMessages } = useMessages(selectedConversationId || '');
+  
+  const { 
+    data: messagesData, 
+    isLoading: isLoadingMessages,
+    isError: isMessagesError,
+    error: messagesError,
+    refetch: refetchMessages
+  } = useMessages(selectedConversationId || '');
+  
   const { mutate: markAsRead } = useMarkRead();
 
   // Strictly use API data
   const conversations = useMemo(() => {
-    return conversationsData?.data ?? [];
+    return Array.isArray(conversationsData?.data) ? conversationsData.data : [];
   }, [conversationsData]);
 
   const selectedConversation = useMemo(() => 
@@ -46,7 +60,7 @@ export const ChatWorkspacePage = () => {
   [conversations, selectedConversationId]);
 
   const messages = useMemo(() => {
-    return selectedConversationId ? (messagesData?.data ?? []) : [];
+    return selectedConversationId ? (Array.isArray(messagesData?.data) ? messagesData.data : []) : [];
   }, [messagesData, selectedConversationId]);
 
   // Mark as read when conversation is selected and has unread messages
@@ -57,13 +71,23 @@ export const ChatWorkspacePage = () => {
   }, [selectedConversationId, selectedConversation?.unreadCount, markAsRead]);
 
   // Fetch project context if projectId exists
-  const { data: projectResponse } = useQuery({
+  const { 
+    data: projectResponse,
+    isError: isProjectError,
+    error: projectError,
+    refetch: refetchProject
+  } = useQuery({
     queryKey: ['project', selectedConversation?.projectId],
     queryFn: () => projectService.getProjectById(selectedConversation!.projectId!),
     enabled: !!selectedConversation?.projectId,
   });
 
-  const { data: milestonesResponse } = useQuery({
+  const { 
+    data: milestonesResponse,
+    isError: isMilestonesError,
+    error: milestonesError,
+    refetch: refetchMilestones
+  } = useQuery({
     queryKey: ['milestones', selectedConversation?.projectId],
     queryFn: () => projectService.getMilestonesByProject(selectedConversation!.projectId!),
     enabled: !!selectedConversation?.projectId,
@@ -73,25 +97,60 @@ export const ChatWorkspacePage = () => {
   const milestones = milestonesResponse?.data ?? [];
   const currentMilestone = milestones.find(m => m.status === 1 || m.status === 2) || milestones[0];
 
+  const ErrorFallback = ({ message, onRetry }: { message: string, onRetry: () => void }) => (
+    <div className="flex flex-col items-center justify-center p-8 text-center bg-slate-50 rounded-xl border border-slate-100 m-4">
+      <AlertCircle className="size-8 text-rose-400 mb-3" />
+      <p className="text-sm font-bold text-slate-800 mb-1">Failed to load content</p>
+      <p className="text-xs text-slate-500 mb-4 max-w-[240px]">{message}</p>
+      <Button 
+        onClick={onRetry} 
+        variant="outline" 
+        size="sm" 
+        className="rounded-full h-8 text-[10px] font-black uppercase tracking-widest px-4"
+      >
+        <RefreshCw className="size-3 mr-2" />
+        Retry
+      </Button>
+    </div>
+  );
+
   return (
     <div className="h-[calc(100vh-80px)] bg-white flex overflow-hidden border-t border-slate-200">
       {/* Left Column: Conversation List */}
-      <ConversationList
-        conversations={conversations}
-        selectedId={selectedConversationId}
-        onSelect={setSelectedConversationId}
-        isLoading={isLoadingConversations}
-        isCollapsed={isSidebarCollapsed}
-        onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-      />
+      <div className="shrink-0 flex flex-col border-r border-slate-200 h-full relative z-30">
+        {isConversationsError ? (
+          <div className="w-[320px] h-full flex items-center justify-center bg-white">
+            <ErrorFallback 
+              message={(conversationsError as Error)?.message || 'Unable to retrieve conversations'} 
+              onRetry={refetchConversations} 
+            />
+          </div>
+        ) : (
+          <ConversationList
+            conversations={conversations}
+            selectedId={selectedConversationId}
+            onSelect={setSelectedConversationId}
+            isLoading={isLoadingConversations}
+            isCollapsed={isSidebarCollapsed}
+            onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+          />
+        )}
+      </div>
 
       {/* Main Workspace Wrapper (Middle + Right) */}
       <div className="flex-1 flex overflow-hidden h-full">
         {/* Middle Column: Chat Area */}
         <div className="flex-1 flex flex-col min-w-0 bg-white relative border-r border-slate-100 h-full">
-          {selectedConversation ? (
+          {isMessagesError ? (
+             <div className="flex-1 flex items-center justify-center">
+                <ErrorFallback 
+                  message={(messagesError as Error)?.message || 'Failed to load messages'} 
+                  onRetry={refetchMessages} 
+                />
+             </div>
+          ) : selectedConversation ? (
             <>
               <ChatHeader 
                 recipient={selectedConversation.recipient} 
@@ -148,7 +207,12 @@ export const ChatWorkspacePage = () => {
                   )}
                 </div>
                 
-                {project ? (
+                {isProjectError || isMilestonesError ? (
+                   <ErrorFallback 
+                    message={(projectError as Error)?.message || (milestonesError as Error)?.message || 'Project data unavailable'} 
+                    onRetry={() => { refetchProject(); refetchMilestones(); }} 
+                   />
+                ) : project ? (
                   <div className="space-y-6">
                     <div>
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Project Title</p>
@@ -207,3 +271,4 @@ export const ChatWorkspacePage = () => {
     </div>
   );
 };
+

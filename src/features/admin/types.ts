@@ -1,11 +1,16 @@
 export interface DashboardSummary {
   totalUsers: number;
-  newUsersThisMonth: number;
+  newUsers7d: number;
   openJobs: number;
+  newJobs7d: number;
   activeProjects: number;
+  newProjects7d: number;
   totalTransactionsValue: number;
+  newTransactions7d: number;
   pendingReviews: number;
+  newExpertReviews7d: number;
   openDisputes: number;
+  newDisputes7d: number;
   userOverview: UserOverviewItem[];
   transactionSummary: TransactionSummaryItem[];
   activeProjectsList: AdminProjectItem[];
@@ -13,6 +18,13 @@ export interface DashboardSummary {
   healthAlerts: HealthAlertItem[];
   topCategories: TopCategoryItem[];
   recentActivity: RecentActivityItem[];
+  activeProjectsPagination?: {
+    pageIndex: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+  };
+  _rawJobs?: { title: string; status: string }[];
 }
 
 export interface UserOverviewItem {
@@ -57,6 +69,8 @@ export interface RecentActivityItem {
   title: string;
   description: string;
   type: 'info' | 'alert';
+  timestamp?: string;
+  date?: string; // For internal FE sorting
 }
 
 export interface AdminUserItem {
@@ -67,7 +81,7 @@ export interface AdminUserItem {
   status: 'Active' | 'Suspended' | 'Pending';
   verificationState: 'Verified' | 'N/A' | 'Rejected' | 'Pending' | 'Review' | 'Internal';
   createdAt: string;
-  lastLoginAt: string;
+  lastLoginAt: string | null;
   avatarUrl?: string | null;
   initials?: string;
   // Details drawer info
@@ -97,6 +111,11 @@ export interface AdminUserManagementData {
   totalExperts: number;
   reviewQueue: AdminUserReviewQueueItem[];
   recentActions: RecentActivityItem[];
+  
+  // Pagination
+  pageIndex?: number;
+  pageSize?: number;
+  totalPages?: number;
 }
 
 export type ExpertReviewStatus = 'Pending' | 'Approved' | 'Rejected' | 'Revision';
