@@ -60,8 +60,7 @@ export const ExpertPublicProfilePage = () => {
   const initChatMutation = useMutation({
     mutationFn: () => chatService.initializeConversation({ expertId }),
     onSuccess: (response) => {
-      const convData = response.data as Record<string, unknown>;
-      const conversationId = convData?.id || (response as Record<string, unknown>)?.id;
+      const conversationId = response.data?.id;
       if (conversationId) {
         navigate(`/client/messages?conversationId=${conversationId}`);
       } else {
