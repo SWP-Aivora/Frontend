@@ -1,7 +1,8 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { ProposalListCard } from '../components/ProposalListCard';
-import type { Job, Proposal } from '../types';
+import type { Proposal } from '../types';
+import type { Job } from '../../jobs/types';
 import { 
   ChevronLeft, 
   Sparkles, 

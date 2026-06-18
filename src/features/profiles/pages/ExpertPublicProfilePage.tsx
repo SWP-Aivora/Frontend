@@ -1,5 +1,6 @@
-import { useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { 
   Star, MapPin, ShieldCheck, 
   Briefcase, Github, Linkedin, Video, FileText, ChevronRight
@@ -8,10 +9,12 @@ import { Button } from '@/shared/components/ui/Button';
 import { profileService } from '../services';
 import { reviewService } from '@/features/reviews/services';
 import { projectService } from '@/features/projects/services';
+import { chatService } from '@/features/chat/services';
 import { ProjectStatus } from '@/shared/types/enums';
 
 export const ExpertPublicProfilePage = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
 
   // Use the ID from params, fallback to a dummy ID if undefined
   const expertId = id || 'dummy-id';
@@ -52,6 +55,23 @@ export const ExpertPublicProfilePage = () => {
     description: p.description || '',
     rating: 5.0
   }));
+
+  // 4. Initialize Chat Mutation
+  const initChatMutation = useMutation({
+    mutationFn: () => chatService.initializeConversation({ expertId }),
+    onSuccess: (response) => {
+      const convData = response.data as any;
+      const conversationId = convData?.id || (response as any)?.id;
+      if (conversationId) {
+        navigate(`/client/messages?conversationId=${conversationId}`);
+      } else {
+        navigate('/client/messages');
+      }
+    },
+    onError: () => {
+      toast.error('Failed to initiate conversation. Please try again.');
+    }
+  });
 
   const isLoading = isProfileLoading || isReviewsLoading || isProjectsLoading;
 
@@ -272,7 +292,14 @@ export const ExpertPublicProfilePage = () => {
               </p>
               <div className="space-y-3">
                 <Button className="w-full rounded-full shadow-md shadow-brand-primary/20">Invite to Project</Button>
-                <Button variant="outline" className="w-full rounded-full border-blue-200 text-brand-primary">Send Message</Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full rounded-full border-blue-200 text-brand-primary"
+                  onClick={() => initChatMutation.mutate()}
+                  disabled={initChatMutation.isPending}
+                >
+                  {initChatMutation.isPending ? 'Connecting...' : 'Send Message'}
+                </Button>
               </div>
             </div>
 

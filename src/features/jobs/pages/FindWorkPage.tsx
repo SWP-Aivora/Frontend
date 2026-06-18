@@ -1,79 +1,39 @@
 import { useState } from 'react';
 import { JobBoardCard } from '../components/JobBoardCard';
 import { type JobCard } from '../schema';
-import { Search, DollarSign, BrainCircuit } from 'lucide-react';
+import { type Job } from '../types';
+import { Search, DollarSign, BrainCircuit, Loader2 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
+import { useQuery } from '@tanstack/react-query';
+import { jobService } from '../services';
 
-// Dummy data to simulate the API response
-const mockJobs: JobCard[] = [
-  {
-    id: '1',
-    title: 'Computer Vision Model for Medical Imaging',
-    description: 'We are looking for an experienced computer vision engineer to build a model capable of detecting early signs of diabetic retinopathy from fundus images. Must have experience with PyTorch and medical datasets.',
-    businessDomain: 'Healthcare',
-    budgetType: 0,
-    budgetMin: 3000,
-    budgetMax: 5000,
-    timelineDays: 30,
-    experienceLevel: 3,
-    createdAt: '2 hours ago',
-    skills: ['PyTorch', 'Computer Vision', 'Python', 'Medical Imaging', 'ResNet'],
-    proposalsCount: 12,
-    clientName: 'HealthTech Solutions',
-    clientVerified: true,
-  },
-  {
-    id: '2',
-    title: 'E-commerce AI Chatbot Integration',
-    description: 'Need a generative AI expert to integrate a custom LLM chatbot into our Shopify store. The bot should answer customer queries based on our product catalog and handle basic return requests.',
-    businessDomain: 'E-commerce',
-    budgetType: 1,
-    budgetMin: 40,
-    budgetMax: 60,
-    timelineDays: 14,
-    experienceLevel: 2,
-    createdAt: '5 hours ago',
-    skills: ['OpenAI', 'LangChain', 'Shopify', 'Node.js', 'Customer Support'],
-    proposalsCount: 45,
-    clientName: 'RetailBoost Inc.',
-    clientVerified: true,
-  },
-  {
-    id: '3',
-    title: 'Financial Fraud Detection System',
-    description: 'Looking to build a predictive analytics model to flag potentially fraudulent transactions in real-time. The dataset contains 5M+ anonymized transaction records. Focus on precision over recall.',
-    businessDomain: 'Fintech',
-    budgetType: 0,
-    budgetMin: 8000,
-    budgetMax: 10000,
-    timelineDays: 45,
-    experienceLevel: 3,
-    createdAt: '1 day ago',
-    skills: ['Machine Learning', 'XGBoost', 'Data Engineering', 'Python', 'Pandas', 'Scikit-learn'],
-    proposalsCount: 8,
-    clientName: 'SecurePay',
-    clientVerified: false,
-  },
-  {
-    id: '4',
-    title: 'Automated Newsletter Generator',
-    description: 'Create a script that scrapes 5 specific industry blogs daily, summarizes the top articles using an LLM, and drafts an email newsletter in Mailchimp.',
-    businessDomain: 'Marketing',
-    budgetType: 0,
-    budgetMin: 500,
-    budgetMax: 800,
-    timelineDays: 7,
-    experienceLevel: 1,
-    createdAt: '2 days ago',
-    skills: ['Python', 'Web Scraping', 'Prompt Engineering', 'API Integration'],
-    proposalsCount: 22,
-    clientName: 'ContentHouse',
-    clientVerified: true,
-  }
-];
+const mapJobToJobCard = (job: Job): JobCard => ({
+  id: job.id,
+  title: job.title,
+  description: job.finalDescription || job.originalDescription,
+  businessDomain: job.businessDomain,
+  budgetType: job.budgetType,
+  budgetMin: job.budgetMin,
+  budgetMax: job.budgetMax,
+  timelineDays: job.timelineDays,
+  experienceLevel: job.experienceLevel,
+  createdAt: new Date(job.createdAt).toLocaleDateString(),
+  skills: job.skills?.map(s => s.name) || [],
+  proposalsCount: 0,
+  clientName: job.client?.fullName || 'Anonymous Client',
+  clientVerified: true,
+});
 
 export const FindWorkPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
+
+  const { data: jobsResponse, isLoading, error } = useQuery({
+    queryKey: ['jobs', searchTerm],
+    queryFn: () => jobService.getJobs({ search: searchTerm }),
+  });
+
+  const jobs = jobsResponse?.data || [];
+
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -165,7 +125,7 @@ export const FindWorkPage = () => {
         <div className="lg:col-span-3 space-y-4">
           <div className="flex items-center justify-between bg-white border border-slate-100 rounded-xl p-4 shadow-sm mb-6">
              <p className="text-sm font-bold text-slate-500">
-               Showing <span className="text-slate-900">2,481</span> jobs
+               Showing <span className="text-slate-900">{jobs.length}</span> jobs
              </p>
              <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-slate-400">Sort by:</span>
@@ -177,11 +137,21 @@ export const FindWorkPage = () => {
              </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-             {mockJobs.map(job => (
-                <JobBoardCard key={job.id} job={job} />
-             ))}
-          </div>
+          {isLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-brand-accent" />
+            </div>
+          ) : error ? (
+            <div className="text-center py-12 text-red-500">Failed to load jobs.</div>
+          ) : jobs.length === 0 ? (
+            <div className="text-center py-12 text-slate-500">No jobs found matching your criteria.</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               {jobs.map(job => (
+                  <JobBoardCard key={job.id} job={mapJobToJobCard(job)} />
+               ))}
+            </div>
+          )}
           
           <div className="pt-8 flex justify-center">
              <Button variant="outline" className="rounded-full px-8 h-12 font-bold border-slate-200 text-slate-600 hover:text-brand-accent hover:border-brand-accent transition-all">

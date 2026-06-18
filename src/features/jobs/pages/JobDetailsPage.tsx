@@ -1,46 +1,36 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/components/ui/Button';
-import { BadgeCheck, Clock, MapPin, DollarSign, BrainCircuit, ChevronLeft, Calendar, FileText } from 'lucide-react';
-import { useState } from 'react';
+import { BadgeCheck, Clock, MapPin, DollarSign, BrainCircuit, ChevronLeft, Calendar, FileText, Loader2 } from 'lucide-react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { createProposalSchema, type CreateProposalFormValues } from '../schema';
+import { createProposalSchema, type CreateProposalFormValues } from '../../proposals/schema';
 import { Input } from '@/shared/components/ui/Input';
 import { toast } from 'sonner';
-
-// Mock fetching job data
-const mockJob = {
-  id: '1',
-  title: 'Computer Vision Model for Medical Imaging',
-  description: 'We are looking for an experienced computer vision engineer to build a model capable of detecting early signs of diabetic retinopathy from fundus images. Must have experience with PyTorch and medical datasets. The ideal candidate will have published research or a strong portfolio of similar medical imaging projects. \n\nYou will be working closely with our in-house medical team to validate the model\'s outputs. Expected accuracy is >95%.',
-  businessDomain: 'Healthcare',
-  budgetType: 0,
-  budgetMin: 3000,
-  budgetMax: 5000,
-  timelineDays: 30,
-  experienceLevel: 3, // Expert
-  createdAt: '2 hours ago',
-  skills: ['PyTorch', 'Computer Vision', 'Python', 'Medical Imaging', 'ResNet'],
-  clientName: 'HealthTech Solutions',
-  clientVerified: true,
-  clientLocation: 'United States',
-  clientTotalSpent: '$24k+',
-};
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { jobService } from '../services';
+import { proposalService } from '../../proposals/services';
 
 export const JobDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { data: jobResponse, isLoading } = useQuery({
+    queryKey: ['job', id],
+    queryFn: () => jobService.getJobById(id!),
+    enabled: !!id,
+  });
+  
+  const job = jobResponse?.data;
 
   const { register, control, handleSubmit, formState: { errors } } = useForm<CreateProposalFormValues>({
     resolver: zodResolver(createProposalSchema),
     defaultValues: {
-      jobId: id || '00000000-0000-0000-0000-000000000000', // Mock UUID
+      jobId: id || '',
       coverLetter: '',
-      proposedBudget: mockJob.budgetMin || 0,
-      proposedTimelineDays: mockJob.timelineDays || 0,
+      proposedBudget: 0,
+      proposedTimelineDays: 0,
       milestones: [
-        { title: 'Initial Prototype', amount: 1000, dueDays: 10, orderIndex: 0 }
+        { title: 'Initial Prototype', amount: 0, dueDays: 0, orderIndex: 0 }
       ],
     }
   });
@@ -50,20 +40,39 @@ export const JobDetailsPage = () => {
     name: "milestones"
   });
 
-  const onSubmit = async (data: CreateProposalFormValues) => {
-    setIsSubmitting(true);
-    try {
-      console.log('Submitting proposal:', data);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+  const submitMutation = useMutation({
+    mutationFn: (data: Omit<CreateProposalFormValues, 'jobId'>) => proposalService.submitProposal(id!, data),
+    onSuccess: () => {
       toast.success('Proposal submitted successfully!');
       navigate('/expert/jobs');
-    } catch {
+    },
+    onError: () => {
       toast.error('Failed to submit proposal');
-    } finally {
-      setIsSubmitting(false);
     }
+  });
+
+  const onSubmit = (data: CreateProposalFormValues) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { jobId, ...rest } = data;
+    submitMutation.mutate(rest);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <Loader2 className="size-10 animate-spin text-brand-accent" />
+      </div>
+    );
+  }
+
+  if (!job) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96 gap-4">
+        <p className="text-slate-500 font-medium">Job not found.</p>
+        <Button variant="outline" onClick={() => navigate(-1)}>Go Back</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -85,17 +94,17 @@ export const JobDetailsPage = () => {
              <div className="space-y-4 mb-8">
                 <div className="flex flex-wrap items-center gap-2">
                    <span className="px-3 py-1 bg-slate-50 border border-slate-100 rounded-lg text-xs font-bold text-slate-600">
-                     {mockJob.businessDomain}
+                     {job.businessDomain || 'General'}
                    </span>
                    <span className="px-3 py-1 bg-brand-accent/5 border border-brand-accent/10 rounded-lg text-xs font-bold text-brand-accent flex items-center gap-1.5">
-                     <BrainCircuit className="size-3.5" /> Expert Level
+                     <BrainCircuit className="size-3.5" /> Any Level
                    </span>
                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-auto flex items-center gap-1">
-                     <Clock className="size-3" /> Posted {mockJob.createdAt}
+                     <Clock className="size-3" /> Posted {new Date(job.createdAt).toLocaleDateString()}
                    </span>
                 </div>
                 <h1 className="text-3xl font-black text-slate-900 tracking-tight leading-tight">
-                  {mockJob.title}
+                  {job.title}
                 </h1>
              </div>
 
@@ -108,7 +117,7 @@ export const JobDetailsPage = () => {
                       <DollarSign className="size-5 text-emerald-600" />
                    </div>
                    <div>
-                      <p className="font-black text-slate-900">${mockJob.budgetMin} - ${mockJob.budgetMax}</p>
+                      <p className="font-black text-slate-900">${job.budgetMin || 0} - ${job.budgetMax || 0}</p>
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Fixed Price</p>
                    </div>
                 </div>
@@ -117,7 +126,7 @@ export const JobDetailsPage = () => {
                       <Calendar className="size-5 text-blue-600" />
                    </div>
                    <div>
-                      <p className="font-black text-slate-900">{mockJob.timelineDays} Days</p>
+                      <p className="font-black text-slate-900">{job.timelineDays || 'TBD'} Days</p>
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Est. Timeline</p>
                    </div>
                 </div>
@@ -127,7 +136,7 @@ export const JobDetailsPage = () => {
              <div className="space-y-4 mb-8">
                 <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">Project Description</h3>
                 <p className="text-sm text-slate-600 font-medium leading-relaxed whitespace-pre-wrap">
-                  {mockJob.description}
+                  {job.finalDescription || job.originalDescription}
                 </p>
              </div>
 
@@ -135,9 +144,9 @@ export const JobDetailsPage = () => {
              <div className="space-y-4">
                 <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">Required Skills</h3>
                 <div className="flex flex-wrap gap-2">
-                  {mockJob.skills.map(skill => (
-                    <span key={skill} className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:border-brand-accent hover:text-brand-accent transition-colors cursor-pointer">
-                      {skill}
+                  {job.skills?.map(skill => (
+                    <span key={skill.id} className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:border-brand-accent hover:text-brand-accent transition-colors cursor-pointer">
+                      {skill.name}
                     </span>
                   ))}
                 </div>
@@ -148,14 +157,14 @@ export const JobDetailsPage = () => {
           <div className="lg:hidden bg-slate-50 rounded-xl p-8 border border-slate-100">
              <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider mb-4">About the Client</h3>
              <div className="space-y-3">
-                <p className="font-bold text-slate-900">{mockJob.clientName}</p>
+                <p className="font-bold text-slate-900">{job.client?.fullName || 'Anonymous Client'}</p>
                 <div className="flex items-center gap-1.5">
                    <BadgeCheck className="size-4 text-brand-success" />
                    <span className="text-xs font-bold text-slate-600">Payment Verified</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-slate-500">
                    <MapPin className="size-4" />
-                   <span className="text-xs font-medium">{mockJob.clientLocation}</span>
+                   <span className="text-xs font-medium">Remote</span>
                 </div>
              </div>
           </div>
@@ -168,17 +177,17 @@ export const JobDetailsPage = () => {
           <div className="hidden lg:block bg-slate-50 rounded-xl p-8 border border-slate-100 shadow-sm">
              <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-6">About the Client</h3>
              <div className="space-y-4">
-                <p className="font-black text-lg text-slate-900">{mockJob.clientName}</p>
+                <p className="font-black text-lg text-slate-900">{job.client?.fullName || 'Anonymous Client'}</p>
                 <div className="flex items-center gap-2">
                    <BadgeCheck className="size-5 text-brand-success" />
                    <span className="text-sm font-bold text-slate-700">Payment Verified</span>
                 </div>
                 <div className="flex items-center gap-2 text-slate-500">
                    <MapPin className="size-5" />
-                   <span className="text-sm font-medium">{mockJob.clientLocation}</span>
+                   <span className="text-sm font-medium">Remote</span>
                 </div>
                 <div className="pt-4 border-t border-slate-200">
-                   <p className="text-sm font-black text-slate-900">{mockJob.clientTotalSpent}</p>
+                   <p className="text-sm font-black text-slate-900">N/A</p>
                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Total Spent</p>
                 </div>
              </div>
@@ -247,8 +256,8 @@ export const JobDetailsPage = () => {
                    ))}
                 </div>
 
-                <Button type="submit" disabled={isSubmitting} className="w-full rounded-full h-14 font-bold text-base bg-brand-accent hover:bg-brand-accent/90 shadow-lg shadow-brand-accent/20">
-                  {isSubmitting ? 'Submitting Proposal...' : 'Submit Proposal'}
+                <Button type="submit" disabled={submitMutation.isPending} className="w-full rounded-full h-14 font-bold text-base bg-brand-accent hover:bg-brand-accent/90 shadow-lg shadow-brand-accent/20">
+                  {submitMutation.isPending ? 'Submitting Proposal...' : 'Submit Proposal'}
                 </Button>
              </form>
           </div>
