@@ -1,12 +1,14 @@
 import apiClient from '@/lib/axios';
+import { env } from '@/lib/env';
 import { BaseService } from '@/shared/services/BaseService';
 import { API_ENDPOINTS } from '@/shared/constants';
-import type { Conversation, Message } from './types';
+import type { Conversation, Message, SendMessagePayload } from './types';
 import type { PaginatedResponse, BaseResponse } from '@/shared/types/api';
 import { normalizePaginatedResponse, normalizeBaseResponse } from '@/lib/api-utils';
 import { useAuthStore } from '../auth/store';
 import { Role } from '@/shared/types/enums';
 import type { AxiosResponse } from 'axios';
+import * as signalR from '@microsoft/signalr';
 
 class ChatService extends BaseService<Conversation> {
   constructor() {
@@ -78,6 +80,40 @@ class ChatService extends BaseService<Conversation> {
       ...paginated,
       data: mappedItems
     };
+  }
+
+  /**
+   * Send a message through the backend SignalR hub.
+   * The hub persists the message server-side before completing the invocation.
+   */
+  async sendMessage(conversationId: string, payload: SendMessagePayload): Promise<void> {
+    const content = payload.content.trim();
+    if (!content) {
+      throw new Error('Message cannot be empty');
+    }
+
+    const token = useAuthStore.getState().accessToken;
+    if (!token) {
+      throw new Error('You must be logged in to send messages');
+    }
+
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl(`${env.API_URL.replace(/\/$/, '')}/chat`, {
+        accessTokenFactory: () => token,
+        transport: signalR.HttpTransportType.LongPolling,
+      })
+      .withAutomaticReconnect()
+      .build();
+
+    try {
+      await connection.start();
+      await connection.invoke('SendMessage', {
+        conversationId,
+        content,
+      });
+    } finally {
+      await connection.stop();
+    }
   }
 
   /**

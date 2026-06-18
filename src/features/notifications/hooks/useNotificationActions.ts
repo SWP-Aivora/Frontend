@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { notificationService } from '../services';
 import { NOTIFICATION_KEYS } from './useNotifications';
-import type { Notification } from '../types';
+import { NotificationStatus, type Notification } from '../types';
 import type { PaginatedResponse, BaseResponse } from '@/shared/types/api';
 
 export const useNotificationActions = () => {
@@ -14,15 +14,16 @@ export const useNotificationActions = () => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: NOTIFICATION_KEYS.all });
 
-      // Snapshot the previous value
-      const previousNotifications = queryClient.getQueryData(NOTIFICATION_KEYS.all);
+      // Snapshot every notification query because list keys include their params.
+      const previousNotifications = queryClient.getQueriesData<PaginatedResponse<Notification>>({ queryKey: NOTIFICATION_KEYS.lists });
+      const previousUnreadCount = queryClient.getQueryData<BaseResponse<number>>(NOTIFICATION_KEYS.unreadCount);
 
       // Optimistically update to the new value
-      queryClient.setQueriesData({ queryKey: NOTIFICATION_KEYS.all }, (old: PaginatedResponse<Notification> | undefined) => {
+      queryClient.setQueriesData({ queryKey: NOTIFICATION_KEYS.lists }, (old: PaginatedResponse<Notification> | undefined) => {
         if (!old || !old.data) return old;
         return {
           ...old,
-          data: old.data.map((n) => n.id === id ? { ...n, isRead: true, status: 'Read' } : n)
+          data: old.data.map((n) => n.id === id ? { ...n, isRead: true, status: NotificationStatus.READ } : n)
         };
       });
 
@@ -32,16 +33,20 @@ export const useNotificationActions = () => {
         return { ...old, data: Math.max(0, old.data - 1) };
       });
 
-      return { previousNotifications };
+      return { previousNotifications, previousUnreadCount };
     },
     onError: (_err, _id, context) => {
-      if (context?.previousNotifications) {
-        queryClient.setQueryData(NOTIFICATION_KEYS.all, context.previousNotifications);
+      context?.previousNotifications.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
+      if (context?.previousUnreadCount) {
+        queryClient.setQueryData(NOTIFICATION_KEYS.unreadCount, context.previousUnreadCount);
       }
       toast.error('Failed to mark notification as read');
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: NOTIFICATION_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: NOTIFICATION_KEYS.lists });
+      queryClient.invalidateQueries({ queryKey: NOTIFICATION_KEYS.unreadCount });
     },
   });
 
@@ -49,13 +54,14 @@ export const useNotificationActions = () => {
     mutationFn: () => notificationService.markAllAsRead(),
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: NOTIFICATION_KEYS.all });
-      const previousNotifications = queryClient.getQueryData(NOTIFICATION_KEYS.all);
+      const previousNotifications = queryClient.getQueriesData<PaginatedResponse<Notification>>({ queryKey: NOTIFICATION_KEYS.lists });
+      const previousUnreadCount = queryClient.getQueryData<BaseResponse<number>>(NOTIFICATION_KEYS.unreadCount);
 
-      queryClient.setQueriesData({ queryKey: NOTIFICATION_KEYS.all }, (old: PaginatedResponse<Notification> | undefined) => {
+      queryClient.setQueriesData({ queryKey: NOTIFICATION_KEYS.lists }, (old: PaginatedResponse<Notification> | undefined) => {
         if (!old || !old.data) return old;
         return {
           ...old,
-          data: old.data.map((n) => ({ ...n, isRead: true, status: 'Read' }))
+          data: old.data.map((n) => ({ ...n, isRead: true, status: NotificationStatus.READ }))
         };
       });
 
@@ -64,19 +70,23 @@ export const useNotificationActions = () => {
         return { ...old, data: 0 };
       });
 
-      return { previousNotifications };
+      return { previousNotifications, previousUnreadCount };
     },
     onSuccess: () => {
       toast.success('All notifications marked as read');
     },
     onError: (_err, _variables, context) => {
-      if (context?.previousNotifications) {
-        queryClient.setQueryData(NOTIFICATION_KEYS.all, context.previousNotifications);
+      context?.previousNotifications.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
+      if (context?.previousUnreadCount) {
+        queryClient.setQueryData(NOTIFICATION_KEYS.unreadCount, context.previousUnreadCount);
       }
       toast.error('Failed to mark all notifications as read');
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: NOTIFICATION_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: NOTIFICATION_KEYS.lists });
+      queryClient.invalidateQueries({ queryKey: NOTIFICATION_KEYS.unreadCount });
     },
   });
 
@@ -87,4 +97,3 @@ export const useNotificationActions = () => {
     isMarkingAllAsRead: markAllAsReadMutation.isPending,
   };
 };
-

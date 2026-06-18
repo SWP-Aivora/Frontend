@@ -9,6 +9,7 @@ export const useAdminExpertReviews = (params?: Record<string, unknown>) => {
     queryKey: ['admin', 'expert-reviews', params],
     queryFn: () => adminService.getExpertReviews(params),
     select: (response) => response.data,
+    retry: false,
   });
 };
 
@@ -18,6 +19,7 @@ export const useExpertReviewDetail = (id: string | null) => {
     queryFn: () => adminService.getExpertReviewDetail(id!),
     enabled: !!id,
     select: (response) => response.data,
+    retry: false,
   });
 };
 

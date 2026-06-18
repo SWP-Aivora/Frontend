@@ -1,4 +1,5 @@
 import apiClient from '@/lib/axios';
+import axios from 'axios';
 import type { UserProfile, ClientProfile, ExpertProfile, ExpertProfileResponse } from './types';
 import type { UserUpdateFormValues, ClientProfileFormValues, ExpertProfileFormValues } from './schema';
 import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
@@ -19,8 +20,21 @@ export const profileService = {
 
   // Client Profile endpoints
   getClientProfile: async (): Promise<BaseResponse<ClientProfile>> => {
-    const response = await apiClient.get(API_ENDPOINTS.PROFILES.CLIENT);
-    return normalizeBaseResponse<ClientProfile>(response);
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.PROFILES.CLIENT);
+      return normalizeBaseResponse<ClientProfile>(response);
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return {
+          success: true,
+          message: 'Client profile has not been created yet.',
+          data: null,
+          statusCode: 404,
+        };
+      }
+
+      throw error;
+    }
   },
 
   updateClientProfile: async (data: ClientProfileFormValues): Promise<BaseResponse<ClientProfile>> => {
@@ -30,13 +44,39 @@ export const profileService = {
 
   // Expert Profile endpoints
   getExpertProfile: async (): Promise<BaseResponse<ExpertProfile>> => {
-    const response = await apiClient.get(API_ENDPOINTS.PROFILES.EXPERT);
-    return normalizeBaseResponse<ExpertProfile>(response);
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.PROFILES.EXPERT);
+      return normalizeBaseResponse<ExpertProfile>(response);
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return {
+          success: true,
+          message: 'Expert profile has not been created yet.',
+          data: null,
+          statusCode: 404,
+        };
+      }
+
+      throw error;
+    }
   },
 
   updateExpertProfile: async (data: ExpertProfileFormValues): Promise<BaseResponse<ExpertProfile>> => {
-    const response = await apiClient.put(API_ENDPOINTS.PROFILES.EXPERT, data);
-    return normalizeBaseResponse<ExpertProfile>(response);
+    try {
+      const response = await apiClient.put(API_ENDPOINTS.PROFILES.EXPERT, data);
+      return normalizeBaseResponse<ExpertProfile>(response);
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return {
+          success: false,
+          message: 'Expert profile update is not available yet.',
+          data: null,
+          statusCode: 404,
+        };
+      }
+
+      throw error;
+    }
   },
 
   getExpertProfileById: async (expertId: string): Promise<BaseResponse<ExpertProfile>> => {

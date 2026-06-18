@@ -36,7 +36,7 @@ export const Topbar = ({ onMenuClick, onToggleSidebar, sidebarCollapsed, role }:
         </button>
 
         {/* Brand Header */}
-        <Link to={`/${role.toLowerCase()}`} className="flex items-center group shrink-0">
+        <Link to="/" className="flex items-center group shrink-0">
           <div className="relative w-32 h-12 overflow-hidden flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
             <img 
               src={ASSETS.logoCircle} 

@@ -18,6 +18,7 @@ import { AdminDashboardPage } from '../features/admin/pages/AdminDashboardPage';
 import { UserManagementPage } from '../features/admin/pages/UserManagementPage';
 import { AdminUserDetailPage } from '../features/admin/pages/AdminUserDetailPage';
 import { AdminExpertReviewsPage } from '../features/admin/pages/AdminExpertReviewsPage';
+import { ProjectManagementPage } from '../features/admin/pages/ProjectManagementPage';
 import { NotificationsPage } from '../features/notifications';
 import { LandingPage } from '../shared/pages/LandingPage';
 import ReviewPage from '../features/reviews/pages/ReviewPage';
@@ -120,6 +121,7 @@ export const router = createBrowserRouter([
       { index: true, element: <AdminDashboardPage /> },
       { path: 'users', element: <UserManagementPage /> },
       { path: 'users/:id', element: <AdminUserDetailPage /> },
+      { path: 'projects', element: <ProjectManagementPage /> },
       { path: 'expert-reviews', element: <AdminExpertReviewsPage /> },
       { path: 'disputes', element: <AdminDisputeListPage /> },
       { path: 'disputes/:id', element: <DisputeDetailPage /> },

@@ -4,15 +4,19 @@ import type {
   DashboardSummary, 
   AdminUserManagementData, 
   AdminExpertReviewsData, 
+  ExpertReviewItem,
   ExpertReviewDetail,
   ExpertReviewActionParams,
   HealthAlertItem,
+  AdminProject,
+  AdminProjectMilestone,
+  AdminProjectsQuery,
   AdminProjectItem,
   RecentActivityItem,
   TransactionSummaryItem
 } from './types';
-import type { BaseResponse } from '@/shared/types/api';
-import { normalizeBaseResponse } from '@/lib/api-utils';
+import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
+import { normalizeBaseResponse, normalizePaginatedResponse } from '@/lib/api-utils';
 
 interface DashboardSummaryParams {
   projectPage?: number;
@@ -114,6 +118,113 @@ export const countNewInLast7Days = (items: Record<string, unknown>[], dateField:
   }).length;
 };
 
+const pick = <T = unknown>(source: Record<string, unknown>, ...keys: string[]): T | undefined => {
+  for (const key of keys) {
+    if (source[key] !== undefined && source[key] !== null) return source[key] as T;
+  }
+  return undefined;
+};
+
+const toNumber = (value: unknown, fallback = 0): number => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+};
+
+const toStringValue = (value: unknown, fallback = ''): string => {
+  if (value === undefined || value === null) return fallback;
+  return String(value);
+};
+
+const normalizeAdminProjectMilestone = (raw: unknown): AdminProjectMilestone => {
+  const milestone = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+
+  return {
+    id: toStringValue(pick(milestone, 'id', 'Id')),
+    title: toStringValue(pick(milestone, 'title', 'Title'), 'Untitled milestone'),
+    description: pick<string | null>(milestone, 'description', 'Description') ?? null,
+    amount: toNumber(pick(milestone, 'amount', 'Amount')),
+    currency: toStringValue(pick(milestone, 'currency', 'Currency'), 'VND'),
+    status: pick<number | string>(milestone, 'status', 'Status') ?? 'Unknown',
+    orderIndex: toNumber(pick(milestone, 'orderIndex', 'OrderIndex')),
+    dueDate: pick<string | null>(milestone, 'dueDate', 'DueDate') ?? null,
+  };
+};
+
+const normalizeAdminProject = (raw: unknown): AdminProject => {
+  const project = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const milestones = pick<unknown[]>(project, 'milestones', 'Milestones') ?? [];
+
+  return {
+    id: toStringValue(pick(project, 'id', 'Id')),
+    jobId: pick<string>(project, 'jobId', 'JobId'),
+    acceptedProposalId: pick<string>(project, 'acceptedProposalId', 'AcceptedProposalId'),
+    clientId: toStringValue(pick(project, 'clientId', 'ClientId')),
+    clientName: toStringValue(pick(project, 'clientName', 'ClientName'), 'N/A'),
+    expertId: toStringValue(pick(project, 'expertId', 'ExpertId')),
+    expertName: toStringValue(pick(project, 'expertName', 'ExpertName'), 'N/A'),
+    title: toStringValue(pick(project, 'title', 'Title'), 'Untitled project'),
+    description: pick<string | null>(project, 'description', 'Description') ?? null,
+    totalBudget: toNumber(pick(project, 'totalBudget', 'TotalBudget')),
+    currency: toStringValue(pick(project, 'currency', 'Currency'), 'VND'),
+    status: pick<number | string>(project, 'status', 'Status') ?? 'Unknown',
+    startDate: pick<string | null>(project, 'startDate', 'StartDate') ?? null,
+    endDate: pick<string | null>(project, 'endDate', 'EndDate') ?? null,
+    completedAt: pick<string | null>(project, 'completedAt', 'CompletedAt') ?? null,
+    createdAt: toStringValue(pick(project, 'createdAt', 'CreatedAt')),
+    updatedAt: pick<string | null>(project, 'updatedAt', 'UpdatedAt') ?? null,
+    milestones: Array.isArray(milestones) ? milestones.map(normalizeAdminProjectMilestone) : [],
+  };
+};
+
+const formatExpertReviewStatus = (status: unknown): ExpertReviewItem['status'] => {
+  const normalized = String(status ?? 'Pending').replace(/_/g, '').toUpperCase();
+  if (normalized === 'APPROVED') return 'Approved';
+  if (normalized === 'REJECTED') return 'Rejected';
+  if (normalized === 'REVISION') return 'Revision';
+  return 'Pending';
+};
+
+const normalizeExpertReviewItem = (raw: unknown): ExpertReviewItem => {
+  const item = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const fullName = toStringValue(pick(item, 'fullName', 'FullName', 'name', 'Name'), 'Unknown Expert');
+  const skills = pick<unknown[]>(item, 'skills', 'Skills') ?? [];
+
+  return {
+    id: toStringValue(pick(item, 'id', 'Id', 'reviewId', 'ReviewId')),
+    expertId: toStringValue(pick(item, 'expertId', 'ExpertId', 'userId', 'UserId')),
+    fullName,
+    email: toStringValue(pick(item, 'email', 'Email')),
+    avatarUrl: pick<string | null>(item, 'avatarUrl', 'AvatarUrl') ?? null,
+    initials: toStringValue(pick(item, 'initials', 'Initials'), fullName.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase() || 'EX'),
+    status: formatExpertReviewStatus(pick(item, 'status', 'Status')),
+    submittedAt: toStringValue(pick(item, 'submittedAt', 'SubmittedAt', 'createdAt', 'CreatedAt'), 'N/A'),
+    title: toStringValue(pick(item, 'title', 'Title', 'professionalTitle', 'ProfessionalTitle'), 'Expert profile update'),
+    skills: skills.map(String),
+    experienceYears: toNumber(pick(item, 'experienceYears', 'ExperienceYears')),
+    proofCount: toNumber(pick(item, 'proofCount', 'ProofCount', 'portfolioCount', 'PortfolioCount')),
+  };
+};
+
+const normalizeExpertReviewsData = (raw: unknown): AdminExpertReviewsData => {
+  const data = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const reviews = normalizeList(data).map(normalizeExpertReviewItem);
+  const today = new Date().toDateString();
+
+  return {
+    reviews,
+    totalPending: toNumber(pick(data, 'totalPending', 'TotalPending'), reviews.filter((review) => review.status === 'Pending').length),
+    totalRevisions: toNumber(pick(data, 'totalRevisions', 'TotalRevisions'), reviews.filter((review) => review.status === 'Revision').length),
+    totalRejected: toNumber(pick(data, 'totalRejected', 'TotalRejected'), reviews.filter((review) => review.status === 'Rejected').length),
+    newToday: toNumber(
+      pick(data, 'newToday', 'NewToday'),
+      reviews.filter((review) => {
+        const date = new Date(review.submittedAt);
+        return !Number.isNaN(date.getTime()) && date.toDateString() === today;
+      }).length
+    ),
+  };
+};
+
 /**
  * Helper to format date for activity timestamp
  */
@@ -141,6 +252,26 @@ export const formatActivityDate = (dateString: string): string => {
  * Admin Services
  */
 export const adminService = {
+  getProjects: async (params?: AdminProjectsQuery): Promise<PaginatedResponse<AdminProject>> => {
+    const response = await apiClient.get(API_ENDPOINTS.PROJECTS.BASE, { params });
+    const normalized = normalizePaginatedResponse<Record<string, unknown>>(response);
+
+    return {
+      ...normalized,
+      data: (normalized.data ?? []).map(normalizeAdminProject),
+    };
+  },
+
+  getProjectDetail: async (id: string): Promise<BaseResponse<AdminProject>> => {
+    const response = await apiClient.get(API_ENDPOINTS.PROJECTS.ID(id));
+    const normalized = normalizeBaseResponse<Record<string, unknown>>(response);
+
+    return {
+      ...normalized,
+      data: normalized.data ? normalizeAdminProject(normalized.data) : null,
+    };
+  },
+
   getDashboardSummary: async (params: DashboardSummaryParams = {}): Promise<BaseResponse<DashboardSummary & { _isStub?: boolean }>> => {
     const projectPage = params.projectPage ?? 1;
     const projectLimit = params.projectLimit ?? 10;
@@ -489,10 +620,10 @@ export const adminService = {
 
   getExpertReviews: async (params?: Record<string, unknown>): Promise<BaseResponse<AdminExpertReviewsData & { _isStub?: boolean }>> => {
     const response = await apiClient.get<BaseResponse<AdminExpertReviewsData>>(API_ENDPOINTS.ADMIN.EXPERT_REVIEWS, { params });
-    const normalized = normalizeBaseResponse<AdminExpertReviewsData>(response);
+    const normalized = normalizeBaseResponse<unknown>(response);
     return {
       ...normalized,
-      data: normalized.data ? { ...normalized.data, _isStub: false } : null
+      data: normalized.data ? { ...normalizeExpertReviewsData(normalized.data), _isStub: false } : null
     };
   },
 

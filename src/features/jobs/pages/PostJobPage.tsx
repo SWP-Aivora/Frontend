@@ -234,7 +234,7 @@ export const PostJobPage = () => {
   }
 
   return (
-    <div className="h-[calc(100vh-140px)] flex flex-col gap-6 animate-in fade-in duration-700">
+    <div className="min-h-[calc(100vh-140px)] flex flex-col gap-6 pb-8 animate-in fade-in duration-700">
       {/* Header Info */}
       <div className="flex items-center justify-between shrink-0 bg-white border border-slate-100 p-4 rounded-2xl shadow-sm">
         <div className="flex items-center gap-4">
@@ -270,11 +270,11 @@ export const PostJobPage = () => {
       </div>
 
       {/* Main Interaction Area */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-hidden">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
         
         {/* Left: Chat Assistant */}
         <div className={cn(
-          "h-full transition-all duration-500 flex flex-col",
+          "min-h-[520px] lg:min-h-0 transition-all duration-500 flex flex-col",
           step === 'PLANNING' ? "lg:col-span-12 max-w-3xl mx-auto w-full" : "lg:col-span-5"
         )}>
           <AiChatPanel 
@@ -288,7 +288,7 @@ export const PostJobPage = () => {
 
         {/* Right: Preview Form (Only if draft exists) */}
         {step === 'DRAFTING' && suggestion && (
-          <div className="lg:col-span-7 h-full animate-in slide-in-from-right-10 duration-700">
+          <div className="lg:col-span-7 min-h-0 animate-in slide-in-from-right-10 duration-700">
             <JobDraftForm 
               suggestion={suggestion}
               onUpdate={handleManualUpdate}

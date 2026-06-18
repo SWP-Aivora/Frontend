@@ -16,13 +16,33 @@ import { toast } from 'sonner';
 import { useAuthStore } from '@/features/auth/store';
 import { Role } from '@/shared/types/enums';
 import { Building2, Code2, ShieldCheck, Mail, UserCircle2, Loader2, AlertCircle } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+
+const getRouteRole = (pathname: string): Role | null => {
+  if (pathname.startsWith('/client/')) return Role.CLIENT;
+  if (pathname.startsWith('/expert/')) return Role.EXPERT;
+  if (pathname.startsWith('/admin/')) return Role.ADMIN;
+  return null;
+};
+
+const normalizeRole = (role: unknown): Role | null => {
+  if (typeof role !== 'string') return null;
+
+  const normalized = role.toUpperCase();
+  return Object.values(Role).find((value) => value === normalized) || null;
+};
 
 export const AccountInfoForm = () => {
   const [isUserLoading, setIsUserLoading] = useState(false);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [isClientProfileMissing, setIsClientProfileMissing] = useState(false);
+  const [isExpertProfileMissing, setIsExpertProfileMissing] = useState(false);
   const { user, setUser } = useAuthStore();
+  const location = useLocation();
+  const routeRole = getRouteRole(location.pathname);
+  const activeProfileRole = routeRole || user?.role || null;
 
   // Base User Form (Shared)
   const { register: registerUser, handleSubmit: handleUserSubmit, reset: resetUser, formState: { errors: userErrors } } = useForm<UserUpdateFormValues>({
@@ -65,16 +85,19 @@ export const AccountInfoForm = () => {
       
       setIsInitialLoading(true);
       setLoadError(null);
+      setIsClientProfileMissing(false);
+      setIsExpertProfileMissing(false);
       try {
         // Fetch base user info
         const userRes = await profileService.getUserProfile();
         if (userRes.success && userRes.data) {
           const userData = userRes.data;
+          const normalizedUserRole = normalizeRole(userData.role) || user?.role || Role.CLIENT;
           setUser({
             id: userData.id,
             email: userData.email,
             fullName: userData.fullName || user?.fullName || userData.email.split('@')[0],
-            role: userData.role
+            role: normalizedUserRole
           });
           
           resetUser({
@@ -86,10 +109,12 @@ export const AccountInfoForm = () => {
             throw new Error(userRes.message || 'Failed to load user profile');
         }
 
-        // Fetch role-specific profile
-        if (user?.role === Role.CLIENT) {
+        // Fetch role-specific profile. A missing role profile is optional; base auth/user
+        // data is enough to keep the Account tab editable.
+        if (activeProfileRole === Role.CLIENT) {
           const clientRes = await profileService.getClientProfile();
           if (clientRes.success && clientRes.data) {
+            setIsClientProfileMissing(false);
             resetClient({
               companyName: clientRes.data.companyName || '',
               industry: clientRes.data.industry || '',
@@ -97,18 +122,37 @@ export const AccountInfoForm = () => {
               website: clientRes.data.website || '',
               description: clientRes.data.description || '',
             });
+          } else if (clientRes.success && clientRes.statusCode === 404) {
+            setIsClientProfileMissing(true);
+            resetClient({
+              companyName: '',
+              industry: '',
+              companySize: '',
+              website: '',
+              description: '',
+            });
           } else {
              throw new Error(clientRes.message || 'Failed to load client profile');
           }
-        } else if (user?.role === Role.EXPERT) {
+        } else if (activeProfileRole === Role.EXPERT) {
           const expertRes = await profileService.getExpertProfile();
           if (expertRes.success && expertRes.data) {
+            setIsExpertProfileMissing(false);
             resetExpert({
               title: expertRes.data.title || '',
               bio: expertRes.data.bio || '',
               hourlyRate: expertRes.data.hourlyRate || 0,
               experienceYears: expertRes.data.experienceYears || 0,
               availabilityStatus: expertRes.data.availabilityStatus || 1,
+            });
+          } else if (expertRes.success && expertRes.statusCode === 404) {
+            setIsExpertProfileMissing(true);
+            resetExpert({
+              title: '',
+              bio: '',
+              hourlyRate: 0,
+              experienceYears: 0,
+              availabilityStatus: 1,
             });
           } else {
              throw new Error(expertRes.message || 'Failed to load expert profile');
@@ -127,7 +171,7 @@ export const AccountInfoForm = () => {
     loadProfileData();
     // Only re-run if basic user context changes (Login/Logout/Role Switch)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, user?.role, resetUser, resetClient, resetExpert]);
+  }, [activeProfileRole, user?.id, user?.role, resetUser, resetClient, resetExpert]);
 
   const onUserSubmit = async (data: UserUpdateFormValues) => {
     if (loadError || isInitialLoading || !user) return;
@@ -169,7 +213,17 @@ export const AccountInfoForm = () => {
     setIsProfileLoading(true);
     try {
       const response = await profileService.updateClientProfile(data);
-      if (response.success) toast.success('Company profile updated');
+      if (response.success) {
+        setIsClientProfileMissing(false);
+        toast.success('Company profile updated');
+        resetClient({
+          companyName: response.data?.companyName || data.companyName || '',
+          industry: response.data?.industry || data.industry || '',
+          companySize: response.data?.companySize || data.companySize || '',
+          website: response.data?.website || data.website || '',
+          description: response.data?.description || data.description || '',
+        });
+      }
       else toast.error(response.message || 'Failed to update profile');
     } catch (error) {
       toast.error('An error occurred while updating company profile');
@@ -181,10 +235,18 @@ export const AccountInfoForm = () => {
 
   const onExpertSubmit = async (data: ExpertProfileFormValues) => {
     if (loadError || isInitialLoading) return;
+    if (isExpertProfileMissing) {
+      toast.error('Expert profile update is not available yet.');
+      return;
+    }
+
     setIsProfileLoading(true);
     try {
       const response = await profileService.updateExpertProfile(data);
-      if (response.success) toast.success('Expert profile updated');
+      if (response.success) {
+        setIsExpertProfileMissing(false);
+        toast.success('Expert profile updated');
+      }
       else toast.error(response.message || 'Failed to update profile');
     } catch (error) {
       toast.error('An error occurred while updating expert profile');
@@ -291,7 +353,7 @@ export const AccountInfoForm = () => {
       </div>
 
       {/* ROLE SPECIFIC SETTINGS */}
-      {user?.role === Role.CLIENT && (
+      {activeProfileRole === Role.CLIENT && (
         <div className="bg-white rounded-xl p-8 border border-slate-100 shadow-sm relative overflow-hidden">
           <div className="flex items-center gap-4 mb-8">
             <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
@@ -353,7 +415,7 @@ export const AccountInfoForm = () => {
         </div>
       )}
 
-      {user?.role === Role.EXPERT && (
+      {activeProfileRole === Role.EXPERT && (
         <div className="bg-white rounded-xl p-8 border border-slate-100 shadow-sm relative overflow-hidden">
           <div className="flex items-center gap-4 mb-8">
             <div className="size-10 rounded-lg bg-brand-accent/10 flex items-center justify-center text-brand-accent">
@@ -405,4 +467,3 @@ export const AccountInfoForm = () => {
     </div>
   );
 };
-

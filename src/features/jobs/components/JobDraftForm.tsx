@@ -77,7 +77,7 @@ export const JobDraftForm = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden">
+    <div className="flex flex-col min-h-full bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden">
       {/* Header */}
       <div className="p-6 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -98,7 +98,7 @@ export const JobDraftForm = ({
       </div>
 
       {/* Form Area */}
-      <div className="flex-1 overflow-y-auto p-8 space-y-10 custom-scrollbar">
+      <div className="flex-1 min-h-0 overflow-y-auto p-8 space-y-10 custom-scrollbar">
         <form id="job-draft-form" onSubmit={handleSubmit(onSubmit)} className="space-y-8">
           
           {/* Section: Basic Info */}

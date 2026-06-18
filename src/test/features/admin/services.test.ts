@@ -144,3 +144,77 @@ describe('adminService.getDashboardSummary', () => {
     expect(result.data?.totalTransactionsValue).toBe(0);
   });
 });
+
+describe('adminService.getExpertReviews', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('normalizes expert reviews from a reviews array response', async () => {
+    (vi.mocked(apiClient.get)).mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          reviews: [
+            {
+              id: 'review-1',
+              expertId: 'expert-1',
+              fullName: 'Ada Lovelace',
+              email: 'ada@example.com',
+              status: 'PENDING',
+              skills: ['LLM'],
+              submittedAt: new Date().toISOString(),
+            },
+          ],
+          totalPending: 1,
+        },
+      },
+    });
+
+    const result = await adminService.getExpertReviews();
+
+    expect(result.success).toBe(true);
+    expect(result.data?.reviews).toHaveLength(1);
+    expect(result.data?.reviews[0]).toMatchObject({
+      id: 'review-1',
+      expertId: 'expert-1',
+      fullName: 'Ada Lovelace',
+      status: 'Pending',
+      skills: ['LLM'],
+    });
+    expect(result.data?.totalPending).toBe(1);
+  });
+
+  it('normalizes expert reviews from a paged items response', async () => {
+    (vi.mocked(apiClient.get)).mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          items: [
+            {
+              Id: 'review-2',
+              ExpertId: 'expert-2',
+              FullName: 'Grace Hopper',
+              Email: 'grace@example.com',
+              Status: 'REVISION',
+              Skills: ['Automation', 'Compiler'],
+              ProofCount: 3,
+            },
+          ],
+        },
+      },
+    });
+
+    const result = await adminService.getExpertReviews();
+
+    expect(result.data?.reviews[0]).toMatchObject({
+      id: 'review-2',
+      expertId: 'expert-2',
+      fullName: 'Grace Hopper',
+      email: 'grace@example.com',
+      status: 'Revision',
+      proofCount: 3,
+    });
+    expect(result.data?.totalRevisions).toBe(1);
+  });
+});
