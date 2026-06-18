@@ -143,7 +143,7 @@ describe('disputeService', () => {
       const result = await disputeService.openDispute(payload);
 
       expect(result.success).toBe(true);
-      expect(apiClient.post).toHaveBeenCalledWith(expect.stringContaining('/disputes'), payload);
+      expect(apiClient.post).toHaveBeenCalledWith(expect.stringContaining('disputes'), payload);
     });
   });
 

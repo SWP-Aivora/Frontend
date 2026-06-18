@@ -14,7 +14,7 @@ const ASSETS = {
   logoCircle: "/logo.png",
 };
 
-export const Topbar = ({ onMenuClick, onToggleSidebar, sidebarCollapsed, role }: TopbarProps) => {
+export const Topbar = ({ onMenuClick, onToggleSidebar, sidebarCollapsed }: TopbarProps) => {
   return (
     <header className="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-6 lg:px-8 shrink-0 relative z-30 shadow-sm">
       <div className="flex items-center gap-4 lg:gap-6 flex-1">

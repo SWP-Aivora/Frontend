@@ -37,7 +37,6 @@ export const AccountInfoForm = () => {
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [isClientProfileMissing, setIsClientProfileMissing] = useState(false);
   const [isExpertProfileMissing, setIsExpertProfileMissing] = useState(false);
   const { user, setUser } = useAuthStore();
   const location = useLocation();
@@ -85,7 +84,6 @@ export const AccountInfoForm = () => {
       
       setIsInitialLoading(true);
       setLoadError(null);
-      setIsClientProfileMissing(false);
       setIsExpertProfileMissing(false);
       try {
         // Fetch base user info
@@ -114,7 +112,6 @@ export const AccountInfoForm = () => {
         if (activeProfileRole === Role.CLIENT) {
           const clientRes = await profileService.getClientProfile();
           if (clientRes.success && clientRes.data) {
-            setIsClientProfileMissing(false);
             resetClient({
               companyName: clientRes.data.companyName || '',
               industry: clientRes.data.industry || '',
@@ -123,7 +120,6 @@ export const AccountInfoForm = () => {
               description: clientRes.data.description || '',
             });
           } else if (clientRes.success && clientRes.statusCode === 404) {
-            setIsClientProfileMissing(true);
             resetClient({
               companyName: '',
               industry: '',
@@ -214,7 +210,6 @@ export const AccountInfoForm = () => {
     try {
       const response = await profileService.updateClientProfile(data);
       if (response.success) {
-        setIsClientProfileMissing(false);
         toast.success('Company profile updated');
         resetClient({
           companyName: response.data?.companyName || data.companyName || '',
