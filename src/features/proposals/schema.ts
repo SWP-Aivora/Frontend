@@ -14,7 +14,12 @@ export const createProposalSchema = z.object({
   coverLetter: z.string().min(50, 'Cover letter must be at least 50 characters to stand out.'),
   proposedBudget: z.coerce.number().min(1, 'Budget must be greater than 0'),
   proposedTimelineDays: z.coerce.number().int().min(1, 'Timeline must be at least 1 day').optional().nullable(),
-  milestones: z.array(proposalMilestoneSchema).optional(),
+  milestones: z.array(proposalMilestoneSchema)
+    .min(1, 'At least one milestone is required')
+    .refine(milestones => milestones.every(m => m.title.length >= 3), {
+      message: 'Each milestone must have a title of at least 3 characters',
+    })
+    .optional(),
 });
 
 export type CreateProposalFormValues = z.infer<typeof createProposalSchema>;

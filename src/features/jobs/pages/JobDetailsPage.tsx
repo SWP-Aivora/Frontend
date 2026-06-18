@@ -243,8 +243,8 @@ export const JobDetailsPage = () => {
                          <div className="flex-1 space-y-2">
                            <Input {...register(`milestones.${index}.title`)} placeholder="Milestone Title" className="h-8 text-xs rounded-lg" />
                            <div className="flex gap-2">
-                             <Input type="number" {...register(`milestones.${index}.amount`)} placeholder="$ Amount" className="h-8 text-xs rounded-lg w-1/2" />
-                             <Input type="number" {...register(`milestones.${index}.dueDays`)} placeholder="Days" className="h-8 text-xs rounded-lg w-1/2" />
+                             <Input type="number" min="0" step="0.01" {...register(`milestones.${index}.amount`)} placeholder="$ Amount" className="h-8 text-xs rounded-lg w-1/2" />
+                             <Input type="number" min="1" {...register(`milestones.${index}.dueDays`)} placeholder="Days" className="h-8 text-xs rounded-lg w-1/2" />
                            </div>
                          </div>
                          {fields.length > 1 && (

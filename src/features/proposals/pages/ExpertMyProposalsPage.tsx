@@ -18,7 +18,7 @@ import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 export const ExpertMyProposalsPage = () => {
-  const { data: response, isLoading } = useQuery({
+  const { data: response, isLoading, isError } = useQuery({
     queryKey: ['myProposals'],
     queryFn: proposalService.getMyProposals,
   });
@@ -46,8 +46,17 @@ export const ExpertMyProposalsPage = () => {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-         <Loader2 className="size-10 text-brand-accent animate-spin" />
+         <Loader2 className="size-10 text-brand-accent animate-spin" aria-label="Loading" />
          <p className="text-slate-500 font-bold animate-pulse">Loading your proposals...</p>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+         <XCircle className="size-10 text-destructive" aria-label="Error" />
+         <p className="text-slate-500 font-bold">Failed to load proposals. Please try again later.</p>
       </div>
     );
   }
@@ -94,6 +103,7 @@ export const ExpertMyProposalsPage = () => {
             <button
               key={s}
               onClick={() => setFilter(s)}
+              aria-pressed={filter === s}
               className={cn(
                 "px-6 py-2.5 rounded-xl text-xs font-black capitalize transition-all duration-300",
                 filter === s 
