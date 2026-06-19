@@ -25,12 +25,11 @@ export const JobDetailsPage = () => {
   const { register, control, handleSubmit, formState: { errors } } = useForm<CreateProposalFormValues>({
     resolver: zodResolver(createProposalSchema),
     defaultValues: {
-      jobId: id || '',
       coverLetter: '',
       proposedBudget: 0,
       proposedTimelineDays: 0,
       milestones: [
-        { title: 'Initial Prototype', amount: 0, dueDays: 0, orderIndex: 0 }
+        { title: 'Initial Prototype', amount: 1, dueDays: 1, orderIndex: 0 }
       ],
     }
   });
@@ -41,7 +40,7 @@ export const JobDetailsPage = () => {
   });
 
   const submitMutation = useMutation({
-    mutationFn: (data: Omit<CreateProposalFormValues, 'jobId'>) => proposalService.submitProposal(id!, data),
+    mutationFn: (data: CreateProposalFormValues) => proposalService.submitProposal(id!, data),
     onSuccess: () => {
       toast.success('Proposal submitted successfully!');
       navigate('/expert/jobs');
@@ -52,9 +51,7 @@ export const JobDetailsPage = () => {
   });
 
   const onSubmit = (data: CreateProposalFormValues) => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { jobId, ...rest } = data;
-    submitMutation.mutate(rest);
+    submitMutation.mutate(data);
   };
 
   if (isLoading) {

@@ -10,7 +10,6 @@ export const proposalMilestoneSchema = z.object({
 });
 
 export const createProposalSchema = z.object({
-  jobId: z.string().uuid(),
   coverLetter: z.string().min(50, 'Cover letter must be at least 50 characters to stand out.'),
   proposedBudget: z.coerce.number().min(1, 'Budget must be greater than 0'),
   proposedTimelineDays: z.coerce.number().int().min(1, 'Timeline must be at least 1 day').optional().nullable(),

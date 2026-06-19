@@ -35,7 +35,7 @@ export const MyProjectsPage = () => {
     status: mapStatusToUI(p.status),
     createdAt: new Date(p.createdAt).toLocaleDateString(),
     budget: `$${p.totalBudget.toLocaleString()}`,
-    proposals: 0, // In a real app, this would be fetched from the API
+    proposals: 0,
     domain: 'General',
   })) || [];
 

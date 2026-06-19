@@ -12,7 +12,7 @@ export const proposalService = {
    * @returns Promise<BaseResponse<Proposal>> - The created proposal
    * @throws API error if submission fails
    */
-  submitProposal: async (jobId: string, data: Omit<CreateProposalFormValues, 'jobId'>): Promise<BaseResponse<Proposal>> => {
+  submitProposal: async (jobId: string, data: CreateProposalFormValues): Promise<BaseResponse<Proposal>> => {
     const response = await apiClient.post(`/jobs/${jobId}/proposals`, data);
     return normalizeBaseResponse<Proposal>(response);
   },
