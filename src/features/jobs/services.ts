@@ -1,6 +1,5 @@
 import apiClient from '@/lib/axios';
-import type { Job, Proposal, AiJobSuggestion, ExpertMatch, PatchAiJobSuggestionRequest } from './types';
-import type { CreateProposalFormValues } from './schema';
+import type { Job, AiJobSuggestion, ExpertMatch, PatchAiJobSuggestionRequest } from './types';
 import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
 import { normalizePaginatedResponse, normalizeBaseResponse } from '@/lib/api-utils';
 
@@ -17,12 +16,6 @@ export const jobService = {
     return normalizeBaseResponse<Job>(response);
   },
 
-  // Submit a proposal (Expert action)
-  submitProposal: async (jobId: string, data: Omit<CreateProposalFormValues, 'jobId'>): Promise<BaseResponse<Proposal>> => {
-    const response = await apiClient.post(`/jobs/${jobId}/proposals`, data);
-    return normalizeBaseResponse<Proposal>(response);
-  },
-
   // Get My Jobs (Client action)
   getMyJobs: async (): Promise<PaginatedResponse<Job>> => {
     /**
@@ -32,27 +25,6 @@ export const jobService = {
      */
     const response = await apiClient.get('/jobs');
     return normalizePaginatedResponse<Job>(response);
-  },
-
-  // Proposal Management (Client actions)
-  getProposalsByJobId: async (jobId: string): Promise<PaginatedResponse<Proposal>> => {
-    const response = await apiClient.get(`/jobs/${jobId}/proposals`);
-    return normalizePaginatedResponse<Proposal>(response);
-  },
-
-  acceptProposal: async (proposalId: string): Promise<BaseResponse<void>> => {
-    const response = await apiClient.put(`/proposals/${proposalId}/accept`);
-    return normalizeBaseResponse<void>(response);
-  },
-
-  rejectProposal: async (proposalId: string): Promise<BaseResponse<void>> => {
-    const response = await apiClient.put(`/proposals/${proposalId}/reject`);
-    return normalizeBaseResponse<void>(response);
-  },
-
-  shortlistProposal: async (proposalId: string): Promise<BaseResponse<void>> => {
-    const response = await apiClient.put(`/proposals/${proposalId}/shortlist`);
-    return normalizeBaseResponse<void>(response);
   },
 
   // AI Job Assistant
@@ -92,10 +64,5 @@ export const jobService = {
     return normalizeBaseResponse<ExpertMatch[]>(response);
   },
 
-  // Expert specific
-  getMyProposals: async (): Promise<PaginatedResponse<Proposal>> => {
-    const response = await apiClient.get('/proposals/me');
-    return normalizePaginatedResponse<Proposal>(response);
-  },
 };
 

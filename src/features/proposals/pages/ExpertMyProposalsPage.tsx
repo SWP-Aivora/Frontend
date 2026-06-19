@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import type { Proposal } from '../types';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { proposalService } from '../services';
 import { 
   Clock, 
   DollarSign, 
@@ -15,66 +16,15 @@ import {
 import { Button } from '@/shared/components/ui/Button';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
-import { Role } from '@/shared/types/enums';
 
 export const ExpertMyProposalsPage = () => {
-  const [proposals, setProposals] = useState<Proposal[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: response, isLoading, isError } = useQuery({
+    queryKey: ['myProposals'],
+    queryFn: proposalService.getMyProposals,
+  });
+  
+  const proposals = response?.data || [];
   const [filter, setFilter] = useState<'all' | 'pending' | 'accepted' | 'declined'>('all');
-
-  useEffect(() => {
-    const loadProposals = async () => {
-      setIsLoading(true);
-      try {
-        // Mock data to simulate API response from /proposals/me
-        await new Promise(resolve => setTimeout(resolve, 1200));
-        setProposals([
-          {
-            id: 'p1',
-            jobId: 'j1',
-            expertId: 'me',
-            coverLetter: 'I can build this computer vision model using PyTorch...',
-            proposedBudget: 4500,
-            proposedTimelineDays: 25,
-            status: 1, // 1: Pending
-            createdAt: new Date(Date.now() - 86400000).toISOString(),
-            milestones: [],
-            expert: { id: 'me', fullName: 'Me', avatarUrl: null, role: Role.EXPERT }
-          },
-          {
-            id: 'p2',
-            jobId: 'j2',
-            expertId: 'me',
-            coverLetter: 'Expert in RAG systems and LLM orchestration...',
-            proposedBudget: 1200,
-            proposedTimelineDays: 14,
-            status: 2, // 2: Accepted/Hired
-            createdAt: new Date(Date.now() - 259200000).toISOString(),
-            milestones: [],
-            expert: { id: 'me', fullName: 'Me', avatarUrl: null, role: Role.EXPERT }
-          },
-          {
-            id: 'p3',
-            jobId: 'j3',
-            expertId: 'me',
-            coverLetter: 'I have experience in building custom Shopify bots...',
-            proposedBudget: 800,
-            proposedTimelineDays: 7,
-            status: 3, // 3: Declined
-            createdAt: new Date(Date.now() - 604800000).toISOString(),
-            milestones: [],
-            expert: { id: 'me', fullName: 'Me', avatarUrl: null, role: Role.EXPERT }
-          }
-        ]);
-      } catch {
-        toast.error('Failed to fetch your proposals');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadProposals();
-  }, []);
 
   const getStatusConfig = (status: number) => {
     switch (status) {
@@ -96,8 +46,17 @@ export const ExpertMyProposalsPage = () => {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-         <Loader2 className="size-10 text-brand-accent animate-spin" />
+         <Loader2 className="size-10 text-brand-accent animate-spin" aria-label="Loading" />
          <p className="text-slate-500 font-bold animate-pulse">Loading your proposals...</p>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+         <XCircle className="size-10 text-destructive" aria-label="Error" />
+         <p className="text-slate-500 font-bold">Failed to load proposals. Please try again later.</p>
       </div>
     );
   }
@@ -144,6 +103,7 @@ export const ExpertMyProposalsPage = () => {
             <button
               key={s}
               onClick={() => setFilter(s)}
+              aria-pressed={filter === s}
               className={cn(
                 "px-6 py-2.5 rounded-xl text-xs font-black capitalize transition-all duration-300",
                 filter === s 
@@ -193,7 +153,7 @@ export const ExpertMyProposalsPage = () => {
 
                        <div>
                           <h3 className="text-xl font-black text-slate-900 group-hover:text-brand-accent transition-colors leading-tight mb-2">
-                             Computer Vision Model for Medical Imaging {/* Mock Title - should come from job object */}
+                             Job #{proposal.jobId.substring(0, 8)}...
                           </h3>
                           <p className="text-sm text-slate-500 font-medium leading-relaxed line-clamp-2">
                              {proposal.coverLetter}
