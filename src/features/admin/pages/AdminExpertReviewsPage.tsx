@@ -105,7 +105,6 @@ export const AdminExpertReviewsPage = () => {
                </button>
              ))}
           </div>
-          <button className="bg-white border border-primary/20 text-primary px-4 py-1.5 rounded-full text-xs font-semibold hover:bg-primary/5 transition-colors">Export</button>
         </div>
       </div>
 
@@ -237,7 +236,14 @@ export const AdminExpertReviewsPage = () => {
                     {rev.submittedAt}
                   </td>
                   <td className="px-4 py-2.5 text-center">
-                    <button className="bg-primary text-white px-3 py-1 rounded-full text-xs font-bold hover:bg-primary-dark transition-colors">
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        navigate(`/admin/users/${rev.expertId}`);
+                      }}
+                      className="bg-primary text-white px-3 py-1 rounded-full text-xs font-bold hover:bg-primary-dark transition-colors"
+                    >
                       Review
                     </button>
                   </td>

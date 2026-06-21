@@ -11,6 +11,10 @@ const axiosInstance = axios.create({
   },
 });
 
+const buildApiUrl = (endpoint: string): string => (
+  `${env.API_URL.replace(/\/$/, '')}/${endpoint.replace(/^\//, '')}`
+);
+
 // Refresh Token Logic Variables
 let isRefreshing = false;
 let failedQueue: { resolve: (token: string | null) => void; reject: (error: AxiosError | null) => void }[] = [];
@@ -70,7 +74,7 @@ axiosInstance.interceptors.response.use(
 
       return new Promise((resolve, reject) => {
         axios
-          .post(`${env.API_URL}${API_ENDPOINTS.AUTH.REFRESH_TOKEN}`, { refreshToken })
+          .post(buildApiUrl(API_ENDPOINTS.AUTH.REFRESH_TOKEN), { refreshToken })
           .then(({ data }) => {
             const accessToken = data?.data?.accessToken;
             const newRefreshToken = data?.data?.refreshToken;

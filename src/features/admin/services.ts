@@ -34,18 +34,69 @@ interface BackendStats {
   totalEscrowAmount: number;
 }
 
-type AdminRecord = Record<string, unknown>;
+type AdminRecord = Readonly<Record<string, unknown>>;
+type MutableAdminRecord = Record<string, unknown>;
+type TypeGuard<T> = (value: unknown) => value is T;
+
+interface AdminPagePayload {
+  readonly items?: unknown;
+  readonly Items?: unknown;
+  readonly data?: unknown;
+  readonly result?: unknown;
+  readonly records?: unknown;
+  readonly reviews?: unknown;
+  readonly Reviews?: unknown;
+  readonly pageIndex?: unknown;
+  readonly PageIndex?: unknown;
+  readonly pageSize?: unknown;
+  readonly PageSize?: unknown;
+  readonly totalItems?: unknown;
+  readonly TotalItems?: unknown;
+  readonly totalPages?: unknown;
+  readonly TotalPages?: unknown;
+}
 
 const NORMALIZE_LIST_MAX_DEPTH = 5;
 const NORMALIZE_LIST_KEYS = ['items', 'Items', 'data', 'result', 'records', 'reviews', 'Reviews'] as const;
 
-const isRecord = (value: unknown): value is Record<string, unknown> => (
+const isRecord = (value: unknown): value is AdminRecord => (
   value !== null && typeof value === 'object' && !Array.isArray(value)
 );
 
-const isRecordArray = (value: unknown): value is Record<string, unknown>[] => (
+const isMutableRecord = (value: unknown): value is MutableAdminRecord => isRecord(value);
+
+const isArrayOfRecords = (value: unknown): value is AdminRecord[] => (
   Array.isArray(value) && value.every(isRecord)
 );
+
+const isAdminPagePayload = (value: unknown): value is AdminPagePayload => isRecord(value);
+
+const isValidBasePayload = (value: unknown): value is AdminRecord | AdminRecord[] => (
+  isRecord(value) || isArrayOfRecords(value)
+);
+
+const isVoidPayload = (value: unknown): value is void => value === undefined;
+
+const isExpertReviewDetailPayload = (value: unknown): value is ExpertReviewDetail => {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.id === 'string'
+    && typeof value.expertId === 'string'
+    && typeof value.fullName === 'string'
+    && typeof value.email === 'string'
+    && typeof value.initials === 'string'
+    && typeof value.status === 'string'
+    && typeof value.submittedAt === 'string'
+    && typeof value.title === 'string'
+    && Array.isArray(value.skills)
+    && value.skills.every((skill) => typeof skill === 'string')
+    && typeof value.experienceYears === 'number'
+    && typeof value.proofCount === 'number'
+  );
+};
 
 const warnMalformedList = (reason: string, data: unknown, depth: number): void => {
   if (!import.meta.env.DEV) {
@@ -63,6 +114,13 @@ const warnMalformedList = (reason: string, data: unknown, depth: number): void =
 const createNormalizeListError = (reason: string): Error => (
   new Error(`Admin list response is malformed: ${reason}`)
 );
+
+const createAdminFailureResponse = <T>(message: string): BaseResponse<T> => ({
+  success: false,
+  data: null,
+  message,
+  statusCode: 500,
+});
 
 const getValue = (source: AdminRecord, ...keys: string[]): unknown => {
   for (const key of keys) {
@@ -125,10 +183,15 @@ const getStatusText = (source: AdminRecord, ...keys: string[]): string => (
 );
 
 const getSettledBaseData = <T>(
-  result: PromiseSettledResult<AxiosResponse<BaseResponse<T>>>
-): T | null => (
-  result.status === 'fulfilled' ? result.value.data.data ?? null : null
-);
+  result: PromiseSettledResult<AxiosResponse<unknown>>,
+  dataGuard: TypeGuard<T>
+): T | null => {
+  if (result.status !== 'fulfilled') {
+    return null;
+  }
+
+  return normalizeBaseResponse<T>(result.value, dataGuard).data;
+};
 
 const getDateInput = (source: AdminRecord, ...keys: string[]): string | number | Date | undefined => {
   const value = getValue(source, ...keys);
@@ -186,7 +249,7 @@ export const normalizeList = (data: unknown, depth = 0): AdminRecord[] => {
   }
 
   if (Array.isArray(data)) {
-    if (!isRecordArray(data)) {
+    if (!isArrayOfRecords(data)) {
       warnMalformedList('array contains non-object items', data, depth);
       throw createNormalizeListError('array contains non-object items');
     }
@@ -194,7 +257,7 @@ export const normalizeList = (data: unknown, depth = 0): AdminRecord[] => {
     return data;
   }
 
-  if (!isRecord(data)) {
+  if (!isAdminPagePayload(data)) {
     warnMalformedList('expected an object, array, null, or undefined', data, depth);
     throw createNormalizeListError('expected an object, array, null, or undefined');
   }
@@ -211,7 +274,7 @@ export const normalizeList = (data: unknown, depth = 0): AdminRecord[] => {
     }
 
     if (Array.isArray(listCandidate)) {
-      if (!isRecordArray(listCandidate)) {
+      if (!isArrayOfRecords(listCandidate)) {
         warnMalformedList(`wrapper key "${key}" contains non-object items`, data, depth);
         throw createNormalizeListError(`wrapper key "${key}" contains non-object items`);
       }
@@ -288,7 +351,7 @@ export const getStatusLabel = (status: unknown): string => {
 /**
  * Helper to calculate items created in the last 7 days
  */
-export const countNewInLast7Days = (items: Record<string, unknown>[], dateField: string): number => {
+export const countNewInLast7Days = (items: AdminRecord[], dateField: string): number => {
   if (!items || !Array.isArray(items)) return 0;
   
   const sevenDaysAgo = new Date();
@@ -425,7 +488,7 @@ export const formatActivityDate = (dateString: string): string => {
 export const adminService = {
   getProjects: async (params?: AdminProjectsQuery): Promise<PaginatedResponse<AdminProject>> => {
     const response = await apiClient.get(API_ENDPOINTS.PROJECTS.BASE, { params });
-    const normalized = normalizePaginatedResponse<AdminRecord>(response);
+    const normalized = normalizePaginatedResponse<AdminRecord>(response, isMutableRecord);
 
     return {
       ...normalized,
@@ -435,7 +498,7 @@ export const adminService = {
 
   getProjectDetail: async (id: string): Promise<BaseResponse<AdminProject>> => {
     const response = await apiClient.get(API_ENDPOINTS.PROJECTS.ID(id));
-    const normalized = normalizeBaseResponse<AdminRecord>(response);
+    const normalized = normalizeBaseResponse<AdminRecord>(response, isMutableRecord);
 
     return {
       ...normalized,
@@ -449,10 +512,10 @@ export const adminService = {
     const ongoingProjectStatuses = [0, 1, 2, 3, 6].join(',');
 
     const results = await Promise.allSettled([
-      apiClient.get<BaseResponse<BackendStats>>(API_ENDPOINTS.ADMIN.DASHBOARD_SUMMARY),
-      apiClient.get<BaseResponse<Record<string, unknown>>>(API_ENDPOINTS.JOBS.BASE, { params: { PageSize: 100 } }),
-      apiClient.get<BaseResponse<AdminRecord[]>>('/api/v1/categories'),
-      apiClient.get<BaseResponse<AdminRecord>>(API_ENDPOINTS.PROJECTS.BASE, {
+      apiClient.get<unknown>(API_ENDPOINTS.ADMIN.DASHBOARD_SUMMARY),
+      apiClient.get<unknown>(API_ENDPOINTS.JOBS.BASE, { params: { PageSize: 100 } }),
+      apiClient.get<unknown>(API_ENDPOINTS.CATEGORIES.BASE),
+      apiClient.get<unknown>(API_ENDPOINTS.PROJECTS.BASE, {
         params: {
           PageIndex: projectPage,
           PageSize: projectLimit,
@@ -461,20 +524,20 @@ export const adminService = {
           statuses: ongoingProjectStatuses,
         },
       }),
-      apiClient.get<BaseResponse<AdminRecord>>(API_ENDPOINTS.DISPUTES.BASE, { params: { PageSize: 50 } }),
-      apiClient.get<BaseResponse<AdminRecord>>(API_ENDPOINTS.ADMIN.USERS, { params: { PageSize: 50 } }),
-      apiClient.get<BaseResponse<AdminRecord>>(API_ENDPOINTS.ADMIN.EXPERT_REVIEWS, { params: { PageSize: 50 } }),
-      apiClient.get<BaseResponse<AdminRecord>>(API_ENDPOINTS.WALLET.HISTORY, { params: { PageSize: 50 } })
+      apiClient.get<unknown>(API_ENDPOINTS.DISPUTES.BASE, { params: { PageSize: 50 } }),
+      apiClient.get<unknown>(API_ENDPOINTS.ADMIN.USERS, { params: { PageSize: 50 } }),
+      apiClient.get<unknown>(API_ENDPOINTS.ADMIN.EXPERT_REVIEWS, { params: { PageSize: 50 } }),
+      apiClient.get<unknown>(API_ENDPOINTS.WALLET.HISTORY, { params: { PageSize: 50 } })
     ]);
 
-    const statsData = getSettledBaseData(results[0]);
-    const jobsData = getSettledBaseData(results[1]);
-    const categoriesData = getSettledBaseData(results[2]);
-    const projectsData = getSettledBaseData(results[3]);
-    const disputesData = getSettledBaseData(results[4]);
-    const usersData = getSettledBaseData(results[5]);
-    const expertReviewsData = getSettledBaseData(results[6]);
-    const paymentsData = getSettledBaseData(results[7]);
+    const statsData = getSettledBaseData(results[0], isMutableRecord);
+    const jobsData = getSettledBaseData(results[1], isValidBasePayload);
+    const categoriesData = getSettledBaseData(results[2], isValidBasePayload);
+    const projectsData = getSettledBaseData(results[3], isValidBasePayload);
+    const disputesData = getSettledBaseData(results[4], isValidBasePayload);
+    const usersData = getSettledBaseData(results[5], isValidBasePayload);
+    const expertReviewsData = getSettledBaseData(results[6], isValidBasePayload);
+    const paymentsData = getSettledBaseData(results[7], isValidBasePayload);
 
     const backendStats = getBackendStatsRecord(statsData);
     const usersPayload = getRecord(usersData);
@@ -650,14 +713,14 @@ export const adminService = {
   getRecentActivity: async (): Promise<BaseResponse<RecentActivityItem[]>> => {
     try {
       const results = await Promise.allSettled([
-        apiClient.get<BaseResponse<AdminRecord>>(API_ENDPOINTS.DISPUTES.BASE, { params: { PageSize: 20 } }), 
-        apiClient.get<BaseResponse<AdminRecord>>(API_ENDPOINTS.ADMIN.USERS, { params: { PageSize: 20 } }),
-        apiClient.get<BaseResponse<AdminRecord>>(API_ENDPOINTS.PROJECTS.BASE, { params: { PageSize: 20 } })
+        apiClient.get<unknown>(API_ENDPOINTS.DISPUTES.BASE, { params: { PageSize: 20 } }), 
+        apiClient.get<unknown>(API_ENDPOINTS.ADMIN.USERS, { params: { PageSize: 20 } }),
+        apiClient.get<unknown>(API_ENDPOINTS.PROJECTS.BASE, { params: { PageSize: 20 } })
       ]);
 
-      const disputesData = getSettledBaseData(results[0]);
-      const usersData = getSettledBaseData(results[1]);
-      const projectsData = getSettledBaseData(results[2]);
+      const disputesData = getSettledBaseData(results[0], isValidBasePayload);
+      const usersData = getSettledBaseData(results[1], isValidBasePayload);
+      const projectsData = getSettledBaseData(results[2], isValidBasePayload);
 
       const allDisputes = normalizeList(disputesData);
       const allUsers = normalizeList(usersData);
@@ -735,90 +798,84 @@ export const adminService = {
     } catch (error) {
       console.error('[AdminService] Failed to fetch recent activity:', error);
       return {
-        success: false,
+        ...createAdminFailureResponse<RecentActivityItem[]>('Failed to load activity'),
         data: [],
-        message: 'Failed to load activity',
-        statusCode: 500
       };
     }
   },
   
   getUsers: async (params?: Record<string, unknown>): Promise<BaseResponse<AdminUserManagementData & { _isStub?: boolean }>> => {
-    try {
-      const requestParams = {
-        PageSize: 10,
-        PageIndex: 1,
-        ...params
-      };
+    const requestParams = {
+      PageSize: 10,
+      PageIndex: 1,
+      ...params
+    };
 
-      const response = await apiClient.get<BaseResponse<AdminRecord>>(API_ENDPOINTS.ADMIN.USERS, { params: requestParams });
-      const pageResult = getRecord(response.data.data);
-      const items = normalizeList(pageResult);
-      
-      // Map backend users to frontend AdminUserItem
-      const mappedUsers = items.map((user) => {
-        const lastLoginRaw = getValue(user, 'lastLoginAt', 'LastLoginAt');
-        const fullName = getStringValue(getValue(user, 'fullName', 'FullName'));
-        return {
-          id: getStringValue(getValue(user, 'id', 'Id')),
-          fullName,
-          email: getStringValue(getValue(user, 'email', 'Email')),
-          role: normalizeAdminUserRole(getValue(user, 'role', 'Role')),
-          status: normalizeAdminUserStatus(getValue(user, 'status', 'Status')),
-          verificationState: 'N/A' as const,
-          createdAt: getStringValue(getValue(user, 'createdAt', 'CreatedAt'), 'N/A'),
-          lastLoginAt: (() => {
-            const normalized = getNumericValue(lastLoginRaw) ?? (typeof lastLoginRaw === 'string' ? lastLoginRaw : undefined);
-            if (normalized === undefined) return null;
-            const date = new Date(normalized);
-            return Number.isNaN(date.getTime()) ? null : date.toISOString();
-          })(),
-          avatarUrl: getOptionalString(user, 'avatarUrl', 'AvatarUrl'),
-          initials: fullName
-            ? fullName.split(' ').map((namePart: string) => namePart[0]).join('').substring(0, 2).toUpperCase()
-            : 'U'
-        };
-      });
-
+    const response = await apiClient.get<unknown>(API_ENDPOINTS.ADMIN.USERS, { params: requestParams });
+    const normalized = normalizeBaseResponse<AdminRecord>(response, isMutableRecord);
+    const pageResult = getRecord(normalized.data);
+    const items = normalizeList(pageResult);
+    
+    // Map backend users to frontend AdminUserItem
+    const mappedUsers = items.map((user) => {
+      const lastLoginRaw = getValue(user, 'lastLoginAt', 'LastLoginAt');
+      const fullName = getStringValue(getValue(user, 'fullName', 'FullName'));
       return {
-        ...response.data,
-        data: { 
-          users: mappedUsers,
-          totalUsers: getNumberValue(pageResult, 'totalItems', 'TotalItems') ?? 0,
-          activeUsers: 0, 
-          suspendedUsers: 0, 
-          pendingVerify: 0,
-          totalClients: 0,
-          totalExperts: 0,
-          reviewQueue: [],
-          recentActions: [],
-          
-          pageIndex: getNumberValue(pageResult, 'pageIndex', 'PageIndex') ?? 1,
-          pageSize: getNumberValue(pageResult, 'pageSize', 'PageSize') ?? 10,
-          totalPages: getNumberValue(pageResult, 'totalPages', 'TotalPages') ?? 1,
-          
-          _isStub: false 
-        }
+        id: getStringValue(getValue(user, 'id', 'Id')),
+        fullName,
+        email: getStringValue(getValue(user, 'email', 'Email')),
+        role: normalizeAdminUserRole(getValue(user, 'role', 'Role')),
+        status: normalizeAdminUserStatus(getValue(user, 'status', 'Status')),
+        verificationState: 'N/A' as const,
+        createdAt: getStringValue(getValue(user, 'createdAt', 'CreatedAt'), 'N/A'),
+        lastLoginAt: (() => {
+          const normalized = getNumericValue(lastLoginRaw) ?? (typeof lastLoginRaw === 'string' ? lastLoginRaw : undefined);
+          if (normalized === undefined) return null;
+          const date = new Date(normalized);
+          return Number.isNaN(date.getTime()) ? null : date.toISOString();
+        })(),
+        avatarUrl: getOptionalString(user, 'avatarUrl', 'AvatarUrl'),
+        initials: fullName
+          ? fullName.split(' ').map((namePart: string) => namePart[0]).join('').substring(0, 2).toUpperCase()
+          : 'U'
       };
-    } catch (error) {
-      console.error('[AdminService] Failed to fetch users:', error);
-      throw error;
-    }
+    });
+
+    return {
+      ...normalized,
+      data: { 
+        users: mappedUsers,
+        totalUsers: getNumberValue(pageResult, 'totalItems', 'TotalItems') ?? 0,
+        activeUsers: 0, 
+        suspendedUsers: 0, 
+        pendingVerify: 0,
+        totalClients: 0,
+        totalExperts: 0,
+        reviewQueue: [],
+        recentActions: [],
+        
+        pageIndex: getNumberValue(pageResult, 'pageIndex', 'PageIndex') ?? 1,
+        pageSize: getNumberValue(pageResult, 'pageSize', 'PageSize') ?? 10,
+        totalPages: getNumberValue(pageResult, 'totalPages', 'TotalPages') ?? 1,
+        
+        _isStub: false 
+      }
+    };
   },
 
   suspendUser: async (id: string, reason?: string): Promise<BaseResponse<void>> => {
-    const response = await apiClient.put<BaseResponse<void>>(`${API_ENDPOINTS.ADMIN.USERS}/${id}/suspend`, { reason });
-    return normalizeBaseResponse<void>(response);
+    const response = await apiClient.put<unknown>(`${API_ENDPOINTS.ADMIN.USERS}/${id}/suspend`, { reason });
+    return normalizeBaseResponse<void>(response, isVoidPayload);
   },
 
   unsuspendUser: async (id: string): Promise<BaseResponse<void>> => {
-    const response = await apiClient.put<BaseResponse<void>>(`${API_ENDPOINTS.ADMIN.USERS}/${id}/unsuspend`);
-    return normalizeBaseResponse<void>(response);
+    const response = await apiClient.put<unknown>(`${API_ENDPOINTS.ADMIN.USERS}/${id}/unsuspend`);
+    return normalizeBaseResponse<void>(response, isVoidPayload);
   },
 
   getExpertReviews: async (params?: Record<string, unknown>): Promise<BaseResponse<AdminExpertReviewsData & { _isStub?: boolean }>> => {
-    const response = await apiClient.get<BaseResponse<AdminRecord>>(API_ENDPOINTS.ADMIN.EXPERT_REVIEWS, { params });
-    const normalized = normalizeBaseResponse<AdminRecord>(response);
+    const response = await apiClient.get<unknown>(API_ENDPOINTS.ADMIN.EXPERT_REVIEWS, { params });
+    const normalized = normalizeBaseResponse<AdminRecord>(response, isMutableRecord);
     return {
       ...normalized,
       data: normalized.data ? { ...normalizeExpertReviewsData(normalized.data), _isStub: false } : null
@@ -826,8 +883,8 @@ export const adminService = {
   },
 
   getExpertReviewDetail: async (id: string): Promise<BaseResponse<ExpertReviewDetail & { _isStub?: boolean }>> => {
-    const response = await apiClient.get<BaseResponse<ExpertReviewDetail>>(API_ENDPOINTS.ADMIN.EXPERT_REVIEW_DETAIL(id));
-    const normalized = normalizeBaseResponse<ExpertReviewDetail>(response);
+    const response = await apiClient.get<unknown>(API_ENDPOINTS.ADMIN.EXPERT_REVIEW_DETAIL(id));
+    const normalized = normalizeBaseResponse<ExpertReviewDetail>(response, isExpertReviewDetailPayload);
     return {
       ...normalized,
       data: normalized.data ? { ...normalized.data, _isStub: false } : null
@@ -835,7 +892,7 @@ export const adminService = {
   },
 
   processExpertReview: async (params: ExpertReviewActionParams): Promise<BaseResponse<void>> => {
-    const response = await apiClient.post<BaseResponse<void>>(API_ENDPOINTS.ADMIN.PROCESS_EXPERT_REVIEW(params.id), params);
-    return normalizeBaseResponse<void>(response);
+    const response = await apiClient.post<unknown>(API_ENDPOINTS.ADMIN.PROCESS_EXPERT_REVIEW(params.id), params);
+    return normalizeBaseResponse<void>(response, isVoidPayload);
   }
 };

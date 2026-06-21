@@ -359,7 +359,15 @@ export const UserManagementPage = () => {
                         {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : 'N/A'}
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <button className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-primary transition-colors">
+                        <button
+                          type="button"
+                          aria-label={`View ${user.fullName}`}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            navigate(`/admin/users/${user.id}`);
+                          }}
+                          className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-primary transition-colors"
+                        >
                           <MoreHorizontal className="size-4" />
                         </button>
                       </td>
