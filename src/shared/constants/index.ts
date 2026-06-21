@@ -56,6 +56,7 @@ export const API_ENDPOINTS = {
     MESSAGES: (id: string) => `conversations/${id}/messages`,
     READ: (id: string) => `conversations/${id}/read`,
     INIT: 'conversations/init',
+    CHAT_HUB: 'chat',
   },
   NOTIFICATIONS: {
     BASE: 'notifications',

@@ -5,12 +5,36 @@ import { NOTIFICATION_KEYS } from './useNotifications';
 import { NotificationStatus, type Notification } from '../types';
 import type { PaginatedResponse, BaseResponse } from '@/shared/types/api';
 
+const getValidNotificationId = (value: unknown): string | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmedValue = value.trim();
+  return trimmedValue ? trimmedValue : null;
+};
+
 export const useNotificationActions = () => {
   const queryClient = useQueryClient();
 
   const markAsReadMutation = useMutation({
-    mutationFn: (id: string) => notificationService.markAsRead(id),
+    mutationFn: (id: string) => {
+      const notificationId = getValidNotificationId(id);
+
+      if (!notificationId) {
+        throw new Error('Notification is missing a valid id');
+      }
+
+      return notificationService.markAsRead(notificationId);
+    },
     onMutate: async (id) => {
+      const notificationId = getValidNotificationId(id);
+
+      if (!notificationId) {
+        toast.error('Notification is missing a valid id');
+        return undefined;
+      }
+
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: NOTIFICATION_KEYS.all });
 
@@ -23,7 +47,11 @@ export const useNotificationActions = () => {
         if (!old || !old.data) return old;
         return {
           ...old,
-          data: old.data.map((n) => n.id === id ? { ...n, isRead: true, status: NotificationStatus.READ } : n)
+          data: old.data.map((notification) => (
+            notification.id === notificationId
+              ? { ...notification, isRead: true, status: NotificationStatus.READ }
+              : notification
+          ))
         };
       });
 
@@ -35,14 +63,14 @@ export const useNotificationActions = () => {
 
       return { previousNotifications, previousUnreadCount };
     },
-    onError: (_err, _id, context) => {
+    onError: (error, _id, context) => {
       context?.previousNotifications.forEach(([queryKey, data]) => {
         queryClient.setQueryData(queryKey, data);
       });
       if (context?.previousUnreadCount) {
         queryClient.setQueryData(NOTIFICATION_KEYS.unreadCount, context.previousUnreadCount);
       }
-      toast.error('Failed to mark notification as read');
+      toast.error(error instanceof Error ? error.message : 'Failed to mark notification as read');
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: NOTIFICATION_KEYS.lists });

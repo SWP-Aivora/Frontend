@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { 
   adminService, 
   normalizeList, 
@@ -14,26 +14,109 @@ vi.mock('../../../lib/axios');
 
 describe('adminService helpers', () => {
   describe('normalizeList', () => {
+    let warnSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    });
+
+    afterEach(() => {
+      warnSpy.mockRestore();
+    });
+
     it('returns array directly if data is array', () => {
       expect(normalizeList([{ id: 1 }])).toEqual([{ id: 1 }]);
+      expect(warnSpy).not.toHaveBeenCalled();
     });
-    
-    it('extracts array from common wrapping properties', () => {
+
+    it('extracts array from supported wrapper properties', () => {
       expect(normalizeList({ items: [{ id: 1 }] })).toEqual([{ id: 1 }]);
       expect(normalizeList({ Items: [{ id: 2 }] })).toEqual([{ id: 2 }]);
       expect(normalizeList({ data: [{ id: 3 }] })).toEqual([{ id: 3 }]);
       expect(normalizeList({ records: [{ id: 4 }] })).toEqual([{ id: 4 }]);
+      expect(warnSpy).not.toHaveBeenCalled();
     });
 
-    it('handles nested data.data.items', () => {
+    it('extracts array from nested data.items', () => {
       expect(normalizeList({ data: { items: [{ id: 1 }] } })).toEqual([{ id: 1 }]);
+      expect(warnSpy).not.toHaveBeenCalled();
     });
 
-    it('returns empty array for invalid input', () => {
+    it('extracts array from nested data.data.items', () => {
+      expect(normalizeList({ data: { data: { items: [{ id: 1 }] } } })).toEqual([{ id: 1 }]);
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    it('returns empty array for valid empty data shapes', () => {
+      expect(normalizeList([])).toEqual([]);
+      expect(normalizeList({ items: [] })).toEqual([]);
+      expect(normalizeList({ data: { items: [] } })).toEqual([]);
+      expect(normalizeList({})).toEqual([]);
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    it('returns empty array for null and undefined root values', () => {
       expect(normalizeList(null)).toEqual([]);
       expect(normalizeList(undefined)).toEqual([]);
-      expect(normalizeList('string')).toEqual([]);
-      expect(normalizeList({ someOtherProp: [{ id: 1 }] })).toEqual([]);
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    it('returns empty array for wrapper keys with null or undefined list values', () => {
+      expect(normalizeList({ items: null })).toEqual([]);
+      expect(normalizeList({ items: undefined })).toEqual([]);
+      expect(normalizeList({ data: null })).toEqual([]);
+      expect(normalizeList({ data: undefined })).toEqual([]);
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    it('throws for objects that are not supported list wrappers', () => {
+      expect(() => normalizeList({ someOtherProp: [{ id: 1 }] })).toThrow(
+        'Admin list response is malformed: no supported list keys found'
+      );
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('throws for wrapper keys that are not arrays or nested objects', () => {
+      expect(() => normalizeList({ items: 'nope' })).toThrow(
+        'Admin list response is malformed: wrapper key "items" is not an array or object'
+      );
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('throws for primitive malformed responses', () => {
+      expect(() => normalizeList('string')).toThrow(
+        'Admin list response is malformed: expected an object, array, null, or undefined'
+      );
+      expect(() => normalizeList(42)).toThrow(
+        'Admin list response is malformed: expected an object, array, null, or undefined'
+      );
+      expect(() => normalizeList(true)).toThrow(
+        'Admin list response is malformed: expected an object, array, null, or undefined'
+      );
+      expect(warnSpy).toHaveBeenCalledTimes(3);
+    });
+
+    it('throws when nested list wrappers exceed the recursion depth limit', () => {
+      const deeplyNested = {
+        data: {
+          data: {
+            data: {
+              data: {
+                data: {
+                  data: {
+                    items: [{ id: 1 }],
+                  },
+                },
+              },
+            },
+          },
+        },
+      };
+
+      expect(() => normalizeList(deeplyNested)).toThrow(
+        'Admin list response is malformed: max depth 5 exceeded'
+      );
+      expect(warnSpy).toHaveBeenCalledTimes(1);
     });
   });
 
