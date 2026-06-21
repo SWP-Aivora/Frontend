@@ -118,8 +118,19 @@ export const useNotificationActions = () => {
     },
   });
 
+  const markAsRead = (id: unknown): void => {
+    const notificationId = getValidNotificationId(id);
+
+    if (!notificationId) {
+      toast.error('Notification is missing a valid id');
+      return;
+    }
+
+    markAsReadMutation.mutate(notificationId);
+  };
+
   return {
-    markAsRead: markAsReadMutation.mutate,
+    markAsRead,
     isMarkingAsRead: markAsReadMutation.isPending,
     markAllAsRead: markAllAsReadMutation.mutate,
     isMarkingAllAsRead: markAllAsReadMutation.isPending,

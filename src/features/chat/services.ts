@@ -26,25 +26,73 @@ const createSignalRError = (operation: string, error: unknown): Error => (
   new Error(`${operation}: ${getSignalRErrorMessage(error)}`)
 );
 
+const buildApiUrl = (endpoint: string): string => (
+  `${env.API_URL.replace(/\/$/, '')}/${endpoint.replace(/^\//, '')}`
+);
+
+const CHAT_HUB_URL = buildApiUrl(API_ENDPOINTS.MESSAGES.CHAT_HUB);
+
+type ChatConnectionPoolEntry = {
+  connection: signalR.HubConnection;
+  startPromise: Promise<void> | null;
+};
+
 class ChatService extends BaseService<Conversation> {
-  private chatConnection: signalR.HubConnection | null = null;
-  private chatConnectionToken: string | null = null;
-  private chatConnectionStartPromise: Promise<void> | null = null;
+  private readonly chatConnectionPool = new Map<string, ChatConnectionPoolEntry>();
+  private activeChatConnectionKey: string | null = null;
 
   constructor() {
     super(API_ENDPOINTS.MESSAGES.CONVERSATIONS);
   }
 
-  private createChatConnection(token: string): signalR.HubConnection {
-    this.chatConnectionToken = token;
+  private getChatConnectionKey(token: string): string {
+    return `${CHAT_HUB_URL}:${token}`;
+  }
 
-    return new signalR.HubConnectionBuilder()
-      .withUrl(`${env.API_URL.replace(/\/$/, '')}/${API_ENDPOINTS.MESSAGES.CHAT_HUB}`, {
-        accessTokenFactory: () => useAuthStore.getState().accessToken ?? '',
+  private createChatConnectionEntry(token: string, connectionKey: string): ChatConnectionPoolEntry {
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl(CHAT_HUB_URL, {
+        accessTokenFactory: () => token,
         transport: signalR.HttpTransportType.LongPolling,
       })
       .withAutomaticReconnect()
       .build();
+
+    connection.onclose(() => {
+      const currentEntry = this.chatConnectionPool.get(connectionKey);
+
+      if (currentEntry?.connection === connection) {
+        this.chatConnectionPool.delete(connectionKey);
+      }
+
+      if (this.activeChatConnectionKey === connectionKey) {
+        this.activeChatConnectionKey = null;
+      }
+    });
+
+    return {
+      connection,
+      startPromise: null,
+    };
+  }
+
+  private async getChatConnectionEntry(token: string): Promise<ChatConnectionPoolEntry> {
+    const connectionKey = this.getChatConnectionKey(token);
+
+    if (this.activeChatConnectionKey && this.activeChatConnectionKey !== connectionKey) {
+      await this.resetChatConnection();
+    }
+
+    let entry = this.chatConnectionPool.get(connectionKey);
+
+    if (!entry) {
+      entry = this.createChatConnectionEntry(token, connectionKey);
+      this.chatConnectionPool.set(connectionKey, entry);
+    }
+
+    this.activeChatConnectionKey = connectionKey;
+
+    return entry;
   }
 
   private async waitForChatConnectionReconnect(
@@ -58,15 +106,8 @@ class ChatService extends BaseService<Conversation> {
   }
 
   private async ensureChatConnection(token: string): Promise<signalR.HubConnection> {
-    if (this.chatConnection && this.chatConnectionToken !== token) {
-      await this.resetChatConnection();
-    }
-
-    if (!this.chatConnection) {
-      this.chatConnection = this.createChatConnection(token);
-    }
-
-    const connection = this.chatConnection;
+    const entry = await this.getChatConnectionEntry(token);
+    const { connection } = entry;
 
     if (connection.state === signalR.HubConnectionState.Connected) {
       return connection;
@@ -80,8 +121,8 @@ class ChatService extends BaseService<Conversation> {
       }
     }
 
-    if (this.chatConnectionStartPromise) {
-      await this.chatConnectionStartPromise;
+    if (entry.startPromise) {
+      await entry.startPromise;
       return connection;
     }
 
@@ -94,32 +135,33 @@ class ChatService extends BaseService<Conversation> {
           );
         }))
       .finally(() => {
-        if (this.chatConnectionStartPromise === startPromise) {
-          this.chatConnectionStartPromise = null;
+        if (entry.startPromise === startPromise) {
+          entry.startPromise = null;
         }
       });
 
-    this.chatConnectionStartPromise = startPromise;
-    await this.chatConnectionStartPromise;
+    entry.startPromise = startPromise;
+    await entry.startPromise;
     return connection;
   }
 
   async resetChatConnection(): Promise<void> {
-    const connection = this.chatConnection;
+    const entries = [...this.chatConnectionPool.values()];
 
-    this.chatConnection = null;
-    this.chatConnectionToken = null;
-    this.chatConnectionStartPromise = null;
+    this.chatConnectionPool.clear();
+    this.activeChatConnectionKey = null;
 
-    if (!connection || connection.state === signalR.HubConnectionState.Disconnected) {
-      return;
-    }
+    await Promise.all(entries.map(async ({ connection }) => {
+      if (connection.state === signalR.HubConnectionState.Disconnected) {
+        return;
+      }
 
-    try {
-      await connection.stop();
-    } catch (cleanupError: unknown) {
-      console.warn('Failed to stop chat SignalR connection', cleanupError);
-    }
+      try {
+        await connection.stop();
+      } catch (cleanupError: unknown) {
+        console.warn('Failed to stop chat SignalR connection', cleanupError);
+      }
+    }));
   }
 
   /**

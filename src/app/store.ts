@@ -67,9 +67,7 @@ const syncTheme = (theme: ThemeMode): void => {
 };
 
 const getInitialTheme = (): ThemeMode => {
-  const theme = getStoredTheme() ?? 'light';
-  syncTheme(theme);
-  return theme;
+  return getStoredTheme() ?? 'light';
 };
 
 interface AppState {
@@ -83,15 +81,33 @@ interface AppState {
  */
 export const useAppStore = create<AppState>()((set) => ({
   theme: getInitialTheme(),
-  setTheme: (theme) => {
-    syncTheme(theme);
-    set({ theme });
-  },
+  setTheme: (theme) => set({ theme }),
   toggleTheme: () =>
     set((state) => {
       const theme = state.theme === 'light' ? 'dark' : 'light';
-      syncTheme(theme);
 
       return { theme };
     }),
 }));
+
+if (typeof window !== 'undefined') {
+  syncTheme(useAppStore.getState().theme);
+
+  useAppStore.subscribe((state, previousState) => {
+    if (state.theme !== previousState.theme) {
+      syncTheme(state.theme);
+    }
+  });
+
+  window.addEventListener('storage', (event) => {
+    if (event.key !== THEME_STORAGE_KEY) {
+      return;
+    }
+
+    const theme = isThemeMode(event.newValue) ? event.newValue : 'light';
+
+    if (theme !== useAppStore.getState().theme) {
+      useAppStore.setState({ theme });
+    }
+  });
+}

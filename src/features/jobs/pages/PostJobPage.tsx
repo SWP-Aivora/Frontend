@@ -235,7 +235,7 @@ export const PostJobPage = () => {
 
   return (
     <main
-      className="min-h-[calc(100vh-140px)] flex flex-col gap-6 pb-8 animate-in fade-in duration-700"
+      className="flex flex-col gap-6 pb-8 animate-in fade-in duration-700 lg:h-[calc(100vh-140px)]"
       aria-labelledby="post-job-page-heading"
     >
       {/* Header Info */}
@@ -278,7 +278,7 @@ export const PostJobPage = () => {
         
          {/* Left: Chat Assistant */}
          <div className={cn(
-          "min-h-[520px] lg:min-h-0 transition-all duration-500 flex flex-col",
+          "transition-all duration-500 flex flex-col",
           step === 'PLANNING' ? "lg:col-span-12 max-w-3xl mx-auto w-full" : "lg:col-span-5"
         )}>
           <AiChatPanel 

@@ -17,6 +17,7 @@ import type {
 } from './types';
 import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
 import { normalizeBaseResponse, normalizePaginatedResponse } from '@/lib/api-utils';
+import type { AxiosResponse } from 'axios';
 
 interface DashboardSummaryParams {
   projectPage?: number;
@@ -119,6 +120,16 @@ const getArrayValue = (source: AdminRecord, ...keys: string[]): unknown[] => {
   return Array.isArray(value) ? value : [];
 };
 
+const getStatusText = (source: AdminRecord, ...keys: string[]): string => (
+  getStringValue(getValue(source, ...keys)).toUpperCase()
+);
+
+const getSettledBaseData = <T>(
+  result: PromiseSettledResult<AxiosResponse<BaseResponse<T>>>
+): T | null => (
+  result.status === 'fulfilled' ? result.value.data.data ?? null : null
+);
+
 const getDateInput = (source: AdminRecord, ...keys: string[]): string | number | Date | undefined => {
   const value = getValue(source, ...keys);
   return typeof value === 'string' || typeof value === 'number' || value instanceof Date ? value : undefined;
@@ -129,6 +140,23 @@ const getStringOrNumberValue = (value: unknown, fallback: string | number): stri
 );
 
 const hasZeroNumericValue = (value: unknown): boolean => getNumericValue(value) === 0;
+
+const BACKEND_STATS_KEYS = [
+  'totalUsers',
+  'totalClients',
+  'totalExperts',
+  'totalJobs',
+  'activeProjects',
+  'openDisputes',
+  'totalEscrowAmount',
+] as const satisfies readonly (keyof BackendStats)[];
+
+const getBackendStatsRecord = (value: unknown): AdminRecord => {
+  const record = getRecord(value);
+  const hasStatsShape = BACKEND_STATS_KEYS.some((key) => getNumericValue(record[key]) !== undefined);
+
+  return hasStatsShape ? record : {};
+};
 
 const normalizeAdminUserRole = (value: unknown): AdminUserManagementData['users'][number]['role'] => {
   const normalized = String(value ?? '').toUpperCase();
@@ -439,31 +467,31 @@ export const adminService = {
       apiClient.get<BaseResponse<AdminRecord>>(API_ENDPOINTS.WALLET.HISTORY, { params: { PageSize: 50 } })
     ]);
 
-    const statsRes = results[0].status === 'fulfilled' ? results[0].value : null;
-    const jobsRes = results[1].status === 'fulfilled' ? results[1].value : null;
-    const categoriesRes = results[2].status === 'fulfilled' ? results[2].value : null;
-    const projectsRes = results[3].status === 'fulfilled' ? results[3].value : null;
-    const disputesRes = results[4].status === 'fulfilled' ? results[4].value : null;
-    const usersRes = results[5].status === 'fulfilled' ? results[5].value : null;
-    const expertReviewsRes = results[6].status === 'fulfilled' ? results[6].value : null;
-    const paymentsRes = results[7].status === 'fulfilled' ? results[7].value : null;
+    const statsData = getSettledBaseData(results[0]);
+    const jobsData = getSettledBaseData(results[1]);
+    const categoriesData = getSettledBaseData(results[2]);
+    const projectsData = getSettledBaseData(results[3]);
+    const disputesData = getSettledBaseData(results[4]);
+    const usersData = getSettledBaseData(results[5]);
+    const expertReviewsData = getSettledBaseData(results[6]);
+    const paymentsData = getSettledBaseData(results[7]);
 
-    const backendStats = getRecord(statsRes?.data?.data);
-    const usersPayload = getRecord(usersRes?.data?.data);
-    const expertReviewsPayload = getRecord(expertReviewsRes?.data?.data);
-    const projectsPayload = getRecord(projectsRes?.data?.data);
+    const backendStats = getBackendStatsRecord(statsData);
+    const usersPayload = getRecord(usersData);
+    const expertReviewsPayload = getRecord(expertReviewsData);
+    const projectsPayload = getRecord(projectsData);
 
-    const allJobs = normalizeList(jobsRes?.data?.data);
-    const allCategories = normalizeList(categoriesRes?.data?.data);
-    const allProjectsRaw = normalizeList(projectsRes?.data?.data);
-    const allDisputes = normalizeList(disputesRes?.data?.data);
-    const allUsers = normalizeList(usersRes?.data?.data);
-    const allExpertReviews = normalizeList(expertReviewsRes?.data?.data);
-    const recentPayments = normalizeList(paymentsRes?.data?.data);
+    const allJobs = normalizeList(jobsData);
+    const allCategories = normalizeList(categoriesData);
+    const allProjectsRaw = normalizeList(projectsData);
+    const allDisputes = normalizeList(disputesData);
+    const allUsers = normalizeList(usersData);
+    const allExpertReviews = normalizeList(expertReviewsData);
+    const recentPayments = normalizeList(paymentsData);
 
     // 1. Process Job Market
     const activeJobs = allJobs.filter(job => {
-      const s = String(job.status || job.Status || '').toUpperCase();
+      const s = getStatusText(job, 'status', 'Status');
       return s === 'OPEN' || s === 'IN_PROGRESS' || s === 'PUBLISHED' || s === 'INPROGRESS';
     });
 
@@ -614,7 +642,7 @@ export const adminService = {
     return {
       success: true,
       data: { ...mappedData, _isStub: false },
-      message: statsRes === null ? 'Partial data loaded' : 'Dashboard summary retrieved',
+      message: statsData === null ? 'Partial data loaded' : 'Dashboard summary retrieved',
       statusCode: 200,
     };
   },
@@ -627,18 +655,18 @@ export const adminService = {
         apiClient.get<BaseResponse<AdminRecord>>(API_ENDPOINTS.PROJECTS.BASE, { params: { PageSize: 20 } })
       ]);
 
-      const disputesRes = results[0].status === 'fulfilled' ? results[0].value : null;
-      const usersRes = results[1].status === 'fulfilled' ? results[1].value : null;
-      const projectsRes = results[2].status === 'fulfilled' ? results[2].value : null;
+      const disputesData = getSettledBaseData(results[0]);
+      const usersData = getSettledBaseData(results[1]);
+      const projectsData = getSettledBaseData(results[2]);
 
-      const allDisputes = normalizeList(disputesRes?.data?.data);
-      const allUsers = normalizeList(usersRes?.data?.data);
-      const allProjectsRaw = normalizeList(projectsRes?.data?.data);
+      const allDisputes = normalizeList(disputesData);
+      const allUsers = normalizeList(usersData);
+      const allProjectsRaw = normalizeList(projectsData);
 
       const activityPool: RecentActivityItem[] = [];
 
       allDisputes.forEach(d => {
-        const status = String(d.status || d.Status || '').toUpperCase();
+        const status = getStatusText(d, 'status', 'Status');
         const date = getStringValue(getValue(d, 'createdAt', 'CreatedAt'));
         if (status === 'RESOLVED') {
           activityPool.push({
@@ -660,7 +688,7 @@ export const adminService = {
       });
 
       allUsers.forEach(u => {
-        const status = String(u.status || u.Status || '').toUpperCase();
+        const status = getStatusText(u, 'status', 'Status');
         const date = getStringValue(getValue(u, 'createdAt', 'CreatedAt'));
         if (status === 'SUSPENDED') {
           activityPool.push({

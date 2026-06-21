@@ -99,7 +99,7 @@ export const MyProjectsPage = () => {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+      <div className="flex flex-col items-center justify-center py-20 space-y-4" role="status" aria-live="polite">
         <div className="size-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
       </div>
     );

@@ -110,7 +110,7 @@ export const ClientJobProposalsPage = () => {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+      <div className="flex flex-col items-center justify-center py-20 space-y-4" role="status" aria-live="polite">
          <RefreshCw className="size-10 text-primary animate-spin" />
          <p className="text-slate-500 font-bold animate-pulse">Retrieving Proposals & AI Insights...</p>
       </div>
