@@ -7,24 +7,6 @@ import { useQuery } from '@tanstack/react-query';
 import { projectService } from '@/features/projects/services';
 import { ProjectStatus } from '@/shared/types/enums';
 
-const mockProjects = [
-  {
-    id: '1',
-    title: 'E-commerce AI Chatbot with Vision',
-    status: 'in-progress',
-    createdAt: '1 week ago',
-    budget: '$5,000',
-    domain: 'E-commerce',
-  },
-  {
-    id: '2',
-    title: 'Automated Invoice Processing',
-    status: 'completed',
-    createdAt: '1 month ago',
-    budget: '$800',
-    domain: 'Fintech',
-  },
-];
 
 type StatusFilter = 'all' | 'in-progress' | 'completed';
 
@@ -56,8 +38,7 @@ export const ExpertMyJobsPage = () => {
       domain: 'General',
     }));
 
-  // Use API projects if available, otherwise fallback to mock data
-  const displayProjects = apiProjects.length > 0 ? apiProjects : mockProjects;
+  const displayProjects = apiProjects;
 
   const filteredProjects = displayProjects.filter(p => filter === 'all' || p.status === filter);
 

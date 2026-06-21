@@ -7,44 +7,6 @@ import { useQuery } from '@tanstack/react-query';
 import { projectService } from '@/features/projects/services';
 import { ProjectStatus } from '@/shared/types/enums';
 
-const mockProjects = [
-  {
-    id: '1',
-    title: 'E-commerce AI Chatbot with Vision',
-    status: 'draft',
-    createdAt: '2 hours ago',
-    budget: '$1,200',
-    proposals: 0,
-    domain: 'E-commerce',
-  },
-  {
-    id: '2',
-    title: 'Customer Churn Prediction Model',
-    status: 'open',
-    createdAt: '2 days ago',
-    budget: '$3,500',
-    proposals: 14,
-    domain: 'Analytics',
-  },
-  {
-    id: '3',
-    title: 'Medical Image Classification App',
-    status: 'in-progress',
-    createdAt: '1 week ago',
-    budget: '$5,000',
-    proposals: 8,
-    domain: 'Healthcare',
-  },
-  {
-    id: '4',
-    title: 'Automated Invoice Processing',
-    status: 'completed',
-    createdAt: '1 month ago',
-    budget: '$800',
-    proposals: 5,
-    domain: 'Fintech',
-  },
-];
 
 type StatusFilter = 'all' | 'draft' | 'open' | 'in-progress' | 'completed';
 
@@ -73,12 +35,11 @@ export const MyProjectsPage = () => {
     status: mapStatusToUI(p.status),
     createdAt: new Date(p.createdAt).toLocaleDateString(),
     budget: `$${p.totalBudget.toLocaleString()}`,
-    proposals: 0, // In a real app, this would be fetched from the API
+    proposals: 0,
     domain: 'General',
   })) || [];
 
-  // Use API projects if available, otherwise fallback to mock data
-  const displayProjects = apiProjects.length > 0 ? apiProjects : mockProjects;
+  const displayProjects = apiProjects;
 
   const filteredProjects = displayProjects.filter(p => filter === 'all' || p.status === filter);
 
