@@ -4,13 +4,14 @@ import { ChatBox } from '../components/ChatBox';
 import { ChatHeader } from '../components/ChatHeader';
 import { EmptyState } from '../components/EmptyState';
 import { useConversations } from '../hooks/useConversations';
-import { useMessages, useMarkRead } from '../hooks/useMessages';
+import { useMessages, useMarkRead, useSendMessage } from '../hooks/useMessages';
 import type { Conversation } from '../types';
 import { Info, ChevronLeft, ChevronRight, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { projectService } from '@/features/projects/services';
+import { toast } from 'sonner';
 
 export const ChatWorkspacePage = () => {
   const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>();
@@ -49,6 +50,7 @@ export const ChatWorkspacePage = () => {
   } = useMessages(selectedConversationId || '');
   
   const { mutate: markAsRead } = useMarkRead();
+  const { mutateAsync: sendMessage, isPending: isSendingMessage } = useSendMessage(selectedConversationId || '');
 
   // Strictly use API data
   const conversations = useMemo(() => {
@@ -58,6 +60,10 @@ export const ChatWorkspacePage = () => {
   const selectedConversation = useMemo(() => 
     conversations.find((c: Conversation) => c.id === selectedConversationId),
   [conversations, selectedConversationId]);
+
+  const selectedProjectId = useMemo(() => {
+    return typeof selectedConversation?.projectId === 'string' ? selectedConversation.projectId.trim() : '';
+  }, [selectedConversation?.projectId]);
 
   const messages = useMemo(() => {
     return selectedConversationId ? (Array.isArray(messagesData?.data) ? messagesData.data : []) : [];
@@ -70,32 +76,32 @@ export const ChatWorkspacePage = () => {
     }
   }, [selectedConversationId, selectedConversation?.unreadCount, markAsRead]);
 
-  // Fetch project context if projectId exists
+  // Fetch project context only when the selected conversation has a valid project id.
   const { 
     data: projectResponse,
     isError: isProjectError,
     error: projectError,
     refetch: refetchProject
   } = useQuery({
-    queryKey: ['project', selectedConversation?.projectId],
-    queryFn: () => projectService.getProjectById(selectedConversation!.projectId!),
-    enabled: !!selectedConversation?.projectId,
-  });
-
-  const { 
-    data: milestonesResponse,
-    isError: isMilestonesError,
-    error: milestonesError,
-    refetch: refetchMilestones
-  } = useQuery({
-    queryKey: ['milestones', selectedConversation?.projectId],
-    queryFn: () => projectService.getMilestonesByProject(selectedConversation!.projectId!),
-    enabled: !!selectedConversation?.projectId,
+    queryKey: ['project', selectedProjectId],
+    queryFn: () => projectService.getProjectById(selectedProjectId),
+    enabled: !!selectedProjectId,
   });
 
   const project = projectResponse?.data;
-  const milestones = milestonesResponse?.data ?? [];
+  const milestones = Array.isArray(project?.milestones) ? project.milestones : [];
   const currentMilestone = milestones.find(m => m.status === 1 || m.status === 2) || milestones[0];
+
+  const handleSendMessage = async (content: string) => {
+    if (!selectedConversationId) return;
+
+    try {
+      await sendMessage({ content });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to send message. Please try again.');
+      throw error;
+    }
+  };
 
   const ErrorFallback = ({ message, onRetry }: { message: string, onRetry: () => void }) => (
     <div className="flex flex-col items-center justify-center p-8 text-center bg-slate-50 rounded-xl border border-slate-100 m-4">
@@ -111,6 +117,25 @@ export const ChatWorkspacePage = () => {
         <RefreshCw className="size-3 mr-2" />
         Retry
       </Button>
+    </div>
+  );
+
+  const ProjectContextNotice = ({ message, onRetry }: { message: string, onRetry: () => void }) => (
+    <div className="rounded-xl border border-amber-100 bg-amber-50 p-4">
+      <div className="flex items-start gap-3">
+        <AlertCircle className="size-4 text-amber-500 shrink-0 mt-0.5" />
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-black text-amber-800 uppercase tracking-wider">Project context unavailable</p>
+          <p className="text-xs text-amber-700 font-medium mt-1">{message}</p>
+          <button
+            type="button"
+            onClick={() => onRetry()}
+            className="mt-3 text-[10px] font-black uppercase tracking-widest text-amber-800 hover:text-amber-900"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
     </div>
   );
 
@@ -161,8 +186,9 @@ export const ChatWorkspacePage = () => {
               
               <ChatBox 
                 messages={messages} 
-                isLoading={isLoadingMessages} 
-                readOnlyReason="Messaging is read-only until the backend send endpoint is available."
+                isLoading={isLoadingMessages}
+                isSending={isSendingMessage}
+                onSendMessage={handleSendMessage}
               />
             </>
           ) : (
@@ -207,12 +233,7 @@ export const ChatWorkspacePage = () => {
                   )}
                 </div>
                 
-                {isProjectError || isMilestonesError ? (
-                   <ErrorFallback 
-                    message={(projectError as Error)?.message || (milestonesError as Error)?.message || 'Project data unavailable'} 
-                    onRetry={() => { refetchProject(); refetchMilestones(); }} 
-                   />
-                ) : project ? (
+                {project ? (
                   <div className="space-y-6">
                     <div>
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Project Title</p>
@@ -240,7 +261,19 @@ export const ChatWorkspacePage = () => {
                         </p>
                       </div>
                     </div>
+
+                    {isProjectError && (
+                      <ProjectContextNotice
+                        message={(projectError as Error)?.message || 'Project data unavailable'}
+                        onRetry={refetchProject}
+                      />
+                    )}
                   </div>
+                ) : isProjectError ? (
+                  <ProjectContextNotice
+                    message={(projectError as Error)?.message || 'Project data unavailable'}
+                    onRetry={refetchProject}
+                  />
                 ) : (
                   <p className="text-xs text-slate-500 font-medium italic">No project context available yet.</p>
                 )}
@@ -271,4 +304,3 @@ export const ChatWorkspacePage = () => {
     </div>
   );
 };
-

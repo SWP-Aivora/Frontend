@@ -1,7 +1,7 @@
 import axiosInstance from '@/lib/axios';
 import type { CreateReviewRequest, UserReviewsResponse } from './types';
 
-const BASE_URL = '/api/v1';
+const BASE_URL = '';
 
 export const reviewService = {
   submitReview: async (data: CreateReviewRequest) => {

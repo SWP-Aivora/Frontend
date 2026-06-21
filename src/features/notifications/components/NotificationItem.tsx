@@ -1,4 +1,4 @@
-import { MoreHorizontal } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import type { Notification } from '../types';
 import { NotificationType, NotificationStatus, NotificationPriority } from '../types';
 
@@ -44,8 +44,21 @@ const getPriorityBadge = (priority: string | NotificationPriority) => {
 };
 
 export const NotificationItem = ({ notification, onMarkAsRead }: NotificationItemProps) => {
+  const navigate = useNavigate();
   const iconConfig = getIconConfig(notification.type);
   const isUnread = notification.status === NotificationStatus.UNREAD || !notification.isRead;
+  const viewUrl = notification.linkUrl?.trim();
+
+  const handleView = () => {
+    if (!viewUrl) return;
+
+    if (/^https?:\/\//i.test(viewUrl)) {
+      window.location.assign(viewUrl);
+      return;
+    }
+
+    navigate(viewUrl.startsWith('/') ? viewUrl : `/${viewUrl}`);
+  };
 
   // Function to format date safely
   const formatTime = (dateString: string) => {
@@ -97,21 +110,22 @@ export const NotificationItem = ({ notification, onMarkAsRead }: NotificationIte
         </span>
         
         <div className="flex items-center gap-2">
-          {isUnread ? (
+          {isUnread && (
             <button 
               onClick={() => onMarkAsRead(notification.id)}
               className="px-4 py-1.5 border border-primary/20 rounded-full text-xs font-semibold text-primary hover:bg-primary/5 transition-colors"
             >
               Mark Read
             </button>
-          ) : (
-            <button className="px-4 py-1.5 bg-primary rounded-full text-xs font-semibold text-white shadow-sm hover:bg-primary/90 transition-colors">
+          )}
+          {viewUrl && (
+            <button
+              onClick={handleView}
+              className="px-4 py-1.5 bg-primary rounded-full text-xs font-semibold text-white shadow-sm hover:bg-primary/90 transition-colors"
+            >
               View
             </button>
           )}
-          <button className="p-1 text-slate-400 hover:text-slate-600">
-            <MoreHorizontal className="size-5" />
-          </button>
         </div>
       </div>
     </div>

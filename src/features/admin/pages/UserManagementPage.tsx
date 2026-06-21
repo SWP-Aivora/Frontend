@@ -21,14 +21,17 @@ const normalizeStatus = (status: string) => String(status ?? '').toUpperCase();
 const normalizeRole = (role: string) => String(role ?? '').toUpperCase();
 
 const isUserActive = (status: string) => normalizeStatus(status) === 'ACTIVE';
-const isUserSuspended = (status: string) => normalizeStatus(status) === 'SUSPENDED' || normalizeStatus(status) === 'RESTRICTED';
+const isUserSuspended = (status: string) => normalizeStatus(status) === 'SUSPENDED';
+const formatStatusLabel = (status: string) => {
+  const normalized = normalizeStatus(status);
+  return normalized.charAt(0) + normalized.slice(1).toLowerCase();
+};
 
 export const UserManagementPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPageIndex, setCurrentPageIndex] = useState(1);
   const [roleFilter, setRoleFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [activeTimeFilter, setActiveTimeFilter] = useState('All');
   const navigate = useNavigate();
 
   // Fetch a large dataset to perform client-side filtering/sorting/pagination as requested
@@ -58,25 +61,7 @@ export const UserManagementPage = () => {
       filtered = filtered.filter(u => normalizeStatus(u.status) === normalizeStatus(statusFilter));
     }
 
-    // 3. Filter by Active Time
-    if (activeTimeFilter !== 'All') {
-      const now = new Date();
-      filtered = filtered.filter(u => {
-        if (!u.lastLoginAt) return activeTimeFilter === 'Never logged in';
-        if (activeTimeFilter === 'Never logged in') return false;
-        
-        const lastLogin = new Date(u.lastLoginAt);
-        const diffMs = now.getTime() - lastLogin.getTime();
-        const diffDays = diffMs / (1000 * 60 * 60 * 24);
-
-        if (activeTimeFilter === 'Recently active') return diffDays <= 1;
-        if (activeTimeFilter === 'Last 7 days') return diffDays <= 7;
-        if (activeTimeFilter === 'Last 30 days') return diffDays <= 30;
-        return true;
-      });
-    }
-
-    // 4. Search by name, email, role, or ID
+    // 3. Search by name, email, role, or ID
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(u => 
@@ -87,7 +72,7 @@ export const UserManagementPage = () => {
       );
     }
 
-    // 5. Sort: ACTIVE first, then newest lastLogin first
+    // 4. Sort: ACTIVE first, then newest lastLogin first
     return filtered.sort((a, b) => {
       const aActive = isUserActive(a.status) ? 1 : 0;
       const bActive = isUserActive(b.status) ? 1 : 0;
@@ -101,7 +86,7 @@ export const UserManagementPage = () => {
       
       return new Date(b.lastLoginAt).getTime() - new Date(a.lastLoginAt).getTime();
     });
-  }, [usersData?.users, roleFilter, statusFilter, activeTimeFilter, searchTerm]);
+  }, [usersData?.users, roleFilter, statusFilter, searchTerm]);
 
   // Derived metrics from the FULL FILTERED dataset
   const metrics = useMemo(() => {
@@ -263,7 +248,7 @@ export const UserManagementPage = () => {
 
               <div className="flex flex-col lg:flex-row items-center gap-3">
                 {/* Search */}
-                <div className="relative flex items-center bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 w-full lg:flex-1">
+                <div className="relative flex items-center bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 w-full lg:flex-1 lg:min-w-0">
                   <Search className="size-4 text-slate-400 absolute left-4" />
                   <input 
                     type="text" 
@@ -275,11 +260,11 @@ export const UserManagementPage = () => {
                 </div>
 
                 {/* Filters */}
-                <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+                <div className="flex flex-wrap lg:flex-nowrap items-center justify-end gap-2 w-full lg:w-auto lg:shrink-0">
                   <select 
                     value={roleFilter}
                     onChange={(e) => handleFilterChange(setRoleFilter, e.target.value)}
-                    className="bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                    className="bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer w-full sm:w-auto lg:min-w-[128px]"
                   >
                     <option value="All">All Roles</option>
                     <option value="Admin">Admin</option>
@@ -290,24 +275,12 @@ export const UserManagementPage = () => {
                   <select 
                     value={statusFilter}
                     onChange={(e) => handleFilterChange(setStatusFilter, e.target.value)}
-                    className="bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+                    className="bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer w-full sm:w-auto lg:min-w-[146px]"
                   >
                     <option value="All">All Statuses</option>
-                    <option value="Active">Active</option>
-                    <option value="Suspended">Suspended</option>
-                    <option value="Pending">Pending</option>
-                  </select>
-
-                  <select 
-                    value={activeTimeFilter}
-                    onChange={(e) => handleFilterChange(setActiveTimeFilter, e.target.value)}
-                    className="bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
-                  >
-                    <option value="All">All Time</option>
-                    <option value="Recently active">Recently active</option>
-                    <option value="Last 7 days">Last 7 days</option>
-                    <option value="Last 30 days">Last 30 days</option>
-                    <option value="Never logged in">Never logged in</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="SUSPENDED">Suspended</option>
+                    <option value="DELETED">Deleted</option>
                   </select>
                 </div>
               </div>
@@ -362,10 +335,10 @@ export const UserManagementPage = () => {
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span className={cn(
                           "px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border",
-                          user.status === 'Active' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : 
-                          user.status === 'Suspended' ? "bg-rose-50 text-rose-600 border-rose-100" : "bg-orange-50 text-orange-600 border-orange-100"
+                          normalizeStatus(user.status) === 'ACTIVE' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : 
+                          normalizeStatus(user.status) === 'SUSPENDED' ? "bg-rose-50 text-rose-600 border-rose-100" : "bg-slate-50 text-slate-600 border-slate-200"
                         )}>
-                          {user.status}
+                          {formatStatusLabel(user.status)}
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
@@ -386,7 +359,15 @@ export const UserManagementPage = () => {
                         {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : 'N/A'}
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <button className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-primary transition-colors">
+                        <button
+                          type="button"
+                          aria-label={`View ${user.fullName}`}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            navigate(`/admin/users/${user.id}`);
+                          }}
+                          className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-primary transition-colors"
+                        >
                           <MoreHorizontal className="size-4" />
                         </button>
                       </td>

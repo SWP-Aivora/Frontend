@@ -35,13 +35,13 @@ export interface Notification {
   status: NotificationStatus | string;
   isRead: boolean;
   createdAt: string;
+  linkUrl?: string | null;
   relatedEntityId?: string; // ID of the related project/proposal/milestone
 }
 
 export interface NotificationsQuery {
   PageSize?: number;
   PageIndex?: number;
-  SearchTerm?: string;
   // Note: These filters might not be supported by backend yet, 
   // keeping them for future or UI-side filtering
   Type?: string;
@@ -49,4 +49,3 @@ export interface NotificationsQuery {
   Priority?: string;
   DateRange?: string;
 }
-

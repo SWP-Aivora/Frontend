@@ -6,8 +6,6 @@ import type { Milestone } from '../types';
 import { projectService } from '../services';
 import { 
   ChevronLeft, 
-  Settings, 
-  Share2, 
   MessageSquare, 
   Calendar, 
   DollarSign, 
@@ -26,6 +24,7 @@ export const ProjectWorkspacePage = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [selectedMilestone, setSelectedMilestone] = useState<Milestone | null>(null);
+  const [isFinishModalOpen, setIsFinishModalOpen] = useState(false);
 
   const { data: projectResponse, isLoading: isLoadingProject } = useQuery({
     queryKey: ['project', id],
@@ -95,6 +94,23 @@ export const ProjectWorkspacePage = () => {
     return 'EXPERT';
   };
 
+  const handleOpenChat = () => {
+    if (user?.role === Role.ADMIN) {
+      navigate('/admin/messages');
+      return;
+    }
+
+    if (user?.role === Role.EXPERT) {
+      navigate('/expert/messages');
+      return;
+    }
+
+    navigate('/client/messages');
+  };
+
+  const canShowFinishProject = user?.role === Role.CLIENT && user.id === project?.clientId;
+  const canRequestFinishProject = !!id && project?.status !== ProjectStatus.COMPLETED && project?.status !== ProjectStatus.CANCELLED;
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
@@ -125,14 +141,19 @@ export const ProjectWorkspacePage = () => {
           <p className="text-sm text-slate-500 font-medium max-w-2xl">{project?.description}</p>
         </div>
 
-        <div className="flex items-center gap-2">
-           <Button variant="outline" size="icon" className="rounded-xl border-slate-200 text-slate-400 hover:text-slate-900">
-              <Share2 className="size-4" />
-           </Button>
-           <Button variant="outline" size="icon" className="rounded-xl border-slate-200 text-slate-400 hover:text-slate-900">
-              <Settings className="size-4" />
-           </Button>
-           <Button className="rounded-full px-6 shadow-lg shadow-primary/20 flex items-center gap-2">
+        <div className="flex flex-row flex-nowrap items-center gap-2">
+           {canShowFinishProject && (
+             <Button
+               variant="outline"
+               onClick={() => setIsFinishModalOpen(true)}
+               disabled={!canRequestFinishProject}
+               className="rounded-full px-6 border-slate-200 font-black"
+               title={!canRequestFinishProject ? 'This project cannot be finished from this state.' : undefined}
+             >
+                Finish Project
+             </Button>
+           )}
+           <Button onClick={handleOpenChat} className="rounded-full px-6 shadow-lg shadow-primary/20 flex items-center gap-2">
               <MessageSquare className="size-4" />
               Open Chat
            </Button>
@@ -370,6 +391,30 @@ export const ProjectWorkspacePage = () => {
                 className="rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-600/20 font-black border-none"
               >
                 {revisionMutation.isPending ? 'Requesting...' : 'Request Revision'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isFinishModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsFinishModalOpen(false)} />
+          <div className="bg-white rounded-3xl p-8 w-[90%] max-w-md relative z-10 shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="text-2xl font-black text-slate-900 mb-2">Finish this project?</h3>
+            <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+              This will mark the project as completed and the client may be asked to review the expert.
+            </p>
+            <p className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded-xl p-3 mb-8">
+              Finish Project is not available yet because no backend finish/complete project endpoint exists.
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setIsFinishModalOpen(false)} className="rounded-full font-bold">
+                Cancel
+              </Button>
+              {/* TODO: Wire this to the real project finish endpoint when the backend contract exists. */}
+              <Button disabled className="rounded-full shadow-lg shadow-primary/20 font-black">
+                Finish Project
               </Button>
             </div>
           </div>

@@ -169,9 +169,6 @@ export const AdminUserDetailPage = () => {
               {user.status === 'Suspended' ? 'Unsuspend User' : 'Suspend User'}
             </button>
           )}
-          <button className="px-4 py-1.5 bg-white border border-primary/20 text-primary rounded-xl font-bold text-xs hover:bg-primary/5 transition-colors shadow-sm">
-            View Activity Log
-          </button>
         </div>
       </div>
 
@@ -223,12 +220,6 @@ export const AdminUserDetailPage = () => {
               <div className="bg-white border border-slate-100 rounded-xl p-6 shadow-sm">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-black text-slate-900">Expertise & Verification</h3>
-                  {user.verificationState !== 'Verified' && (
-                    <div className="flex gap-2">
-                       <button className="px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-colors">Approve</button>
-                       <button className="px-3 py-1.5 bg-rose-50 text-rose-600 rounded-lg text-xs font-bold hover:bg-rose-100 transition-colors">Reject</button>
-                    </div>
-                  )}
                 </div>
                 
                 {user.verificationState === 'Review' ? (

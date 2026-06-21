@@ -16,6 +16,6 @@ const getEnvVar = (key: string, fallback?: string): string => {
 };
 
 export const env = {
-  API_URL: getEnvVar('VITE_API_URL', 'http://localhost:8080/api/v1'),
+  API_URL: getEnvVar('VITE_API_URL', 'http://localhost:5176/api/v1'),
   NODE_ENV: import.meta.env.MODE,
 } as const;

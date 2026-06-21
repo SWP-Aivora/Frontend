@@ -19,7 +19,7 @@ export const settingsService = {
         showPhone: false,
       },
       language: 'en',
-      theme: 'system',
+      theme: 'light',
     };
   },
 

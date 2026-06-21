@@ -1,13 +1,32 @@
-import { Search, Plus } from 'lucide-react';
+import { Search } from 'lucide-react';
+
+export type ReadStatusFilter = 'all' | 'read' | 'unread';
 
 interface NotificationFiltersProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
+  statusFilter: ReadStatusFilter;
+  onStatusFilterChange: (value: ReadStatusFilter) => void;
+  totalCount: number;
+  unreadCount: number;
 }
 
-export const NotificationFilters = ({ searchTerm, onSearchChange }: NotificationFiltersProps) => {
+const statusOptions: Array<{ value: ReadStatusFilter; label: string }> = [
+  { value: 'all', label: 'All' },
+  { value: 'read', label: 'Read' },
+  { value: 'unread', label: 'Unread' },
+];
+
+export const NotificationFilters = ({
+  searchTerm,
+  onSearchChange,
+  statusFilter,
+  onStatusFilterChange,
+  totalCount,
+  unreadCount,
+}: NotificationFiltersProps) => {
   return (
-    <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 flex flex-col xl:flex-row gap-4 items-center">
+    <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 flex flex-col xl:flex-row gap-4 xl:items-center">
       {/* Search */}
       <div className="relative flex-1 w-full bg-slate-50 border border-slate-200 rounded-xl overflow-hidden">
         <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
@@ -17,29 +36,35 @@ export const NotificationFilters = ({ searchTerm, onSearchChange }: Notification
           type="text"
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search title, project, proposal, payment, dispute, or user"
+          placeholder="Search title or message"
           className="w-full bg-transparent border-none py-3 pl-11 pr-4 text-xs font-medium text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-0"
         />
       </div>
 
-      {/* Filters (UI only for now, waiting for backend support) */}
-      <div className="flex flex-wrap gap-3">
-        <FilterDropdown label="Notification type" value="All types" />
-        <FilterDropdown label="Read status" value="All status" />
-        <FilterDropdown label="Priority" value="High first" />
-        <FilterDropdown label="Date range" value="Last 30 days" />
-        
-        <button className="flex items-center justify-center size-10 rounded-full border border-slate-200 text-primary hover:bg-slate-50">
-          <Plus className="size-5" />
-        </button>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full xl:w-auto">
+        <div className="flex items-center gap-3 text-xs font-semibold text-slate-600 whitespace-nowrap">
+          <span>Total {totalCount} notifications</span>
+          <span className="h-4 w-px bg-slate-200" />
+          <span>{unreadCount} unread</span>
+        </div>
+
+        <div className="flex rounded-full border border-slate-200 bg-slate-50 p-1 w-fit">
+          {statusOptions.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => onStatusFilterChange(option.value)}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                statusFilter === option.value
+                  ? 'bg-primary text-white shadow-sm'
+                  : 'text-slate-600 hover:text-primary'
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
 };
-
-const FilterDropdown = ({ label, value }: { label: string; value: string }) => (
-  <div className="bg-white border border-slate-200 rounded-xl px-4 py-2 min-w-[120px] cursor-not-allowed opacity-70" title="Filter pending backend support">
-    <p className="text-xs font-medium text-slate-500 mb-1">{label}</p>
-    <p className="text-xs font-semibold text-slate-900">{value}</p>
-  </div>
-);

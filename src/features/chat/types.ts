@@ -32,3 +32,7 @@ export interface Message {
   fileUrl?: string;
   fileName?: string;
 }
+
+export interface SendMessagePayload {
+  content: string;
+}
