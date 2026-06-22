@@ -3,7 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { 
   Star, MapPin, ShieldCheck, 
-  Briefcase, Github, Linkedin, Video, FileText, ChevronRight
+  Github, Linkedin, Video, FileText, ChevronRight
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { profileService } from '../services';

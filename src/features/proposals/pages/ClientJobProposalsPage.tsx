@@ -1,9 +1,7 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { ProposalListCard } from '../components/ProposalListCard';
-import type { Proposal } from '../types';
-import type { Job } from '../../jobs/types';
 import { jobService } from '../../jobs/services';
 import { proposalService } from '../services';
 import { 
@@ -22,7 +20,6 @@ import {
 import { Button } from '@/shared/components/ui/Button';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { Role, BudgetType, SkillLevel } from '@/shared/types/enums';
 
 export const ClientJobProposalsPage = () => {
   const { id } = useParams();
