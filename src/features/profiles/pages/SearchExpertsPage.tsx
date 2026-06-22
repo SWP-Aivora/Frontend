@@ -1,77 +1,38 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Star, MapPin, ShieldCheck, SlidersHorizontal, CheckCircle2 } from 'lucide-react';
+import { Search, Star, MapPin, ShieldCheck, SlidersHorizontal, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
-
-// Mock data since there isn't a search API endpoint in v1 yet
-const mockExperts = [
-  {
-    id: 'exp-1',
-    name: 'An Nguyen',
-    title: 'AI Chatbot Expert',
-    bio: 'Helping businesses build intelligent chatbots and AI-powered customer support systems.',
-    location: 'Vietnam',
-    rating: 4.8,
-    reviews: 24,
-    hourlyRate: 25,
-    skills: ['Chatbot Development', 'NLP', 'RAG Systems', 'Python'],
-    verified: true,
-  },
-  {
-    id: 'exp-2',
-    name: 'Sarah Chen',
-    title: 'Machine Learning Engineer',
-    bio: 'Specializing in computer vision and predictive modeling for retail and healthcare.',
-    location: 'Singapore',
-    rating: 5.0,
-    reviews: 42,
-    hourlyRate: 45,
-    skills: ['Computer Vision', 'PyTorch', 'Data Pipeline', 'TensorFlow'],
-    verified: true,
-  },
-  {
-    id: 'exp-3',
-    name: 'Michael Ross',
-    title: 'LLM Integration Specialist',
-    bio: 'Integrating OpenAI, Anthropic, and open-source models into existing business workflows.',
-    location: 'United States',
-    rating: 4.9,
-    reviews: 18,
-    hourlyRate: 60,
-    skills: ['Prompt Engineering', 'LangChain', 'API Integration', 'OpenAI'],
-    verified: false,
-  },
-  {
-    id: 'exp-4',
-    name: 'Priya Sharma',
-    title: 'Data Scientist & AI Consultant',
-    bio: 'Turning raw data into actionable insights through advanced analytics and machine learning.',
-    location: 'India',
-    rating: 4.7,
-    reviews: 56,
-    hourlyRate: 35,
-    skills: ['Data Analysis', 'Scikit-Learn', 'SQL', 'Deep Learning'],
-    verified: true,
-  }
-];
+import { useQuery } from '@tanstack/react-query';
+import { profileService } from '../services';
 
 export const SearchExpertsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
 
+  const { data: response, isLoading, isError } = useQuery({
+    queryKey: ['featuredExperts'],
+    queryFn: () => profileService.getFeaturedExperts(20), // Fetch a larger batch for local filtering
+  });
+
+  const experts = response?.data?.items || [];
   const categories = ['All', 'Chatbots', 'Computer Vision', 'LLM Integration', 'Data Science', 'Automation'];
 
-  const filteredExperts = mockExperts.filter(expert => {
-    const matchesSearch = expert.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          expert.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          expert.skills.some(s => s.toLowerCase().includes(searchTerm.toLowerCase()));
+  // Local filtering since backend doesn't have a search endpoint yet
+  const filteredExperts = experts.filter(expert => {
+    const name = expert.user?.fullName || '';
+    const title = expert.title || '';
+    const skills = expert.skills || [];
+    
+    const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          skills.some(s => s.toLowerCase().includes(searchTerm.toLowerCase()));
     
     // Simple mock category filtering logic
     if (activeCategory === 'All') return matchesSearch;
-    if (activeCategory === 'Chatbots' && expert.skills.includes('Chatbot Development')) return matchesSearch;
-    if (activeCategory === 'Computer Vision' && expert.skills.includes('Computer Vision')) return matchesSearch;
-    if (activeCategory === 'LLM Integration' && expert.skills.includes('LangChain')) return matchesSearch;
-    if (activeCategory === 'Data Science' && expert.skills.includes('Data Analysis')) return matchesSearch;
+    if (activeCategory === 'Chatbots' && skills.some(s => s.toLowerCase().includes('bot'))) return matchesSearch;
+    if (activeCategory === 'Computer Vision' && skills.some(s => s.toLowerCase().includes('vision'))) return matchesSearch;
+    if (activeCategory === 'LLM Integration' && skills.some(s => s.toLowerCase().includes('llm') || s.toLowerCase().includes('langchain'))) return matchesSearch;
+    if (activeCategory === 'Data Science' && skills.some(s => s.toLowerCase().includes('data'))) return matchesSearch;
     
     return activeCategory === 'All' ? matchesSearch : false;
   });
@@ -205,7 +166,24 @@ export const SearchExpertsPage = () => {
           </div>
 
           <div className="grid grid-cols-1 gap-4">
-            {filteredExperts.map((expert) => (
+            {isLoading ? (
+              <div className="py-20 flex flex-col items-center justify-center space-y-4">
+                <Loader2 className="size-10 text-primary animate-spin" />
+                <p className="text-slate-500 font-bold animate-pulse">Loading experts...</p>
+              </div>
+            ) : isError ? (
+              <div className="py-20 flex flex-col items-center justify-center space-y-4">
+                <AlertCircle className="size-10 text-destructive" />
+                <p className="text-slate-500 font-bold">Failed to load experts. Please try again.</p>
+              </div>
+            ) : filteredExperts.map((expert) => {
+              const name = expert.user?.fullName || 'Anonymous Expert';
+              const location = expert.user?.location || 'Global';
+              const rating = 5.0; // Mocking since API doesn't provide rating yet
+              const reviews = 24; // Mocking
+              const verified = true; // Mocking
+              
+              return (
               <div 
                 key={expert.id} 
                 className="bg-white border border-slate-100 hover:border-blue-200 rounded-[24px] p-6 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group"
@@ -213,20 +191,24 @@ export const SearchExpertsPage = () => {
                 <div className="flex flex-col md:flex-row gap-6">
                   {/* Avatar & Basics */}
                   <div className="flex gap-4 md:w-1/3 shrink-0">
-                    <div className="size-16 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center shrink-0">
-                      <span className="text-xl font-black text-primary">{expert.name.charAt(0)}</span>
+                    <div className="size-16 rounded-full bg-blue-100 border border-blue-200 overflow-hidden flex items-center justify-center shrink-0">
+                      {expert.user?.avatarUrl ? (
+                        <img src={expert.user.avatarUrl} alt={name} className="size-full object-cover" />
+                      ) : (
+                        <span className="text-xl font-black text-primary">{name.charAt(0)}</span>
+                      )}
                     </div>
                     <div>
                       <Link to={`/client/experts/${expert.id}`} className="text-lg font-black text-slate-900 group-hover:text-primary transition-colors line-clamp-1">
-                        {expert.name}
+                        {name}
                       </Link>
                       <p className="text-sm font-semibold text-slate-600 line-clamp-1 mb-2">{expert.title}</p>
                       <div className="flex items-center gap-2">
                         <span className="flex items-center gap-1 text-xs font-bold text-slate-900">
-                          <Star className="size-3 fill-yellow-400 text-yellow-400" /> {expert.rating.toFixed(1)}
+                          <Star className="size-3 fill-yellow-400 text-yellow-400" /> {rating.toFixed(1)}
                         </span>
-                        <span className="text-xs font-medium text-slate-500">({expert.reviews})</span>
-                        {expert.verified && (
+                        <span className="text-xs font-medium text-slate-500">({reviews})</span>
+                        {verified && (
                           <ShieldCheck className="size-4 text-emerald-500 ml-1" />
                         )}
                       </div>
@@ -239,11 +221,16 @@ export const SearchExpertsPage = () => {
                       {expert.bio}
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {expert.skills.map((skill) => (
+                      {expert.skills?.slice(0, 5).map((skill) => (
                         <span key={skill} className="px-2.5 py-1 bg-slate-50 text-slate-600 rounded-md text-[10px] font-bold uppercase tracking-wider border border-slate-100">
                           {skill}
                         </span>
                       ))}
+                      {(expert.skills?.length || 0) > 5 && (
+                        <span className="px-2.5 py-1 bg-slate-50 text-slate-400 rounded-md text-[10px] font-bold uppercase tracking-wider border border-slate-100">
+                          +{(expert.skills?.length || 0) - 5}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -251,11 +238,11 @@ export const SearchExpertsPage = () => {
                   <div className="flex flex-col items-start md:items-end justify-between md:border-l border-slate-100 md:pl-6 shrink-0 md:w-40">
                     <div className="flex flex-row md:flex-col items-center md:items-end w-full justify-between md:justify-start gap-2 md:gap-0 mb-4 md:mb-0">
                       <div className="text-left md:text-right">
-                        <span className="text-xl font-black text-slate-900">${expert.hourlyRate}</span>
+                        <span className="text-xl font-black text-slate-900">${expert.hourlyRate || 0}</span>
                         <span className="text-xs font-medium text-slate-500">/hr</span>
                       </div>
                       <div className="flex items-center gap-1 text-xs font-medium text-slate-500">
-                        <MapPin className="size-3" /> {expert.location}
+                        <MapPin className="size-3" /> {location}
                       </div>
                     </div>
                     
@@ -265,9 +252,9 @@ export const SearchExpertsPage = () => {
                   </div>
                 </div>
               </div>
-            ))}
+            )})}
 
-            {filteredExperts.length === 0 && (
+            {!isLoading && !isError && filteredExperts.length === 0 && (
               <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[32px] p-16 flex flex-col items-center justify-center text-center">
                 <Search className="size-12 text-slate-300 mb-4" />
                 <h3 className="text-xl font-black text-slate-900 mb-2">No experts found</h3>

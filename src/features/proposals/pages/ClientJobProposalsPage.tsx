@@ -1,8 +1,11 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { ProposalListCard } from '../components/ProposalListCard';
 import type { Proposal } from '../types';
 import type { Job } from '../../jobs/types';
+import { jobService } from '../../jobs/services';
+import { proposalService } from '../services';
 import { 
   ChevronLeft, 
   Sparkles, 
@@ -31,72 +34,21 @@ export const ClientJobProposalsPage = () => {
   const [activeTab, setActiveTab] = useState<'all' | 'best' | 'shortlisted'>('all');
   const [acceptedProposalId, setAcceptedProposalId] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Mock loading data for premium feel
-    const loadData = async () => {
-      setIsLoading(true);
-      try {
-        // In real app: const [jobRes, propRes] = await Promise.all([jobService.getJobById(id!), jobService.getProposalsByJobId(id!)]);
-        // For now, mock data:
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setJob({
-          id: id!,
-          title: 'Computer Vision Model for Medical Imaging',
-          originalDescription: '',
-          finalDescription: 'Medical image classification model...',
-          businessDomain: 'Healthcare',
-          expectedOutcome: 'A high-accuracy model for diabetic retinopathy detection.',
-          categoryId: 'cv',
-          budgetType: BudgetType.FIXED,
-          budgetMin: 3000,
-          budgetMax: 5000,
-          currency: 'USD',
-          timelineDays: 30,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          deadline: null,
-          experienceLevel: SkillLevel.EXPERT,
-          visibility: 1,
-          status: 1,
-          clientId: 'me',
-          client: { id: 'me', fullName: 'Me', avatarUrl: null, role: Role.CLIENT },
-          skills: [{ id: '1', name: 'PyTorch' }, { id: '2', name: 'Computer Vision' }]
-        });
+  const { data: jobResponse, isLoading: isJobLoading } = useQuery({
+    queryKey: ['job', id],
+    queryFn: () => jobService.getJobById(id!),
+    enabled: !!id,
+  });
 
-        setProposals([
-          {
-            id: 'p1',
-            jobId: id!,
-            expertId: 'e1',
-            coverLetter: 'I have 5 years of experience in medical imaging...',
-            proposedBudget: 4500,
-            proposedTimelineDays: 25,
-            status: 1,
-            createdAt: new Date().toISOString(),
-            milestones: [{ id: 'm1', title: 'Data Prep', amount: 1000, dueDays: 5, orderIndex: 0, description: null, acceptanceCriteria: null }],
-            expert: { id: 'e1', fullName: 'Dr. Alex Rivera', avatarUrl: null, role: Role.EXPERT }
-          },
-          {
-            id: 'p2',
-            jobId: id!,
-            expertId: 'e2',
-            coverLetter: 'Expert in PyTorch and ResNet architectures. I can deliver high accuracy...',
-            proposedBudget: 3500,
-            proposedTimelineDays: 30,
-            status: 1,
-            createdAt: new Date().toISOString(),
-            milestones: [],
-            expert: { id: 'e2', fullName: 'Sarah Chen', avatarUrl: null, role: Role.EXPERT }
-          }
-        ]);
-      } catch {
-        toast.error('Failed to load project details');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadData();
-  }, [id]);
+  const { data: proposalsResponse, isLoading: isProposalsLoading } = useQuery({
+    queryKey: ['proposals', id],
+    queryFn: () => proposalService.getProposalsByJobId(id!),
+    enabled: !!id,
+  });
+
+  const job = jobResponse?.data;
+  const proposals = proposalsResponse?.data?.items || [];
+  const isLoading = isJobLoading || isProposalsLoading;
 
   const handleGenerateAI = async () => {
     setIsGeneratingAI(true);

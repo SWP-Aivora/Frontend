@@ -74,41 +74,16 @@ export const ExpertPublicProfilePage = () => {
 
   const isLoading = isProfileLoading || isReviewsLoading || isProjectsLoading;
 
-  // Since we might not have a fully populated profile from the API for testing, 
-  // we'll use a mix of real data and mock data for the rich UI representation
-  const mockData = {
-    name: profile?.user?.fullName || 'An Nguyen',
-    title: profile?.title || 'AI Chatbot Expert',
-    bio: profile?.bio || 'Helping businesses build intelligent chatbots and AI-powered customer support systems.',
-    location: 'VN',
-    preference: 'Remote collaboration',
-    hourlyRate: profile?.hourlyRate || 25,
-    stats: {
-      rating: parseFloat(avgRating) || 4.8,
-      projects: completedProjects.length || 18,
-      reviews: reviews.length || 24,
-      onTime: 95
-    },
-    about: 'An Nguyen builds customer support chatbots, NLP conversation flows, RAG assistants, and practical automation tools that improve response time, reduce manual support work, and create better client experiences.',
-    skills: [
-      { name: 'Chatbot Development', level: 'Advanced', years: 3, progress: 88 },
-      { name: 'NLP', level: 'Intermediate', years: 2, progress: 60 },
-      { name: 'RAG Systems', level: 'Advanced', years: 2, progress: 80 },
-      { name: 'Prompt Engineering', level: 'Expert', years: 4, progress: 95 },
-      { name: 'Python', level: 'Advanced', years: 4, progress: 92 },
-      { name: 'AI Automation', level: 'Advanced', years: 3, progress: 85 },
-    ]
-  };
-
-  const displayReviews = reviews.length > 0 ? reviews : [
-    { reviewerName: 'Linh Tran', rating: 5.0, comment: 'Delivered a chatbot that matched requirements.' },
-    { reviewerName: 'Minh Pham', rating: 4.8, comment: 'Completed on time with clear communication.' }
-  ];
-
-  const displayProjects = mappedProjects.length > 0 ? mappedProjects : [
-    { title: 'Vietnamese Support Chatbot', description: 'Reduced repetitive product questions.', rating: 5.0 },
-    { title: 'Internal RAG Assistant', description: 'Retrieved answers from company documents.', rating: 4.9 }
-  ];
+  const name = profile?.user?.fullName || 'Anonymous Expert';
+  const title = profile?.title || 'Expert';
+  const bio = profile?.bio || 'No bio provided.';
+  const location = profile?.user?.location || 'Global';
+  const hourlyRate = profile?.hourlyRate || 0;
+  const rating = parseFloat(avgRating) || 0;
+  const skills = profile?.skills || [];
+  
+  const displayReviews = reviews;
+  const displayProjects = mappedProjects;
 
   if (isLoading) {
     return (
@@ -135,7 +110,11 @@ export const ExpertPublicProfilePage = () => {
             {/* Left Info */}
             <div className="flex gap-6 items-start">
               <div className="w-[120px] h-[120px] rounded-full overflow-hidden border-4 border-white shadow-lg shrink-0 bg-brand-primary flex items-center justify-center">
-                <span className="text-4xl font-bold text-white">{mockData.name.split(' ').map(n => n[0]).join('')}</span>
+                {profile?.user?.avatarUrl ? (
+                   <img src={profile.user.avatarUrl} alt={name} className="size-full object-cover" />
+                ) : (
+                   <span className="text-4xl font-bold text-white">{name.charAt(0)}</span>
+                )}
               </div>
               
               <div className="space-y-3">
@@ -149,54 +128,27 @@ export const ExpertPublicProfilePage = () => {
                 </div>
                 
                 <div>
-                  <h1 className="text-3xl font-bold text-slate-900">{mockData.name}</h1>
-                  <h2 className="text-lg font-semibold text-brand-primary mt-1">{mockData.title}</h2>
+                  <h1 className="text-3xl font-extrabold text-brand-dark mb-1 tracking-tight">
+                    {name}
+                  </h1>
+                  <p className="text-brand-secondary font-medium text-[15px]">
+                    {title}
+                  </p>
                 </div>
-                
-                <p className="text-slate-600 max-w-lg">{mockData.bio}</p>
-                
-                <div className="flex items-center gap-4 text-sm text-slate-600 font-medium pt-1">
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="w-4 h-4 text-brand-primary" /> {mockData.location}
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Briefcase className="w-4 h-4 text-slate-400" /> {mockData.preference}
-                  </div>
+
+                <div className="flex items-center gap-4 text-sm text-brand-muted/80">
+                  <span className="flex items-center gap-1">
+                    <MapPin className="w-4 h-4 text-slate-400" /> {location}
+                  </span>
                 </div>
               </div>
             </div>
-            
-            {/* Right Stats & CTA */}
-            <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row gap-4 shrink-0">
-              {/* Stats row */}
-              <div className="flex gap-3">
-                <div className="bg-white/80 border border-blue-100 rounded-2xl p-4 w-[110px] text-center shadow-sm relative overflow-hidden">
-                  <div className="absolute top-1/2 -translate-y-1/2 right-0 w-1 h-1/2 bg-brand-primary rounded-l" />
-                  <div className="text-2xl font-bold text-slate-900">{mockData.stats.rating}/5</div>
-                  <div className="text-xs font-medium text-slate-500 mt-1">Rating</div>
-                </div>
-                <div className="bg-white/80 border border-blue-100 rounded-2xl p-4 w-[110px] text-center shadow-sm relative overflow-hidden">
-                  <div className="absolute top-1/2 -translate-y-1/2 right-0 w-1 h-1/2 bg-brand-primary rounded-l" />
-                  <div className="text-2xl font-bold text-slate-900">{mockData.stats.projects}</div>
-                  <div className="text-xs font-medium text-slate-500 mt-1">Projects</div>
-                </div>
-                <div className="bg-white/80 border border-blue-100 rounded-2xl p-4 w-[110px] text-center shadow-sm relative overflow-hidden">
-                  <div className="absolute top-1/2 -translate-y-1/2 right-0 w-1 h-1/2 bg-brand-primary rounded-l" />
-                  <div className="text-2xl font-bold text-slate-900">{mockData.stats.reviews}</div>
-                  <div className="text-xs font-medium text-slate-500 mt-1">Reviews</div>
-                </div>
-              </div>
-              
-              {/* CTA Card */}
-              <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 w-[180px] flex flex-col items-center justify-center shrink-0">
-                <div className="text-xs font-medium text-slate-500">Hourly rate</div>
-                <div className="text-2xl font-bold text-slate-900 mt-1">${mockData.hourlyRate}/hr</div>
-                <Button className="w-full mt-4 rounded-full font-semibold shadow-md shadow-brand-primary/20">
-                  Invite to Project
-                </Button>
-                <Button variant="outline" className="w-full mt-2 rounded-full font-semibold border-blue-200 text-brand-primary hover:bg-blue-50">
-                  Save Expert
-                </Button>
+
+            {/* Right Action / Rates */}
+            <div className="flex flex-col items-start lg:items-end justify-center">
+              <div className="flex items-baseline gap-1 mb-4">
+                <span className="text-3xl font-extrabold text-brand-dark">${hourlyRate}</span>
+                <span className="text-brand-muted text-sm font-medium">/hr</span>
               </div>
             </div>
           </div>
@@ -218,40 +170,24 @@ export const ExpertPublicProfilePage = () => {
             {/* About */}
             <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
               <h3 className="text-xs font-bold text-brand-primary uppercase tracking-wider mb-3">About This Expert</h3>
-              <h4 className="text-xl font-bold text-slate-900 mb-4">{mockData.title} for Business Automation</h4>
-              <p className="text-slate-600 leading-relaxed text-sm">
-                {mockData.about}
-              </p>
+              <h4 className="text-xl font-bold text-slate-900 mb-4">{title} for Business Automation</h4>
+                <p className="text-brand-secondary leading-relaxed whitespace-pre-wrap">
+                  {bio}
+                </p>
             </div>
 
             {/* Skills */}
-            <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
-              <h3 className="text-xl font-bold text-slate-900 mb-6">Skills and Expertise</h3>
-              <div className="flex flex-wrap gap-2 mb-8">
-                {mockData.skills.map((skill) => (
-                  <span key={skill.name} className="bg-blue-50 text-blue-700 border border-blue-100 px-4 py-1.5 rounded-full text-xs font-semibold">
-                    {skill.name}
-                  </span>
-                ))}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 mt-6">
+                <h3 className="font-bold text-brand-dark mb-4">Skills & Expertise</h3>
+                <div className="flex flex-wrap gap-2">
+                  {skills.map((skill, idx) => (
+                    <span key={idx} className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-sm font-medium border border-blue-100">
+                      {skill}
+                    </span>
+                  ))}
+                  {skills.length === 0 && <span className="text-sm text-slate-400">No skills listed.</span>}
+                </div>
               </div>
-              
-              <div className="space-y-5">
-                {mockData.skills.slice(0, 2).map((skill) => (
-                  <div key={skill.name}>
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm font-semibold text-slate-800">{skill.name}</span>
-                      <span className="text-xs font-medium text-slate-500">{skill.level} &middot; {skill.years}y</span>
-                    </div>
-                    <div className="h-2 w-full bg-blue-50 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-brand-primary rounded-full" 
-                        style={{ width: `${skill.progress}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
 
             {/* Completed Projects */}
             <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
@@ -285,7 +221,7 @@ export const ExpertPublicProfilePage = () => {
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-bl-full -z-10" />
               <h3 className="text-xs font-bold text-brand-primary uppercase tracking-wider mb-2">Ready to Collaborate</h3>
-              <h4 className="text-xl font-bold text-slate-900 mb-3">Invite {mockData.name.split(' ')[0]} to your project</h4>
+              <h4 className="text-xl font-bold text-slate-900 mb-3">Invite {name.split(' ')[0]} to your project</h4>
               <p className="text-xs text-slate-500 mb-6 leading-relaxed">
                 Select an existing project or start a conversation about requirements, timeline, and budget.
               </p>
