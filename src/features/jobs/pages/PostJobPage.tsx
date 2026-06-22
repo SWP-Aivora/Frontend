@@ -126,8 +126,6 @@ export const PostJobPage = () => {
     onSuccess: (response) => {
       if (response.data?.jobId) {
         setJobId(response.data.jobId);
-        // After accepting (saving as DRAFT), immediately publish to make it OPEN
-        publishMutation.mutate(response.data.jobId);
       } else {
         toast.error('Failed to get project ID');
       }
@@ -199,12 +197,19 @@ export const PostJobPage = () => {
   };
 
   const handleSaveDraft = () => {
-    // If there are pending patches, flush them immediately
     if (Object.keys(pendingPatchRef.current).length > 0) {
       patchMutation.mutate(pendingPatchRef.current);
       pendingPatchRef.current = {};
     }
-    toast.success('Draft saved locally');
+    if (!createdJobId) {
+      acceptMutation.mutate(undefined, {
+        onSuccess: () => {
+          toast.success('Draft saved securely to your projects');
+        }
+      });
+    } else {
+      toast.success('Draft already saved');
+    }
   };
 
   const handleAccept = () => {
@@ -218,7 +223,13 @@ export const PostJobPage = () => {
         publishMutation.mutate(createdJobId);
       } else {
         // Normal flow: accept then publish
-        acceptMutation.mutate();
+        acceptMutation.mutate(undefined, {
+          onSuccess: (res) => {
+            if (res.data?.jobId) {
+              publishMutation.mutate(res.data.jobId);
+            }
+          }
+        });
       }
     }
   };
@@ -400,6 +411,7 @@ export const PostJobPage = () => {
               onAccept={handleAccept}
               onSaveDraft={handleSaveDraft}
               isAccepting={acceptMutation.isPending}
+              isGenerating={initMutation.isPending || refineMutation.isPending || patchMutation.isPending}
             />
           </div>
         )}

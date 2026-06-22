@@ -2,6 +2,7 @@ import { Star, ShieldCheck, Zap, ChevronRight, CheckCircle2, Search } from 'luci
 import { Button } from '@/shared/components/ui/Button';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 import type { ExpertMatch } from '../types';
 
 interface ExpertMatchInsightsProps {
@@ -83,7 +84,10 @@ export const ExpertMatchInsights = ({ experts }: ExpertMatchInsightsProps) => {
               </div>
 
               <div className="w-full pt-4 space-y-2">
-                <Button className="w-full rounded-2xl font-black shadow-lg shadow-primary/20">
+                <Button 
+                  onClick={() => toast.success('Invitation sent! The expert will be notified.')}
+                  className="w-full rounded-2xl font-black shadow-lg shadow-primary/20"
+                >
                   Invite to Project
                 </Button>
                 <Button variant="ghost" asChild className="w-full rounded-2xl font-bold text-slate-500 hover:text-primary">

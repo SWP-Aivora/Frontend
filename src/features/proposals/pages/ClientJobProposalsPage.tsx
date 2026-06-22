@@ -29,6 +29,7 @@ export const ClientJobProposalsPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'best' | 'shortlisted'>('all');
+  const [acceptedProposalId, setAcceptedProposalId] = useState<string | null>(null);
 
   useEffect(() => {
     // Mock loading data for premium feel
@@ -105,7 +106,10 @@ export const ClientJobProposalsPage = () => {
     toast.success('AI Insights updated!');
   };
 
-  const onAccept = (pid: string) => toast.success(`Proposal ${pid} accepted! Transitioning to Workspace...`);
+  const onAccept = (pid: string) => {
+    setAcceptedProposalId(pid);
+    toast.success(`Proposal ${pid} accepted! Transitioning to Workspace...`);
+  };
   const onReject = (pid: string) => toast.info(`Proposal ${pid} declined.`);
   const onShortlist = (pid: string) => toast.success(`Expert added to shortlist with ID ${pid}.`);
 
@@ -202,14 +206,22 @@ export const ClientJobProposalsPage = () => {
 
            <div className="space-y-4">
               {proposals.map((p, i) => (
-                <ProposalListCard 
-                  key={p.id} 
-                  proposal={p} 
-                  onAccept={onAccept}
-                  onReject={onReject}
-                  onShortlist={onShortlist}
-                  aiMatchScore={i === 0 ? 94 : 78} // Simulating scores
-                />
+                <div 
+                  key={p.id}
+                  className={cn(
+                    "transition-all duration-500",
+                    acceptedProposalId && acceptedProposalId !== p.id && "opacity-50 pointer-events-none grayscale-[50%]"
+                  )}
+                >
+                  <ProposalListCard 
+                    proposal={p} 
+                    onAccept={onAccept}
+                    onReject={onReject}
+                    onShortlist={onShortlist}
+                    aiMatchScore={i === 0 ? 94 : 78} // Simulating scores
+                    isAccepted={acceptedProposalId === p.id}
+                  />
+                </div>
               ))}
            </div>
         </div>

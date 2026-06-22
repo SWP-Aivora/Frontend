@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/components/ui/Button';
 import { BadgeCheck, Clock, MapPin, DollarSign, BrainCircuit, ChevronLeft, Calendar, FileText, Loader2 } from 'lucide-react';
@@ -13,6 +14,7 @@ import { proposalService } from '../../proposals/services';
 export const JobDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [hasSubmitted, setHasSubmitted] = useState(() => localStorage.getItem(`submitted_proposal_${id}`) === 'true');
 
   const { data: jobResponse, isLoading } = useQuery({
     queryKey: ['job', id],
@@ -42,8 +44,9 @@ export const JobDetailsPage = () => {
   const submitMutation = useMutation({
     mutationFn: (data: CreateProposalFormValues) => proposalService.submitProposal(id!, data),
     onSuccess: () => {
+      localStorage.setItem(`submitted_proposal_${id}`, 'true');
+      setHasSubmitted(true);
       toast.success('Proposal submitted successfully!');
-      navigate('/expert/jobs');
     },
     onError: () => {
       toast.error('Failed to submit proposal');
@@ -194,10 +197,28 @@ export const JobDetailsPage = () => {
           <div className="bg-white rounded-xl p-8 border border-brand-accent/20 shadow-xl shadow-brand-accent/5 relative overflow-hidden">
              <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-brand-accent to-blue-500" />
              
-             <h3 className="text-xl font-black text-slate-900 mb-2 mt-2">Submit a Proposal</h3>
-             <p className="text-xs text-slate-500 font-medium mb-6">Connect with the client and pitch your AI solution.</p>
+             <h3 className="text-xl font-black text-slate-900 mb-2 mt-2">
+               {hasSubmitted ? 'Your Proposal' : 'Submit a Proposal'}
+             </h3>
+             <p className="text-xs text-slate-500 font-medium mb-6">
+               {hasSubmitted ? 'You have already submitted a proposal for this project.' : 'Connect with the client and pitch your AI solution.'}
+             </p>
 
-             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+             {hasSubmitted ? (
+               <div className="space-y-4 pt-4 border-t border-slate-100">
+                 <div className="bg-emerald-50 rounded-xl p-4 flex items-center gap-3 border border-emerald-100">
+                   <BadgeCheck className="size-6 text-emerald-600 shrink-0" />
+                   <div>
+                     <p className="text-sm font-bold text-emerald-900">Proposal Sent</p>
+                     <p className="text-xs text-emerald-700 font-medium mt-0.5">We will notify you when the client responds.</p>
+                   </div>
+                 </div>
+                 <Button variant="outline" className="w-full rounded-full h-12 font-bold text-slate-600 border-slate-200">
+                   View Your Proposal
+                 </Button>
+               </div>
+             ) : (
+               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 
                 {/* Budget & Timeline */}
                 <div className="space-y-4">
@@ -256,7 +277,8 @@ export const JobDetailsPage = () => {
                 <Button type="submit" disabled={submitMutation.isPending} className="w-full rounded-full h-14 font-bold text-base bg-brand-accent hover:bg-brand-accent/90 shadow-lg shadow-brand-accent/20">
                   {submitMutation.isPending ? 'Submitting Proposal...' : 'Submit Proposal'}
                 </Button>
-             </form>
+               </form>
+             )}
           </div>
         </div>
       </div>
