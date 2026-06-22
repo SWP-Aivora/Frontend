@@ -4,17 +4,49 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@layer base {
+  :root {
+    --background: #ffffff;
+    --foreground: #0f172a;
+    --card: #ffffff;
+    --card-foreground: #0f172a;
+    --primary: #2563eb;
+    --primary-foreground: #ffffff;
+    --muted: #f1f5f9;
+    --muted-foreground: #64748b;
+    --border: #dcebff;
+    --input: #dcebff;
+    --ring: #2563eb;
+  }
+
+  .dark {
+    --background: #0f172a;
+    --foreground: #e2e8f0;
+    --card: #111827;
+    --card-foreground: #f8fafc;
+    --primary: #3b82f6;
+    --primary-foreground: #ffffff;
+    --muted: #1e293b;
+    --muted-foreground: #94a3b8;
+    --border: #334155;
+    --input: #334155;
+    --ring: #60a5fa;
+  }
+}
+
 @theme inline {
   /* System Mapping */
-  --color-background: #ffffff;
-  --color-foreground: #0f172a;
-  --color-primary: #2563eb;
-  --color-primary-foreground: #ffffff;
-  --color-muted: #f1f5f9;
-  --color-muted-foreground: #64748b;
-  --color-border: #dcebff;
-  --color-input: #dcebff;
-  --color-ring: #2563eb;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
 
   /* Brand Tokens */
   --color-brand-blue-dark: #164c96;
@@ -40,6 +72,47 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .dark .bg-white {
+    background-color: var(--card) !important;
+  }
+
+  .dark .bg-slate-50,
+  .dark .bg-slate-50\/50,
+  .dark .hover\:bg-slate-50:hover,
+  .dark .hover\:bg-white:hover {
+    background-color: var(--muted) !important;
+  }
+
+  .dark .bg-slate-100,
+  .dark .bg-blue-50,
+  .dark .bg-purple-50,
+  .dark .bg-amber-50,
+  .dark .bg-emerald-50 {
+    background-color: color-mix(in srgb, var(--muted) 82%, var(--primary) 18%) !important;
+  }
+
+  .dark .text-slate-900,
+  .dark .text-slate-800,
+  .dark .text-slate-700 {
+    color: var(--foreground) !important;
+  }
+
+  .dark .text-slate-600,
+  .dark .text-slate-500,
+  .dark .text-slate-400 {
+    color: var(--muted-foreground) !important;
+  }
+
+  .dark .border-slate-50,
+  .dark .border-slate-100,
+  .dark .border-slate-200,
+  .dark .hover\:border-slate-100:hover,
+  .dark .hover\:border-slate-300:hover {
+    border-color: var(--border) !important;
   }
 }
 

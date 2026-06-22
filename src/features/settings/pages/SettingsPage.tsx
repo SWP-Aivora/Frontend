@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAppStore } from '@/app/store';
+import { useAppStore, type ThemeMode } from '@/app/store';
 import { 
   Settings, 
   Bell, 
@@ -21,6 +21,7 @@ type TabId = 'appearance' | 'notifications' | 'language' | 'privacy';
 
 export const SettingsPage = () => {
   const { theme, setTheme } = useAppStore();
+  const [selectedTheme, setSelectedTheme] = useState<ThemeMode>(theme);
   const [activeTab, setActiveTab] = useState<TabId>('appearance');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -34,6 +35,7 @@ export const SettingsPage = () => {
   const handleSave = () => {
     setIsLoading(true);
     setTimeout(() => {
+      setTheme(selectedTheme);
       setIsLoading(false);
       toast.success('System preferences updated');
     }, 800);
@@ -99,22 +101,21 @@ export const SettingsPage = () => {
               <div className="space-y-6">
                 <div className="space-y-3">
                   <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Theme Mode</label>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {[
                       { id: 'light', label: 'Light', icon: Sun, desc: 'Clean and bright' },
                       { id: 'dark', label: 'Dark', icon: Moon, desc: 'Easy on the eyes' },
-                      { id: 'system', label: 'System', icon: Settings, desc: 'Match OS setting' },
                     ].map((opt) => (
                       <button 
                         key={opt.id}
-                        onClick={() => setTheme(opt.id as 'light' | 'dark' | 'system')}
+                        onClick={() => setSelectedTheme(opt.id as ThemeMode)}
                         className={cn(
                           "p-4 rounded-xl border text-left transition-all group",
-                          theme === opt.id ? "border-primary bg-primary/5 shadow-sm" : "border-slate-100 hover:border-slate-300"
+                          selectedTheme === opt.id ? "border-primary bg-primary/5 shadow-sm" : "border-slate-100 hover:border-slate-300"
                         )}
                       >
-                        <opt.icon className={cn("size-5 mb-2 transition-colors", theme === opt.id ? "text-primary" : "text-slate-400 group-hover:text-slate-600")} />
-                        <p className={cn("text-sm font-bold", theme === opt.id ? "text-primary" : "text-slate-900")}>{opt.label}</p>
+                        <opt.icon className={cn("size-5 mb-2 transition-colors", selectedTheme === opt.id ? "text-primary" : "text-slate-400 group-hover:text-slate-600")} />
+                        <p className={cn("text-sm font-bold", selectedTheme === opt.id ? "text-primary" : "text-slate-900")}>{opt.label}</p>
                         <p className="text-xs text-slate-500">{opt.desc}</p>
                       </button>
                     ))}

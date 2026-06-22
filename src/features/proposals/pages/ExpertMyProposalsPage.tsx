@@ -45,7 +45,7 @@ export const ExpertMyProposalsPage = () => {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+      <div className="flex flex-col items-center justify-center py-20 space-y-4" role="status" aria-live="polite">
          <Loader2 className="size-10 text-brand-accent animate-spin" aria-label="Loading" />
          <p className="text-slate-500 font-bold animate-pulse">Loading your proposals...</p>
       </div>

@@ -4,6 +4,7 @@ import type { NotificationsQuery } from '../types';
 
 export const NOTIFICATION_KEYS = {
   all: ['notifications'] as const,
+  lists: ['notifications', 'list'] as const,
   list: (params?: NotificationsQuery) => ['notifications', 'list', params] as const,
   unreadCount: ['notifications', 'unreadCount'] as const,
 };

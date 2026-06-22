@@ -30,8 +30,7 @@ vi.mock('./hooks/useMessages', () => ({
 
 vi.mock('@/features/projects/services', () => ({
   projectService: {
-    getProjectById: vi.fn(),
-    getMilestonesByProject: vi.fn()
+    getProjectById: vi.fn()
   }
 }));
 
@@ -128,7 +127,7 @@ describe('Chat Feature', () => {
 
       const input = screen.getByPlaceholderText(/message/i);
       fireEvent.change(input, { target: { value: 'Hello world' } });
-      fireEvent.click(screen.getByRole('button'));
+      fireEvent.click(screen.getByRole('button', { name: /send message/i }));
 
       await waitFor(() => {
         expect(onSendMessage).toHaveBeenCalledWith('Hello world');
@@ -140,31 +139,34 @@ describe('Chat Feature', () => {
         <MessageInput onSendMessage={vi.fn()} disabled={false} />,
         { wrapper }
       );
-      expect(screen.getByRole('button')).toBeDisabled();
+      expect(screen.getByRole('button', { name: /send message/i })).toBeDisabled();
     });
 
-    it('shows unavailable message and disables input when disabled prop is true', () => {
+    it('shows temporary disabled message and disables input when disabled prop is true', () => {
       render(
         <MessageInput onSendMessage={vi.fn()} disabled={true} />,
         { wrapper }
       );
       
-      expect(screen.getByText(/message sending is not available yet/i)).toBeInTheDocument();
+      expect(screen.getByText(/please wait before sending/i)).toBeInTheDocument();
       expect(screen.getByPlaceholderText(/sending disabled/i)).toBeDisabled();
-      expect(screen.getByRole('button')).toBeDisabled();
+      expect(screen.getByRole('button', { name: /send message/i })).toBeDisabled();
     });
 
-    it('hides attachment button (paperclip) as upload is not implemented', () => {
+    it('shows disabled future action menu without triggering message send', () => {
+      const onSendMessage = vi.fn();
       render(
-        <MessageInput onSendMessage={vi.fn()} disabled={false} />,
+        <MessageInput onSendMessage={onSendMessage} disabled={false} />,
         { wrapper }
       );
-      // The paperclip icon should not be found if it's hidden as required
-      expect(screen.queryByTestId('paperclip-icon')).not.toBeInTheDocument();
-      // Or just check if the button with paperclip is absent
-      const buttons = screen.queryAllByRole('button');
-      // Only the send button should be present
-      expect(buttons.length).toBe(1);
+
+      fireEvent.click(screen.getByRole('button', { name: /open message actions/i }));
+
+      ['Add file', 'Add image', 'Add link', 'Add project file', 'Use template'].forEach((label) => {
+        expect(screen.getByRole('button', { name: new RegExp(label, 'i') })).toBeDisabled();
+      });
+      expect(screen.getByRole('button', { name: /send message/i })).toBeInTheDocument();
+      expect(onSendMessage).not.toHaveBeenCalled();
     });
   });
 

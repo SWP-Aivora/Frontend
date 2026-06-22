@@ -1,6 +1,6 @@
 import { AccountInfoForm } from '../components/AccountInfoForm';
 import { useAuthStore } from '@/features/auth/store';
-import { User, Shield, Bell, Settings, CreditCard } from 'lucide-react';
+import { User, Shield, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
@@ -8,7 +8,7 @@ const ASSETS = {
   heroGlow: "https://www.figma.com/api/mcp/asset/07fcdf20-e40b-4098-b7e5-350569312fbe",
 };
 
-type TabId = 'account' | 'security' | 'notifications' | 'billing';
+type TabId = 'account' | 'security';
 
 export const ProfilePage = () => {
   const { user } = useAuthStore();
@@ -17,8 +17,6 @@ export const ProfilePage = () => {
   const tabs = [
     { id: 'account', label: 'Account', icon: User },
     { id: 'security', label: 'Security', icon: Shield },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'billing', label: 'Billing & Wallet', icon: CreditCard },
   ] as const;
 
   return (
@@ -113,12 +111,6 @@ export const ProfilePage = () => {
                    <p className="text-xs font-bold text-slate-700">2 active</p>
                 </div>
              </div>
-          </div>
-        )}
-        {['notifications', 'billing'].includes(activeTab) && (
-          <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl p-16 text-center">
-             <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Section: {activeTab}</p>
-             <p className="text-slate-500 font-medium mt-1 italic text-xs">This feature is currently under development.</p>
           </div>
         )}
       </div>

@@ -15,5 +15,5 @@ export type UserSettings = {
   notifications: NotificationPreferences;
   privacy: PrivacySettings;
   language: string;
-  theme: 'light' | 'dark' | 'system';
+  theme: 'light' | 'dark';
 };

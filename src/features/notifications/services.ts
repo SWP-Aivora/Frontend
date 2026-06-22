@@ -12,7 +12,6 @@ export const notificationService = {
     const validParams: Record<string, string | number> = {};
     if (params?.PageSize) validParams.PageSize = params.PageSize;
     if (params?.PageIndex) validParams.PageIndex = params.PageIndex;
-    if (params?.SearchTerm?.trim()) validParams.SearchTerm = params.SearchTerm.trim();
 
     const response = await apiClient.get(API_ENDPOINTS.NOTIFICATIONS.BASE, { params: validParams });
     const paginated = normalizePaginatedResponse<Record<string, unknown>>(response as AxiosResponse);
@@ -30,7 +29,8 @@ export const notificationService = {
       status: item.isRead ? NotificationStatus.READ : NotificationStatus.UNREAD,
       isRead: item.isRead as boolean,
       createdAt: item.createdAt as string,
-      relatedEntityId: (item.linkUrl as string)?.split('/').pop(), // Heuristic extraction
+      linkUrl: (item.linkUrl as string | null | undefined) ?? (item.LinkUrl as string | null | undefined) ?? null,
+      relatedEntityId: ((item.linkUrl as string | undefined) ?? (item.LinkUrl as string | undefined))?.split('/').pop(), // Heuristic extraction
     } as Notification));
 
     return {
@@ -57,11 +57,27 @@ export const notificationService = {
 
   markAsRead: async (id: string): Promise<BaseResponse<void>> => {
     const response = await apiClient.put(API_ENDPOINTS.NOTIFICATIONS.READ(id));
+    if (response.status >= 200 && response.status < 300 && (response.data === '' || response.data == null)) {
+      return {
+        success: true,
+        message: '',
+        statusCode: response.status,
+        data: null,
+      };
+    }
     return normalizeBaseResponse<void>(response);
   },
 
   markAllAsRead: async (): Promise<BaseResponse<void>> => {
     const response = await apiClient.put(API_ENDPOINTS.NOTIFICATIONS.READ_ALL);
+    if (response.status >= 200 && response.status < 300 && (response.data === '' || response.data == null)) {
+      return {
+        success: true,
+        message: '',
+        statusCode: response.status,
+        data: null,
+      };
+    }
     return normalizeBaseResponse<void>(response);
   }
 };

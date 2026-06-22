@@ -48,6 +48,47 @@ export interface AdminProjectItem {
   paymentStatus: string;
 }
 
+export type AdminProjectStatusValue = number | string;
+
+export interface AdminProjectMilestone {
+  id: string;
+  title: string;
+  description?: string | null;
+  amount: number;
+  currency: string;
+  status: number | string;
+  orderIndex: number;
+  dueDate?: string | null;
+}
+
+export interface AdminProject {
+  id: string;
+  jobId?: string;
+  acceptedProposalId?: string;
+  clientId: string;
+  clientName: string;
+  expertId: string;
+  expertName: string;
+  title: string;
+  description?: string | null;
+  totalBudget: number;
+  currency: string;
+  status: AdminProjectStatusValue;
+  startDate?: string | null;
+  endDate?: string | null;
+  completedAt?: string | null;
+  createdAt: string;
+  updatedAt?: string | null;
+  milestones: AdminProjectMilestone[];
+}
+
+export interface AdminProjectsQuery {
+  PageIndex?: number;
+  PageSize?: number;
+  SearchTerm?: string;
+  status?: number;
+}
+
 export interface ReviewQueueItem {
   label: string;
   count: number;

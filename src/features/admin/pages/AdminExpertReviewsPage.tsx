@@ -15,6 +15,7 @@ import {
   Plus
 } from 'lucide-react';
 import type { ExpertReviewStatus, ExpertReviewItem } from '../types';
+import type { AxiosError } from 'axios';
 
 /**
  * Temporary preview data for UI development only. Remove when the backend API is available. Not for production use.
@@ -26,13 +27,17 @@ export const AdminExpertReviewsPage = () => {
   const navigate = useNavigate();
 
   const { data, isLoading, isError, error, refetch } = useAdminExpertReviews();
+  const reviews = Array.isArray(data?.reviews) ? data.reviews : [];
+  const errorStatus = (error as AxiosError | undefined)?.response?.status;
+  const isMissingEndpoint = errorStatus === 404;
 
-  const filteredReviews = data?.reviews.filter((rev: ExpertReviewItem) => {
-    const matchesSearch = rev.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         rev.email.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredReviews = reviews.filter((rev: ExpertReviewItem) => {
+    const matchesSearch = rev.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         rev.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         rev.id.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterStatus === 'All' || rev.status === filterStatus;
     return matchesSearch && matchesFilter;
-  }) || [];
+  });
 
   if (isLoading) {
     return (
@@ -46,8 +51,14 @@ export const AdminExpertReviewsPage = () => {
     return (
       <div className="bg-rose-50 border border-rose-100 rounded-xl p-10 text-center max-w-2xl mx-auto my-10">
         <AlertCircle className="size-12 text-rose-500 mx-auto mb-4" />
-        <h2 className="text-lg font-black text-rose-900 mb-2">Failed to load expert reviews</h2>
-        <p className="text-rose-600 font-medium">{(error as Error)?.message || 'Something went wrong while fetching reviews.'}</p>
+        <h2 className="text-lg font-black text-rose-900 mb-2">
+          {isMissingEndpoint ? 'Expert reviews API is unavailable' : 'Failed to load expert reviews'}
+        </h2>
+        <p className="text-rose-600 font-medium">
+          {isMissingEndpoint
+            ? 'The local backend does not expose GET /api/v1/admin/expert-reviews yet.'
+            : (error as Error)?.message || 'Something went wrong while fetching reviews.'}
+        </p>
         <button 
           onClick={() => refetch()}
           className="mt-6 px-4 py-2 bg-rose-600 text-white rounded-xl font-bold hover:bg-rose-700 transition-colors"
@@ -94,7 +105,6 @@ export const AdminExpertReviewsPage = () => {
                </button>
              ))}
           </div>
-          <button className="bg-white border border-primary/20 text-primary px-4 py-1.5 rounded-full text-xs font-semibold hover:bg-primary/5 transition-colors">Export</button>
         </div>
       </div>
 
@@ -226,7 +236,14 @@ export const AdminExpertReviewsPage = () => {
                     {rev.submittedAt}
                   </td>
                   <td className="px-4 py-2.5 text-center">
-                    <button className="bg-primary text-white px-3 py-1 rounded-full text-xs font-bold hover:bg-primary-dark transition-colors">
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        navigate(`/admin/users/${rev.expertId}`);
+                      }}
+                      className="bg-primary text-white px-3 py-1 rounded-full text-xs font-bold hover:bg-primary-dark transition-colors"
+                    >
                       Review
                     </button>
                   </td>

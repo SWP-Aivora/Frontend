@@ -323,24 +323,27 @@ export const PostJobPage = () => {
   }
 
   return (
-    <div className="h-[calc(100vh-140px)] flex flex-col gap-6 animate-in fade-in duration-700">
+    <main
+      className="flex flex-col gap-6 pb-8 animate-in fade-in duration-700 lg:h-[calc(100vh-140px)]"
+      aria-labelledby="post-job-page-heading"
+    >
       {/* Header Info */}
-      <div className="flex items-center justify-between shrink-0 bg-white border border-slate-100 p-4 rounded-2xl shadow-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between shrink-0 bg-white border border-slate-100 p-4 rounded-2xl shadow-sm">
         <div className="flex items-center gap-4">
            <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
               <Sparkles className="size-5 text-primary" />
            </div>
            <div>
-              <h1 className="text-lg font-black text-slate-900 leading-none text-left">AI Project Architect</h1>
+              <h1 id="post-job-page-heading" className="text-lg font-black text-slate-900 leading-none text-left">AI Project Architect</h1>
               <p className="text-xs font-medium text-slate-500 mt-1 text-left">Transform your ideas into high-quality technical requirements.</p>
            </div>
-        </div>
-        
-        <div className="flex items-center gap-6">
-           <div className="flex items-center gap-2">
-              {[1, 2, 3].map(i => {
-                const isActive = (i === 1 && step === 'PLANNING') || (i === 2 && step === 'DRAFTING');
-                
+         </div>
+         
+         <div className="flex items-center justify-between sm:justify-end gap-6">
+            <div className="flex items-center gap-2" aria-label="Job creation progress" role="img">
+               {[1, 2, 3].map(i => {
+                 const isActive = (i === 1 && step === 'PLANNING') || (i === 2 && step === 'DRAFTING');
+                 
                 return (
                   <div key={i} className={cn(
                     "size-2.5 rounded-full transition-all duration-500",
@@ -358,12 +361,13 @@ export const PostJobPage = () => {
         </div>
       </div>
 
-      {/* Main Interaction Area */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-hidden">
+       {/* Main Interaction Area */}
+      {/* Keep grid children allowed to shrink on large screens so only the draft pane scrolls when space is tight. */}
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
         
-        {/* Left: Chat Assistant */}
-        <div className={cn(
-          "h-full transition-all duration-500 flex flex-col",
+         {/* Left: Chat Assistant */}
+         <div className={cn(
+          "transition-all duration-500 flex flex-col",
           step === 'PLANNING' ? "lg:col-span-12 max-w-3xl mx-auto w-full" : "lg:col-span-5"
         )}>
           <AiChatPanel 
@@ -375,12 +379,12 @@ export const PostJobPage = () => {
           />
         </div>
 
-        {/* Right: Preview Form (Only if draft exists) */}
-        {step === 'DRAFTING' && suggestion && (
-          <div className="lg:col-span-7 h-full animate-in slide-in-from-right-10 duration-700">
-            <JobDraftForm 
-              suggestion={suggestion}
-              onUpdate={handleManualUpdate}
+         {/* Right: Preview Form (Only if draft exists) */}
+         {step === 'DRAFTING' && suggestion && (
+           <div className="lg:col-span-7 flex min-h-0 animate-in slide-in-from-right-10 duration-700">
+             <JobDraftForm 
+               suggestion={suggestion}
+               onUpdate={handleManualUpdate}
               onAccept={handleAccept}
               onSaveDraft={handleSaveDraft}
               isAccepting={acceptMutation.isPending}
@@ -396,6 +400,6 @@ export const PostJobPage = () => {
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Powered by AIVORA Intelligence v2.0</span>
          </div>
       </div>
-    </div>
+    </main>
   );
 };

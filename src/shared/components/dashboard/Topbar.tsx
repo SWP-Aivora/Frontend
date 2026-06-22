@@ -14,7 +14,7 @@ const ASSETS = {
   logoCircle: "/logo.png",
 };
 
-export const Topbar = ({ onMenuClick, onToggleSidebar, sidebarCollapsed, role }: TopbarProps) => {
+export const Topbar = ({ onMenuClick, onToggleSidebar, sidebarCollapsed }: TopbarProps) => {
   return (
     <header className="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-6 lg:px-8 shrink-0 relative z-30 shadow-sm">
       <div className="flex items-center gap-4 lg:gap-6 flex-1">
@@ -36,7 +36,7 @@ export const Topbar = ({ onMenuClick, onToggleSidebar, sidebarCollapsed, role }:
         </button>
 
         {/* Brand Header */}
-        <Link to={`/${role.toLowerCase()}`} className="flex items-center group shrink-0">
+        <Link to="/" className="flex items-center group shrink-0">
           <div className="relative w-32 h-12 overflow-hidden flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
             <img 
               src={ASSETS.logoCircle} 
