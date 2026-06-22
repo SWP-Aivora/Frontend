@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useDebouncedCallback } from '@/shared/hooks/useDebounce';
 
-type FlowStep = 'PLANNING' | 'DRAFTING' | 'MATCHING';
+type FlowStep = 'PLANNING' | 'DRAFTING' | 'REVIEWING' | 'MATCHING';
 
 export const PostJobPage = () => {
   const [step, setStep] = useState<FlowStep>('PLANNING');
@@ -107,22 +107,33 @@ export const PostJobPage = () => {
     }
   });
 
+  const publishMutation = useMutation({
+    mutationFn: (id: string) => jobService.publishJob(id),
+    onSuccess: () => {
+      setStep('MATCHING');
+      toast.success('Project published successfully!');
+    },
+    onError: (error: unknown) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to publish project');
+    }
+  });
+
   const acceptMutation = useMutation({
     mutationFn: () => {
       if (!suggestion?.id) throw new Error('No active session');
       return jobService.acceptAiJobSuggestion(suggestion.id);
     },
     onSuccess: (response) => {
-      if (response.data) {
+      if (response.data?.jobId) {
         setJobId(response.data.jobId);
-        setStep('MATCHING');
-        toast.success('Project published successfully!');
+        // After accepting (saving as DRAFT), immediately publish to make it OPEN
+        publishMutation.mutate(response.data.jobId);
       } else {
         toast.error('Failed to get project ID');
       }
     },
     onError: (error: unknown) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to publish project');
+      toast.error(error instanceof Error ? error.message : 'Failed to accept draft');
     }
   });
 
@@ -197,7 +208,7 @@ export const PostJobPage = () => {
   };
 
   const handleAccept = () => {
-    acceptMutation.mutate();
+    setStep('REVIEWING');
   };
 
   // --- Render ---
@@ -229,6 +240,84 @@ export const PostJobPage = () => {
             experts={recommendationsResponse?.data || []} 
           />
         )}
+      </div>
+    );
+  }
+
+  if (step === 'REVIEWING' && suggestion) {
+    const isPublishing = acceptMutation.isPending || publishMutation.isPending;
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-8 animate-in fade-in duration-500">
+        <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
+          <div className="flex items-center gap-4 mb-8 pb-6 border-b border-slate-100">
+            <div className="size-12 rounded-xl bg-brand-accent/10 flex items-center justify-center text-brand-accent">
+              <Sparkles className="size-6" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-slate-900">Review Project Details</h2>
+              <p className="text-slate-500">Your project is saved as a Draft. Review carefully before publishing to the marketplace.</p>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Project Title</h3>
+              <p className="text-xl font-bold text-slate-900">{suggestion.suggestedTitle}</p>
+            </div>
+            
+            <div>
+              <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Description</h3>
+              <p className="text-slate-700 whitespace-pre-wrap">{suggestion.suggestedDescription}</p>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <p className="text-xs font-bold text-slate-400 uppercase mb-1">Budget</p>
+                <p className="font-bold text-slate-900">${suggestion.suggestedBudgetMin} - ${suggestion.suggestedBudgetMax}</p>
+              </div>
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <p className="text-xs font-bold text-slate-400 uppercase mb-1">Timeline</p>
+                <p className="font-bold text-slate-900">{suggestion.suggestedTimelineDays} Days</p>
+              </div>
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <p className="text-xs font-bold text-slate-400 uppercase mb-1">Experience</p>
+                <p className="font-bold text-slate-900">{suggestion.experienceLevel || 'Expert'}</p>
+              </div>
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <p className="text-xs font-bold text-slate-400 uppercase mb-1">Domain</p>
+                <p className="font-bold text-slate-900">{suggestion.businessDomain || 'General'}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-10 flex gap-4 pt-6 border-t border-slate-100">
+            <Button 
+              variant="outline" 
+              onClick={() => setStep('DRAFTING')}
+              disabled={isPublishing}
+              className="px-8 rounded-full"
+            >
+              Back to Edit
+            </Button>
+            <Button 
+              onClick={() => acceptMutation.mutate()}
+              disabled={isPublishing}
+              className="px-8 rounded-full ml-auto"
+            >
+              {isPublishing ? (
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                  Publishing...
+                </>
+              ) : (
+                <>
+                  <Rocket className="mr-2 size-4" />
+                  Publish Project
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }

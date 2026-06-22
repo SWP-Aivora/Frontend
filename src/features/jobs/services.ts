@@ -16,6 +16,18 @@ export const jobService = {
     return normalizeBaseResponse<Job>(response);
   },
 
+  // Update job
+  updateJob: async (id: string, data: Partial<Job>): Promise<BaseResponse<Job>> => {
+    const response = await apiClient.put(`/jobs/${id}`, data);
+    return normalizeBaseResponse<Job>(response);
+  },
+
+  // Publish job
+  publishJob: async (id: string): Promise<BaseResponse<Job>> => {
+    const response = await apiClient.post(`/jobs/${id}/publish`);
+    return normalizeBaseResponse<Job>(response);
+  },
+
   // Get My Jobs (Client action)
   getMyJobs: async (): Promise<PaginatedResponse<Job>> => {
     /**
