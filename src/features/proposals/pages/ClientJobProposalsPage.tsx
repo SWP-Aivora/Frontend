@@ -1,6 +1,6 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { ProposalListCard } from '../components/ProposalListCard';
 import type { Proposal } from '../types';
 import type { Job } from '../../jobs/types';
@@ -27,9 +27,7 @@ import { Role, BudgetType, SkillLevel } from '@/shared/types/enums';
 export const ClientJobProposalsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [job, setJob] = useState<Job | null>(null);
-  const [proposals, setProposals] = useState<Proposal[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'best' | 'shortlisted'>('all');
   const [acceptedProposalId, setAcceptedProposalId] = useState<string | null>(null);
@@ -58,11 +56,30 @@ export const ClientJobProposalsPage = () => {
     toast.success('AI Insights updated!');
   };
 
+  const acceptMutation = useMutation({
+    mutationFn: (pid: string) => proposalService.acceptProposal(pid),
+    onSuccess: (_, pid) => {
+      setAcceptedProposalId(pid);
+      toast.success(`Proposal accepted! Transitioning to Workspace...`);
+      setTimeout(() => navigate(`/client/projects/${id}/workspace`), 2000);
+    },
+    onError: () => toast.error('Failed to accept proposal'),
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (pid: string) => proposalService.rejectProposal(pid),
+    onSuccess: () => {
+      toast.success(`Proposal declined.`);
+    },
+    onError: () => toast.error('Failed to decline proposal'),
+  });
+
   const onAccept = (pid: string) => {
-    setAcceptedProposalId(pid);
-    toast.success(`Proposal ${pid} accepted! Transitioning to Workspace...`);
+    acceptMutation.mutate(pid);
   };
-  const onReject = (pid: string) => toast.info(`Proposal ${pid} declined.`);
+  const onReject = (pid: string) => {
+    rejectMutation.mutate(pid);
+  };
   const onShortlist = (pid: string) => toast.success(`Expert added to shortlist with ID ${pid}.`);
 
   if (isLoading) {

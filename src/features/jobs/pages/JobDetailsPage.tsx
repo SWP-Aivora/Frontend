@@ -213,7 +213,11 @@ export const JobDetailsPage = () => {
                      <p className="text-xs text-emerald-700 font-medium mt-0.5">We will notify you when the client responds.</p>
                    </div>
                  </div>
-                 <Button variant="outline" className="w-full rounded-full h-12 font-bold text-slate-600 border-slate-200">
+                 <Button 
+                   variant="outline" 
+                   onClick={() => navigate('/expert/proposals')}
+                   className="w-full rounded-full h-12 font-bold text-slate-600 border-slate-200"
+                 >
                    View Your Proposal
                  </Button>
                </div>
