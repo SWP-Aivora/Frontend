@@ -152,6 +152,31 @@ export const ExpertPublicProfilePage = () => {
               </div>
             </div>
           </div>
+
+          {/* Divider */}
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-blue-200/50 to-transparent my-8" />
+          
+          {/* Stats Block */}
+          <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-blue-100/50 relative z-10">
+            <div className="p-4 md:p-6 text-center">
+              <div className="flex items-center justify-center gap-1 text-2xl font-bold text-brand-dark mb-1">
+                <Star className="w-5 h-5 text-amber-400 fill-amber-400" /> {rating.toFixed(1)}
+              </div>
+              <div className="text-xs font-medium text-brand-muted uppercase tracking-wider">Average Rating</div>
+            </div>
+            <div className="p-4 md:p-6 text-center">
+              <div className="text-2xl font-bold text-brand-dark mb-1">{displayProjects.length}</div>
+              <div className="text-xs font-medium text-brand-muted uppercase tracking-wider">Jobs Completed</div>
+            </div>
+            <div className="p-4 md:p-6 text-center">
+              <div className="text-2xl font-bold text-brand-dark mb-1">{displayReviews.length}</div>
+              <div className="text-xs font-medium text-brand-muted uppercase tracking-wider">Reviews</div>
+            </div>
+            <div className="p-4 md:p-6 text-center">
+              <div className="text-2xl font-bold text-brand-dark mb-1">100%</div>
+              <div className="text-xs font-medium text-brand-muted uppercase tracking-wider">On-Time Delivery</div>
+            </div>
+          </div>
         </div>
 
         {/* Navigation Tabs */}
