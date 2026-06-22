@@ -122,12 +122,11 @@ export const NotificationItem = ({ notification, onMarkAsRead }: NotificationIte
             </button>
           )}
           {viewUrl && (
-            <button
-              onClick={(e) => { e.stopPropagation(); handleView(); }}
-              className="px-4 py-1.5 bg-primary rounded-full text-xs font-semibold text-white shadow-sm hover:bg-primary/90 transition-colors pointer-events-none"
+            <span
+              className="px-4 py-1.5 bg-primary rounded-full text-xs font-semibold text-white shadow-sm transition-colors"
             >
               View
-            </button>
+            </span>
           )}
         </div>
       </div>

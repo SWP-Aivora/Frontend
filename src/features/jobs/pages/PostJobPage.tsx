@@ -211,6 +211,18 @@ export const PostJobPage = () => {
     setStep('REVIEWING');
   };
 
+  const handlePublishClick = () => {
+    if (window.confirm('Are you sure you want to publish this project to the marketplace?')) {
+      if (createdJobId) {
+        // If already accepted but publish failed previously, retry publish
+        publishMutation.mutate(createdJobId);
+      } else {
+        // Normal flow: accept then publish
+        acceptMutation.mutate();
+      }
+    }
+  };
+
   // --- Render ---
 
   if (step === 'MATCHING') {
@@ -294,13 +306,13 @@ export const PostJobPage = () => {
             <Button 
               variant="outline" 
               onClick={() => setStep('DRAFTING')}
-              disabled={isPublishing}
+              disabled={isPublishing || !!createdJobId}
               className="px-8 rounded-full"
             >
               Back to Edit
             </Button>
             <Button 
-              onClick={() => acceptMutation.mutate()}
+              onClick={handlePublishClick}
               disabled={isPublishing}
               className="px-8 rounded-full ml-auto"
             >

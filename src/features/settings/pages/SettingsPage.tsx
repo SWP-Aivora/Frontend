@@ -214,9 +214,9 @@ export const SettingsPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Interface Language</label>
-                  <select disabled className="w-full h-12 px-4 bg-slate-50/50 border border-slate-100 focus:bg-white rounded-xl text-sm font-medium appearance-none opacity-70 cursor-not-allowed">
-                    <option>English (US) - Unified Default</option>
-                  </select>
+                  <div className="w-full h-12 px-4 bg-slate-50/50 border border-slate-100 rounded-xl text-sm font-medium flex items-center text-slate-500">
+                    English (US) - Unified Default
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Timezone</label>

@@ -288,7 +288,7 @@ export const JobDraftForm = ({
               disabled={isAccepting}
               className="flex-[2] sm:flex-none rounded-full px-10 font-black shadow-xl shadow-primary/20 bg-primary hover:scale-[1.02] active:scale-95 transition-all"
             >
-              {isAccepting ? 'Publishing...' : 'Publish Project'}
+              Continue to Review
             </Button>
          </div>
       </div>
