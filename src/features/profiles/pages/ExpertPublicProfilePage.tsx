@@ -80,6 +80,7 @@ export const ExpertPublicProfilePage = () => {
   const location = 'Global';
   const hourlyRate = profile?.hourlyRate || 0;
   const rating = parseFloat(avgRating) || 0;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const skills = (profile as any)?.expertSkills || [];
   
   const displayReviews = reviews;
@@ -205,6 +206,7 @@ export const ExpertPublicProfilePage = () => {
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 mt-6">
                 <h3 className="font-bold text-brand-dark mb-4">Skills & Expertise</h3>
                 <div className="flex flex-wrap gap-2">
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   {skills.map((skill: any, idx: number) => (
                     <span key={idx} className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-sm font-medium border border-blue-100">
                       {skill}

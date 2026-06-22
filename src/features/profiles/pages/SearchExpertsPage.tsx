@@ -18,6 +18,7 @@ export const SearchExpertsPage = () => {
   const categories = ['All', 'Chatbots', 'Computer Vision', 'LLM Integration', 'Data Science', 'Automation'];
 
   // Local filtering since backend doesn't have a search endpoint yet
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const filteredExperts = experts.filter((expert: any) => {
     const name = expert.user?.fullName || '';
     const title = expert.title || '';
@@ -36,6 +37,9 @@ export const SearchExpertsPage = () => {
     
     return activeCategory === 'All' ? matchesSearch : false;
   });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const expertsList: any[] = filteredExperts;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
@@ -176,7 +180,8 @@ export const SearchExpertsPage = () => {
                 <AlertCircle className="size-10 text-destructive" />
                 <p className="text-slate-500 font-bold">Failed to load experts. Please try again.</p>
               </div>
-            ) : filteredExperts.map((expert: any) => {
+            ) : (
+              expertsList.map((expert) => {
               const name = expert.user?.fullName || 'Anonymous Expert';
               const location = expert.user?.location || 'Global';
               const rating = 5.0; // Mocking since API doesn't provide rating yet
@@ -252,7 +257,8 @@ export const SearchExpertsPage = () => {
                   </div>
                 </div>
               </div>
-            )})}
+            )})
+            )}
 
             {!isLoading && !isError && filteredExperts.length === 0 && (
               <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[32px] p-16 flex flex-col items-center justify-center text-center">

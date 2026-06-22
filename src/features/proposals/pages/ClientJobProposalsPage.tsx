@@ -43,6 +43,8 @@ export const ClientJobProposalsPage = () => {
 
   const job = jobResponse?.data;
   const proposals = proposalsResponse?.data || [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const proposalList: any[] = proposals;
   const isLoading = isJobLoading || isProposalsLoading;
 
   const handleGenerateAI = async () => {
@@ -154,7 +156,7 @@ export const ClientJobProposalsPage = () => {
            </div>
 
             <div className="space-y-4">
-              {proposals.map((p: any, i: number) => (
+              {proposalList.map((p, i) => (
                 <div 
                   key={p.id}
                   className={cn(
