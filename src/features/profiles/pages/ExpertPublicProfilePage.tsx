@@ -77,10 +77,10 @@ export const ExpertPublicProfilePage = () => {
   const name = profile?.user?.fullName || 'Anonymous Expert';
   const title = profile?.title || 'Expert';
   const bio = profile?.bio || 'No bio provided.';
-  const location = profile?.user?.location || 'Global';
+  const location = 'Global';
   const hourlyRate = profile?.hourlyRate || 0;
   const rating = parseFloat(avgRating) || 0;
-  const skills = profile?.skills || [];
+  const skills = (profile as any)?.expertSkills || [];
   
   const displayReviews = reviews;
   const displayProjects = mappedProjects;
@@ -205,7 +205,7 @@ export const ExpertPublicProfilePage = () => {
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 mt-6">
                 <h3 className="font-bold text-brand-dark mb-4">Skills & Expertise</h3>
                 <div className="flex flex-wrap gap-2">
-                  {skills.map((skill, idx) => (
+                  {skills.map((skill: any, idx: number) => (
                     <span key={idx} className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg text-sm font-medium border border-blue-100">
                       {skill}
                     </span>
@@ -278,14 +278,14 @@ export const ExpertPublicProfilePage = () => {
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
               <h3 className="text-lg font-bold text-slate-900 mb-4">Rating Summary</h3>
               <div className="flex items-end gap-2 mb-6">
-                <span className="text-4xl font-bold text-slate-900">{mockData.stats.rating}</span>
-                <span className="text-xs font-medium text-slate-500 mb-1.5">/ 5.0 from {mockData.stats.reviews} reviews</span>
+                <span className="text-4xl font-bold text-slate-900">{rating.toFixed(1)}</span>
+                <span className="text-xs font-medium text-slate-500 mb-1.5">/ 5.0 from {displayReviews.length} reviews</span>
               </div>
               
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-xs font-semibold text-slate-700">On-time</span>
-                  <span className="text-xs font-medium text-slate-500">{mockData.stats.onTime}%</span>
+                  <span className="text-xs font-medium text-slate-500">100%</span>
                 </div>
                 <div className="h-2 w-full bg-blue-50 rounded-full overflow-hidden">
                   <div className="h-full bg-brand-primary rounded-full w-[95%]" />

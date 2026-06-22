@@ -14,25 +14,25 @@ export const SearchExpertsPage = () => {
     queryFn: () => profileService.getFeaturedExperts(20), // Fetch a larger batch for local filtering
   });
 
-  const experts = response?.data?.items || [];
+  const experts = response?.data || [];
   const categories = ['All', 'Chatbots', 'Computer Vision', 'LLM Integration', 'Data Science', 'Automation'];
 
   // Local filtering since backend doesn't have a search endpoint yet
-  const filteredExperts = experts.filter(expert => {
+  const filteredExperts = experts.filter((expert: any) => {
     const name = expert.user?.fullName || '';
     const title = expert.title || '';
-    const skills = expert.skills || [];
+    const skills: string[] = expert.expertSkills || expert.skills || [];
     
     const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          skills.some(s => s.toLowerCase().includes(searchTerm.toLowerCase()));
+                          skills.some((s: string) => s.toLowerCase().includes(searchTerm.toLowerCase()));
     
     // Simple mock category filtering logic
     if (activeCategory === 'All') return matchesSearch;
-    if (activeCategory === 'Chatbots' && skills.some(s => s.toLowerCase().includes('bot'))) return matchesSearch;
-    if (activeCategory === 'Computer Vision' && skills.some(s => s.toLowerCase().includes('vision'))) return matchesSearch;
-    if (activeCategory === 'LLM Integration' && skills.some(s => s.toLowerCase().includes('llm') || s.toLowerCase().includes('langchain'))) return matchesSearch;
-    if (activeCategory === 'Data Science' && skills.some(s => s.toLowerCase().includes('data'))) return matchesSearch;
+    if (activeCategory === 'Chatbots' && skills.some((s: string) => s.toLowerCase().includes('bot'))) return matchesSearch;
+    if (activeCategory === 'Computer Vision' && skills.some((s: string) => s.toLowerCase().includes('vision'))) return matchesSearch;
+    if (activeCategory === 'LLM Integration' && skills.some((s: string) => s.toLowerCase().includes('llm') || s.toLowerCase().includes('langchain'))) return matchesSearch;
+    if (activeCategory === 'Data Science' && skills.some((s: string) => s.toLowerCase().includes('data'))) return matchesSearch;
     
     return activeCategory === 'All' ? matchesSearch : false;
   });
@@ -79,7 +79,7 @@ export const SearchExpertsPage = () => {
               <h3 className="font-bold text-slate-900 flex items-center gap-2">
                 <SlidersHorizontal className="size-4" /> Filters
               </h3>
-              <button className="text-xs font-bold text-primary hover:underline">Clear all</button>
+              <button onClick={() => {setSearchTerm(''); setActiveCategory('All');}} className="text-xs font-bold text-primary hover:underline">Clear all</button>
             </div>
             
             <div className="space-y-6">
@@ -176,7 +176,7 @@ export const SearchExpertsPage = () => {
                 <AlertCircle className="size-10 text-destructive" />
                 <p className="text-slate-500 font-bold">Failed to load experts. Please try again.</p>
               </div>
-            ) : filteredExperts.map((expert) => {
+            ) : filteredExperts.map((expert: any) => {
               const name = expert.user?.fullName || 'Anonymous Expert';
               const location = expert.user?.location || 'Global';
               const rating = 5.0; // Mocking since API doesn't provide rating yet
@@ -220,13 +220,13 @@ export const SearchExpertsPage = () => {
                     <p className="text-sm text-slate-600 leading-relaxed line-clamp-2">
                       {expert.bio}
                     </p>
-                    <div className="flex flex-wrap gap-2">
-                      {expert.skills?.slice(0, 5).map((skill) => (
+                    <div className="flex flex-wrap gap-2 mb-6">
+                      {(expert.expertSkills || expert.skills || []).slice(0, 3).map((skill: string) => (
                         <span key={skill} className="px-2.5 py-1 bg-slate-50 text-slate-600 rounded-md text-[10px] font-bold uppercase tracking-wider border border-slate-100">
                           {skill}
                         </span>
                       ))}
-                      {(expert.skills?.length || 0) > 5 && (
+                      {(expert.skills?.length || 0) > 3 && (
                         <span className="px-2.5 py-1 bg-slate-50 text-slate-400 rounded-md text-[10px] font-bold uppercase tracking-wider border border-slate-100">
                           +{(expert.skills?.length || 0) - 5}
                         </span>

@@ -42,7 +42,7 @@ export const ClientJobProposalsPage = () => {
   });
 
   const job = jobResponse?.data;
-  const proposals = proposalsResponse?.data?.items || [];
+  const proposals = proposalsResponse?.data || [];
   const isLoading = isJobLoading || isProposalsLoading;
 
   const handleGenerateAI = async () => {
@@ -153,8 +153,8 @@ export const ClientJobProposalsPage = () => {
               </div>
            </div>
 
-           <div className="space-y-4">
-              {proposals.map((p, i) => (
+            <div className="space-y-4">
+              {proposals.map((p: any, i: number) => (
                 <div 
                   key={p.id}
                   className={cn(
