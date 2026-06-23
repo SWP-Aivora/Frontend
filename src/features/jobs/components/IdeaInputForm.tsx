@@ -17,9 +17,10 @@ export const IdeaInputForm = () => {
       expectedOutcome: '',
       category: '',
       domain: '',
-      budgetType: 'fixed',
-      budgetRange: '',
-      timeline: '',
+      budgetType: 0,
+      budgetMin: 500,
+      budgetMax: 1000,
+      timelineDays: 14,
       additionalNotes: '',
     }
   });
@@ -107,14 +108,18 @@ export const IdeaInputForm = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">Budget Estimate</label>
-            <Input {...register('budgetRange')} placeholder="e.g., $500 - $1,000" className="h-12 rounded-xl bg-slate-50 border-slate-100 focus:bg-white" />
+            <label className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">Min Budget ($)</label>
+            <Input type="number" {...register('budgetMin', { valueAsNumber: true })} placeholder="500" className="h-12 rounded-xl bg-slate-50 border-slate-100 focus:bg-white" />
           </div>
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">Timeline</label>
-            <Input {...register('timeline')} placeholder="e.g., 14 days" className="h-12 rounded-xl bg-slate-50 border-slate-100 focus:bg-white" />
+            <label className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">Max Budget ($)</label>
+            <Input type="number" {...register('budgetMax', { valueAsNumber: true })} placeholder="1000" className="h-12 rounded-xl bg-slate-50 border-slate-100 focus:bg-white" />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">Timeline (Days)</label>
+            <Input type="number" {...register('timelineDays', { valueAsNumber: true })} placeholder="14" className="h-12 rounded-xl bg-slate-50 border-slate-100 focus:bg-white" />
           </div>
         </div>
 
