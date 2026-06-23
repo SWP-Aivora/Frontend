@@ -55,12 +55,21 @@ jobs:
 
       - name: Generate PR diff
         id: diff
+        continue-on-error: true
         run: |
-          DIFF_OUTPUT="$(git diff origin/${{ steps.pr-info.outputs.targetBranch }}..${{ steps.pr-info.outputs.headBranch }} 2>/dev/null | head -500)"
-          if [ -z "$DIFF_OUTPUT" ]; then
-            DIFF_OUTPUT="No diff available"
+          # Safe diff generation with error handling
+          if git rev-parse --verify origin/${{ steps.pr-info.outputs.targetBranch }} >/dev/null 2>&1; then
+            DIFF_OUTPUT="$(git diff origin/${{ steps.pr-info.outputs.targetBranch }}..${{ steps.pr-info.outputs.headBranch }} 2>/dev/null | head -500)"
+          else
+            DIFF_OUTPUT="Branch reference unavailable"
           fi
+
+          if [ -z "$DIFF_OUTPUT" ]; then
+            DIFF_OUTPUT="No diff changes detected"
+          fi
+
           echo "diff=$DIFF_OUTPUT" >> $GITHUB_OUTPUT
+          echo "Generated diff successfully"
 
       - name: Create review
         run: |
