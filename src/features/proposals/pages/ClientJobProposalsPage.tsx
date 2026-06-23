@@ -1,8 +1,9 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { ProposalListCard } from '../components/ProposalListCard';
-import type { Proposal } from '../types';
-import type { Job } from '../../jobs/types';
+import { jobService } from '../../jobs/services';
+import { proposalService } from '../services';
 import { 
   ChevronLeft, 
   Sparkles, 
@@ -19,83 +20,32 @@ import {
 import { Button } from '@/shared/components/ui/Button';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { Role, BudgetType, SkillLevel } from '@/shared/types/enums';
 
 export const ClientJobProposalsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [job, setJob] = useState<Job | null>(null);
-  const [proposals, setProposals] = useState<Proposal[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'best' | 'shortlisted'>('all');
+  const [acceptedProposalId, setAcceptedProposalId] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Mock loading data for premium feel
-    const loadData = async () => {
-      setIsLoading(true);
-      try {
-        // In real app: const [jobRes, propRes] = await Promise.all([jobService.getJobById(id!), jobService.getProposalsByJobId(id!)]);
-        // For now, mock data:
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setJob({
-          id: id!,
-          title: 'Computer Vision Model for Medical Imaging',
-          originalDescription: '',
-          finalDescription: 'Medical image classification model...',
-          businessDomain: 'Healthcare',
-          expectedOutcome: 'A high-accuracy model for diabetic retinopathy detection.',
-          categoryId: 'cv',
-          budgetType: BudgetType.FIXED,
-          budgetMin: 3000,
-          budgetMax: 5000,
-          currency: 'USD',
-          timelineDays: 30,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          deadline: null,
-          experienceLevel: SkillLevel.EXPERT,
-          visibility: 1,
-          status: 1,
-          clientId: 'me',
-          client: { id: 'me', fullName: 'Me', avatarUrl: null, role: Role.CLIENT },
-          skills: [{ id: '1', name: 'PyTorch' }, { id: '2', name: 'Computer Vision' }]
-        });
+  const { data: jobResponse, isLoading: isJobLoading } = useQuery({
+    queryKey: ['job', id],
+    queryFn: () => jobService.getJobById(id!),
+    enabled: !!id,
+  });
 
-        setProposals([
-          {
-            id: 'p1',
-            jobId: id!,
-            expertId: 'e1',
-            coverLetter: 'I have 5 years of experience in medical imaging...',
-            proposedBudget: 4500,
-            proposedTimelineDays: 25,
-            status: 1,
-            createdAt: new Date().toISOString(),
-            milestones: [{ id: 'm1', title: 'Data Prep', amount: 1000, dueDays: 5, orderIndex: 0, description: null, acceptanceCriteria: null }],
-            expert: { id: 'e1', fullName: 'Dr. Alex Rivera', avatarUrl: null, role: Role.EXPERT }
-          },
-          {
-            id: 'p2',
-            jobId: id!,
-            expertId: 'e2',
-            coverLetter: 'Expert in PyTorch and ResNet architectures. I can deliver high accuracy...',
-            proposedBudget: 3500,
-            proposedTimelineDays: 30,
-            status: 1,
-            createdAt: new Date().toISOString(),
-            milestones: [],
-            expert: { id: 'e2', fullName: 'Sarah Chen', avatarUrl: null, role: Role.EXPERT }
-          }
-        ]);
-      } catch {
-        toast.error('Failed to load project details');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadData();
-  }, [id]);
+  const { data: proposalsResponse, isLoading: isProposalsLoading } = useQuery({
+    queryKey: ['proposals', id],
+    queryFn: () => proposalService.getProposalsByJobId(id!),
+    enabled: !!id,
+  });
+
+  const job = jobResponse?.data;
+  const proposals = proposalsResponse?.data || [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const proposalList: any[] = proposals;
+  const isLoading = isJobLoading || isProposalsLoading;
 
   const handleGenerateAI = async () => {
     setIsGeneratingAI(true);
@@ -105,8 +55,30 @@ export const ClientJobProposalsPage = () => {
     toast.success('AI Insights updated!');
   };
 
-  const onAccept = (pid: string) => toast.success(`Proposal ${pid} accepted! Transitioning to Workspace...`);
-  const onReject = (pid: string) => toast.info(`Proposal ${pid} declined.`);
+  const acceptMutation = useMutation({
+    mutationFn: (pid: string) => proposalService.acceptProposal(pid),
+    onSuccess: (_, pid) => {
+      setAcceptedProposalId(pid);
+      toast.success(`Proposal accepted! Transitioning to Workspace...`);
+      setTimeout(() => navigate(`/client/projects/${id}/workspace`), 2000);
+    },
+    onError: () => toast.error('Failed to accept proposal'),
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (pid: string) => proposalService.rejectProposal(pid),
+    onSuccess: () => {
+      toast.success(`Proposal declined.`);
+    },
+    onError: () => toast.error('Failed to decline proposal'),
+  });
+
+  const onAccept = (pid: string) => {
+    acceptMutation.mutate(pid);
+  };
+  const onReject = (pid: string) => {
+    rejectMutation.mutate(pid);
+  };
   const onShortlist = (pid: string) => toast.success(`Expert added to shortlist with ID ${pid}.`);
 
   if (isLoading) {
@@ -136,23 +108,6 @@ export const ClientJobProposalsPage = () => {
         </div>
         <div className="flex items-center gap-3">
            <Button variant="outline" className="rounded-full border-slate-200">Edit Job</Button>
-           <Button 
-             onClick={() => navigate('/reviews', { 
-               state: { 
-                 id: job?.id,
-                 title: job?.title,
-                 milestone: 'Final Project Completion', // Default for this page
-                 completedDate: new Date().toLocaleDateString(),
-                 clientName: job?.client?.fullName || 'Client',
-                 expertName: proposals.find(p => p.status === 2)?.expert?.fullName || 'Selected Expert', // Status 2 could mean accepted/completed
-                 amount: `${job?.budgetMin}-${job?.budgetMax} ${job?.currency}`,
-                 revieweeId: proposals.find(p => p.status === 2)?.expertId || proposals[0]?.expertId // Fallback to first if none accepted (for mock purpose)
-               } 
-             })}
-             className="rounded-full shadow-lg shadow-primary/20"
-           >
-             Finish Project
-           </Button>
         </div>
       </div>
 
@@ -200,16 +155,24 @@ export const ClientJobProposalsPage = () => {
               </div>
            </div>
 
-           <div className="space-y-4">
-              {proposals.map((p, i) => (
-                <ProposalListCard 
-                  key={p.id} 
-                  proposal={p} 
-                  onAccept={onAccept}
-                  onReject={onReject}
-                  onShortlist={onShortlist}
-                  aiMatchScore={i === 0 ? 94 : 78} // Simulating scores
-                />
+            <div className="space-y-4">
+              {proposalList.map((p, i) => (
+                <div 
+                  key={p.id}
+                  className={cn(
+                    "transition-all duration-500",
+                    acceptedProposalId && acceptedProposalId !== p.id && "opacity-50 pointer-events-none grayscale-[50%]"
+                  )}
+                >
+                  <ProposalListCard 
+                    proposal={p} 
+                    onAccept={onAccept}
+                    onReject={onReject}
+                    onShortlist={onShortlist}
+                    aiMatchScore={i === 0 ? 94 : 78} // Simulating scores
+                    isAccepted={acceptedProposalId === p.id}
+                  />
+                </div>
               ))}
            </div>
         </div>

@@ -71,7 +71,10 @@ export const NotificationItem = ({ notification, onMarkAsRead }: NotificationIte
   };
 
   return (
-    <div className="relative bg-white border border-slate-200 h-24 overflow-hidden rounded-xl shadow-sm flex items-center hover:bg-slate-50 transition-colors">
+    <div 
+      onClick={viewUrl ? handleView : undefined}
+      className={`relative bg-white border border-slate-200 h-24 overflow-hidden rounded-xl shadow-sm flex items-center transition-colors ${viewUrl ? 'cursor-pointer hover:bg-slate-50' : 'hover:bg-slate-50'}`}
+    >
       {/* Unread Stripe */}
       {isUnread && (
         <div className={`absolute left-0 top-0 bottom-0 w-[5px] ${notification.type === NotificationType.PAYMENT_RELEASED ? 'bg-emerald-600' : 'bg-primary'}`} />
@@ -112,19 +115,18 @@ export const NotificationItem = ({ notification, onMarkAsRead }: NotificationIte
         <div className="flex items-center gap-2">
           {isUnread && (
             <button 
-              onClick={() => onMarkAsRead(notification.id)}
+              onClick={(e) => { e.stopPropagation(); onMarkAsRead(notification.id); }}
               className="px-4 py-1.5 border border-primary/20 rounded-full text-xs font-semibold text-primary hover:bg-primary/5 transition-colors"
             >
               Mark Read
             </button>
           )}
           {viewUrl && (
-            <button
-              onClick={handleView}
-              className="px-4 py-1.5 bg-primary rounded-full text-xs font-semibold text-white shadow-sm hover:bg-primary/90 transition-colors"
+            <span
+              className="px-4 py-1.5 bg-primary rounded-full text-xs font-semibold text-white shadow-sm transition-colors"
             >
               View
-            </button>
+            </span>
           )}
         </div>
       </div>

@@ -1,6 +1,6 @@
 import type { Proposal } from '../types';
 import { Button } from '@/shared/components/ui/Button';
-import { DollarSign, Clock, ExternalLink, XCircle, Star } from 'lucide-react';
+import { DollarSign, Clock, ExternalLink, XCircle, Star, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ProposalListCardProps {
@@ -9,6 +9,7 @@ interface ProposalListCardProps {
   onReject: (id: string) => void;
   onShortlist: (id: string) => void;
   aiMatchScore?: number;
+  isAccepted?: boolean;
 }
 
 export const ProposalListCard = ({ 
@@ -16,12 +17,14 @@ export const ProposalListCard = ({
   onAccept, 
   onReject, 
   onShortlist,
-  aiMatchScore = 0 
+  aiMatchScore = 0,
+  isAccepted = false
 }: ProposalListCardProps) => {
   return (
     <div className={cn(
       "group bg-white border border-slate-100 rounded-xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 relative overflow-hidden",
-      aiMatchScore >= 90 && "border-brand-accent/30 shadow-brand-accent/5 bg-gradient-to-br from-white to-brand-accent/[0.02]"
+      aiMatchScore >= 90 && !isAccepted && "border-brand-accent/30 shadow-brand-accent/5 bg-gradient-to-br from-white to-brand-accent/[0.02]",
+      isAccepted && "border-emerald-500 shadow-emerald-500/20 bg-emerald-50/30"
     )}>
       {/* AI Best Match Ribbon */}
       {aiMatchScore >= 90 && (
@@ -104,26 +107,35 @@ export const ProposalListCard = ({
 
         {/* Actions */}
         <div className="flex flex-row md:flex-col justify-end md:justify-start gap-2 min-w-[120px] pt-4 md:pt-0">
-           <Button 
-             onClick={() => onAccept(proposal.id)}
-             className="flex-1 md:w-full rounded-xl font-bold h-10 shadow-lg shadow-primary/20"
-           >
-             Accept
-           </Button>
-           <Button 
-             variant="outline" 
-             onClick={() => onShortlist(proposal.id)}
-             className="flex-1 md:w-full rounded-xl font-bold h-10 border-slate-200 hover:bg-slate-50 text-slate-600"
-           >
-             Shortlist
-           </Button>
-           <Button 
-             variant="ghost" 
-             onClick={() => onReject(proposal.id)}
-             className="size-10 rounded-xl hover:bg-destructive/10 hover:text-destructive text-slate-400 shrink-0"
-           >
-             <XCircle className="size-5" />
-           </Button>
+           {isAccepted ? (
+             <div className="flex flex-col items-center justify-center bg-emerald-500 text-white rounded-xl h-full p-2 w-full font-black text-sm text-center shadow-lg shadow-emerald-500/30">
+               <CheckCircle2 className="size-6 mb-1" />
+               Accepted
+             </div>
+           ) : (
+             <>
+               <Button 
+                 onClick={() => onAccept(proposal.id)}
+                 className="flex-1 md:w-full rounded-xl font-bold h-10 shadow-lg shadow-primary/20"
+               >
+                 Accept
+               </Button>
+               <Button 
+                 variant="outline" 
+                 onClick={() => onShortlist(proposal.id)}
+                 className="flex-1 md:w-full rounded-xl font-bold h-10 border-slate-200 hover:bg-slate-50 text-slate-600"
+               >
+                 Shortlist
+               </Button>
+               <Button 
+                 variant="ghost" 
+                 onClick={() => onReject(proposal.id)}
+                 className="size-10 rounded-xl hover:bg-destructive/10 hover:text-destructive text-slate-400 shrink-0"
+               >
+                 <XCircle className="size-5" />
+               </Button>
+             </>
+           )}
         </div>
       </div>
     </div>

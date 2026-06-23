@@ -28,6 +28,7 @@ interface JobDraftFormProps {
   onAccept: () => void;
   onSaveDraft: () => void;
   isAccepting: boolean;
+  isGenerating?: boolean;
 }
 
 export const JobDraftForm = ({ 
@@ -35,7 +36,8 @@ export const JobDraftForm = ({
   onUpdate, 
   onAccept,
   onSaveDraft,
-  isAccepting 
+  isAccepting,
+  isGenerating = false
 }: JobDraftFormProps) => {
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<JobDraftFormValues>({
     resolver: zodResolver(jobDraftSchema),
@@ -84,7 +86,10 @@ export const JobDraftForm = ({
   return (
     <section
       aria-labelledby="job-draft-heading"
-      className="flex h-full min-h-0 flex-col bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden"
+      className={cn(
+        "flex h-full min-h-0 flex-col bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden transition-all duration-300",
+        isGenerating && "opacity-50 pointer-events-none"
+      )}
     >
       {/* Header */}
       <div className="p-6 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
@@ -288,7 +293,7 @@ export const JobDraftForm = ({
               disabled={isAccepting}
               className="flex-[2] sm:flex-none rounded-full px-10 font-black shadow-xl shadow-primary/20 bg-primary hover:scale-[1.02] active:scale-95 transition-all"
             >
-              {isAccepting ? 'Publishing...' : 'Publish Project'}
+              Continue to Review
             </Button>
          </div>
       </div>

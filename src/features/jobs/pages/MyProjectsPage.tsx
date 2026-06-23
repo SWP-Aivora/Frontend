@@ -5,18 +5,27 @@ import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { projectService } from '@/features/projects/services';
+import { jobService } from '@/features/jobs/services';
 import { ProjectStatus } from '@/shared/types/enums';
-
+import { useAuthStore } from '@/features/auth/store';
 
 type StatusFilter = 'all' | 'draft' | 'open' | 'in-progress' | 'completed';
 
 export const MyProjectsPage = () => {
   const [filter, setFilter] = useState<StatusFilter>('all');
+  const { user } = useAuthStore();
 
-  const { data: projectsResponse, isLoading } = useQuery({
+  const { data: projectsResponse, isLoading: isLoadingProjects } = useQuery({
     queryKey: ['clientProjects'],
     queryFn: () => projectService.getProjects(),
   });
+
+  const { data: jobsResponse, isLoading: isLoadingJobs } = useQuery({
+    queryKey: ['clientJobs'],
+    queryFn: () => jobService.getMyJobs(),
+  });
+
+  const isLoading = isLoadingProjects || isLoadingJobs;
 
   // Map API ProjectStatus to our UI filter statuses
   const mapStatusToUI = (status: ProjectStatus): StatusFilter => {
@@ -35,11 +44,32 @@ export const MyProjectsPage = () => {
     status: mapStatusToUI(p.status),
     createdAt: new Date(p.createdAt).toLocaleDateString(),
     budget: `$${p.totalBudget.toLocaleString()}`,
-    proposals: 0,
+    proposals: 0, // In backend v1, projects don't have proposal count attached easily
     domain: 'General',
   })) || [];
 
-  const displayProjects = apiProjects;
+  const mapJobStatusToUI = (status: number): StatusFilter => {
+    // 0: Draft, 1: Published
+    switch (status) {
+      case 0: return 'draft';
+      case 1: return 'open';
+      default: return 'open';
+    }
+  };
+
+  const apiJobs = jobsResponse?.data
+    ?.filter(j => j.clientId === user?.id && (j.status === 0 || j.status === 1))
+    .map(j => ({
+      id: j.id,
+      title: j.title,
+      status: mapJobStatusToUI(j.status),
+      createdAt: new Date(j.createdAt).toLocaleDateString(),
+      budget: `$${j.budgetMin?.toLocaleString() || 0} - $${j.budgetMax?.toLocaleString() || 0}`,
+      proposals: 0, // Fallback, could fetch separately
+      domain: j.businessDomain || 'General',
+    })) || [];
+
+  const displayProjects = [...apiJobs, ...apiProjects].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const filteredProjects = displayProjects.filter(p => filter === 'all' || p.status === filter);
 

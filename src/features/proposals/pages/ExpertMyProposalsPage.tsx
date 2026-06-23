@@ -182,11 +182,22 @@ export const ExpertMyProposalsPage = () => {
                        </div>
                     </div>
 
-                    <div className="flex items-center md:items-start justify-end min-w-[140px]">
-                       <Button variant="ghost" className="rounded-full bg-slate-50 hover:bg-brand-accent hover:text-white group/btn pr-3 pl-6">
-                          View Proposal
-                          <ArrowRight className="size-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />
-                       </Button>
+                    <div className="flex flex-col items-center md:items-end justify-center gap-2 min-w-[140px]">
+                       {proposal.status === 2 ? (
+                         <Button asChild className="w-full rounded-full bg-emerald-600 hover:bg-emerald-700 text-white group/btn pr-3 pl-6 shadow-lg shadow-emerald-600/20">
+                            <Link to={`/expert/projects/${proposal.jobId}`}>
+                              Go to Workspace
+                              <ArrowRight className="size-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />
+                            </Link>
+                         </Button>
+                       ) : (
+                         <Button asChild variant="ghost" className="w-full rounded-full bg-slate-50 hover:bg-brand-accent hover:text-white group/btn pr-3 pl-6 border border-slate-100">
+                            <Link to={`/expert/jobs/${proposal.jobId}`}>
+                              View Details
+                              <ArrowRight className="size-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />
+                            </Link>
+                         </Button>
+                       )}
                     </div>
                  </div>
               </div>
