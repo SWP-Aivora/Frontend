@@ -269,6 +269,27 @@ jobs:
           head_sha = os.environ['HEAD_SHA']
           repo = os.environ['REPO']
 
+          # Dismiss any previous reviews from this bot to avoid stale REQUEST_CHANGES blocking PRs
+          prev_reviews = subprocess.run(
+              ['gh', 'api', f'repos/{repo}/pulls/{pr_number}/reviews', '--jq',
+               '[.[] | select(.user.login == "github-actions[bot]" and .state == "CHANGES_REQUESTED") | .id]'],
+              capture_output=True, text=True,
+          )
+          if prev_reviews.returncode == 0 and prev_reviews.stdout.strip():
+              try:
+                  review_ids = json.loads(prev_reviews.stdout.strip())
+                  for rid in review_ids:
+                      subprocess.run(
+                          ['gh', 'api', '--method', 'PUT',
+                           f'repos/{repo}/pulls/{pr_number}/reviews/{rid}/dismissals',
+                           '-f', 'message=Superseded by new review run',
+                           '-f', 'event=DISMISS'],
+                          capture_output=True, text=True,
+                      )
+                      print(f'Dismissed previous review {rid}')
+              except (json.JSONDecodeError, TypeError):
+                  pass  # No previous reviews to dismiss
+
           CATEGORY_ICONS = {
               'bug': '🐛',
               'security': '🔒',
