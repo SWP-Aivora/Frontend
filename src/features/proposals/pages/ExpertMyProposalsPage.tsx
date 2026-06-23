@@ -18,6 +18,7 @@ import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 export const ExpertMyProposalsPage = () => {
+  // Tự động gọi API lấy toàn bộ lịch sử nộp đơn của Expert đang đăng nhập
   const { data: response, isLoading, isError } = useQuery({
     queryKey: ['myProposals'],
     queryFn: proposalService.getMyProposals,
@@ -35,6 +36,7 @@ export const ExpertMyProposalsPage = () => {
     }
   };
 
+  // Logic lọc các đơn báo giá theo trạng thái (Pending, Accepted, Declined)
   const filteredProposals = proposals.filter(p => {
     if (filter === 'all') return true;
     if (filter === 'pending') return p.status === 1;

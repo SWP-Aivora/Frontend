@@ -1,3 +1,4 @@
+// Cấu hình các hàm gọi API (axios) quản lý Không gian làm việc chung (Project Workspace) và Mốc tiến độ (Milestone)
 import apiClient from '@/lib/axios';
 import type { Project, Milestone, Deliverable } from './types';
 import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';

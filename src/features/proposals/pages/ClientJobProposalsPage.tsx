@@ -29,12 +29,14 @@ export const ClientJobProposalsPage = () => {
   const [activeTab, setActiveTab] = useState<'all' | 'best' | 'shortlisted'>('all');
   const [acceptedProposalId, setAcceptedProposalId] = useState<string | null>(null);
 
+  // Lấy chi tiết Job hiện tại
   const { data: jobResponse, isLoading: isJobLoading } = useQuery({
     queryKey: ['job', id],
     queryFn: () => jobService.getJobById(id!),
     enabled: !!id,
   });
 
+  // Lấy danh sách toàn bộ Proposal (Đơn báo giá) của Job này
   const { data: proposalsResponse, isLoading: isProposalsLoading } = useQuery({
     queryKey: ['proposals', id],
     queryFn: () => proposalService.getProposalsByJobId(id!),
@@ -55,6 +57,8 @@ export const ClientJobProposalsPage = () => {
     toast.success('AI Insights updated!');
   };
 
+  // Xử lý logic khi Client bấm Accept một Proposal
+  // Ghi chú cho BE: API này không chỉ đổi trạng thái Proposal, mà phải tự động tạo luôn Project Workspace
   const acceptMutation = useMutation({
     mutationFn: (pid: string) => proposalService.acceptProposal(pid),
     onSuccess: (_, pid) => {
