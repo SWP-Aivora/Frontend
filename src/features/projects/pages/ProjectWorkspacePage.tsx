@@ -26,12 +26,14 @@ export const ProjectWorkspacePage = () => {
   const [selectedMilestone, setSelectedMilestone] = useState<Milestone | null>(null);
   const [isFinishModalOpen, setIsFinishModalOpen] = useState(false);
 
+  // Fetch toàn bộ thông tin chi tiết của Project (Hợp đồng làm việc)
   const { data: projectResponse, isLoading: isLoadingProject } = useQuery({
     queryKey: ['project', id],
     queryFn: () => projectService.getProjectById(id!),
     enabled: !!id,
   });
 
+  // Fetch danh sách các mốc tiến độ (Milestone) do Expert đề xuất
   const { data: milestonesResponse, isLoading: isLoadingMilestones } = useQuery({
     queryKey: ['milestones', id],
     queryFn: () => projectService.getMilestonesByProject(id!),
@@ -49,7 +51,7 @@ export const ProjectWorkspacePage = () => {
   const [submitData, setSubmitData] = useState({ description: '', fileUrl: '', demoUrl: '', sourceCodeUrl: '', note: '' });
   const [revisionReason, setRevisionReason] = useState('');
 
-  // Mutations
+  // API Nộp sản phẩm (Expert bấm Submit)
   const submitMutation = useMutation({
     mutationFn: (data: { description: string; fileUrl: string; demoUrl: string; sourceCodeUrl: string; note: string }) => projectService.submitDeliverable(selectedMilestone!.id, data),
     onSuccess: () => {

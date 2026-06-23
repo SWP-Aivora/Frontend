@@ -15,6 +15,7 @@ import { useDebouncedCallback } from '@/shared/hooks/useDebounce';
 type FlowStep = 'PLANNING' | 'DRAFTING' | 'REVIEWING' | 'MATCHING';
 
 export const PostJobPage = () => {
+  // Quản lý các bước tạo Job: PLANNING (Chat với AI) -> DRAFTING (Xem bản nháp) -> REVIEWING (Sửa thủ công) -> MATCHING (Tìm chuyên gia)
   const [step, setStep] = useState<FlowStep>('PLANNING');
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -32,6 +33,7 @@ export const PostJobPage = () => {
   const prevSuggestionRef = useRef<AiJobSuggestion | null>(null);
 
   // --- Queries ---
+  // Tự động gọi API để tìm kiếm chuyên gia (Expert Match) khi đến bước MATCHING và đã có Job ID
   const { 
     data: recommendationsResponse, 
     isLoading: isMatching,
@@ -48,6 +50,7 @@ export const PostJobPage = () => {
 
   // --- Mutations ---
 
+  // Gửi Prompt đầu tiên cho AI để tạo ra bản nháp dự án (Khởi tạo phiên làm việc AI)
   const initMutation = useMutation({
     mutationFn: (prompt: string) => jobService.initAiJobAssistant(prompt),
     onSuccess: (response) => {

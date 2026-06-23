@@ -1,3 +1,4 @@
+// Cấu hình các hàm gọi API (axios) liên quan đến Job (Công việc) và AI Assistant
 import apiClient from '@/lib/axios';
 import type { Job, AiJobSuggestion, ExpertMatch, PatchAiJobSuggestionRequest } from './types';
 import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';

@@ -1,3 +1,4 @@
+// Cấu hình các hàm gọi API (axios) liên quan đến việc nộp đơn (Proposal) và xét duyệt
 import apiClient from '@/lib/axios';
 import type { Proposal } from './types';
 import type { CreateProposalFormValues } from './schema';

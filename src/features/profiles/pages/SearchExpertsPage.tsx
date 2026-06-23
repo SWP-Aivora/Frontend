@@ -9,15 +9,17 @@ export const SearchExpertsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
 
+  // Tạm thời gọi API lấy danh sách chuyên gia nổi bật (featured) vì Backend chưa có API /search
+  // Sử dụng react-query để fetch và tự động cache dữ liệu
   const { data: response, isLoading, isError } = useQuery({
     queryKey: ['featuredExperts'],
-    queryFn: () => profileService.getFeaturedExperts(20), // Fetch a larger batch for local filtering
+    queryFn: () => profileService.getFeaturedExperts(20), // Lấy dư data để lọc ở Local
   });
 
   const experts = response?.data || [];
   const categories = ['All', 'Chatbots', 'Computer Vision', 'LLM Integration', 'Data Science', 'Automation'];
 
-  // Local filtering since backend doesn't have a search endpoint yet
+  // Logic Lọc (Filter) bằng Javascript ở máy khách (Sẽ chuyển xuống Backend khi có API)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const filteredExperts = experts.filter((expert: any) => {
     const name = expert.user?.fullName || '';
@@ -28,7 +30,7 @@ export const SearchExpertsPage = () => {
                           title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           skills.some((s: string) => s.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    // Simple mock category filtering logic
+    // Logic lọc theo danh mục (Mock Category Filtering)
     if (activeCategory === 'All') return matchesSearch;
     if (activeCategory === 'Chatbots' && skills.some((s: string) => s.toLowerCase().includes('bot'))) return matchesSearch;
     if (activeCategory === 'Computer Vision' && skills.some((s: string) => s.toLowerCase().includes('vision'))) return matchesSearch;
