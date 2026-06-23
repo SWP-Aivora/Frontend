@@ -58,29 +58,40 @@ jobs:
           git diff origin/${{ steps.pr-info.outputs.targetBranch }}..${{ steps.pr-info.outputs.headBranch }} > diff.patch
           echo "diff=$(cat diff.patch)" >> $GITHUB_OUTPUT
 
-      - name: Run Gemini review
-        id: gemini-review
-        env:
-          GEMINI_AI_KEY: ${{ secrets.GEMINI_AI_KEY }}
+      - name: Create mock review
         run: |
-          echo 'const fs = require("fs");
-          const prompt = "You are an expert code reviewer using Gemini 3.1 Flash Lite. Analyze this PR for logic errors, TypeScript issues, security problems, and performance concerns. Format output as JSON with findings containing file, line, severity, summary, and failure_scenario. PR: ${{ steps.pr-info.outputs.prTitle }} by ${{ steps.pr-info.outputs.prAuthor }}";
-
-          // Mock response for testing
-          const mockResponse = {
-            summary: { total_findings: 2, critical: 1, high: 1 },
-            findings: [
-              {
-                file: "src/features/auth/components/LoginForm.tsx",
-                line: 18,
-                severity: "CRITICAL",
-                summary: "Missing error handling",
-                failure_scenario: "App crashes on API error"
-              }
-            ]
-          };
-
-          fs.writeFileSync("gemini_review.json", JSON.stringify(mockResponse, null, 2));' > temp_review.js && node temp_review.js && rm temp_review.js
+          echo '{' > gemini_review.json
+          echo '  "summary": {' >> gemini_review.json
+          echo '    "total_findings": 4,' >> gemini_review.json
+          echo '    "critical": 2,' >> gemini_review.json
+          echo '    "high": 1,' >> gemini_review.json
+          echo '    "medium": 1,' >> gemini_review.json
+          echo '    "low": 0' >> gemini_review.json
+          echo '  },' >> gemini_review.json
+          echo '  "findings": [' >> gemini_review.json
+          echo '    {' >> gemini_review.json
+          echo '      "file": "src/features/test/components/TestComponent.tsx",' >> gemini_review.json
+          echo '      "line": 15,' >> gemini_review.json
+          echo '      "severity": "CRITICAL",' >> gemini_review.json
+          echo '      "summary": "Missing error handling for fetch API",' >> gemini_review.json
+          echo '      "failure_scenario": "App crashes silently when API fails"' >> gemini_review.json
+          echo '    },' >> gemini_review.json
+          echo '    {' >> gemini_review.json
+          echo '      "file": "src/features/test/components/TestComponent.tsx",' >> gemini_review.json
+          echo '      "line": 30,' >> gemini_review.json
+          echo '      "severity": "CRITICAL",' >> gemini_review.json
+          echo '      "summary": "Missing null/undefined checks",' >> gemini_review.json
+          echo '      "failure_scenario": "App crashes when user data is null"' >> gemini_review.json
+          echo '    },' >> gemini_review.json
+          echo '    {' >> gemini_review.json
+          echo '      "file": "src/features/test/components/TestComponent.tsx",' >> gemini_review.json
+          echo '      "line": 38,' >> gemini_review.json
+          echo '      "severity": "HIGH",' >> gemini_review.json
+          echo '      "summary": "Potential memory leak with setTimeout",' >> gemini_review.json
+          echo '      "failure_scenario": "Async callbacks persist after unmount"' >> gemini_review.json
+          echo '    }' >> gemini_review.json
+          echo '  ]' >> gemini_review.json
+          echo '}' >> gemini_review.json
 
       - name: Post review comment
         id: post-review
