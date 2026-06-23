@@ -107,10 +107,8 @@ jobs:
           PR_BODY: ${{ github.event.pull_request.body }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
-          DIFF=$(cat /tmp/pr_filtered.diff)
-
-          # Build the review prompt
-          PROMPT=$(cat << 'PROMPT_END'
+          # Write prompt to a separate file to avoid heredoc shell injection
+          cat > /tmp/review_prompt.txt << 'PROMPT_END'
           You are a Senior Frontend Engineer performing an automated code review for the AIVORA project — an AI Marketplace built with React, TypeScript (strict mode), Vite, Tailwind v4, and Feature-Sliced Design (FSD) architecture.
 
           ## Project Guidelines (from GEMINI.md)
@@ -183,17 +181,15 @@ jobs:
             "summary": "Brief summary of changes",
             "issues": []
           }
-
           PROMPT_END
-          )
 
-          # Build JSON payload for Gemini API
-          PAYLOAD=$(jq -n \
-            --arg prompt "$PROMPT" \
+          # Build JSON payload using --rawfile to safely handle special chars and large diffs
+          jq -n \
+            --rawfile prompt /tmp/review_prompt.txt \
+            --rawfile diff /tmp/pr_filtered.diff \
             --arg title "$PR_TITLE" \
             --arg body "${PR_BODY:-No description provided}" \
             --arg author "$PR_AUTHOR" \
-            --arg diff "$DIFF" \
             '{
               "contents": [{
                 "parts": [{
@@ -206,13 +202,13 @@ jobs:
                 "maxOutputTokens": 8192,
                 "responseMimeType": "application/json"
               }
-            }')
+            }' > /tmp/gemini_payload.json
 
-          # Call Gemini API
+          # Call Gemini API with payload from file
           RESPONSE=$(curl -s -w "\n%{http_code}" \
             "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${GEMINI_AI_KEY}" \
             -H "Content-Type: application/json" \
-            -d "$PAYLOAD")
+            -d @/tmp/gemini_payload.json)
 
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)
           BODY=$(echo "$RESPONSE" | sed '$d')
