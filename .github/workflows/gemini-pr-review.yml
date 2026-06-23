@@ -1,0 +1,209 @@
+name: Gemini PR Review
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: gemini-pr-review-${{ github.event.number }}
+  cancel-in-progress: true
+
+jobs:
+  automated-checks:
+    name: Automated Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeScript check
+        run: npm run typecheck
+
+      - name: Run ESLint check
+        run: npm run lint
+
+      - name: Security scan
+        env:
+          FILES: ${{ github.event.pull_request.changed_files }}
+        run: |
+          node .github/scripts/security-scan.js
+
+      - name: Upload check results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: automated-checks-results
+          path: |
+            .github/lint-results.json
+            .github/typecheck-results.json
+          retention-days: 1
+
+  gemini-review:
+    name: Gemini Code Review
+    needs: automated-checks
+    runs-on: ubuntu-latest
+
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_AI_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get PR information
+        id: pr-info
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            // Get changed files
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            // Prepare file contents for review
+            const fileContents = {};
+            for (const file of files) {
+              try {
+                const content = await github.rest.git.getContent({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  path: file.filename,
+                  ref: context.sha
+                });
+
+                if (content.type === 'file') {
+                  // Decode base64 content
+                  const buffer = Buffer.from(content.content, 'base64');
+                  fileContents[file.filename] = buffer.toString('utf8');
+                }
+              } catch (error) {
+                console.warn(`Could not read file ${file.filename}:`, error.message);
+              }
+            }
+
+            // Set outputs
+            core.setOutput('pr-title', pr.title);
+            core.setOutput('pr-description', pr.body || '');
+            core.setOutput('pr-labels', pr.labels?.map(l => l.name).join(', ') || '');
+            core.setOutput('changed-files', files.map(f => f.filename).join(' '));
+            core.setOutput('file-contents', JSON.stringify(fileContents));
+
+            return {
+              title: pr.title,
+              description: pr.body || '',
+              labels: pr.labels?.map(l => l.name) || [],
+              files: files.map(f => f.filename),
+              fileContents: fileContents
+            };
+
+      - name: Generate unified diff
+        id: diff
+        run: |
+          # Get diff between PR and base branch
+          DIFF_OUTPUT=$(git diff origin/${{ github.event.pull_request.base.ref }}...HEAD -- .github/ || echo "No diff available")
+          echo "diff=${DIFF_OUTPUT}" >> $GITHUB_OUTPUT
+
+      - name: Call Gemini API
+        env:
+          PR_DATA: ${{ steps.pr-info.outputs.pr-title }}|${{ steps.pr-info.outputs.pr-description }}|${{ steps.pr-info.outputs.pr-labels }}
+          DIFF_DATA: ${{ steps.pr-info.outputs.file-contents }}
+        run: |
+          # Create temporary PR data file
+          echo "${{ steps.pr-info.outputs.pr-title }}|${{ steps.pr-info.outputs.pr-description }}|${{ steps.pr-info.outputs.pr-labels }}" > pr-data.txt
+
+          node .github/scripts/gemini-review.js
+
+      - name: Upload review results
+        uses: actions/upload-artifact@v4
+        with:
+          name: gemini-review-results
+          path: review-result.json
+          retention-days: 3
+
+  summary-decision:
+    name: Summary & Decision
+    needs: [automated-checks, gemini-review]
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Download review results
+        uses: actions/download-artifact@v4
+        with:
+          name: gemini-review-results
+          path: .
+
+      - name: Parse review data
+        id: review-data
+        run: |
+          REVIEW_JSON=$(cat review-result.json)
+          echo "review_json=${REVIEW_JSON}" >> $GITHUB_OUTPUT
+
+          # Extract recommendation
+          RECOMMENDATION=$(echo "$REVIEW_JSON" | jq -r '.recommendation')
+          echo "recommendation=${RECOMMENDATION}" >> $GITHUB_OUTPUT
+
+          # Extract summary
+          SUMMARY=$(echo "$REVIEW_JSON" | jq -r '.summary')
+          echo "summary=${SUMMARY}" >> $GITHUB_OUTPUT
+
+          # Extract issues count
+          ISSUES_COUNT=$(echo "$REVIEW_JSON" | jq '.issues | length')
+          echo "issues_count=${ISSUES_COUNT}" >> $GITHUB_OUTPUT
+
+      - name: Generate review comment
+        id: generate-comment
+        run: |
+          # Generate comprehensive review comment
+          cat > review-comment.md << 'EOF'
+          ## Gemini Code Review Summary
+
+          ${{ steps.review-data.outputs.summary }}
+
+          ---
+
+          **Recommendation:** ${{ steps.review-data.outputs.recommendation }}
+          **Issues Found:** ${{ steps.review-data.outputs.issues_count }}
+
+          ### Detailed Findings:
+
+          EOF
+
+          # Add issues to comment
+          jq -r '.issues[] | "#### 📁 \(.file)\n**Type:** \(.type)\n**Severity:** \(.severity)\n**Issue:** \(.description)\n**Fix:** \(.suggestion)\n\n"' review-result.json >> review-comment.md
+
+      - name: Post GitHub Review
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const comment = fs.readFileSync('review-comment.md', 'utf8');
+            const recommendation = process.env.RECOMMENDATION;
+
+            await github.rest.pulls.createReview({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              body: comment,
+              event: recommendation
+            });
