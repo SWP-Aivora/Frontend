@@ -354,20 +354,22 @@ jobs:
               event = 'REQUEST_CHANGES'
 
           elif medium_confidence:
-              # COMMENT — only minor issues, don't block the PR
+              # APPROVE with notes — minor issues don't block the PR
               body_lines = [
                   '## 🤖 Gemini AI Code Review',
                   '',
                   f'> {summary}',
                   '',
-                  f'### 💬 Found **{len(medium_confidence)}** minor note(s) (confidence 50-79):',
+                  '✅ **Approved** — no critical issues found.',
+                  '',
+                  f'### 💬 **{len(medium_confidence)}** minor note(s) for your consideration (confidence 50-79):',
                   '',
                   '*These are observations, not blockers. Review at your discretion.*',
                   '',
               ]
               body_lines.extend(format_issues(medium_confidence))
               body_lines.extend(FOOTER)
-              event = 'COMMENT'
+              event = 'APPROVE'
 
           else:
               # APPROVE — no issues at all
@@ -411,8 +413,7 @@ jobs:
 
           STATUS_MAP = {
               'REQUEST_CHANGES': f'🚨 Issues found: {len(high_confidence)} critical, {len(medium_confidence)} minor',
-              'COMMENT': f'💬 Minor notes: {len(medium_confidence)} (no blockers)',
-              'APPROVE': '✅ No issues — PR approved!',
+              'APPROVE': f'✅ Approved' + (f' with {len(medium_confidence)} minor note(s)' if medium_confidence else ' — no issues!'),
           }
           print(f'Review submitted: {event}')
           print(f'   {STATUS_MAP[event]}')
