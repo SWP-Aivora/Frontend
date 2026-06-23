@@ -47,7 +47,7 @@ export const ProjectWorkspacePage = () => {
     retry: false,
   });
 
-  const project = projectResponse?.data ?? fallbackProjectsResponse?.data.find((item) => item.id === id);
+  const project = projectResponse?.data ?? fallbackProjectsResponse?.data?.find((item) => item.id === id);
   const { data: milestonesResponse, isLoading: isLoadingMilestones } = useProjectMilestones(id || '');
   const projectMilestones = project?.milestones ?? [];
   const milestones = milestonesResponse?.success === false
@@ -378,7 +378,7 @@ export const ProjectWorkspacePage = () => {
                       Fund Milestone
                    </Button>
                  )}
-                 {[MilestoneStatus.FUNDED, MilestoneStatus.IN_PROGRESS, MilestoneStatus.REVISION_REQUESTED].includes(selectedMilestone.status) && user?.role === Role.EXPERT && (
+                 {([MilestoneStatus.FUNDED, MilestoneStatus.IN_PROGRESS, MilestoneStatus.REVISION_REQUESTED] as MilestoneStatus[]).includes(selectedMilestone.status) && user?.role === Role.EXPERT && (
                    <Button 
                      onClick={() => setIsSubmitModalOpen(true)}
                      className="w-full h-14 rounded-full font-black text-base bg-brand-accent hover:bg-brand-accent/90 shadow-xl shadow-brand-accent/20 flex items-center justify-center gap-2"
@@ -387,7 +387,7 @@ export const ProjectWorkspacePage = () => {
                       Submit Deliverables
                    </Button>
                  )}
-                 {[MilestoneStatus.SUBMITTED, MilestoneStatus.UNDER_REVIEW, MilestoneStatus.APPROVED].includes(selectedMilestone.status) && user?.role === Role.CLIENT && (
+                 {([MilestoneStatus.SUBMITTED, MilestoneStatus.UNDER_REVIEW, MilestoneStatus.APPROVED] as MilestoneStatus[]).includes(selectedMilestone.status) && user?.role === Role.CLIENT && (
                    <div className="flex gap-3">
                       <Button 
                         onClick={() => setIsRevisionModalOpen(true)}

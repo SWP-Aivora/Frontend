@@ -187,7 +187,7 @@ export const profileService = {
       const normalized = normalizePaginatedResponse<ExpertProfileResponse>(response);
       return {
         ...normalized,
-        data: normalized.data.map(normalizeExpertProfileResponse),
+        data: (normalized.data || []).map(normalizeExpertProfileResponse),
       };
     } catch (error) {
       console.error('[profileService] getFeaturedExperts failed:', error);

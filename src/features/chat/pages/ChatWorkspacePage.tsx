@@ -6,7 +6,7 @@ import { EmptyState } from '../components/EmptyState';
 import { useConversations } from '../hooks/useConversations';
 import { useMessages, useMarkRead, useSendMessage } from '../hooks/useMessages';
 import type { Conversation } from '../types';
-import { Info, ChevronLeft, ChevronRight, AlertCircle, RefreshCw } from 'lucide-react';
+import { Info, ChevronRight, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';

@@ -84,7 +84,7 @@ export const projectService = {
     const normalized = normalizePaginatedResponse<Project>(response);
     return {
       ...normalized,
-      data: normalized.data.map(normalizeProject),
+      data: (normalized.data || []).map(normalizeProject),
     };
   },
 

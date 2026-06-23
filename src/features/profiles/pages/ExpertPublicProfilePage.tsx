@@ -4,7 +4,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { 
   Star, MapPin, ShieldCheck, 
-  ChevronRight, Briefcase, Globe, Clock, Calendar
+  Briefcase, Globe, Clock
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { profileService } from '../services';
@@ -49,12 +49,11 @@ export const ExpertPublicProfilePage = () => {
     queryFn: () => reviewService.getUserReviews(profile!.userId),
     enabled: !!profile?.userId,
   });
-  const reviewsPayload = reviewsResponse?.data ?? reviewsResponse;
-  const reviews = reviewsPayload?.items || [];
+  const reviews = reviewsResponse?.items || [];
   
   // Calculate average rating from reviews
   const avgRating = reviews.length > 0 
-    ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
+    ? (reviews.reduce((acc: number, r: { rating: number }) => acc + r.rating, 0) / reviews.length).toFixed(1)
     : "0.0";
 
   // 3. Fetch Expert Projects
@@ -378,7 +377,7 @@ export const ExpertPublicProfilePage = () => {
               {/* Reviews List */}
               {displayReviews.length > 0 ? (
                 <div className="space-y-6">
-                  {displayReviews.map((review: { reviewerName?: string; rating: number; comment: string }, i) => (
+                  {displayReviews.map((review: { reviewerName?: string; rating: number; comment: string }, i: number) => (
                     <div key={i} className={`flex gap-4 ${i > 0 ? "pt-6 border-t border-slate-100" : ""}`}>
                       <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-100 to-blue-50 flex items-center justify-center text-sm font-bold text-brand-primary shrink-0 shadow-inner">
                         {review.reviewerName ? review.reviewerName.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'U'}
