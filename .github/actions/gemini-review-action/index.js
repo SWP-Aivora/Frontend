@@ -69,18 +69,45 @@ Track issues by severity:
 Be concise and direct. No more than 5-7 key findings total.
 `;
 
-    // Generate review using Gemini
+    // Generate review using Gemini with retry logic
     console.log('Generating code review with Gemini AI...');
-    const result = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
-      contents: [{
-        parts: [{
-          text: prompt
-        }]
-      }]
-    });
+    let result;
+    let responseText;
+    let retryCount = 0;
+    const maxRetries = 3;
+    const models = ['gemini-3.5-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
 
-    const responseText = result.response.text();
+    while (retryCount < maxRetries) {
+      try {
+        const currentModel = models[retryCount % models.length];
+        console.log(`Attempt ${retryCount + 1}: Using model ${currentModel}`);
+
+        result = await ai.models.generateContent({
+          model: currentModel,
+          contents: [{
+            parts: [{
+              text: prompt
+            }]
+          }]
+        });
+
+        responseText = result.response.text();
+        console.log('Successfully generated review');
+        break;
+      } catch (error) {
+        console.error(`Attempt ${retryCount + 1} failed:`, error.message);
+        retryCount++;
+
+        if (retryCount >= maxRetries) {
+          throw new Error(`Failed after ${maxRetries} attempts. Last error: ${error.message}`);
+        }
+
+        // Wait longer between retries
+        const waitTime = Math.pow(2, retryCount) * 1000; // 2, 4, 8 seconds
+        console.log(`Waiting ${waitTime}ms before next attempt...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
+    }
 
     // Parse the JSON response
     let reviewResult;
@@ -106,7 +133,8 @@ Be concise and direct. No more than 5-7 key findings total.
       prNumber: prNumber,
       repo: repo,
       timestamp: new Date().toISOString(),
-      model: 'gemini-3.5-flash'
+      model: result.model || 'gemini-3.5-flash',
+      retries: retryCount
     };
 
     // Set outputs
