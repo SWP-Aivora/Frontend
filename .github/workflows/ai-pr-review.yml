@@ -1,0 +1,135 @@
+name: AI PR Review with Gemini
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  ai-review:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: AI PR Review
+      env:
+        GEMINI_AI_KEY: ${{ secrets.GEMINI_AI_KEY }}
+      run: |
+        PR_NUMBER="${{ github.event.pull_request.number }}"
+
+        # Get PR diff
+        DIFF=$(gh pr diff "$PR_NUMBER")
+
+        # If diff is empty, exit early
+        if [ -z "$DIFF" ]; then
+          echo "No diff found for PR #$PR_NUMBER. Exiting."
+          exit 0
+        fi
+
+        # Function to call Gemini API
+        call_gemini() {
+          local MODEL=$1
+          local RESPONSE=$(curl -s -X POST \
+            "https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=$GEMINI_AI_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"contents\": [{
+                \"parts\": [{
+                  \"text\": \"You are a strict but fair code reviewer integrated into a GitHub Actions CI pipeline.
+Your review will be submitted as an official GitHub PR Review (APPROVE or REQUEST_CHANGES), so be precise.
+
+Review the provided diff and respond in this exact Markdown format:
+
+## 🔍 Summary
+(1-2 sentence overall assessment)
+
+## 🐛 Bugs & Logic Errors
+(bullet points or \"✅ No issues found.\")
+
+## 🎨 Code Style & Best Practices
+(bullet points or \"✅ No issues found.\")
+
+## ⚡ Performance
+(bullet points or \"✅ No issues found.\")
+
+## 🧪 Test Coverage
+(bullet points or \"✅ No issues found.\")
+
+## Verdict
+APPROVE or REQUEST_CHANGES
+(one-line reason)
+
+Rules:
+- Use APPROVE only if there are no bugs, no significant style issues, no performance regressions, and adequate test coverage.
+- Use REQUEST_CHANGES if any section has a real issue worth fixing before merge.
+- The last line of your response must be exactly \"VERDICT: APPROVE\" or \"VERDICT: REQUEST_CHANGES\" so it can be parsed programmatically.
+
+---
+
+Here is the diff to review:
+
+$DIFF\"
+                }]
+              }]
+            }")
+
+          # Check if response contains error
+          if echo "$RESPONSE" | grep -q '"error"' || ! echo "$RESPONSE" | grep -q '"candidates"'; then
+            return 1
+          fi
+
+          # Extract content from response
+          echo "$RESPONSE" | jq -r '.candidates[0].content.parts[0].text' 2>/dev/null || echo "$RESPONSE"
+        }
+
+        # Try gemini-3.5-flash first
+        echo "Attempting to use gemini-3.5-flash..."
+        REVIEW=$(call_gemini "gemini-3.5-flash")
+
+        # If first attempt failed, try gemini-3.1-flash-lite
+        if [ $? -ne 0 ] || [ -z "$REVIEW" ]; then
+          echo "gemini-3.5-flash failed, trying gemini-3.1-flash-lite..."
+          REVIEW=$(call_gemini "gemini-3.1-flash-lite")
+
+          if [ $? -ne 0 ] || [ -z "$REVIEW" ]; then
+            echo "Both Gemini models failed. Review cannot be completed."
+            exit 1
+          fi
+        fi
+
+        # Extract verdict from review
+        VERDICT_LINE=$(echo "$REVIEW" | grep -E "VERDICT: (APPROVE|REQUEST_CHANGES)" | tail -1)
+
+        if echo "$VERDICT_LINE" | grep -q "VERDICT: APPROVE"; then
+          VERDICT="approve"
+        elif echo "$VERDICT_LINE" | grep -q "VERDICT: REQUEST_CHANGES"; then
+          VERDICT="request-changes"
+        else
+          echo "Could not parse verdict from review. Falling back to comment mode."
+          VERDICT="comment"
+        fi
+
+        # Post review using gh CLI
+        if [ "$VERDICT" = "approve" ]; then
+          echo "Posting APPROVE review..."
+          if ! gh pr review "$PR_NUMBER" --approve --body "$REVIEW"; then
+            echo "Approve failed, falling back to comment..."
+            gh pr review "$PR_NUMBER" --comment --body "$(echo "$REVIEW" | sed 's/$/\\n\\n(Bot does not have approve permission — manual review required)/')"
+          fi
+        elif [ "$VERDICT" = "request-changes" ]; then
+          echo "Posting REQUEST_CHANGES review..."
+          if ! gh pr review "$PR_NUMBER" --request-changes --body "$REVIEW"; then
+            echo "Request changes failed, falling back to comment..."
+            gh pr review "$PR_NUMBER" --comment --body "$(echo "$REVIEW" | sed 's/$/\\n\\n(Bot does not have request-changes permission — manual review required)/')"
+          fi
+        else
+          echo "Posting comment review..."
+          gh pr review "$PR_NUMBER" --comment --body "$REVIEW"
+        fi
