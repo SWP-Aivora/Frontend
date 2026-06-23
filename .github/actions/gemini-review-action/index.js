@@ -75,7 +75,7 @@ Be concise and direct. No more than 5-7 key findings total.
     let responseText;
     let retryCount = 0;
     const maxRetries = 3;
-    const models = ['gemini-3.5-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
+    const models = ['gemini-2.5-flash', 'gemini-2.0-flash-exp', 'gemini-1.5-flash-8b'];
 
     while (retryCount < maxRetries) {
       try {
