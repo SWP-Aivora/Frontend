@@ -15,8 +15,8 @@ export const SearchExpertsPage = () => {
     queryKey: ['searchExperts', searchTerm, activeCategory],
     queryFn: () => profileService.searchExperts({ 
       keyword: searchTerm, 
-      // Tạm thời map 'All' thành undefined để BE không lọc category
-      categoryId: activeCategory === 'All' ? undefined : undefined // TODO: Map string category to UUID when categories API is ready
+      // Pass the activeCategory if it's not 'All'
+      categoryId: activeCategory === 'All' ? undefined : activeCategory
     }), 
   });
 

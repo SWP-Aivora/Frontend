@@ -12,6 +12,14 @@ export const jobIdeaSchema = z.object({
   budgetMax: z.number().min(1, 'Please provide a maximum budget estimate'),
   timelineDays: z.number().min(1, 'Please provide a timeline estimate in days'),
   additionalNotes: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (data.budgetMax < data.budgetMin) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Max budget must be greater than or equal to min budget",
+      path: ["budgetMax"]
+    });
+  }
 });
 
 export type JobIdeaFormValues = z.infer<typeof jobIdeaSchema>;
