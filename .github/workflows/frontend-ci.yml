@@ -20,6 +20,9 @@ jobs:
   build:
     name: Node ${{ matrix.node-version }}
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Frontend
 
     strategy:
       fail-fast: false
@@ -37,6 +40,7 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
+          cache-dependency-path: Frontend/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -51,6 +55,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dist-node-${{ matrix.node-version }}
-          path: dist
+          path: Frontend/dist
           if-no-files-found: error
           retention-days: 14
