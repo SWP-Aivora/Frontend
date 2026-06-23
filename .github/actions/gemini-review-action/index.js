@@ -165,8 +165,8 @@ MAX 5-7 comments total. Focus on actual application code, not CI/CD.
     };
 
     // Set outputs
-    core.setOutput('review-result', JSON.stringify(reviewResult));
-    process.env.REVIEW_RESULT = JSON.stringify(reviewResult);
+    core.setOutput('review-result', JSON.stringify(reviewResult, null, 2));
+    process.env.REVIEW_RESULT = JSON.stringify(reviewResult, null, 2);
 
     console.log('Code review completed successfully');
     console.log('Review summary:', reviewResult.summary);

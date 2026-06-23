@@ -97,6 +97,8 @@ jobs:
       - name: Post review and decide action
         if: always()
         uses: actions/github-script@v7
+        env:
+          REVIEW_RESULT: ${{ steps.gemini-review.outputs.review-result }}
         with:
           script: |
             const reviewResult = JSON.parse(process.env.REVIEW_RESULT || '{}');
