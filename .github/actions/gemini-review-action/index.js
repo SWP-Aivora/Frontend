@@ -1,6 +1,49 @@
 const { GoogleGenAI } = require('@google/genai');
 const core = require('@actions/core');
 
+// Helper function to create fallback review from text response
+function createFallbackReview(responseText) {
+  const lines = responseText.split('\n');
+  const comments = [];
+  let summary = 'AI review completed. See comments below.';
+
+  // Extract comments from text format
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (line.toLowerCase().includes('error') ||
+        line.toLowerCase().includes('warning') ||
+        line.toLowerCase().includes('suggestion') ||
+        line.toLowerCase().includes('issue') ||
+        line.toLowerCase().includes('problem')) {
+
+      const severity = line.toLowerCase().includes('error') ? 'error' :
+                       line.toLowerCase().includes('warning') ? 'warning' : 'suggestion';
+
+      // Extract file and line if available
+      const fileMatch = line.match(/([^:]+):(\d+)/);
+      const file = fileMatch ? fileMatch[1] : 'unknown';
+      const lineNum = fileMatch ? parseInt(fileMatch[2]) : 1;
+
+      comments.push({
+        file: file,
+        line: lineNum,
+        severity: severity,
+        comment: line
+      });
+    }
+  }
+
+  return {
+    summary: summary,
+    comments: comments,
+    priority: 'medium',
+    verdict: 'comment',
+    confidence: 'medium',
+    blockingIssues: comments.filter(c => c.severity === 'error').length,
+    nonBlockingIssues: comments.filter(c => c.severity === 'warning' || c.severity === 'suggestion').length
+  };
+}
+
 async function main() {
   try {
     // Get inputs
@@ -136,24 +179,70 @@ MAX 5-7 comments total. Focus on actual application code, not CI/CD.
       }
     }
 
-    // Parse the JSON response
+    // Parse the JSON response with enhanced fallback strategies
     let reviewResult;
+    console.log('=== Gemini Review Debug Info ===');
+    console.log('Response text length:', responseText?.length || 0);
+    console.log('Response preview:', responseText?.substring(0, 200) + '...');
+
     try {
-      // Extract JSON from response ( Gemini might add markdown formatting)
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        reviewResult = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('Could not parse JSON from Gemini response');
+      // Strategy 1: Direct JSON parsing
+      reviewResult = JSON.parse(responseText);
+      console.log('Direct JSON parsing successful');
+    } catch (e1) {
+      console.log('Direct JSON parse failed, trying extraction...');
+      try {
+        // Strategy 2: Extract JSON from markdown
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          reviewResult = JSON.parse(jsonMatch[0]);
+          console.log('JSON extraction successful');
+        } else {
+          throw new Error('No JSON found in response');
+        }
+      } catch (e2) {
+        console.log('JSON extraction failed, creating fallback response...');
+        // Strategy 3: Create structured response from text
+        reviewResult = createFallbackReview(responseText);
+        console.log('Fallback response created');
       }
-    } catch (error) {
-      console.error('Error parsing Gemini response:', error);
-      // Fallback: create a simple review structure
-      reviewResult = {
-        summary: responseText,
-        comments: []
-      };
     }
+
+    // Validate and normalize review result
+    if (!reviewResult) {
+      throw new Error('Failed to create valid review result');
+    }
+
+    // Ensure required fields exist
+    if (!reviewResult.summary) {
+      reviewResult.summary = 'AI review completed. Analysis available in comments.';
+    }
+
+    if (!reviewResult.comments) {
+      reviewResult.comments = [];
+    }
+
+    if (!reviewResult.priority) {
+      reviewResult.priority = 'medium';
+    }
+
+    if (!reviewResult.verdict) {
+      reviewResult.verdict = 'comment';
+    }
+
+    if (!reviewResult.confidence) {
+      reviewResult.confidence = 'medium';
+    }
+
+    if (typeof reviewResult.blockingIssues !== 'number') {
+      reviewResult.blockingIssues = 0;
+    }
+
+    if (typeof reviewResult.nonBlockingIssues !== 'number') {
+      reviewResult.nonBlockingIssues = 0;
+    }
+
+    console.log('Final review result:', JSON.stringify(reviewResult, null, 2));
 
     // Add GitHub-specific metadata
     reviewResult.metadata = {
