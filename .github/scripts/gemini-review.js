@@ -101,7 +101,10 @@ Respond ONLY in this exact JSON format:
     // Call Gemini API
     const result = await model.generateContent(systemPrompt + '\n\n' + userPrompt);
     const response = result.response;
-    const text = response.text();
+    let text = response.text();
+
+    // Clean up the response text
+    text = text.replace(/```json\n?/g, '').replace(/\n?```/g, '').trim();
 
     // Parse response
     let review;
