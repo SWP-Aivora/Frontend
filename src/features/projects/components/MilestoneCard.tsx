@@ -1,6 +1,7 @@
 import type { Milestone } from '../types';
 import { Clock, DollarSign, CheckCircle2, AlertCircle, FileText, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { MilestoneStatus } from '@/shared/types/enums';
 
 interface MilestoneCardProps {
   milestone: Milestone;
@@ -11,10 +12,20 @@ interface MilestoneCardProps {
 export const MilestoneCard = ({ milestone, role, onClick }: MilestoneCardProps) => {
   const getStatusConfig = (status: number) => {
     switch (status) {
-      case 0: return { label: 'To Fund', color: 'text-slate-400 bg-slate-50', icon: AlertCircle, action: role === 'CLIENT' ? 'Fund Now' : 'Awaiting Fund' };
-      case 1: return { label: 'In Progress', color: 'text-blue-600 bg-blue-50', icon: Clock, action: role === 'EXPERT' ? 'Submit Work' : 'In Progress' };
-      case 2: return { label: 'In Review', color: 'text-amber-600 bg-amber-50', icon: FileText, action: role === 'CLIENT' ? 'Review Now' : 'Pending Review' };
-      case 3: return { label: 'Completed', color: 'text-brand-success bg-brand-success/10', icon: CheckCircle2, action: 'View Receipt' };
+      case MilestoneStatus.CREATED:
+        return { label: 'To Fund', color: 'text-slate-500 bg-slate-50', icon: AlertCircle, action: role === 'CLIENT' ? 'Fund Now' : 'Awaiting Fund' };
+      case MilestoneStatus.FUNDED:
+      case MilestoneStatus.IN_PROGRESS:
+      case MilestoneStatus.REVISION_REQUESTED:
+        return { label: status === MilestoneStatus.REVISION_REQUESTED ? 'Revision' : 'In Progress', color: 'text-blue-600 bg-blue-50', icon: Clock, action: role === 'EXPERT' ? 'Submit Work' : 'In Progress' };
+      case MilestoneStatus.SUBMITTED:
+      case MilestoneStatus.APPROVED:
+      case MilestoneStatus.DISPUTED:
+        return { label: status === MilestoneStatus.DISPUTED ? 'Disputed' : 'In Review', color: 'text-amber-600 bg-amber-50', icon: FileText, action: role === 'CLIENT' ? 'Review Now' : 'Pending Review' };
+      case MilestoneStatus.COMPLETED:
+      case MilestoneStatus.RELEASED:
+      case MilestoneStatus.REFUNDED:
+        return { label: 'Completed', color: 'text-brand-success bg-brand-success/10', icon: CheckCircle2, action: 'View Receipt' };
       default: return { label: 'Unknown', color: 'text-slate-400 bg-slate-50', icon: AlertCircle, action: '' };
     }
   };

@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import type { AdminProject } from '../../types';
 import { AdminProjectEmptyState } from './AdminProjectEmptyState';
 import { AdminProjectStatusBadge } from './AdminProjectStatusBadge';
+import { ProjectDisputeStatusBadge } from '@/features/projects/components/ProjectDisputeStatusBadge';
 
 const formatMoney = (amount: number, currency: string) => {
   return new Intl.NumberFormat('en-US', {
@@ -60,6 +61,7 @@ export const AdminProjectTable = ({
               <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">Client</th>
               <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">Expert</th>
               <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">Status</th>
+              <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">Dispute</th>
               <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">Budget</th>
               <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">Milestones</th>
               <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">Created</th>
@@ -85,6 +87,9 @@ export const AdminProjectTable = ({
                 <td className="px-4 py-3 whitespace-nowrap text-xs font-bold text-slate-700">{project.expertName}</td>
                 <td className="px-4 py-3 whitespace-nowrap">
                   <AdminProjectStatusBadge status={project.status} />
+                </td>
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <ProjectDisputeStatusBadge status={project.status} hasDispute={project.hasDispute} />
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-xs font-black text-emerald-600">
                   {formatMoney(project.totalBudget, project.currency)}
@@ -112,7 +117,7 @@ export const AdminProjectTable = ({
             ))}
             {projects.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4">
+                <td colSpan={9} className="px-4">
                   <AdminProjectEmptyState hasFilters={hasFilters} />
                 </td>
               </tr>

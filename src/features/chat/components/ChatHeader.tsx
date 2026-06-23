@@ -1,7 +1,7 @@
 import type { ConversationRecipient } from '../types';
 import { Role } from '@/shared/types/enums';
 import { cn } from '@/lib/utils';
-import { ExternalLink, Archive, MoreHorizontal } from 'lucide-react';
+import { ExternalLink, Archive, MoreHorizontal, Info } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/features/auth/store';
@@ -11,9 +11,18 @@ interface ChatHeaderProps {
   type: 'PROJECT' | 'PROPOSAL' | 'SUPPORT';
   relatedTitle?: string;
   projectId?: string; // Assume ID is passed or available from context
+  isRightPanelCollapsed?: boolean;
+  onToggleRightPanel?: () => void;
 }
 
-export const ChatHeader = ({ recipient, type, relatedTitle, projectId }: ChatHeaderProps) => {
+export const ChatHeader = ({ 
+  recipient, 
+  type, 
+  relatedTitle, 
+  projectId,
+  isRightPanelCollapsed,
+  onToggleRightPanel
+}: ChatHeaderProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuthStore();
@@ -91,6 +100,22 @@ export const ChatHeader = ({ recipient, type, relatedTitle, projectId }: ChatHea
             <ExternalLink className="w-3.5 h-3.5" />
           </Button>
         )}
+        {/* Toggle Right Panel Button */}
+        {type !== 'SUPPORT' && onToggleRightPanel && (
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={onToggleRightPanel}
+            className={cn(
+              "rounded-xl transition-all",
+              isRightPanelCollapsed ? "text-slate-400 hover:text-slate-600 hover:bg-slate-100" : "text-blue-600 bg-blue-50 hover:bg-blue-100 hover:text-blue-700"
+            )}
+            title={isRightPanelCollapsed ? "Show Details" : "Hide Details"}
+          >
+            <Info className="size-5" />
+          </Button>
+        )}
+
         <Button variant="ghost" size="icon" className="text-slate-400 hover:text-slate-600 rounded-xl">
           <Archive className="size-5" />
         </Button>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { KanbanBoard } from '../components/KanbanBoard';
@@ -13,11 +13,16 @@ import {
   Upload, 
   CheckCircle2,
   Clock,
+  ShieldAlert,
+  Users,
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { useAuthStore } from '@/features/auth/store';
 import { Role, ProjectStatus, MilestoneStatus } from '@/shared/types/enums';
 import { cn } from '@/lib/utils';
+import { ProjectDisputeStatusBadge } from '../components/ProjectDisputeStatusBadge';
+import { getDefaultNonDisputeProjectStatus, isProjectDisputed } from '../utils';
+import { useProjectMilestones } from '../hooks/useProjectMilestones';
 
 export const ProjectWorkspacePage = () => {
   const { id } = useParams();
@@ -25,24 +30,31 @@ export const ProjectWorkspacePage = () => {
   const { user } = useAuthStore();
   const [selectedMilestone, setSelectedMilestone] = useState<Milestone | null>(null);
   const [isFinishModalOpen, setIsFinishModalOpen] = useState(false);
+  const lastNonDisputeStatusRef = useRef<ProjectStatus | null>(null);
 
   // Fetch toàn bộ thông tin chi tiết của Project (Hợp đồng làm việc)
   const { data: projectResponse, isLoading: isLoadingProject } = useQuery({
     queryKey: ['project', id],
     queryFn: () => projectService.getProjectById(id!),
+    retry: false,
     enabled: !!id,
   });
 
-  // Fetch danh sách các mốc tiến độ (Milestone) do Expert đề xuất
-  const { data: milestonesResponse, isLoading: isLoadingMilestones } = useQuery({
-    queryKey: ['milestones', id],
-    queryFn: () => projectService.getMilestonesByProject(id!),
-    enabled: !!id,
+  const { data: fallbackProjectsResponse, isLoading: isLoadingFallbackProjects } = useQuery({
+    queryKey: ['projects', 'workspace-fallback', id],
+    queryFn: () => projectService.getProjects({ PageSize: 100 }),
+    enabled: !!id && !projectResponse?.data,
+    retry: false,
   });
 
-  const project = projectResponse?.data;
-  const milestones = milestonesResponse?.data || [];
-  const isLoading = isLoadingProject || isLoadingMilestones;
+  const project = projectResponse?.data ?? fallbackProjectsResponse?.data.find((item) => item.id === id);
+  const { data: milestonesResponse, isLoading: isLoadingMilestones } = useProjectMilestones(id || '');
+  const projectMilestones = project?.milestones ?? [];
+  const milestones = milestonesResponse?.success === false
+    ? projectMilestones
+    : milestonesResponse?.data ?? projectMilestones;
+  const isLoading = isLoadingProject || isLoadingMilestones || (!projectResponse?.data && isLoadingFallbackProjects);
+  const hasProjectDispute = isProjectDisputed(project?.status, project?.hasDispute);
 
   // Modals state
   const queryClient = useQueryClient();
@@ -55,7 +67,7 @@ export const ProjectWorkspacePage = () => {
   const submitMutation = useMutation({
     mutationFn: (data: { description: string; fileUrl: string; demoUrl: string; sourceCodeUrl: string; note: string }) => projectService.submitDeliverable(selectedMilestone!.id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['milestones', id] });
+      queryClient.invalidateQueries({ queryKey: ['project', id, 'milestones'] });
       setIsSubmitModalOpen(false);
       setSelectedMilestone(null);
     }
@@ -64,7 +76,7 @@ export const ProjectWorkspacePage = () => {
   const approveMutation = useMutation({
     mutationFn: () => projectService.approveMilestone(selectedMilestone!.id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['milestones', id] });
+      queryClient.invalidateQueries({ queryKey: ['project', id, 'milestones'] });
       setSelectedMilestone(null);
     }
   });
@@ -72,9 +84,38 @@ export const ProjectWorkspacePage = () => {
   const revisionMutation = useMutation({
     mutationFn: (reason: string) => projectService.requestRevision(selectedMilestone!.id, reason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['milestones', id] });
+      queryClient.invalidateQueries({ queryKey: ['project', id, 'milestones'] });
       setIsRevisionModalOpen(false);
       setSelectedMilestone(null);
+    }
+  });
+
+  const finishProjectMutation = useMutation({
+    mutationFn: () => projectService.completeProject(id!),
+    onSuccess: (response) => {
+      const completedProject = response.data ?? project;
+      queryClient.setQueryData<typeof projectResponse>(['project', id], (current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          data: completedProject ?? current.data,
+        };
+      });
+      setIsFinishModalOpen(false);
+
+      if (!completedProject) return;
+      navigate('/reviews', {
+        state: {
+          id: completedProject.id,
+          title: completedProject.title,
+          milestone: `${completedProject.milestones.length} milestone${completedProject.milestones.length === 1 ? '' : 's'}`,
+          completedDate: new Date().toLocaleDateString(),
+          clientName: completedProject.clientName || completedProject.client?.fullName || 'Client',
+          expertName: completedProject.expertName || completedProject.expert?.fullName || 'Expert',
+          amount: `$${completedProject.totalBudget?.toLocaleString() || 0}`,
+          revieweeId: completedProject.expertId,
+        },
+      });
     }
   });
 
@@ -83,11 +124,12 @@ export const ProjectWorkspacePage = () => {
   const getStatusLabel = (status: ProjectStatus) => {
     switch (status) {
       case ProjectStatus.IN_PROGRESS: return 'In Progress';
+      case ProjectStatus.IN_REVIEW: return 'In Review';
       case ProjectStatus.COMPLETED: return 'Completed';
       case ProjectStatus.PENDING_FUNDING: return 'Pending Funding';
       case ProjectStatus.CANCELLED: return 'Cancelled';
       case ProjectStatus.DISPUTED: return 'Disputed';
-      default: return 'Draft';
+      default: return 'Pending Payment';
     }
   };
 
@@ -112,12 +154,60 @@ export const ProjectWorkspacePage = () => {
 
   const canShowFinishProject = user?.role === Role.CLIENT && user.id === project?.clientId;
   const canRequestFinishProject = !!id && project?.status !== ProjectStatus.COMPLETED && project?.status !== ProjectStatus.CANCELLED;
+  const canToggleProjectDispute = Boolean(
+    project
+      && (user?.role === Role.CLIENT || user?.role === Role.EXPERT)
+      && (user.id === project.clientId || user.id === project.expertId)
+  );
+
+  const handleToggleProjectDispute = () => {
+    if (!id || !project) return;
+
+    const nextHasDispute = !hasProjectDispute;
+    if (nextHasDispute) {
+      lastNonDisputeStatusRef.current = getDefaultNonDisputeProjectStatus(project.status);
+    }
+
+    const nextStatus = nextHasDispute
+      ? ProjectStatus.DISPUTED
+      : lastNonDisputeStatusRef.current ?? ProjectStatus.IN_PROGRESS;
+
+    queryClient.setQueryData<typeof projectResponse>(['project', id], (current) => {
+      if (!current?.data) return current;
+
+      return {
+        ...current,
+        data: {
+          ...current.data,
+          status: nextStatus,
+          hasDispute: nextHasDispute,
+        },
+      };
+    });
+  };
 
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <div className="size-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
         <p className="text-slate-400 font-bold animate-pulse uppercase tracking-widest text-xs">Entering Workspace...</p>
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4 text-center">
+        <div className="size-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center">
+          <X className="size-6 text-slate-400" />
+        </div>
+        <div>
+          <h2 className="text-xl font-black text-slate-900">Project not found</h2>
+          <p className="text-sm text-slate-500 font-medium mt-1">This project is not linked to your account or could not be loaded.</p>
+        </div>
+        <Button variant="outline" onClick={() => navigate(-1)} className="rounded-full font-bold">
+          Go Back
+        </Button>
       </div>
     );
   }
@@ -134,16 +224,36 @@ export const ProjectWorkspacePage = () => {
             <ChevronLeft className="size-3 group-hover:-translate-x-1 transition-transform" />
             Back to Dashboard
           </button>
-          <div className="flex items-center gap-4">
-             <h1 className="text-3xl font-black text-slate-900 tracking-tight">{project?.title}</h1>
+          <div className="flex flex-wrap items-center gap-4">
+             <h1 className="text-3xl font-black text-slate-900 tracking-tight">{project.title}</h1>
              <div className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-black uppercase tracking-wider border border-blue-100">
-                {project ? getStatusLabel(project.status) : 'Unknown'}
+                {getStatusLabel(project.status)}
              </div>
           </div>
-          <p className="text-sm text-slate-500 font-medium max-w-2xl">{project?.description}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <ProjectDisputeStatusBadge status={project.status} hasDispute={project.hasDispute} />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 text-slate-600 border border-slate-200 text-[10px] font-black uppercase tracking-wider">
+              <Users className="size-3" />
+              {project.clientName || project.client?.fullName || 'Client'} / {project.expertName || project.expert?.fullName || 'Expert'}
+            </span>
+          </div>
+          <p className="text-sm text-slate-500 font-medium max-w-2xl">{project.description || 'No project description provided.'}</p>
         </div>
 
         <div className="flex flex-row flex-nowrap items-center gap-2">
+           {canToggleProjectDispute && (
+             <Button
+               variant="outline"
+               onClick={handleToggleProjectDispute}
+               className={cn(
+                 'rounded-full px-5 border-slate-200 font-black flex items-center gap-2',
+                 hasProjectDispute && 'border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100'
+               )}
+             >
+                <ShieldAlert className="size-4" />
+                {hasProjectDispute ? 'Close Dispute' : 'Open Dispute'}
+             </Button>
+           )}
            {canShowFinishProject && (
              <Button
                variant="outline"
@@ -173,7 +283,7 @@ export const ProjectWorkspacePage = () => {
                      <DollarSign className="size-5 text-emerald-600" />
                   </div>
                   <div>
-                     <p className="text-lg font-black text-slate-900 leading-none">${project?.totalBudget?.toLocaleString()}</p>
+                     <p className="text-lg font-black text-slate-900 leading-none">${project.totalBudget?.toLocaleString()}</p>
                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Total Contract</p>
                   </div>
                </div>
@@ -183,7 +293,7 @@ export const ProjectWorkspacePage = () => {
                   </div>
                   <div>
                      <p className="text-lg font-black text-slate-900 leading-none">
-                        {project?.endDate ? new Date(project.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'}
+                        {project.endDate ? new Date(project.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'}
                      </p>
                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Target Deadline</p>
                   </div>
@@ -191,7 +301,7 @@ export const ProjectWorkspacePage = () => {
             </div>
 
             <div className="flex -space-x-3">
-               {[project?.client, project?.expert].filter(Boolean).map((u, i) => (
+               {[project.client, project.expert].filter(Boolean).map((u, i) => (
                  <div key={i} className="size-10 rounded-full border-4 border-slate-50 bg-slate-200 flex items-center justify-center overflow-hidden shadow-sm" title={u?.fullName}>
                     {u?.avatarUrl ? <img src={u.avatarUrl} className="size-full object-cover" /> : <span className="text-xs font-black">{u?.fullName?.charAt(0)}</span>}
                  </div>
@@ -268,7 +378,7 @@ export const ProjectWorkspacePage = () => {
                       Fund Milestone
                    </Button>
                  )}
-                 {selectedMilestone.status === MilestoneStatus.FUNDED && user?.role === Role.EXPERT && (
+                 {[MilestoneStatus.FUNDED, MilestoneStatus.IN_PROGRESS, MilestoneStatus.REVISION_REQUESTED].includes(selectedMilestone.status) && user?.role === Role.EXPERT && (
                    <Button 
                      onClick={() => setIsSubmitModalOpen(true)}
                      className="w-full h-14 rounded-full font-black text-base bg-brand-accent hover:bg-brand-accent/90 shadow-xl shadow-brand-accent/20 flex items-center justify-center gap-2"
@@ -277,7 +387,7 @@ export const ProjectWorkspacePage = () => {
                       Submit Deliverables
                    </Button>
                  )}
-                 {selectedMilestone.status === MilestoneStatus.UNDER_REVIEW && user?.role === Role.CLIENT && (
+                 {[MilestoneStatus.SUBMITTED, MilestoneStatus.UNDER_REVIEW, MilestoneStatus.APPROVED].includes(selectedMilestone.status) && user?.role === Role.CLIENT && (
                    <div className="flex gap-3">
                       <Button 
                         onClick={() => setIsRevisionModalOpen(true)}
@@ -407,16 +517,16 @@ export const ProjectWorkspacePage = () => {
             <p className="text-sm text-slate-500 mb-6 leading-relaxed">
               This will mark the project as completed and the client may be asked to review the expert.
             </p>
-            <p className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded-xl p-3 mb-8">
-              Finish Project is not available yet because no backend finish/complete project endpoint exists.
-            </p>
             <div className="flex justify-end gap-3">
               <Button variant="outline" onClick={() => setIsFinishModalOpen(false)} className="rounded-full font-bold">
                 Cancel
               </Button>
-              {/* TODO: Wire this to the real project finish endpoint when the backend contract exists. */}
-              <Button disabled className="rounded-full shadow-lg shadow-primary/20 font-black">
-                Finish Project
+              <Button
+                onClick={() => finishProjectMutation.mutate()}
+                disabled={finishProjectMutation.isPending}
+                className="rounded-full shadow-lg shadow-primary/20 font-black"
+              >
+                {finishProjectMutation.isPending ? 'Finishing...' : 'Finish Project'}
               </Button>
             </div>
           </div>

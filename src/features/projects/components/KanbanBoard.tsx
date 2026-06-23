@@ -2,6 +2,7 @@ import type { Milestone } from '../types';
 import { MilestoneCard } from './MilestoneCard';
 import { Sparkles, MoreHorizontal, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { MilestoneStatus } from '@/shared/types/enums';
 
 interface KanbanBoardProps {
   milestones: Milestone[];
@@ -11,10 +12,10 @@ interface KanbanBoardProps {
 
 export const KanbanBoard = ({ milestones, role, onMilestoneClick }: KanbanBoardProps) => {
   const columns = [
-    { title: 'Backlog / Pending', status: [0], bg: 'bg-slate-50/50' },
-    { title: 'In Progress', status: [1], bg: 'bg-blue-50/30' },
-    { title: 'In Review', status: [2], bg: 'bg-amber-50/30' },
-    { title: 'Completed', status: [3], bg: 'bg-emerald-50/30' },
+    { title: 'Backlog / Pending', status: [MilestoneStatus.CREATED], bg: 'bg-slate-50/50' },
+    { title: 'In Progress', status: [MilestoneStatus.FUNDED, MilestoneStatus.IN_PROGRESS, MilestoneStatus.REVISION_REQUESTED], bg: 'bg-blue-50/30' },
+    { title: 'In Review', status: [MilestoneStatus.SUBMITTED, MilestoneStatus.APPROVED, MilestoneStatus.DISPUTED], bg: 'bg-amber-50/30' },
+    { title: 'Completed', status: [MilestoneStatus.COMPLETED, MilestoneStatus.RELEASED, MilestoneStatus.REFUNDED], bg: 'bg-emerald-50/30' },
   ];
 
   return (

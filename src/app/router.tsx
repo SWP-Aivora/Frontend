@@ -10,9 +10,6 @@ import { ProjectWorkspacePage } from '../features/projects/pages/ProjectWorkspac
 import { WalletPage } from '../features/wallet/pages/WalletPage';
 import { JobDetailsPage } from '../features/jobs/pages/JobDetailsPage';
 import { ExpertMyProposalsPage } from '../features/proposals/pages/ExpertMyProposalsPage';
-import { DisputeDetailPage } from '../features/disputes/pages/DisputeDetailPage';
-import { AdminDisputeListPage } from '../features/disputes/pages/AdminDisputeListPage';
-import { UserDisputeListPage } from '../features/disputes/pages/UserDisputeListPage';
 import { ChatWorkspacePage } from '../features/chat/pages/ChatWorkspacePage';
 import { AdminDashboardPage } from '../features/admin/pages/AdminDashboardPage';
 import { UserManagementPage } from '../features/admin/pages/UserManagementPage';
@@ -78,8 +75,6 @@ export const router = createBrowserRouter([
       { path: 'messages', element: <ChatWorkspacePage /> },
       { path: 'notifications', element: <NotificationsPage /> },
       { path: 'wallet', element: <WalletPage /> },
-      { path: 'disputes', element: <UserDisputeListPage /> },
-      { path: 'disputes/:id', element: <DisputeDetailPage /> },
       { path: 'settings', element: <SettingsPage /> },
     ],
   },
@@ -103,8 +98,6 @@ export const router = createBrowserRouter([
       { path: 'messages', element: <ChatWorkspacePage /> },
       { path: 'notifications', element: <NotificationsPage /> },
       { path: 'wallet', element: <WalletPage /> },
-      { path: 'disputes', element: <UserDisputeListPage /> },
-      { path: 'disputes/:id', element: <DisputeDetailPage /> },
       { path: 'settings', element: <SettingsPage /> },
     ],
   },
@@ -123,8 +116,6 @@ export const router = createBrowserRouter([
       { path: 'users/:id', element: <AdminUserDetailPage /> },
       { path: 'projects', element: <ProjectManagementPage /> },
       { path: 'expert-reviews', element: <AdminExpertReviewsPage /> },
-      { path: 'disputes', element: <AdminDisputeListPage /> },
-      { path: 'disputes/:id', element: <DisputeDetailPage /> },
       { path: 'messages', element: <ChatWorkspacePage /> },
       { path: 'notifications', element: <NotificationsPage /> },
       { path: 'profile', element: <ProfilePage /> },

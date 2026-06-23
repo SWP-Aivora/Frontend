@@ -7,6 +7,94 @@ import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
 import { normalizeBaseResponse, normalizePaginatedResponse } from '@/lib/api-utils';
 import { API_ENDPOINTS } from '@/shared/constants';
 
+type SearchExpertsParams = {
+  keyword?: string;
+  page?: number;
+  pageSize?: number;
+};
+
+type ExpertSearchEnvelope = {
+  experts?: ExpertProfileResponse[];
+  Experts?: ExpertProfileResponse[];
+  totalCount?: number;
+  TotalCount?: number;
+  page?: number;
+  Page?: number;
+  pageSize?: number;
+  PageSize?: number;
+  totalPages?: number;
+  TotalPages?: number;
+};
+
+type ExpertRecord = ExpertProfileResponse & Record<string, unknown>;
+
+const getString = (value: unknown, fallback = ''): string => (
+  typeof value === 'string' ? value : fallback
+);
+
+const getNumber = (value: unknown, fallback = 0): number => (
+  typeof value === 'number' ? value : fallback
+);
+
+const normalizeExpertProfileResponse = (expert: ExpertProfileResponse): ExpertProfileResponse => {
+  const raw = expert as ExpertRecord;
+  const rawSkills = Array.isArray(expert.skills)
+    ? expert.skills
+    : (Array.isArray(raw.Skills) ? raw.Skills : []);
+
+  return {
+    ...expert,
+    userId: expert.userId || getString(raw.UserId),
+    fullName: expert.fullName || getString(raw.FullName, 'Unnamed Expert'),
+    avatarUrl: expert.avatarUrl ?? getString(raw.AvatarUrl, ''),
+    title: expert.title ?? getString(raw.Title, 'AI Expert'),
+    bio: expert.bio ?? getString(raw.Bio, ''),
+    hourlyRate: expert.hourlyRate ?? getNumber(raw.HourlyRate, 0),
+    experienceYears: expert.experienceYears ?? getNumber(raw.ExperienceYears, 0),
+    availabilityStatus: expert.availabilityStatus ?? getNumber(raw.AvailabilityStatus, 0),
+    rating: expert.rating ?? getNumber(raw.Rating, 0),
+    totalReviews: expert.totalReviews ?? getNumber(raw.TotalReviews, 0),
+    completedProjects: expert.completedProjects ?? getNumber(raw.CompletedProjects, 0),
+    successRate: expert.successRate ?? getNumber(raw.SuccessRate, 0),
+    skills: rawSkills.map((skill) => {
+      const rawSkill = skill as Record<string, unknown>;
+      return {
+        skillId: getString(rawSkill.skillId ?? rawSkill.SkillId),
+        skillName: getString(rawSkill.skillName ?? rawSkill.SkillName),
+        proficiencyLevel: getNumber(rawSkill.proficiencyLevel ?? rawSkill.ProficiencyLevel, 0),
+      };
+    }),
+  };
+};
+
+const normalizeExpertSearchResponse = (
+  response: unknown,
+  pageSize: number
+): PaginatedResponse<ExpertProfileResponse> => {
+  const base = normalizeBaseResponse<ExpertSearchEnvelope>(response);
+  const payload = base.data;
+  const experts = payload?.experts ?? payload?.Experts ?? [];
+  const pageIndex = payload?.page ?? payload?.Page ?? 1;
+  const resolvedPageSize = payload?.pageSize ?? payload?.PageSize ?? pageSize;
+  const totalCount = payload?.totalCount ?? payload?.TotalCount ?? experts.length;
+  const totalPages = (payload?.totalPages ?? payload?.TotalPages ?? Math.ceil(totalCount / resolvedPageSize)) || 0;
+
+  return {
+    success: base.success,
+    message: base.message,
+    statusCode: base.statusCode,
+    data: experts.map(normalizeExpertProfileResponse),
+    metadata: {
+      pageIndex,
+      pageSize: resolvedPageSize,
+      totalCount,
+      totalPages,
+      hasPreviousPage: pageIndex > 1,
+      hasNextPage: pageIndex < totalPages,
+    },
+  };
+};
+
 export const profileService = {
   // Base User endpoints (using AUTH.ME as it corresponds to /api/v1/auth/me in backend)
   getUserProfile: async (): Promise<BaseResponse<UserProfile>> => {
@@ -80,9 +168,13 @@ export const profileService = {
     }
   },
 
-  getExpertProfileById: async (expertId: string): Promise<BaseResponse<ExpertProfile>> => {
+  getExpertProfileById: async (expertId: string): Promise<BaseResponse<ExpertProfileResponse>> => {
     const response = await apiClient.get(API_ENDPOINTS.PROFILES.EXPERT_BY_ID(expertId));
-    return normalizeBaseResponse<ExpertProfile>(response);
+    const normalized = normalizeBaseResponse<ExpertProfileResponse>(response);
+    return {
+      ...normalized,
+      data: normalized.data ? normalizeExpertProfileResponse(normalized.data) : null,
+    };
   },
 
   /**
@@ -92,7 +184,11 @@ export const profileService = {
   getFeaturedExperts: async (count: number = 4): Promise<PaginatedResponse<ExpertProfileResponse>> => {
     try {
       const response = await apiClient.get(API_ENDPOINTS.PROFILES.FEATURED_EXPERTS, { params: { count } });
-      return normalizePaginatedResponse<ExpertProfileResponse>(response);
+      const normalized = normalizePaginatedResponse<ExpertProfileResponse>(response);
+      return {
+        ...normalized,
+        data: normalized.data.map(normalizeExpertProfileResponse),
+      };
     } catch (error) {
       console.error('[profileService] getFeaturedExperts failed:', error);
       // Fallback for list endpoints
@@ -104,5 +200,18 @@ export const profileService = {
         metadata: { pageIndex: 1, pageSize: count, totalCount: 0, totalPages: 0, hasPreviousPage: false, hasNextPage: false }
       };
     }
+  },
+
+  searchExperts: async (params: SearchExpertsParams = {}): Promise<PaginatedResponse<ExpertProfileResponse>> => {
+    const pageSize = params.pageSize ?? 50;
+    const response = await apiClient.get(API_ENDPOINTS.PROFILES.SEARCH_EXPERTS, {
+      params: {
+        keyword: params.keyword || undefined,
+        page: params.page ?? 1,
+        pageSize,
+      },
+    });
+
+    return normalizeExpertSearchResponse(response, pageSize);
   },
 };

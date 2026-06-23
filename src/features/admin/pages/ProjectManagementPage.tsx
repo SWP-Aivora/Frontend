@@ -8,6 +8,7 @@ import { AdminProjectDetailDrawer } from '../components/project-management/Admin
 import { AdminProjectErrorState } from '../components/project-management/AdminProjectErrorState';
 import { AdminProjectFilters } from '../components/project-management/AdminProjectFilters';
 import { AdminProjectTable } from '../components/project-management/AdminProjectTable';
+import { isProjectDisputed } from '@/features/projects/utils';
 
 const PAGE_SIZE = 10;
 
@@ -45,7 +46,7 @@ export const ProjectManagementPage = () => {
         const status = Number(project.status);
         acc.totalBudget += project.totalBudget;
         if (status === 1) acc.active += 1;
-        if (status === 3) acc.disputed += 1;
+        if (isProjectDisputed(project.status, project.hasDispute)) acc.disputed += 1;
         if (status === 4) acc.completed += 1;
         return acc;
       },

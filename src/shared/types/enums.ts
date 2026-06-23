@@ -12,12 +12,14 @@ export type Role = (typeof Role)[keyof typeof Role];
  * Project Status based on backend schema
  */
 export const ProjectStatus = {
-  DRAFT: 0,
-  PENDING_FUNDING: 1,
-  IN_PROGRESS: 2,
-  COMPLETED: 3,
-  CANCELLED: 4,
-  DISPUTED: 5,
+  PENDING_PAYMENT: 0,
+  PENDING_FUNDING: 0,
+  ACTIVE: 1,
+  IN_PROGRESS: 1,
+  IN_REVIEW: 2,
+  DISPUTED: 3,
+  COMPLETED: 4,
+  CANCELLED: 5,
 } as const;
 export type ProjectStatus = (typeof ProjectStatus)[keyof typeof ProjectStatus];
 
@@ -48,10 +50,18 @@ export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
  * Milestone Status
  */
 export const MilestoneStatus = {
+  CREATED: 0,
   PENDING: 0,
   FUNDED: 1,
-  UNDER_REVIEW: 2,
-  COMPLETED: 3,
+  IN_PROGRESS: 2,
+  SUBMITTED: 3,
+  UNDER_REVIEW: 3,
+  REVISION_REQUESTED: 4,
+  APPROVED: 5,
+  DISPUTED: 6,
+  COMPLETED: 7,
+  RELEASED: 8,
+  REFUNDED: 9,
 } as const;
 export type MilestoneStatus = (typeof MilestoneStatus)[keyof typeof MilestoneStatus];
 
