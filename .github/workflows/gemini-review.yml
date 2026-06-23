@@ -84,7 +84,7 @@ jobs:
 
       - name: Run Gemini Code Review
         id: gemini-review
-        uses: ./actions/gemini-review-action
+        uses: ./.github/actions/gemini-review-action
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GEMINI_AI_KEY: ${{ secrets.GEMINI_AI_KEY }}
