@@ -1,0 +1,24 @@
+name: 'Gemini Code Review Action'
+description: 'Reviews pull requests using Google Gemini AI'
+branding:
+  icon: 'message-square'
+  color: 'purple'
+inputs:
+  pr-number:
+    description: 'Pull request number to review'
+    required: true
+  repo:
+    description: 'Repository in format owner/repo'
+    required: true
+  diff-summary:
+    description: 'Summary of changes in the PR'
+    required: true
+  full-diff:
+    description: 'Full diff of the PR'
+    required: true
+outputs:
+  review-result:
+    description: 'JSON containing review comments and summary'
+runs:
+  using: 'node20'
+  main: 'index.js'

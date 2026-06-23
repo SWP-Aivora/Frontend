@@ -1,0 +1,175 @@
+name: Gemini Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+jobs:
+  gemini-review:
+    name: Gemini Code Review
+    runs-on: ubuntu-latest
+
+    permissions:
+      pull-requests: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Get PR diff
+        id: get-diff
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            // Create a summary of changes
+            let diffSummary = `## Pull Request #${pullRequest.number}: ${pullRequest.title}\n\n`;
+            diffSummary += `**Description:** ${pullRequest.body || 'No description provided'}\n\n`;
+            diffSummary += `**Files Changed:** ${files.length}\n\n`;
+
+            // Add file changes summary
+            if (files.length > 0) {
+              diffSummary += '### File Changes Summary:\n\n';
+              files.forEach(file => {
+                diffSummary += `- **${file.filename}**: ${file.status} (${file.changes} changes)\n`;
+                if (file.patch) {
+                  // Extract first few lines of diff for context
+                  const diffLines = file.patch.split('\n').slice(0, 10);
+                  diffSummary += `  \`\`\`diff\n${diffLines.join('\n')}\n  \`\`\`\n\n`;
+                }
+              });
+            }
+
+            // Get full diff
+            const { data: diff } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              mediaType: {
+                format: 'diff'
+              }
+            });
+
+            // Save to GitHub output
+            core.setOutput('diff-summary', diffSummary);
+            core.setOutput('full-diff', diff);
+            console.log('PR diff collected successfully');
+
+      - name: Run Gemini Code Review
+        id: gemini-review
+        uses: ./actions/gemini-review-action
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GEMINI_AI_KEY: ${{ secrets.GEMINI_AI_KEY }}
+        with:
+          pr-number: ${{ github.event.pull_request.number }}
+          repo: ${{ github.repository }}
+          diff-summary: ${{ steps.get-diff.outputs.diff-summary }}
+          full-diff: ${{ steps.get-diff.outputs.full-diff }}
+
+      - name: Post review and decide action
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const reviewResult = JSON.parse(process.env.REVIEW_RESULT || '{}');
+            const { verdict, priority, confidence, blockingIssues, nonBlockingIssues } = reviewResult;
+
+            // Create review header with verdict
+            let reviewHeader = '## 🤖 Gemini Code Review\n\n';
+
+            // Add verdict badge
+            if (verdict === 'approve') {
+              reviewHeader += '✅ **APPROVED** - PR meets quality standards\n\n';
+              reviewHeader += '🎯 *Auto-approved by AI based on code quality and best practices*\n\n';
+            } else if (verdict === 'request_changes') {
+              reviewHeader += '❌ **CHANGES REQUIRED** - Critical issues found\n\n';
+              reviewHeader += '🚨 *Auto-requested changes due to blocking issues*\n\n';
+            } else {
+              reviewHeader += '💬 **REVIEW NEEDED** - Feedback provided\n\n';
+              reviewHeader += '📝 *AI review with optional suggestions*\n\n';
+            }
+
+            // Add priority and confidence
+            if (priority === 'high') reviewHeader += '⚠️ **High Priority**\n\n';
+            else if (priority === 'medium') reviewHeader += '⚡ **Medium Priority**\n\n';
+            else reviewHeader += '✅ **Low Priority**\n\n';
+
+            if (confidence === 'high') reviewHeader += '🔥 **High Confidence**\n\n';
+            else if (confidence === 'medium') reviewHeader += '🤔 **Medium Confidence**\n\n';
+            else reviewHeader += '💭 **Low Confidence**\n\n';
+
+            // Add issue summary
+            reviewHeader += `📊 **Issue Summary:** ${blockingIssues} blocking, ${nonBlockingIssues} non-blocking\n\n`;
+
+            reviewHeader += `**Summary:** ${reviewResult.summary || 'No summary provided'}`;
+
+            // Post overall review comment
+            await github.rest.pulls.createReview({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              body: reviewHeader,
+              event: 'COMMENT'
+            });
+
+            // Post inline comments if any
+            if (reviewResult.comments && reviewResult.comments.length > 0) {
+              for (const comment of reviewResult.comments) {
+                await github.rest.pulls.createReviewComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: context.issue.number,
+                  commit_id: context.payload.pull_request.head.sha,
+                  body: `**${comment.severity.toUpperCase()}**: ${comment.comment}`,
+                  path: comment.file,
+                  line: comment.line,
+                  side: 'RIGHT'
+                });
+              }
+            }
+
+            // Auto-approve or request changes based on verdict
+            if (verdict === 'approve') {
+              console.log('🤖 Auto-approving PR with high confidence');
+              await github.rest.pulls.createReview({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                body: '✅ **Auto-Approved by Gemini AI**\n\nThis PR has been automatically approved after passing code review. No critical issues found.',
+                event: 'APPROVE'
+              });
+            } else if (verdict === 'request_changes') {
+              console.log('🤖 Requesting changes for PR');
+              await github.rest.pulls.createReview({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                body: '❌ **Changes Required by Gemini AI**\n\nCritical issues found that must be addressed before this PR can be merged.',
+                event: 'REQUEST_CHANGES'
+              });
+            }
+
+            console.log('Review completed with verdict:', verdict);
