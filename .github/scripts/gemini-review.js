@@ -15,8 +15,8 @@ async function main() {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-    // Read PR information from GitHub context (passed via environment)
-    const prData = JSON.parse(process.env.PR_DATA || '{}');
+    // Read PR information from JSON file
+    const prData = JSON.parse(fs.readFileSync('pr-data.json', 'utf8'));
     const diffData = JSON.parse(process.env.DIFF_DATA || '{}');
 
     // Prepare system prompt

@@ -133,11 +133,19 @@ jobs:
 
       - name: Call Gemini API
         env:
-          PR_DATA: ${{ steps.pr-info.outputs.pr-title }}|${{ steps.pr-info.outputs.pr-description }}|${{ steps.pr-info.outputs.pr-labels }}
+          PR_DATA: ${{ steps.pr-info.outputs.pr-title }}
+          PR_DESCRIPTION: ${{ steps.pr-info.outputs.pr-description }}
+          PR_LABELS: ${{ steps.pr-info.outputs.pr-labels }}
           DIFF_DATA: ${{ steps.pr-info.outputs.file-contents }}
         run: |
-          # Create temporary PR data file
-          echo "${{ steps.pr-info.outputs.pr-title }}|${{ steps.pr-info.outputs.pr-description }}|${{ steps.pr-info.outputs.pr-labels }}" > pr-data.txt
+          # Create temporary PR data file with JSON format
+          cat > pr-data.json << 'EOF'
+          {
+            "title": "${{ steps.pr-info.outputs.pr-title }}",
+            "description": "${{ steps.pr-info.outputs.pr-description }}",
+            "labels": "${{ steps.pr-info.outputs.pr-labels }}"
+          }
+          EOF
 
           node .github/scripts/gemini-review.js
 
