@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-const fs = require('fs');
-const path = require('path');
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import fs from 'fs';
+import path from 'path';
 
 // Configuration
 const MAX_TOKENS = 100000; // Safe limit under context window
@@ -158,11 +158,9 @@ Respond ONLY in this exact JSON format:
 }
 
 // Run if called directly
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch(error => {
     console.error('Fatal error:', error);
     process.exit(1);
   });
 }
-
-module.exports = { main };
