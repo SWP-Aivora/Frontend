@@ -66,7 +66,7 @@ Respond ONLY in this exact JSON format:
     // Prepare user prompt with PR info and diff
     let userPrompt = `PR Title: ${prData.title}\n`;
     userPrompt += `PR Description: ${prData.description}\n`;
-    userPrompt += `Labels: ${prData.labels?.join(', ') || 'none'}\n\n`;
+    userPrompt += `Labels: ${Array.isArray(prData.labels) ? prData.labels.join(', ') : prData.labels || 'none'}\n\n`;
     userPrompt += 'Changed files:\n';
 
     // Process changed files with truncation
