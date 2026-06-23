@@ -1,5 +1,5 @@
 const { GoogleGenAI } = require('@google/genai');
-const { GitHub } = require('@actions/github');
+const github = require('@actions/github');
 const core = require('@actions/core');
 
 async function main() {
