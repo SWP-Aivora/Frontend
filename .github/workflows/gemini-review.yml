@@ -408,12 +408,53 @@ jobs:
           )
 
           if result.returncode != 0:
-              print(f'::error::Failed to submit review: {result.stderr}')
-              sys.exit(1)
+              # Check if it failed because of 422 Unprocessable Entity (likely due to self-approval or Workflow permissions)
+              if '422' in result.stderr or 'Unprocessable Entity' in result.stderr:
+                  print("::warning::Failed to submit review as APPROVE/REQUEST_CHANGES (HTTP 422). "
+                        "This can happen if: 1) The PR author is the owner of the token (GitHub prevents self-approval), "
+                        "or 2) Workflow permissions block Actions from approving PRs. Falling back to COMMENT review.")
+                  
+                  # Prepend a warning message to the body to inform the author/admin
+                  warning_header = (
+                      "⚠️ **Note:** Bot attempted to submit this review as "
+                      f"`{event}` but fell back to `COMMENT` (HTTP 422).\n\n"
+                      "*Why this happens: GitHub prevents users from approving their own PRs (if using a personal token), "
+                      "or the GITHUB_TOKEN lacks approval permissions.*"
+                  )
+                  fallback_body = f"{warning_header}\n\n---\n\n{body}"
+                  
+                  fallback_payload = json.dumps({
+                      'body': fallback_body,
+                      'event': 'COMMENT',
+                      'commit_id': head_sha,
+                  })
+                  
+                  fallback_result = subprocess.run(
+                      [
+                          'gh', 'api',
+                          f'repos/{repo}/pulls/{pr_number}/reviews',
+                          '--method', 'POST',
+                          '--input', '-',
+                      ],
+                      input=fallback_payload,
+                      capture_output=True,
+                      text=True,
+                  )
+                  
+                  if fallback_result.returncode == 0:
+                      print(f'Review submitted successfully as COMMENT (Fallback).')
+                      sys.exit(0)
+                  else:
+                      print(f'::error::Fallback submission failed: {fallback_result.stderr}')
+                      sys.exit(1)
+              else:
+                  print(f'::error::Failed to submit review: {result.stderr}')
+                  sys.exit(1)
 
           STATUS_MAP = {
               'REQUEST_CHANGES': f'🚨 Issues found: {len(high_confidence)} critical, {len(medium_confidence)} minor',
               'APPROVE': f'✅ Approved' + (f' with {len(medium_confidence)} minor note(s)' if medium_confidence else ' — no issues!'),
+              'COMMENT': f'💬 Commented'
           }
           print(f'Review submitted: {event}')
           print(f'   {STATUS_MAP[event]}')
