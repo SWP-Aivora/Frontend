@@ -91,21 +91,39 @@ Be concise and direct. No more than 5-7 key findings total.
           }]
         });
 
-        responseText = result.response.text();
-        console.log('Successfully generated review');
-        break;
+        try {
+          responseText = result.response?.text();
+          if (!responseText) {
+            throw new Error('Response text is undefined');
+          }
+          console.log('Successfully generated review');
+          break;
+        } catch (textError) {
+          console.error('Error parsing response text:', textError.message);
+          throw textError;
+        }
       } catch (error) {
         console.error(`Attempt ${retryCount + 1} failed:`, error.message);
-        retryCount++;
 
-        if (retryCount >= maxRetries) {
+        // Handle high demand (503) with exponential backoff
+        if (error.message.includes('503') || error.message.includes('high demand')) {
+          if (retryCount >= maxRetries) {
+            throw new Error(`High demand on all models. Please try again later.`);
+          }
+          // Wait longer for high demand errors
+          const waitTime = Math.pow(2, retryCount) * 5000; // 10, 20, 40 seconds
+          console.log(`High demand detected. Waiting ${waitTime}ms before next attempt...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        } else if (retryCount >= maxRetries) {
           throw new Error(`Failed after ${maxRetries} attempts. Last error: ${error.message}`);
+        } else {
+          // Wait longer between retries
+          const waitTime = Math.pow(2, retryCount) * 1000; // 2, 4, 8 seconds
+          console.log(`Waiting ${waitTime}ms before next attempt...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
         }
 
-        // Wait longer between retries
-        const waitTime = Math.pow(2, retryCount) * 1000; // 2, 4, 8 seconds
-        console.log(`Waiting ${waitTime}ms before next attempt...`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
+        retryCount++;
       }
     }
 
