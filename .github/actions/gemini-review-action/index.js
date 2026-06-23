@@ -1,5 +1,4 @@
 const { GoogleGenAI } = require('@google/genai');
-const github = require('@actions/github');
 const core = require('@actions/core');
 
 async function main() {
@@ -27,27 +26,41 @@ async function main() {
       apiKey: geminiApiKey
     });
 
-    // Prepare prompt for Gemini - concise review format with approval logic
+    // Prepare prompt for Gemini - focus on PR code changes
     const prompt = `
-You are an expert code reviewer and automation system. Review this pull request concisely and determine if it should be approved, need changes, or requires attention.
+You are an expert code reviewer reviewing a REAL pull request. Analyze ONLY the code changes shown in the diff below. Do not mention the action script itself.
 
-**PR Info:**
-${diffSummary}
+**PR Context:**
+- Repository: ${repo}
+- PR Number: ${prNumber}
+- ${diffSummary}
 
-**Changes:**
+**CODE CHANGES TO REVIEW:**
 \`\`\`diff
 ${fullDiff}
 \`\`\`
 
-Provide a review in this exact JSON format:
+INSTRUCTIONS:
+1. Review ONLY the code changes in the diff above
+2. Ignore any references to GitHub Actions, workflow files, or review scripts
+3. Focus on the actual application code being changed
+4. Provide feedback that helps improve the actual business logic
+
+REQUIREMENTS:
+- Analyze TypeScript, React, API calls, error handling, and business logic
+- Check for bugs, security issues, performance problems, or anti-patterns
+- Suggest improvements for code quality and maintainability
+- Focus on the application functionality, not the CI/CD setup
+
+Provide review in this exact JSON format:
 {
-  "summary": "Brief 1-2 sentence overall assessment",
+  "summary": "Brief 1-2 sentence assessment of the CODE CHANGES ONLY",
   "comments": [
     {
-      "file": "filename.ts",
-      "line": number,
+      "file": "src/Component.tsx",
+      "line": 45,
       "severity": "error|warning|suggestion",
-      "comment": "Specific, actionable feedback"
+      "comment": "Specific feedback about the actual code change"
     }
   ],
   "priority": "high|medium|low",
@@ -57,16 +70,12 @@ Provide a review in this exact JSON format:
   "nonBlockingIssues": 0
 }
 
-Approval criteria:
-- approve: No critical issues, minor optional changes only, follows best practices
-- request_changes: Critical bugs, security issues, major architectural problems, or breaking changes
-- comment: Optional suggestions, minor improvements, or non-blocking feedback
+CRITERIA:
+- approve: No critical issues in the application code, minor optional changes only
+- request_changes: Critical bugs, security vulnerabilities, major logic errors
+- comment: Good improvements, suggestions, or non-blocking feedback
 
-Track issues by severity:
-- blockingIssues: count of "error" severity issues
-- nonBlockingIssues: count of "warning" and "suggestion" issues
-
-Be concise and direct. No more than 5-7 key findings total.
+MAX 5-7 comments total. Focus on actual application code, not CI/CD.
 `;
 
     // Generate review using Gemini with retry logic
