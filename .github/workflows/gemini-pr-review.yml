@@ -139,13 +139,11 @@ jobs:
           DIFF_DATA: ${{ steps.pr-info.outputs.file-contents }}
         run: |
           # Create temporary PR data file with JSON format
-          cat > pr-data.json << 'EOF'
-          {
-            "title": "${{ steps.pr-info.outputs.pr-title }}",
-            "description": "${{ steps.pr-info.outputs.pr-description }}",
-            "labels": "${{ steps.pr-info.outputs.pr-labels }}"
-          }
-          EOF
+          jq -n \
+            --arg title "${{ steps.pr-info.outputs.pr-title }}" \
+            --arg description "${{ steps.pr-info.outputs.pr-description }}" \
+            --arg labels "${{ steps.pr-info.outputs.pr-labels }}" \
+            '{title: $title, description: $description, labels: $labels}' > pr-data.json
 
           node .github/scripts/gemini-review.js
 
