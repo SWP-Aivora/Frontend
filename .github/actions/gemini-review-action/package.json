@@ -1,13 +1,13 @@
 {
   "name": "gemini-review-action",
-  "version": "3.0.0",
+  "version": "2.1.0",
   "description": "GitHub action that reviews pull requests using Google Gemini AI (latest 3.x models)",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "@google/genai": "^3.0.0",
+    "@google/genai": "^1.0.0",
     "axios": "^1.6.0",
     "@actions/core": "^1.10.1",
     "@actions/github": "^6.0.0"
