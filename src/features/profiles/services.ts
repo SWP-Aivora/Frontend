@@ -105,4 +105,12 @@ export const profileService = {
       };
     }
   },
+
+  /**
+   * Tự động tìm kiếm chuyên gia theo từ khoá và category (Có phân trang)
+   */
+  searchExperts: async (params: { keyword?: string; categoryId?: string; page?: number; pageSize?: number }): Promise<PaginatedResponse<ExpertProfileResponse>> => {
+    const response = await apiClient.get(API_ENDPOINTS.PROFILES.SEARCH, { params });
+    return normalizePaginatedResponse<ExpertProfileResponse>(response);
+  },
 };

@@ -9,39 +9,23 @@ export const SearchExpertsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
 
-  // Tạm thời gọi API lấy danh sách chuyên gia nổi bật (featured) vì Backend chưa có API /search
+  // Tự động gọi API tìm kiếm chuyên gia (khi user gõ từ khoá hoặc chọn Category)
   // Sử dụng react-query để fetch và tự động cache dữ liệu
   const { data: response, isLoading, isError } = useQuery({
-    queryKey: ['featuredExperts'],
-    queryFn: () => profileService.getFeaturedExperts(20), // Lấy dư data để lọc ở Local
+    queryKey: ['searchExperts', searchTerm, activeCategory],
+    queryFn: () => profileService.searchExperts({ 
+      keyword: searchTerm, 
+      // Tạm thời map 'All' thành undefined để BE không lọc category
+      categoryId: activeCategory === 'All' ? undefined : undefined // TODO: Map string category to UUID when categories API is ready
+    }), 
   });
 
   const experts = response?.data || [];
   const categories = ['All', 'Chatbots', 'Computer Vision', 'LLM Integration', 'Data Science', 'Automation'];
 
-  // Logic Lọc (Filter) bằng Javascript ở máy khách (Sẽ chuyển xuống Backend khi có API)
+  // Dữ liệu đã được BE lọc, FE chỉ việc hiển thị
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const filteredExperts = experts.filter((expert: any) => {
-    const name = expert.user?.fullName || '';
-    const title = expert.title || '';
-    const skills: string[] = expert.expertSkills || expert.skills || [];
-    
-    const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          skills.some((s: string) => s.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    // Logic lọc theo danh mục (Mock Category Filtering)
-    if (activeCategory === 'All') return matchesSearch;
-    if (activeCategory === 'Chatbots' && skills.some((s: string) => s.toLowerCase().includes('bot'))) return matchesSearch;
-    if (activeCategory === 'Computer Vision' && skills.some((s: string) => s.toLowerCase().includes('vision'))) return matchesSearch;
-    if (activeCategory === 'LLM Integration' && skills.some((s: string) => s.toLowerCase().includes('llm') || s.toLowerCase().includes('langchain'))) return matchesSearch;
-    if (activeCategory === 'Data Science' && skills.some((s: string) => s.toLowerCase().includes('data'))) return matchesSearch;
-    
-    return activeCategory === 'All' ? matchesSearch : false;
-  });
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const expertsList: any[] = filteredExperts;
+  const expertsList: any[] = experts;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
@@ -160,7 +144,7 @@ export const SearchExpertsPage = () => {
         {/* Results */}
         <div className="lg:col-span-3 space-y-4">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-lg font-bold text-slate-900">{filteredExperts.length} Experts found</h2>
+            <h2 className="text-lg font-bold text-slate-900">{expertsList.length} Experts found</h2>
             <div className="flex items-center gap-2 text-sm">
               <span className="text-slate-500 font-medium">Sort by:</span>
               <select className="bg-transparent border-none font-bold text-slate-900 focus:ring-0 cursor-pointer">
@@ -262,7 +246,7 @@ export const SearchExpertsPage = () => {
             )})
             )}
 
-            {!isLoading && !isError && filteredExperts.length === 0 && (
+            {!isLoading && !isError && expertsList.length === 0 && (
               <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[32px] p-16 flex flex-col items-center justify-center text-center">
                 <Search className="size-12 text-slate-300 mb-4" />
                 <h3 className="text-xl font-black text-slate-900 mb-2">No experts found</h3>
