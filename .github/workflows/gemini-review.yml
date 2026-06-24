@@ -206,7 +206,7 @@ jobs:
 
           # Call Gemini API with payload from file
           RESPONSE=$(curl -s -w "\n%{http_code}" \
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_AI_KEY}" \
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${GEMINI_AI_KEY}" \
             -H "Content-Type: application/json" \
             -d @/tmp/gemini_payload.json)
 
@@ -247,7 +247,7 @@ jobs:
       - name: Submit GitHub Review
         if: steps.diff.outputs.skip != 'true'
         env:
-          GH_TOKEN: ${{ secrets.BOT_GITHUB_TOKEN || github.token }}
+          GH_TOKEN: ${{ secrets.BOT_GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           REPO: ${{ github.repository }}
@@ -327,7 +327,7 @@ jobs:
 
           FOOTER = [
               '---',
-              '<sub>🤖 Reviewed by Gemini 3.2 Flash Lite | '
+              '<sub>🤖 Reviewed by Gemini 3.1 Flash Lite | '
               'React with 👍 if helpful, 👎 if not</sub>',
           ]
 
