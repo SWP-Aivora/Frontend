@@ -189,11 +189,9 @@ class ChatService extends BaseService<Conversation> {
   /**
    * Get all conversations
    */
-  async getAll(params?: Record<string, unknown>): Promise<PaginatedResponse<Conversation>> {
+  async getAll(params?: Record<string, unknown>, currentUserId?: string): Promise<PaginatedResponse<Conversation>> {
     const response = await apiClient.get(this.endpoint, { params });
     const paginated = normalizePaginatedResponse<Record<string, unknown>>(response as AxiosResponse);
-    
-    const currentUserId = useAuthStore.getState().user?.id;
 
     const items = paginated.data || [];
 
@@ -280,10 +278,12 @@ class ChatService extends BaseService<Conversation> {
   /**
    * Initialize a conversation
    */
-  async initializeConversation(params: { expertId?: string; jobId?: string; projectId?: string }): Promise<BaseResponse<Conversation>> {
+  async initializeConversation(
+    params: { expertId?: string; jobId?: string; projectId?: string },
+    currentUserId?: string
+  ): Promise<BaseResponse<Conversation>> {
     const response = await apiClient.post(API_ENDPOINTS.MESSAGES.INIT, null, { params });
     const normalized = normalizeBaseResponse<Record<string, unknown>>(response);
-    const currentUserId = useAuthStore.getState().user?.id;
 
     return {
       ...normalized,

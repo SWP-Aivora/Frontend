@@ -21,16 +21,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { createProposalSchema, type CreateProposalFormValues } from '../../proposals/schema';
 import { Input } from '@/shared/components/ui/Input';
 import { toast } from 'sonner';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { jobService } from '../services';
 import { proposalService } from '../../proposals/services';
-import type { BaseResponse } from '@/shared/types/api';
-import type { Proposal } from '../../proposals/types';
 
 export const JobDetailsPage = () => {
   const { id, proposalId } = useParams();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const isEditMode = Boolean(proposalId);
   const [hasSubmitted, setHasSubmitted] = useState(() => localStorage.getItem(`submitted_proposal_${id}`) === 'true');
 
@@ -103,33 +100,7 @@ export const JobDetailsPage = () => {
 
   const onSubmit = (data: CreateProposalFormValues) => {
     if (isEditMode) {
-      if (proposal && proposalId) {
-        const updatedProposal: Proposal = {
-          ...proposal,
-          coverLetter: data.coverLetter,
-          proposedBudget: data.proposedBudget,
-          proposedTimelineDays: data.proposedTimelineDays ?? null,
-          milestones: (data.milestones ?? []).map((milestone, index) => ({
-            id: proposal.milestones[index]?.id || `local-${index}`,
-            title: milestone.title,
-            description: milestone.description ?? null,
-            amount: milestone.amount,
-            dueDays: milestone.dueDays,
-            acceptanceCriteria: milestone.acceptanceCriteria ?? null,
-            orderIndex: milestone.orderIndex ?? index,
-          })),
-        };
-
-        queryClient.setQueryData<BaseResponse<Proposal>>(['proposal', proposalId], current => ({
-          success: current?.success ?? true,
-          message: 'Proposal saved locally',
-          statusCode: current?.statusCode ?? 200,
-          data: updatedProposal,
-        }));
-      }
-
-      toast.success('Proposal changes saved successfully!');
-      navigate(`/expert/proposals/${proposalId}`);
+      toast.error('Proposal editing is not available yet because the API does not support updating proposals.');
       return;
     }
 
@@ -414,13 +385,13 @@ export const JobDetailsPage = () => {
                     )}
                   </div>
 
-                  <Button type="submit" disabled={submitMutation.isPending} className="w-full rounded-full h-14 font-bold text-base bg-brand-accent hover:bg-brand-accent/90 shadow-lg shadow-brand-accent/20">
+                  <Button type="submit" disabled={submitMutation.isPending || isEditMode} className="w-full rounded-full h-14 font-bold text-base bg-brand-accent hover:bg-brand-accent/90 shadow-lg shadow-brand-accent/20">
                     {submitMutation.isPending ? (
                       <span className="inline-flex items-center gap-2">
                         <Loader2 className="size-4 animate-spin" />
                         Submitting Proposal...
                       </span>
-                    ) : isEditMode ? 'Save Proposal Changes' : 'Submit Proposal'}
+                    ) : isEditMode ? 'Proposal Editing Unavailable' : 'Submit Proposal'}
                   </Button>
                 </form>
               )}

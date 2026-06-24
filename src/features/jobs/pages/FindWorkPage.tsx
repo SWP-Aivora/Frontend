@@ -1,4 +1,4 @@
-import { type Dispatch, type FormEvent, type SetStateAction, useMemo, useState } from 'react';
+import { type Dispatch, type FormEvent, type SetStateAction, useEffect, useMemo, useState } from 'react';
 import { JobBoardCard } from '../components/JobBoardCard';
 import { type JobCard } from '../schema';
 import { type Job } from '../types';
@@ -77,13 +77,27 @@ export const FindWorkPage = () => {
   const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
   const [selectedBudgetTypes, setSelectedBudgetTypes] = useState<string[]>([]);
   const [selectedSkillLevels, setSelectedSkillLevels] = useState<string[]>([]);
+  const [pageIndex, setPageIndex] = useState(1);
+  const [loadedJobs, setLoadedJobs] = useState<Job[]>([]);
+  const pageSize = 20;
 
-  const { data: jobsResponse, isLoading, error } = useQuery({
-    queryKey: ['jobs', 'find-work-all'],
-    queryFn: () => jobService.getJobs({ PageSize: 1000, PageIndex: 1 }),
+  const { data: jobsResponse, isLoading, isFetching, error } = useQuery({
+    queryKey: ['jobs', 'find-work', pageIndex],
+    queryFn: () => jobService.getJobs({ PageSize: pageSize, PageIndex: pageIndex }),
   });
 
-  const allJobs = useMemo(() => jobsResponse?.data || [], [jobsResponse?.data]);
+  useEffect(() => {
+    const pageJobs = jobsResponse?.data ?? [];
+    if (pageJobs.length === 0) return;
+
+    setLoadedJobs(current => {
+      const nextJobs = pageIndex === 1 ? pageJobs : [...current, ...pageJobs];
+      return Array.from(new Map(nextJobs.map(job => [job.id, job])).values());
+    });
+  }, [jobsResponse?.data, pageIndex]);
+
+  const allJobs = useMemo(() => loadedJobs, [loadedJobs]);
+  const hasNextPage = jobsResponse?.metadata?.hasNextPage ?? false;
 
   const filteredJobs = useMemo(() => {
     const normalizedSearch = appliedSearchTerm.trim().toLowerCase();
@@ -264,8 +278,13 @@ export const FindWorkPage = () => {
           )}
           
           <div className="pt-8 flex justify-center">
-             <Button variant="outline" className="rounded-full px-8 h-12 font-bold border-slate-200 text-slate-600 hover:text-brand-accent hover:border-brand-accent transition-all">
-                Load More Jobs
+             <Button
+               variant="outline"
+               disabled={!hasNextPage || isFetching}
+               onClick={() => setPageIndex(current => current + 1)}
+               className="rounded-full px-8 h-12 font-bold border-slate-200 text-slate-600 hover:text-brand-accent hover:border-brand-accent transition-all"
+             >
+                {isFetching && pageIndex > 1 ? 'Loading...' : hasNextPage ? 'Load More Jobs' : 'No More Jobs'}
              </Button>
           </div>
         </div>

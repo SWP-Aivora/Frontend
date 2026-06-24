@@ -12,11 +12,13 @@ import { reviewService } from '@/features/reviews/services';
 import { projectService } from '@/features/projects/services';
 import { chatService } from '@/features/chat/services';
 import { ProjectStatus } from '@/shared/types/enums';
+import { useAuthStore } from '@/features/auth/store';
 
 export const ExpertPublicProfilePage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const currentUserId = useAuthStore((state) => state.user?.id);
 
   const [activeTab, setActiveTab] = useState('overview');
 
@@ -79,7 +81,7 @@ export const ExpertPublicProfilePage = () => {
       const conversationsResponse = await chatService.getAll({
         PageIndex: 1,
         PageSize: 100,
-      });
+      }, currentUserId);
 
       const existingConversation = conversationsResponse.data?.find(
         (conversation) => conversation.recipient.id === expertId
@@ -89,7 +91,7 @@ export const ExpertPublicProfilePage = () => {
         return existingConversation;
       }
 
-      const response = await chatService.initializeConversation({ expertId });
+      const response = await chatService.initializeConversation({ expertId }, currentUserId);
       if (!response.data) {
         throw new Error('Conversation opened, but no conversation id was returned.');
       }

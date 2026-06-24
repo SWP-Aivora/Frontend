@@ -130,7 +130,7 @@ export const ProjectWorkspacePage = () => {
         expertId: project.expertId,
         jobId: project.jobId,
         projectId: project.id,
-      });
+      }, user?.id);
     },
     onSuccess: (response) => {
       const conversationId = response.data?.id;

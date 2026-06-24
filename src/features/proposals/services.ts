@@ -96,7 +96,7 @@ export const proposalService = {
 
     return {
       ...normalized,
-      data: normalized.data.map(normalizeProposal),
+      data: (normalized.data ?? []).map(normalizeProposal),
     };
   },
 
@@ -136,7 +136,7 @@ export const proposalService = {
 
     return {
       ...normalized,
-      data: normalized.data.map(normalizeProposal),
+      data: (normalized.data ?? []).map(normalizeProposal),
     };
   },
 };
