@@ -77,8 +77,6 @@ export const ClientJobProposalsPage = () => {
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [activeTab, setActiveTab] = useState<ProposalFilter>('all');
   const [acceptedProposalId, setAcceptedProposalId] = useState<string | null>(null);
-  const [localStatuses, setLocalStatuses] = useState<Record<string, NormalizedProposalStatus>>({});
-
   // Lấy chi tiết Job hiện tại
   const { data: jobResponse, isLoading: isJobLoading } = useQuery({
     queryKey: ['job', id],
@@ -95,7 +93,7 @@ export const ClientJobProposalsPage = () => {
 
   const job = jobResponse?.data;
   const proposals = proposalsResponse?.data || [];
-  const getProposalStatus = (proposal: Proposal) => localStatuses[proposal.id] || normalizeProposalStatus(proposal.status);
+  const getProposalStatus = (proposal: Proposal) => normalizeProposalStatus(proposal.status);
   const isJobLocked = normalizeJobStatus(job?.status) === 'in-progress' || normalizeJobStatus(job?.status) === 'completed';
   const acceptedProposal = proposals.find(proposal => getProposalStatus(proposal) === 'accepted');
   const proposalList = proposals.filter(proposal => {
@@ -104,8 +102,8 @@ export const ClientJobProposalsPage = () => {
     if (activeTab === 'refused') return status === 'rejected';
     return true;
   });
-  const shortlistedCount = useMemo(() => proposals.filter(proposal => getProposalStatus(proposal) === 'shortlisted').length, [proposals, localStatuses]);
-  const refusedCount = useMemo(() => proposals.filter(proposal => getProposalStatus(proposal) === 'rejected').length, [proposals, localStatuses]);
+  const shortlistedCount = useMemo(() => proposals.filter(proposal => getProposalStatus(proposal) === 'shortlisted').length, [proposals]);
+  const refusedCount = useMemo(() => proposals.filter(proposal => getProposalStatus(proposal) === 'rejected').length, [proposals]);
   const averageBid = proposals.length
     ? Math.round(proposals.reduce((total, proposal) => total + Number(proposal.proposedBudget || 0), 0) / proposals.length)
     : 0;
@@ -121,14 +119,27 @@ export const ClientJobProposalsPage = () => {
 
   const acceptMutation = useMutation({
     mutationFn: (pid: string) => proposalService.acceptProposal(pid),
+    onMutate: async (pid) => {
+      await queryClient.cancelQueries({ queryKey: ['proposals', id] });
+      const previousProposals = queryClient.getQueryData<PaginatedResponse<Proposal>>(['proposals', id]);
+
+      if (previousProposals) {
+        queryClient.setQueryData<PaginatedResponse<Proposal>>(['proposals', id], {
+          ...previousProposals,
+          data: (previousProposals.data ?? []).map(proposal =>
+            proposal.id === pid
+              ? { ...proposal, status: 2 } // 2 is ACCEPTED
+              : { ...proposal, status: 3 } // others are REJECTED
+          ),
+        });
+      }
+
+      return { previousProposals };
+    },
     onSuccess: (res, pid) => {
       const returnedProjectId = res.data?.projectId;
 
       setAcceptedProposalId(pid);
-      setLocalStatuses(current => ({
-        ...current,
-        ...Object.fromEntries(proposals.map(proposal => [proposal.id, proposal.id === pid ? 'accepted' : 'rejected'] as const)),
-      }));
 
       void Promise.all([
         queryClient.invalidateQueries({ queryKey: ['job', id] }),
@@ -144,29 +155,74 @@ export const ClientJobProposalsPage = () => {
         toast.success('Proposal accepted. Refreshing project data...');
       }
     },
-    onError: (error) => {
+    onError: (error, pid, context) => {
+      if (context?.previousProposals) {
+        queryClient.setQueryData(['proposals', id], context.previousProposals);
+      }
       toast.error(getErrorMessage(error, 'Failed to accept proposal'));
     },
   });
 
   const rejectMutation = useMutation({
     mutationFn: (pid: string) => proposalService.rejectProposal(pid),
-    onSuccess: async (_, pid) => {
-      setLocalStatuses(current => ({ ...current, [pid]: 'rejected' }));
-      await queryClient.invalidateQueries({ queryKey: ['proposals', id] });
+    onMutate: async (pid) => {
+      await queryClient.cancelQueries({ queryKey: ['proposals', id] });
+      const previousProposals = queryClient.getQueryData<PaginatedResponse<Proposal>>(['proposals', id]);
+
+      if (previousProposals) {
+        queryClient.setQueryData<PaginatedResponse<Proposal>>(['proposals', id], {
+          ...previousProposals,
+          data: (previousProposals.data ?? []).map(proposal =>
+            proposal.id === pid ? { ...proposal, status: 3 } : proposal // 3 is REJECTED
+          ),
+        });
+      }
+
+      return { previousProposals };
+    },
+    onError: (err, pid, context) => {
+      if (context?.previousProposals) {
+        queryClient.setQueryData(['proposals', id], context.previousProposals);
+      }
+      toast.error('Failed to decline proposal');
+    },
+    onSuccess: () => {
       toast.success('Proposal refused.');
     },
-    onError: () => toast.error('Failed to decline proposal'),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ['proposals', id] });
+    },
   });
 
   const shortlistMutation = useMutation({
     mutationFn: (pid: string) => proposalService.shortlistProposal(pid),
-    onSuccess: async (_, pid) => {
-      setLocalStatuses(current => ({ ...current, [pid]: 'shortlisted' }));
-      await queryClient.invalidateQueries({ queryKey: ['proposals', id] });
+    onMutate: async (pid) => {
+      await queryClient.cancelQueries({ queryKey: ['proposals', id] });
+      const previousProposals = queryClient.getQueryData<PaginatedResponse<Proposal>>(['proposals', id]);
+
+      if (previousProposals) {
+        queryClient.setQueryData<PaginatedResponse<Proposal>>(['proposals', id], {
+          ...previousProposals,
+          data: (previousProposals.data ?? []).map(proposal =>
+            proposal.id === pid ? { ...proposal, status: 1 } : proposal // 1 is SHORTLISTED
+          ),
+        });
+      }
+
+      return { previousProposals };
+    },
+    onError: (err, pid, context) => {
+      if (context?.previousProposals) {
+        queryClient.setQueryData(['proposals', id], context.previousProposals);
+      }
+      toast.error('Failed to shortlist proposal');
+    },
+    onSuccess: () => {
       toast.success('Proposal shortlisted.');
     },
-    onError: () => toast.error('Failed to shortlist proposal'),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ['proposals', id] });
+    },
   });
 
   const onAccept = (pid: string) => {
@@ -180,15 +236,25 @@ export const ClientJobProposalsPage = () => {
     const serverStatus = normalizeProposalStatus(proposal?.status);
 
     if (serverStatus === 'shortlisted') {
-      setLocalStatuses(current => ({ ...current, [pid]: 'shortlisted' }));
       toast.success('Proposal shortlisted.');
       return;
     }
 
     shortlistMutation.mutate(pid);
   };
-  const onUnshortlist = (pid: string) => {
-    setLocalStatuses(current => ({ ...current, [pid]: 'submitted' }));
+  const onUnshortlist = async (pid: string) => {
+    await queryClient.cancelQueries({ queryKey: ['proposals', id] });
+    const previousProposals = queryClient.getQueryData<PaginatedResponse<Proposal>>(['proposals', id]);
+
+    if (previousProposals) {
+      queryClient.setQueryData<PaginatedResponse<Proposal>>(['proposals', id], {
+        ...previousProposals,
+        data: (previousProposals.data ?? []).map(proposal =>
+          proposal.id === pid ? { ...proposal, status: 0 } : proposal // 0 is SUBMITTED
+        ),
+      });
+    }
+
     toast.success('Proposal returned to submitted status.');
   };
 
