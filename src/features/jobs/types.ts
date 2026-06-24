@@ -15,6 +15,7 @@ export interface Job {
   businessDomain: string | null;
   expectedOutcome: string | null;
   categoryId: string;
+  categoryName?: string | null;
   budgetType: BudgetType;
   budgetMin: number | null;
   budgetMax: number | null;
@@ -27,8 +28,9 @@ export interface Job {
   clientId: string;
   client: UserBasicInfo;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
   skills: Array<{ id: string; name: string }>;
+  milestones?: AcceptedJobMilestone[];
 }
 
 
@@ -79,6 +81,38 @@ export interface AiJobSuggestion {
   suggestedMilestones: SuggestedMilestone[];
   status: AiJobAssistantStatus;
   createdAt: string;
+}
+
+export interface RefineAiJobSuggestionResult {
+  suggestion: AiJobSuggestion;
+  aiResponse: string;
+  changedFields: string[];
+}
+
+export interface AcceptAiJobSuggestionRequest {
+  categoryId: string;
+  selectedSkillIds?: string[];
+}
+
+export interface AcceptedJobMilestone {
+  id: string;
+  title: string;
+  description: string | null;
+  amount: number;
+  dueDays: number;
+  acceptanceCriteria: string | null;
+  orderIndex: number;
+}
+
+export interface AcceptedJobResponse {
+  id: string;
+  categoryId: string | null;
+  status: number;
+  milestones: AcceptedJobMilestone[];
+}
+
+export interface AcceptAiJobSuggestionResult {
+  job: AcceptedJobResponse;
 }
 
 export type PatchAiJobSuggestionRequest = Partial<Pick<AiJobSuggestion, 

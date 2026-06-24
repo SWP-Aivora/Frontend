@@ -9,6 +9,9 @@ interface AiChatPanelProps {
   isGenerating: boolean;
   onRefine: (text: string) => Promise<unknown> | void;
   hasSuggestion: boolean;
+  inputDisabled?: boolean;
+  disabledPlaceholder?: string;
+  modeLabel?: string;
 }
 
 export const AiChatPanel = ({ 
@@ -16,7 +19,10 @@ export const AiChatPanel = ({
   onSendMessage, 
   isGenerating, 
   onRefine,
-  hasSuggestion
+  hasSuggestion,
+  inputDisabled = false,
+  disabledPlaceholder,
+  modeLabel,
 }: AiChatPanelProps) => {
   const [inputValue, setInputValue] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -29,7 +35,7 @@ export const AiChatPanel = ({
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!inputValue.trim() || isGenerating) return;
+    if (!inputValue.trim() || isGenerating || inputDisabled) return;
     
     const text = inputValue;
     setInputValue(''); // Optimistically clear input
@@ -47,7 +53,7 @@ export const AiChatPanel = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden">
+    <div className="flex h-[min(70vh,720px)] min-h-[520px] flex-col overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm lg:h-full lg:min-h-0">
       {/* Header */}
       <div className="p-4 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -61,7 +67,7 @@ export const AiChatPanel = ({
         </div>
         <div className="flex items-center gap-2">
            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-             {hasSuggestion ? 'Refinement Mode' : 'Planning Mode'}
+             {modeLabel ?? (hasSuggestion ? 'Refinement Mode' : 'Planning Mode')}
            </span>
         </div>
       </div>
@@ -132,13 +138,19 @@ export const AiChatPanel = ({
             type="text" 
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            disabled={isGenerating}
-            placeholder={hasSuggestion ? "Ask AI to change title, budget, or milestones..." : "Describe your project idea..."}
+            disabled={isGenerating || inputDisabled}
+            placeholder={
+              inputDisabled
+                ? disabledPlaceholder ?? 'Editing is available in the draft form on the right.'
+                : hasSuggestion
+                  ? "Ask AI to change title, budget, or milestones..."
+                  : "Describe your project idea..."
+            }
             className="w-full h-12 pl-5 pr-12 rounded-2xl bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all text-sm font-medium disabled:opacity-50"
           />
           <button 
             type="submit"
-            disabled={!inputValue.trim() || isGenerating}
+            disabled={!inputValue.trim() || isGenerating || inputDisabled}
             className="absolute right-1.5 top-1.5 size-9 rounded-xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
           >
             <Send className="size-4" />
