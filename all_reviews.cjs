@@ -1,1 +1,0 @@
-const https = require('https'); https.get('https://api.github.com/repos/SWP-Aivora/Frontend/pulls/30/reviews', { headers: { 'User-Agent': 'Node.js', 'Accept': 'application/vnd.github.v3+json' } }, (res) => { let data = ''; res.on('data', c => data += c); res.on('end', () => console.log(JSON.parse(data).map(r => r.state + ': ' + r.body))); }).on('error', console.error);  
