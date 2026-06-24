@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { projectService } from '@/features/projects/services';
 import { ProjectStatus } from '@/shared/types/enums';
+import { isActiveProjectStatus } from '@/features/projects/utils';
 
 
 type StatusFilter = 'all' | 'in-progress' | 'completed';
@@ -15,24 +16,20 @@ export const ExpertMyJobsPage = () => {
 
   const { data: projectsResponse, isLoading } = useQuery({
     queryKey: ['expertProjects'],
-    queryFn: () => projectService.getProjects(),
+    queryFn: () => projectService.getProjects({ PageSize: 100 }),
   });
 
   // Map API ProjectStatus to our UI filter statuses
-  const mapStatusToUI = (status: ProjectStatus): StatusFilter | null => {
-    switch (status) {
-      case ProjectStatus.IN_PROGRESS: return 'in-progress';
-      case ProjectStatus.COMPLETED: return 'completed';
-      default: return null; // We only want to show active/completed jobs for experts here
-    }
-  };
+  const mapStatusToUI = (status: ProjectStatus): StatusFilter => (
+    status === ProjectStatus.COMPLETED ? 'completed' : 'in-progress'
+  );
 
   const apiProjects = (projectsResponse?.data || [])
-    .filter(p => p.status === ProjectStatus.IN_PROGRESS || p.status === ProjectStatus.COMPLETED)
+    .filter(p => p.status === ProjectStatus.COMPLETED || isActiveProjectStatus(p.status))
     .map(p => ({
       id: p.id,
       title: p.title,
-      status: mapStatusToUI(p.status) as StatusFilter,
+      status: mapStatusToUI(p.status),
       createdAt: new Date(p.createdAt).toLocaleDateString(),
       budget: `$${p.totalBudget.toLocaleString()}`,
       domain: 'General',

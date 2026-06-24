@@ -2,6 +2,7 @@ import type { Milestone } from '../types';
 import { MilestoneCard } from './MilestoneCard';
 import { Sparkles, MoreHorizontal, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { MilestoneStatus } from '@/shared/types/enums';
 
 interface KanbanBoardProps {
   milestones: Milestone[];
@@ -10,11 +11,11 @@ interface KanbanBoardProps {
 }
 
 export const KanbanBoard = ({ milestones, role, onMilestoneClick }: KanbanBoardProps) => {
-  const columns = [
-    { title: 'Backlog / Pending', status: [0], bg: 'bg-slate-50/50' },
-    { title: 'In Progress', status: [1], bg: 'bg-blue-50/30' },
-    { title: 'In Review', status: [2], bg: 'bg-amber-50/30' },
-    { title: 'Completed', status: [3], bg: 'bg-emerald-50/30' },
+  const columns: { title: string; status: MilestoneStatus[]; bg: string }[] = [
+    { title: 'Backlog / Pending', status: [MilestoneStatus.CREATED], bg: 'bg-slate-50/50' },
+    { title: 'In Progress', status: [MilestoneStatus.FUNDED, MilestoneStatus.IN_PROGRESS, MilestoneStatus.REVISION_REQUESTED], bg: 'bg-blue-50/30' },
+    { title: 'In Review', status: [MilestoneStatus.SUBMITTED, MilestoneStatus.APPROVED, MilestoneStatus.DISPUTED], bg: 'bg-amber-50/30' },
+    { title: 'Completed', status: [MilestoneStatus.COMPLETED, MilestoneStatus.RELEASED, MilestoneStatus.REFUNDED], bg: 'bg-emerald-50/30' },
   ];
 
   return (
@@ -57,7 +58,7 @@ export const KanbanBoard = ({ milestones, role, onMilestoneClick }: KanbanBoardP
             </div>
             
             {/* AI Insight Footer (Optional) */}
-            {column.status.includes(2) && columnMilestones.length > 0 && (
+            {column.status.includes(MilestoneStatus.IN_PROGRESS) && columnMilestones.length > 0 && (
                <div className="mt-4 bg-white/50 backdrop-blur-md rounded-xl p-3 border border-amber-100 flex items-center gap-3">
                   <div className="size-8 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
                      <Sparkles className="size-4 text-amber-600" />

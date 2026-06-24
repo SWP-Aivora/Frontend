@@ -49,6 +49,10 @@
   --color-ring: var(--ring);
 
   /* Brand Tokens */
+  --color-brand-primary: #2563eb;
+  --color-brand-dark: #0f172a;
+  --color-brand-secondary: #475569;
+  --color-brand-muted: #94a3b8;
   --color-brand-blue-dark: #164c96;
   --color-brand-blue-light: #eff6ff;
   --color-brand-accent: #7c3aed;

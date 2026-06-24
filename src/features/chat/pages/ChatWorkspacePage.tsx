@@ -6,7 +6,7 @@ import { EmptyState } from '../components/EmptyState';
 import { useConversations } from '../hooks/useConversations';
 import { useMessages, useMarkRead, useSendMessage } from '../hooks/useMessages';
 import type { Conversation } from '../types';
-import { Info, ChevronLeft, ChevronRight, AlertCircle, RefreshCw } from 'lucide-react';
+import { Info, ChevronRight, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
@@ -182,6 +182,8 @@ export const ChatWorkspacePage = () => {
                 type={selectedConversation.type}
                 relatedTitle={selectedConversation.relatedTitle}
                 projectId={selectedConversation.projectId}
+                isRightPanelCollapsed={isRightPanelCollapsed}
+                onToggleRightPanel={() => setIsRightPanelCollapsed(!isRightPanelCollapsed)}
               />
               
               <ChatBox 
@@ -201,24 +203,23 @@ export const ChatWorkspacePage = () => {
         {/* Right Column: Context & Files (Only for project/proposal) */}
         {selectedConversation && selectedConversation.type !== 'SUPPORT' && (
           <div className={cn(
-            "hidden lg:flex flex-col bg-white transition-all duration-300 ease-in-out relative shrink-0 h-full",
-            isRightPanelCollapsed ? "w-12" : "w-80"
+            "hidden lg:flex flex-col bg-white transition-all duration-300 ease-in-out relative shrink-0 h-full overflow-hidden",
+            isRightPanelCollapsed ? "w-0 border-l-0" : "w-80 border-l border-slate-200"
           )}>
             {/* Toggle Button for Right Panel - Positioned on the left edge */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsRightPanelCollapsed(!isRightPanelCollapsed)}
-              className={cn(
-                "absolute top-6 -left-3.5 z-20 size-7 bg-white border border-slate-200 rounded-full shadow-sm text-slate-400 hover:text-blue-600 transition-all",
-                isRightPanelCollapsed && "left-2.5"
-              )}
-            >
-              {isRightPanelCollapsed ? <ChevronLeft className="size-4" /> : <ChevronRight className="size-4" />}
-            </Button>
+            {!isRightPanelCollapsed && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsRightPanelCollapsed(!isRightPanelCollapsed)}
+                className="absolute top-6 -left-3.5 z-20 size-7 bg-white border border-slate-200 rounded-full shadow-sm text-slate-400 hover:text-blue-600 transition-all"
+              >
+                <ChevronRight className="size-4" />
+              </Button>
+            )}
 
             <div className={cn(
-              "flex-1 flex flex-col min-w-[320px] overflow-y-auto scrollbar-hide transition-opacity duration-300 h-full",
+              "flex-1 flex flex-col w-80 shrink-0 overflow-y-auto scrollbar-hide transition-opacity duration-300 h-full",
               isRightPanelCollapsed ? "opacity-0 pointer-events-none" : "opacity-100"
             )}>
               <div className="p-6 border-b border-slate-100">

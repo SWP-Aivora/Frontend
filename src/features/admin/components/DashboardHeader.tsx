@@ -117,10 +117,10 @@ export const DashboardHeader = ({
             Expert Profile Review
           </Link>
           <Link
-            to="/admin/disputes"
+            to="/admin/projects"
             className="flex items-center justify-center px-4 py-2 bg-primary text-white rounded-xl font-black text-sm hover:bg-primary-dark transition-all whitespace-nowrap shadow-lg shadow-primary/20"
           >
-            Manage Disputes
+            Review Project Disputes
           </Link>
         </div>
       </div>

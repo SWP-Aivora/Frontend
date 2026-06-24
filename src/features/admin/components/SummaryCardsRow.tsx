@@ -183,7 +183,7 @@ export const SummaryCardsRow = ({ summary }: SummaryCardsRowProps) => (
           </div>
           <div className="text-right">
             <div className="text-3xl font-black text-rose-500 tracking-tighter">{summary?.openDisputes || '0'}</div>
-            <Link to="/admin/disputes" className="text-xs font-bold text-rose-600 hover:underline mt-0.5 inline-block">
+            <Link to="/admin/projects" className="text-xs font-bold text-rose-600 hover:underline mt-0.5 inline-block">
               View details &gt;
             </Link>
           </div>

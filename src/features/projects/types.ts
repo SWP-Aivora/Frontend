@@ -25,11 +25,17 @@ export interface Milestone {
 
 export interface Project {
   id: string;
+  jobId?: string;
+  acceptedProposalId?: string;
   title: string;
   description: string;
   status: ProjectStatus;
+  hasDispute?: boolean;
   clientId: string;
   expertId: string;
+  clientName?: string;
+  expertName?: string;
+  currency?: string;
   client: UserSummary;
   expert: UserSummary;
   totalBudget: number;

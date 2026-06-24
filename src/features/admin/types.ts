@@ -74,6 +74,7 @@ export interface AdminProject {
   totalBudget: number;
   currency: string;
   status: AdminProjectStatusValue;
+  hasDispute?: boolean;
   startDate?: string | null;
   endDate?: string | null;
   completedAt?: string | null;
