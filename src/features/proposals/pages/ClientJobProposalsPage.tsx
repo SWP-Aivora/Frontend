@@ -4,6 +4,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { ProposalListCard } from '../components/ProposalListCard';
 import { jobService } from '../../jobs/services';
 import { proposalService } from '../services';
+import { projectService } from '../../projects/services';
 import { 
   ChevronLeft, 
   Sparkles, 
@@ -45,8 +46,7 @@ export const ClientJobProposalsPage = () => {
 
   const job = jobResponse?.data;
   const proposals = proposalsResponse?.data || [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const proposalList: any[] = proposals;
+  const proposalList = proposals;
   const isLoading = isJobLoading || isProposalsLoading;
 
   const handleGenerateAI = async () => {
@@ -59,12 +59,28 @@ export const ClientJobProposalsPage = () => {
 
   // Xử lý logic khi Client bấm Accept một Proposal
   // Ghi chú cho BE: API này không chỉ đổi trạng thái Proposal, mà phải tự động tạo luôn Project Workspace
+  const createProjectMutation = useMutation({
+    mutationFn: (pid: string) => projectService.createProjectFromProposal(pid),
+    onSuccess: (res) => {
+      const projectId = res.data?.projectId;
+      if (!projectId) {
+        toast.error('Workspace created, but backend did not return Project ID.');
+        return;
+      }
+      toast.success(`Project Workspace created successfully!`);
+      navigate(`/client/projects/${projectId}/workspace`);
+    },
+    onError: () => {
+      toast.error('Failed to create Project Workspace from accepted proposal.');
+    }
+  });
+
   const acceptMutation = useMutation({
     mutationFn: (pid: string) => proposalService.acceptProposal(pid),
     onSuccess: (_, pid) => {
       setAcceptedProposalId(pid);
-      toast.success(`Proposal accepted! Transitioning to Workspace...`);
-      setTimeout(() => navigate(`/client/projects/${id}/workspace`), 2000);
+      toast.success(`Proposal accepted! Generating Contract and Workspace...`);
+      createProjectMutation.mutate(pid);
     },
     onError: () => toast.error('Failed to accept proposal'),
   });

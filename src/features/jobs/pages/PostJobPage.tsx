@@ -171,8 +171,15 @@ export const PostJobPage = () => {
 
   const debouncedPatch = useDebouncedCallback(() => {
     if (Object.keys(pendingPatchRef.current).length > 0) {
-      patchMutation.mutate(pendingPatchRef.current);
-      pendingPatchRef.current = {}; // Reset after sending
+      // Create a shallow copy to send and reset immediately so new changes aren't missed
+      const dataToSend = { ...pendingPatchRef.current };
+      pendingPatchRef.current = {};
+      patchMutation.mutate(dataToSend, {
+        onError: () => {
+          // If it fails, we put the fields back into the pending ref (merging with any new ones)
+          pendingPatchRef.current = { ...dataToSend, ...pendingPatchRef.current };
+        }
+      });
     }
   }, 800);
 
@@ -219,7 +226,24 @@ export const PostJobPage = () => {
     setStep('REVIEWING');
   };
 
+  const validateRequiredFields = () => {
+    if (!suggestion) return false;
+    const missing = [];
+    if (!suggestion.businessDomain) missing.push('Business Domain');
+    if (!suggestion.suggestedBudgetMin || !suggestion.suggestedBudgetMax) missing.push('Budget Min/Max');
+    if (!suggestion.suggestedTimelineDays) missing.push('Timeline (Days)');
+    if (!suggestion.categoryId) missing.push('Category');
+    
+    if (missing.length > 0) {
+      toast.error(`Please fill in the required fields: ${missing.join(', ')}`);
+      return false;
+    }
+    return true;
+  };
+
   const handlePublishClick = () => {
+    if (!validateRequiredFields()) return;
+
     if (window.confirm('Are you sure you want to publish this project to the marketplace?')) {
       if (createdJobId) {
         // If already accepted but publish failed previously, retry publish

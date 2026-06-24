@@ -102,6 +102,21 @@ export const projectService = {
     return normalizeBaseResponse<void>(response);
   },
 
+  createProjectFromProposal: async (proposalId: string): Promise<BaseResponse<{ projectId: string }>> => {
+    const response = await apiClient.post('/projects/create-from-proposal', { proposalId });
+    return normalizeBaseResponse<{ projectId: string }>(response);
+  },
+
+  uploadContract: async (projectId: string, contractData: Record<string, unknown>): Promise<BaseResponse<void>> => {
+    const response = await apiClient.post('/contracts/upload', { projectId, ...contractData });
+    return normalizeBaseResponse<void>(response);
+  },
+
+  confirmContract: async (contractId: string): Promise<BaseResponse<void>> => {
+    const response = await apiClient.put(`/contracts/${contractId}/confirm`);
+    return normalizeBaseResponse<void>(response);
+  },
+
   completeProject: async (id: string): Promise<BaseResponse<Project>> => {
     const response = await apiClient.post(`${API_ENDPOINTS.PROJECTS.ID(id)}/complete`);
     const normalized = normalizeBaseResponse<Project>(response);

@@ -30,13 +30,8 @@ export const jobService = {
   },
 
   // Get My Jobs (Client action)
-  getMyJobs: async (): Promise<PaginatedResponse<Job>> => {
-    /**
-     * NOTE: Backend does not currently provide a dedicated /jobs/my or /users/me/jobs endpoint.
-     * We fallback to the general /jobs endpoint. Backend logic may need to be updated to support
-     * filtering by current user's identity if not already handled via token/interceptor.
-     */
-    const response = await apiClient.get('/jobs');
+  getMyJobs: async (params?: Record<string, string | number | boolean>): Promise<PaginatedResponse<Job>> => {
+    const response = await apiClient.get('/jobs/my', { params });
     return normalizePaginatedResponse<Job>(response);
   },
 

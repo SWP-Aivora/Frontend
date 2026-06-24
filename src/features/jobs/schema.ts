@@ -7,10 +7,19 @@ export const jobIdeaSchema = z.object({
   expectedOutcome: z.string().min(10, 'Please describe what you want to achieve'),
   category: z.string().min(1, 'Please select an AI category'),
   domain: z.string().min(1, 'Please select a business domain'),
-  budgetType: z.enum(['fixed', 'hourly']).default('fixed'),
-  budgetRange: z.string().min(1, 'Please provide a budget estimate'),
-  timeline: z.string().min(1, 'Please provide a timeline estimate'),
+  budgetType: z.number().default(0), // 0 for Fixed, 1 for Hourly
+  budgetMin: z.number().min(1, 'Please provide a minimum budget estimate'),
+  budgetMax: z.number().min(1, 'Please provide a maximum budget estimate'),
+  timelineDays: z.number().min(1, 'Please provide a timeline estimate in days'),
   additionalNotes: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (data.budgetMax < data.budgetMin) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Max budget must be greater than or equal to min budget",
+      path: ["budgetMax"]
+    });
+  }
 });
 
 export type JobIdeaFormValues = z.infer<typeof jobIdeaSchema>;

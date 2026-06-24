@@ -194,8 +194,8 @@ export const ExpertMyProposalsPage = () => {
                          </Button>
                        ) : (
                          <Button asChild variant="ghost" className="w-full rounded-full bg-slate-50 hover:bg-brand-accent hover:text-white group/btn pr-3 pl-6 border border-slate-100">
-                            <Link to={`/expert/jobs/${proposal.jobId}`}>
-                              View Details
+                            <Link to={`/expert/proposals/${proposal.id}`}>
+                              View Proposal
                               <ArrowRight className="size-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />
                             </Link>
                          </Button>
