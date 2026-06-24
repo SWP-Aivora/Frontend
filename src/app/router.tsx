@@ -5,6 +5,7 @@ import { ProfilePage } from '../features/profiles/pages/ProfilePage';
 import { PostJobPage } from '../features/jobs/pages/PostJobPage';
 import { MyProjectsPage } from '../features/jobs/pages/MyProjectsPage';
 import { ClientJobProposalsPage } from '../features/proposals/pages/ClientJobProposalsPage';
+import { ProposalDetailsPage } from '../features/proposals/pages/ProposalDetailsPage';
 import { FindWorkPage } from '../features/jobs/pages/FindWorkPage';
 import { ProjectWorkspacePage } from '../features/projects/pages/ProjectWorkspacePage';
 import { WalletPage } from '../features/wallet/pages/WalletPage';
@@ -68,6 +69,7 @@ export const router = createBrowserRouter([
       { path: 'profile', element: <ProfilePage /> },
       { path: 'projects', element: <MyProjectsPage /> },
       { path: 'projects/:id/proposals', element: <ClientJobProposalsPage /> },
+      { path: 'proposals/:proposalId', element: <ProposalDetailsPage /> },
       { path: 'projects/:id/workspace', element: <ProjectWorkspacePage /> },
       { path: 'experts', element: <SearchExpertsPage /> },
       { path: 'experts/:id', element: <ExpertPublicProfilePage /> },
@@ -92,7 +94,9 @@ export const router = createBrowserRouter([
       { path: 'profile', element: <ProfilePage /> },
       { path: 'jobs', element: <FindWorkPage /> },
       { path: 'jobs/:id', element: <JobDetailsPage /> },
+      { path: 'jobs/:id/proposals/:proposalId/edit', element: <JobDetailsPage /> },
       { path: 'proposals', element: <ExpertMyProposalsPage /> },
+      { path: 'proposals/:proposalId', element: <ProposalDetailsPage /> },
       { path: 'projects/:id/workspace', element: <ProjectWorkspacePage /> },
       { path: 'my-jobs', element: <ExpertMyJobsPage /> },
       { path: 'messages', element: <ChatWorkspacePage /> },

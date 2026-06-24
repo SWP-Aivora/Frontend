@@ -37,6 +37,28 @@ type ChatConnectionPoolEntry = {
   startPromise: Promise<void> | null;
 };
 
+const mapConversationResponse = (item: Record<string, unknown>, currentUserId?: string): Conversation => {
+  const isClient = item.clientId === currentUserId;
+
+  return {
+    id: item.id as string,
+    recipient: {
+      id: (isClient ? item.expertId : item.clientId) as string,
+      fullName: (isClient ? item.expertName : item.clientName) as string,
+      role: isClient ? Role.EXPERT : Role.CLIENT,
+      avatarUrl: (isClient ? item.expertAvatar : item.clientAvatar) as string,
+      isOnline: false,
+      email: '',
+    },
+    lastMessage: (item.lastMessage as string) || 'No messages yet',
+    lastMessageAt: item.updatedAt as string,
+    unreadCount: (item.unreadCount as number) || 0,
+    type: item.projectId ? 'PROJECT' : (item.jobId ? 'PROPOSAL' : 'SUPPORT'),
+    relatedTitle: (item.projectTitle || item.jobTitle || 'General Inquiry') as string,
+    projectId: item.projectId as string
+  };
+};
+
 class ChatService extends BaseService<Conversation> {
   private readonly chatConnectionPool = new Map<string, ChatConnectionPoolEntry>();
   private activeChatConnectionKey: string | null = null;
@@ -176,26 +198,7 @@ class ChatService extends BaseService<Conversation> {
     const items = paginated.data || [];
 
     // Map Backend ConversationResponse to Frontend Conversation
-    const mappedItems = items.map((item: Record<string, unknown>) => {
-      const isClient = item.clientId === currentUserId;
-      
-      return {
-        id: item.id as string,
-        recipient: {
-          id: (isClient ? item.expertId : item.clientId) as string,
-          fullName: (isClient ? item.expertName : item.clientName) as string,
-          role: isClient ? Role.EXPERT : Role.CLIENT,
-          avatarUrl: (isClient ? item.expertAvatar : item.clientAvatar) as string,
-          isOnline: false, // Default as backend doesn't provide this yet
-        },
-        lastMessage: (item.lastMessage as string) || 'No messages yet',
-        lastMessageAt: item.updatedAt as string,
-        unreadCount: (item.unreadCount as number) || 0,
-        type: item.projectId ? 'PROJECT' : (item.jobId ? 'PROPOSAL' : 'SUPPORT'),
-        relatedTitle: (item.projectTitle || item.jobTitle || 'General Inquiry') as string,
-        projectId: item.projectId as string
-      } as Conversation;
-    });
+    const mappedItems = items.map((item: Record<string, unknown>) => mapConversationResponse(item, currentUserId));
 
     return {
       ...paginated,
@@ -279,7 +282,13 @@ class ChatService extends BaseService<Conversation> {
    */
   async initializeConversation(params: { expertId?: string; jobId?: string; projectId?: string }): Promise<BaseResponse<Conversation>> {
     const response = await apiClient.post(API_ENDPOINTS.MESSAGES.INIT, null, { params });
-    return normalizeBaseResponse<Conversation>(response);
+    const normalized = normalizeBaseResponse<Record<string, unknown>>(response);
+    const currentUserId = useAuthStore.getState().user?.id;
+
+    return {
+      ...normalized,
+      data: normalized.data ? mapConversationResponse(normalized.data, currentUserId) : null,
+    };
   }
 }
 

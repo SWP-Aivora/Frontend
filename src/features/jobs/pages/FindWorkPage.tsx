@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { type Dispatch, type FormEvent, type SetStateAction, useMemo, useState } from 'react';
 import { JobBoardCard } from '../components/JobBoardCard';
 import { type JobCard } from '../schema';
 import { type Job } from '../types';
@@ -7,32 +7,133 @@ import { Button } from '@/shared/components/ui/Button';
 import { useQuery } from '@tanstack/react-query';
 import { jobService } from '../services';
 
+const budgetTypeFilters = [
+  { label: 'Fixed Price', value: 'FIXED' },
+  { label: 'Hourly Rate', value: 'HOURLY' },
+];
+
+const skillLevelFilters = [
+  { label: 'Beginner', value: 'BEGINNER' },
+  { label: 'Intermediate', value: 'INTERMEDIATE' },
+  { label: 'Advanced', value: 'ADVANCED' },
+  { label: 'Expert', value: 'EXPERT' },
+];
+
+const normalizeBudgetType = (value: unknown) => {
+  if (value === 0) return 'FIXED';
+  if (value === 1) return 'HOURLY';
+
+  const normalized = String(value ?? '').toUpperCase();
+  if (normalized === 'FIXED' || normalized === 'HOURLY') return normalized;
+
+  return null;
+};
+
+const normalizeSkillLevel = (value: unknown) => {
+  if (value === 0) return 'BEGINNER';
+  if (value === 1) return 'INTERMEDIATE';
+  if (value === 2) return 'ADVANCED';
+  if (value === 3) return 'EXPERT';
+
+  const normalized = String(value ?? '').toUpperCase();
+  if (['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT'].includes(normalized)) return normalized;
+
+  return null;
+};
+
+const mapBudgetTypeToCardValue = (value: unknown) => {
+  const normalized = normalizeBudgetType(value);
+  return normalized === 'HOURLY' ? 1 : 0;
+};
+
+const mapSkillLevelToCardValue = (value: unknown) => {
+  const normalized = normalizeSkillLevel(value);
+  if (normalized === 'BEGINNER') return 0;
+  if (normalized === 'INTERMEDIATE') return 1;
+  if (normalized === 'ADVANCED') return 2;
+  if (normalized === 'EXPERT') return 3;
+  return null;
+};
+
 const mapJobToJobCard = (job: Job): JobCard => ({
   id: job.id,
   title: job.title,
   description: job.finalDescription || job.originalDescription,
   businessDomain: job.businessDomain,
-  budgetType: job.budgetType,
+  budgetType: mapBudgetTypeToCardValue(job.budgetType),
   budgetMin: job.budgetMin,
   budgetMax: job.budgetMax,
   timelineDays: job.timelineDays,
-  experienceLevel: job.experienceLevel,
+  experienceLevel: mapSkillLevelToCardValue(job.experienceLevel),
   createdAt: new Date(job.createdAt).toLocaleDateString(),
   skills: job.skills?.map(s => s.name) || [],
   proposalsCount: 0,
-  clientName: job.client?.fullName || 'Anonymous Client',
+  clientName: job.client?.fullName || ('clientName' in job ? String(job.clientName || '') : '') || 'Anonymous Client',
   clientVerified: true,
 });
 
 export const FindWorkPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
+  const [selectedBudgetTypes, setSelectedBudgetTypes] = useState<string[]>([]);
+  const [selectedSkillLevels, setSelectedSkillLevels] = useState<string[]>([]);
 
   const { data: jobsResponse, isLoading, error } = useQuery({
-    queryKey: ['jobs', searchTerm],
-    queryFn: () => jobService.getJobs({ search: searchTerm }),
+    queryKey: ['jobs', 'find-work-all'],
+    queryFn: () => jobService.getJobs({ PageSize: 1000, PageIndex: 1 }),
   });
 
-  const jobs = jobsResponse?.data || [];
+  const allJobs = useMemo(() => jobsResponse?.data || [], [jobsResponse?.data]);
+
+  const filteredJobs = useMemo(() => {
+    const normalizedSearch = appliedSearchTerm.trim().toLowerCase();
+
+    return allJobs.filter(job => {
+      const budgetType = normalizeBudgetType(job.budgetType);
+      const skillLevel = normalizeSkillLevel(job.experienceLevel);
+      const clientName = job.client?.fullName || ('clientName' in job ? String(job.clientName || '') : '');
+
+      const matchesBudgetType =
+        selectedBudgetTypes.length === 0 || (budgetType !== null && selectedBudgetTypes.includes(budgetType));
+      const matchesSkillLevel =
+        selectedSkillLevels.length === 0 ||
+        (skillLevel !== null && selectedSkillLevels.includes(skillLevel));
+
+      const matchesSearch =
+        normalizedSearch.length === 0 ||
+        [
+          job.title,
+          job.originalDescription,
+          job.finalDescription,
+          clientName,
+        ].some(value => value?.toLowerCase().includes(normalizedSearch));
+
+      return matchesBudgetType && matchesSkillLevel && matchesSearch;
+    });
+  }, [allJobs, appliedSearchTerm, selectedBudgetTypes, selectedSkillLevels]);
+
+  const toggleSelectedValue = (
+    value: string,
+    setSelectedValues: Dispatch<SetStateAction<string[]>>
+  ) => {
+    setSelectedValues(current =>
+      current.includes(value)
+        ? current.filter(selectedValue => selectedValue !== value)
+        : [...current, value]
+    );
+  };
+
+  const handleSearch = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setAppliedSearchTerm(searchTerm);
+  };
+
+  const clearFilters = () => {
+    setSelectedBudgetTypes([]);
+    setSelectedSkillLevels([]);
+    setSearchTerm('');
+    setAppliedSearchTerm('');
+  };
 
 
   return (
@@ -50,12 +151,12 @@ export const FindWorkPage = () => {
             Browse thousands of high-quality AI jobs from verified clients. Apply, deliver, and get paid securely.
           </p>
 
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-2 flex flex-col md:flex-row gap-2">
+          <form onSubmit={handleSearch} className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-2 flex flex-col md:flex-row gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-white/50" />
               <input 
                 type="text" 
-                placeholder="Search by keywords, skills, or domain..." 
+                placeholder="Search by title, description, or client..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full h-12 pl-12 pr-4 bg-transparent border-none text-white placeholder:text-white/50 focus:outline-none focus:ring-0 text-base"
@@ -65,7 +166,7 @@ export const FindWorkPage = () => {
             <Button className="h-12 px-8 rounded-xl font-bold bg-white text-brand-blue-dark hover:bg-slate-100 transition-colors w-full md:w-auto">
               Search Jobs
             </Button>
-          </div>
+          </form>
         </div>
       </div>
 
@@ -74,7 +175,7 @@ export const FindWorkPage = () => {
         <div className="lg:col-span-1 space-y-6 sticky top-24">
           <div className="flex items-center justify-between mb-2">
              <h2 className="text-lg font-black text-slate-900">Filters</h2>
-             <button className="text-xs font-bold text-primary hover:underline">Clear all</button>
+             <button onClick={clearFilters} className="text-xs font-bold text-primary hover:underline">Clear all</button>
           </div>
 
           {/* Budget Filter */}
@@ -84,39 +185,48 @@ export const FindWorkPage = () => {
                Budget Type
             </div>
             <div className="space-y-3">
-              <label className="flex items-center gap-3 cursor-pointer group">
-                 <div className="relative size-5 rounded-md border-2 border-slate-300 bg-white group-hover:border-brand-accent transition-colors overflow-hidden">
-                    <input type="checkbox" className="peer absolute inset-0 opacity-0 cursor-pointer" defaultChecked />
-                    <div className="absolute inset-0 bg-brand-accent opacity-0 peer-checked:opacity-100 transition-opacity flex items-center justify-center">
-                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="size-3 text-white"><path d="M5 13l4 4L19 7" /></svg>
-                    </div>
-                 </div>
-                 <span className="text-sm font-medium text-slate-700">Fixed Price</span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
-                 <div className="relative size-5 rounded-md border-2 border-slate-300 bg-white group-hover:border-brand-accent transition-colors overflow-hidden">
-                    <input type="checkbox" className="peer absolute inset-0 opacity-0 cursor-pointer" defaultChecked />
-                    <div className="absolute inset-0 bg-brand-accent opacity-0 peer-checked:opacity-100 transition-opacity flex items-center justify-center">
-                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="size-3 text-white"><path d="M5 13l4 4L19 7" /></svg>
-                    </div>
-                 </div>
-                 <span className="text-sm font-medium text-slate-700">Hourly Rate</span>
-              </label>
+              {budgetTypeFilters.map(filter => (
+                <label key={filter.value} className="flex items-center gap-3 cursor-pointer group">
+                   <div className="relative size-5 rounded-md border-2 border-slate-300 bg-white group-hover:border-brand-accent transition-colors overflow-hidden">
+                      <input
+                        type="checkbox"
+                        className="peer absolute inset-0 opacity-0 cursor-pointer"
+                        checked={selectedBudgetTypes.includes(filter.value)}
+                        onChange={() => toggleSelectedValue(filter.value, setSelectedBudgetTypes)}
+                      />
+                      <div className="absolute inset-0 bg-brand-accent opacity-0 peer-checked:opacity-100 transition-opacity flex items-center justify-center">
+                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="size-3 text-white"><path d="M5 13l4 4L19 7" /></svg>
+                      </div>
+                   </div>
+                   <span className="text-sm font-medium text-slate-700">{filter.label}</span>
+                </label>
+              ))}
             </div>
           </div>
 
-          {/* Domain Filter */}
+          {/* Skill Level Filter */}
           <div className="bg-white rounded-xl p-6 border border-slate-100 shadow-sm space-y-4">
             <div className="flex items-center gap-2 text-slate-900 font-bold">
                <BrainCircuit className="size-4 text-brand-accent" />
-               AI Domains
+               Skill Level
             </div>
-            <div className="flex flex-wrap gap-2">
-               {['NLP', 'Computer Vision', 'Generative AI', 'Analytics', 'Robotics'].map(domain => (
-                 <button key={domain} className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:border-brand-accent hover:text-brand-accent transition-colors">
-                   {domain}
-                 </button>
-               ))}
+            <div className="space-y-3">
+              {skillLevelFilters.map(filter => (
+                <label key={filter.value} className="flex items-center gap-3 cursor-pointer group">
+                   <div className="relative size-5 rounded-md border-2 border-slate-300 bg-white group-hover:border-brand-accent transition-colors overflow-hidden">
+                      <input
+                        type="checkbox"
+                        className="peer absolute inset-0 opacity-0 cursor-pointer"
+                        checked={selectedSkillLevels.includes(filter.value)}
+                        onChange={() => toggleSelectedValue(filter.value, setSelectedSkillLevels)}
+                      />
+                      <div className="absolute inset-0 bg-brand-accent opacity-0 peer-checked:opacity-100 transition-opacity flex items-center justify-center">
+                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="size-3 text-white"><path d="M5 13l4 4L19 7" /></svg>
+                      </div>
+                   </div>
+                   <span className="text-sm font-medium text-slate-700">{filter.label}</span>
+                </label>
+              ))}
             </div>
           </div>
         </div>
@@ -125,7 +235,7 @@ export const FindWorkPage = () => {
         <div className="lg:col-span-3 space-y-4">
           <div className="flex items-center justify-between bg-white border border-slate-100 rounded-xl p-4 shadow-sm mb-6">
              <p className="text-sm font-bold text-slate-500">
-               Showing <span className="text-slate-900">{jobs.length}</span> jobs
+               Showing <span className="text-slate-900">{filteredJobs.length}</span> jobs
              </p>
              <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-slate-400">Sort by:</span>
@@ -143,11 +253,11 @@ export const FindWorkPage = () => {
             </div>
           ) : error ? (
             <div className="text-center py-12 text-red-500">Failed to load jobs.</div>
-          ) : jobs.length === 0 ? (
+          ) : filteredJobs.length === 0 ? (
             <div className="text-center py-12 text-slate-500">No jobs found matching your criteria.</div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-               {jobs.map(job => (
+               {filteredJobs.map(job => (
                   <JobBoardCard key={job.id} job={mapJobToJobCard(job)} />
                ))}
             </div>

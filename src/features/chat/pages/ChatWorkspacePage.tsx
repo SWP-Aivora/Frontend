@@ -12,8 +12,10 @@ import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { projectService } from '@/features/projects/services';
 import { toast } from 'sonner';
+import { useLocation } from 'react-router-dom';
 
 export const ChatWorkspacePage = () => {
+  const location = useLocation();
   const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
@@ -56,6 +58,17 @@ export const ChatWorkspacePage = () => {
   const conversations = useMemo(() => {
     return Array.isArray(conversationsData?.data) ? conversationsData.data : [];
   }, [conversationsData]);
+
+  useEffect(() => {
+    const conversationId = (location.state as { conversationId?: string } | null)?.conversationId;
+    if (!conversationId) return;
+    if (selectedConversationId === conversationId) return;
+
+    const conversationExists = conversations.some((conversation) => conversation.id === conversationId);
+    if (conversationExists) {
+      setSelectedConversationId(conversationId);
+    }
+  }, [conversations, location.state, selectedConversationId]);
 
   const selectedConversation = useMemo(() => 
     conversations.find((c: Conversation) => c.id === selectedConversationId),

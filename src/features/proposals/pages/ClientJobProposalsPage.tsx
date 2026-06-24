@@ -1,10 +1,9 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProposalListCard } from '../components/ProposalListCard';
 import { jobService } from '../../jobs/services';
 import { proposalService } from '../services';
-import { projectService } from '../../projects/services';
 import { 
   ChevronLeft, 
   Sparkles, 
@@ -21,14 +20,57 @@ import {
 import { Button } from '@/shared/components/ui/Button';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { AxiosError } from 'axios';
+import type { Proposal } from '../types';
+
+type ProposalFilter = 'all' | 'shortlisted' | 'refused';
+type NormalizedProposalStatus = 'submitted' | 'shortlisted' | 'accepted' | 'rejected' | 'withdrawn';
+
+const normalizeProposalStatus = (status: unknown): NormalizedProposalStatus => {
+  if (status === 0) return 'submitted';
+  if (status === 1) return 'shortlisted';
+  if (status === 2) return 'accepted';
+  if (status === 3) return 'rejected';
+  if (status === 4) return 'withdrawn';
+
+  const normalized = String(status ?? '').toUpperCase().replace(/\s+|_/g, '');
+  if (normalized === 'SHORTLISTED') return 'shortlisted';
+  if (normalized === 'ACCEPTED') return 'accepted';
+  if (normalized === 'REJECTED' || normalized === 'REFUSED') return 'rejected';
+  if (normalized === 'WITHDRAWN') return 'withdrawn';
+  return 'submitted';
+};
+
+const normalizeJobStatus = (status: unknown) => {
+  if (status === 2) return 'in-progress';
+  if (status === 3) return 'completed';
+  const normalized = String(status ?? '').toUpperCase().replace(/\s+|_/g, '');
+  if (normalized === 'INPROGRESS') return 'in-progress';
+  if (normalized === 'COMPLETED' || normalized === 'CLOSED') return 'completed';
+  return normalized.toLowerCase();
+};
+
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof AxiosError) {
+    const data = error.response?.data;
+
+    if (data && typeof data === 'object' && 'message' in data && typeof data.message === 'string') {
+      return data.message;
+    }
+  }
+
+  return error instanceof Error ? error.message : fallback;
+};
 
 export const ClientJobProposalsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
-  const [activeTab, setActiveTab] = useState<'all' | 'best' | 'shortlisted'>('all');
+  const [activeTab, setActiveTab] = useState<ProposalFilter>('all');
   const [acceptedProposalId, setAcceptedProposalId] = useState<string | null>(null);
+  const [localStatuses, setLocalStatuses] = useState<Record<string, NormalizedProposalStatus>>({});
 
   // Lấy chi tiết Job hiện tại
   const { data: jobResponse, isLoading: isJobLoading } = useQuery({
@@ -46,7 +88,20 @@ export const ClientJobProposalsPage = () => {
 
   const job = jobResponse?.data;
   const proposals = proposalsResponse?.data || [];
-  const proposalList = proposals;
+  const getProposalStatus = (proposal: Proposal) => localStatuses[proposal.id] || normalizeProposalStatus(proposal.status);
+  const isJobLocked = normalizeJobStatus(job?.status) === 'in-progress' || normalizeJobStatus(job?.status) === 'completed';
+  const acceptedProposal = proposals.find(proposal => getProposalStatus(proposal) === 'accepted');
+  const proposalList = proposals.filter(proposal => {
+    const status = getProposalStatus(proposal);
+    if (activeTab === 'shortlisted') return status === 'shortlisted';
+    if (activeTab === 'refused') return status === 'rejected';
+    return true;
+  });
+  const shortlistedCount = proposals.filter(proposal => getProposalStatus(proposal) === 'shortlisted').length;
+  const refusedCount = proposals.filter(proposal => getProposalStatus(proposal) === 'rejected').length;
+  const averageBid = proposals.length
+    ? Math.round(proposals.reduce((total, proposal) => total + Number(proposal.proposedBudget || 0), 0) / proposals.length)
+    : 0;
   const isLoading = isJobLoading || isProposalsLoading;
 
   const handleGenerateAI = async () => {
@@ -57,40 +112,54 @@ export const ClientJobProposalsPage = () => {
     toast.success('AI Insights updated!');
   };
 
-  // Xử lý logic khi Client bấm Accept một Proposal
-  // Ghi chú cho BE: API này không chỉ đổi trạng thái Proposal, mà phải tự động tạo luôn Project Workspace
-  const createProjectMutation = useMutation({
-    mutationFn: (pid: string) => projectService.createProjectFromProposal(pid),
-    onSuccess: (res) => {
-      const projectId = res.data?.projectId;
-      if (!projectId) {
-        toast.error('Workspace created, but backend did not return Project ID.');
-        return;
-      }
-      toast.success(`Project Workspace created successfully!`);
-      navigate(`/client/projects/${projectId}/workspace`);
-    },
-    onError: () => {
-      toast.error('Failed to create Project Workspace from accepted proposal.');
-    }
-  });
-
   const acceptMutation = useMutation({
     mutationFn: (pid: string) => proposalService.acceptProposal(pid),
-    onSuccess: (_, pid) => {
+    onSuccess: (res, pid) => {
+      const returnedProjectId = res.data?.projectId;
+
       setAcceptedProposalId(pid);
-      toast.success(`Proposal accepted! Generating Contract and Workspace...`);
-      createProjectMutation.mutate(pid);
+      setLocalStatuses(current => ({
+        ...current,
+        ...Object.fromEntries(proposals.map(proposal => [proposal.id, proposal.id === pid ? 'accepted' : 'rejected'] as const)),
+      }));
+
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['job', id] }),
+        queryClient.invalidateQueries({ queryKey: ['proposals', id] }),
+        queryClient.invalidateQueries({ queryKey: ['clientJobs'] }),
+        queryClient.invalidateQueries({ queryKey: ['clientProjects'] }),
+      ]);
+
+      if (returnedProjectId) {
+        toast.success('Proposal accepted. Workspace created and other proposals refused.');
+        navigate(`/client/projects/${returnedProjectId}/workspace`);
+      } else {
+        toast.success('Proposal accepted. Refreshing project data...');
+      }
     },
-    onError: () => toast.error('Failed to accept proposal'),
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Failed to accept proposal'));
+    },
   });
 
   const rejectMutation = useMutation({
     mutationFn: (pid: string) => proposalService.rejectProposal(pid),
-    onSuccess: () => {
-      toast.success(`Proposal declined.`);
+    onSuccess: async (_, pid) => {
+      setLocalStatuses(current => ({ ...current, [pid]: 'rejected' }));
+      await queryClient.invalidateQueries({ queryKey: ['proposals', id] });
+      toast.success('Proposal refused.');
     },
     onError: () => toast.error('Failed to decline proposal'),
+  });
+
+  const shortlistMutation = useMutation({
+    mutationFn: (pid: string) => proposalService.shortlistProposal(pid),
+    onSuccess: async (_, pid) => {
+      setLocalStatuses(current => ({ ...current, [pid]: 'shortlisted' }));
+      await queryClient.invalidateQueries({ queryKey: ['proposals', id] });
+      toast.success('Proposal shortlisted.');
+    },
+    onError: () => toast.error('Failed to shortlist proposal'),
   });
 
   const onAccept = (pid: string) => {
@@ -99,7 +168,22 @@ export const ClientJobProposalsPage = () => {
   const onReject = (pid: string) => {
     rejectMutation.mutate(pid);
   };
-  const onShortlist = (pid: string) => toast.success(`Expert added to shortlist with ID ${pid}.`);
+  const onShortlist = (pid: string) => {
+    const proposal = proposals.find(item => item.id === pid);
+    const serverStatus = normalizeProposalStatus(proposal?.status);
+
+    if (serverStatus === 'shortlisted') {
+      setLocalStatuses(current => ({ ...current, [pid]: 'shortlisted' }));
+      toast.success('Proposal shortlisted.');
+      return;
+    }
+
+    shortlistMutation.mutate(pid);
+  };
+  const onUnshortlist = (pid: string) => {
+    setLocalStatuses(current => ({ ...current, [pid]: 'submitted' }));
+    toast.success('Proposal returned to submitted status.');
+  };
 
   if (isLoading) {
     return (
@@ -123,7 +207,9 @@ export const ClientJobProposalsPage = () => {
            <div className="flex items-center gap-4 text-sm font-medium text-slate-500">
               <span className="flex items-center gap-1.5"><Clock className="size-4" /> {job?.timelineDays} Days</span>
               <span className="flex items-center gap-1.5 text-emerald-600"><DollarSign className="size-4" /> ${job?.budgetMin}-${job?.budgetMax}</span>
-              <span className="bg-primary/10 text-primary px-3 py-0.5 rounded-full text-xs font-black uppercase">Open for Bidding</span>
+              <span className="bg-primary/10 text-primary px-3 py-0.5 rounded-full text-xs font-black uppercase">
+                {isJobLocked ? 'In Progress' : 'Open for Bidding'}
+              </span>
            </div>
         </div>
         <div className="flex items-center gap-3">
@@ -135,9 +221,9 @@ export const ClientJobProposalsPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
          {[
            { label: 'Total Proposals', value: proposals.length, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-           { label: 'Shortlisted', value: 0, icon: Target, color: 'text-brand-accent', bg: 'bg-brand-accent/5' },
-           { label: 'Avg. Bid', value: '$4,000', icon: DollarSign, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-           { label: 'New Today', value: 2, icon: CheckCircle2, color: 'text-amber-600', bg: 'bg-amber-50' },
+           { label: 'Shortlisted', value: shortlistedCount, icon: Target, color: 'text-brand-accent', bg: 'bg-brand-accent/5' },
+           { label: 'Avg. Bid', value: averageBid ? `$${averageBid.toLocaleString()}` : '$0', icon: DollarSign, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+           { label: 'Refused', value: refusedCount, icon: CheckCircle2, color: 'text-amber-600', bg: 'bg-amber-50' },
          ].map((stat, i) => (
            <div key={i} className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm flex items-center gap-4">
               <div className={cn("size-12 rounded-xl flex items-center justify-center", stat.bg)}>
@@ -156,7 +242,7 @@ export const ClientJobProposalsPage = () => {
         <div className="lg:col-span-2 space-y-6">
            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl">
-                 {(['all', 'best', 'shortlisted'] as const).map(tab => (
+                 {(['all', 'shortlisted', 'refused'] as const).map(tab => (
                    <button 
                      key={tab}
                      onClick={() => setActiveTab(tab)}
@@ -165,7 +251,7 @@ export const ClientJobProposalsPage = () => {
                        activeTab === tab ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
                      )}
                    >
-                     {tab}
+                     {tab === 'refused' ? 'Refused' : tab}
                    </button>
                  ))}
               </div>
@@ -176,24 +262,38 @@ export const ClientJobProposalsPage = () => {
            </div>
 
             <div className="space-y-4">
-              {proposalList.map((p, i) => (
-                <div 
-                  key={p.id}
-                  className={cn(
-                    "transition-all duration-500",
-                    acceptedProposalId && acceptedProposalId !== p.id && "opacity-50 pointer-events-none grayscale-[50%]"
-                  )}
-                >
-                  <ProposalListCard 
-                    proposal={p} 
-                    onAccept={onAccept}
-                    onReject={onReject}
-                    onShortlist={onShortlist}
-                    aiMatchScore={i === 0 ? 94 : 78} // Simulating scores
-                    isAccepted={acceptedProposalId === p.id}
-                  />
-                </div>
-              ))}
+              {proposalList.map((p, i) => {
+                const status = getProposalStatus(p);
+                const isAccepted = acceptedProposalId === p.id || status === 'accepted';
+                const proposalActionsLocked = isJobLocked || !!acceptedProposal || !!acceptedProposalId;
+
+                return (
+                  <div 
+                    key={p.id}
+                    className={cn(
+                      "transition-all duration-500",
+                      proposalActionsLocked && !isAccepted && "opacity-70 grayscale-[20%]"
+                    )}
+                  >
+                    <ProposalListCard 
+                      proposal={p} 
+                      onAccept={onAccept}
+                      onReject={onReject}
+                      onShortlist={onShortlist}
+                      onUnshortlist={onUnshortlist}
+                      detailHref={`/client/proposals/${p.id}`}
+                      aiMatchScore={i === 0 ? 94 : 78}
+                      isAccepted={isAccepted}
+                      isRefused={status === 'rejected'}
+                      isShortlisted={status === 'shortlisted'}
+                      canAccept={!proposalActionsLocked && (status === 'submitted' || status === 'shortlisted')}
+                      canChangeStatus={!proposalActionsLocked && (status === 'submitted' || status === 'shortlisted')}
+                      isBusy={acceptMutation.isPending || rejectMutation.isPending || shortlistMutation.isPending}
+                      isAccepting={acceptMutation.isPending && acceptMutation.variables === p.id}
+                    />
+                  </div>
+                );
+              })}
            </div>
         </div>
 

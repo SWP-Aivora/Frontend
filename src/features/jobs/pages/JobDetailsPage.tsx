@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/components/ui/Button';
 import {
@@ -21,13 +21,17 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { createProposalSchema, type CreateProposalFormValues } from '../../proposals/schema';
 import { Input } from '@/shared/components/ui/Input';
 import { toast } from 'sonner';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { jobService } from '../services';
 import { proposalService } from '../../proposals/services';
+import type { BaseResponse } from '@/shared/types/api';
+import type { Proposal } from '../../proposals/types';
 
 export const JobDetailsPage = () => {
-  const { id } = useParams();
+  const { id, proposalId } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const isEditMode = Boolean(proposalId);
   const [hasSubmitted, setHasSubmitted] = useState(() => localStorage.getItem(`submitted_proposal_${id}`) === 'true');
 
   const { data: jobResponse, isLoading } = useQuery({
@@ -38,7 +42,15 @@ export const JobDetailsPage = () => {
   
   const job = jobResponse?.data;
 
-  const { register, control, handleSubmit, formState: { errors } } = useForm<CreateProposalFormValues>({
+  const { data: proposalResponse, isLoading: isProposalLoading } = useQuery({
+    queryKey: ['proposal', proposalId],
+    queryFn: () => proposalService.getProposalById(proposalId!),
+    enabled: isEditMode,
+  });
+
+  const proposal = proposalResponse?.data;
+
+  const { register, control, handleSubmit, reset, formState: { errors } } = useForm<CreateProposalFormValues>({
     resolver: zodResolver(createProposalSchema),
     defaultValues: {
       coverLetter: '',
@@ -50,6 +62,27 @@ export const JobDetailsPage = () => {
       ],
     }
   });
+
+  useEffect(() => {
+    if (!proposal) return;
+
+    reset({
+      coverLetter: proposal.coverLetter,
+      proposedBudget: proposal.proposedBudget,
+      proposedTimelineDays: proposal.proposedTimelineDays,
+      attachments: '',
+      milestones: proposal.milestones.length > 0
+        ? proposal.milestones.map((milestone, index) => ({
+            title: milestone.title,
+            description: milestone.description,
+            amount: milestone.amount,
+            dueDays: milestone.dueDays,
+            acceptanceCriteria: milestone.acceptanceCriteria,
+            orderIndex: milestone.orderIndex ?? index,
+          }))
+        : [{ title: 'Discovery & implementation plan', amount: 1, dueDays: 1, orderIndex: 0 }],
+    });
+  }, [proposal, reset]);
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -69,6 +102,37 @@ export const JobDetailsPage = () => {
   });
 
   const onSubmit = (data: CreateProposalFormValues) => {
+    if (isEditMode) {
+      if (proposal && proposalId) {
+        const updatedProposal: Proposal = {
+          ...proposal,
+          coverLetter: data.coverLetter,
+          proposedBudget: data.proposedBudget,
+          proposedTimelineDays: data.proposedTimelineDays ?? null,
+          milestones: (data.milestones ?? []).map((milestone, index) => ({
+            id: proposal.milestones[index]?.id || `local-${index}`,
+            title: milestone.title,
+            description: milestone.description ?? null,
+            amount: milestone.amount,
+            dueDays: milestone.dueDays,
+            acceptanceCriteria: milestone.acceptanceCriteria ?? null,
+            orderIndex: milestone.orderIndex ?? index,
+          })),
+        };
+
+        queryClient.setQueryData<BaseResponse<Proposal>>(['proposal', proposalId], current => ({
+          success: current?.success ?? true,
+          message: 'Proposal saved locally',
+          statusCode: current?.statusCode ?? 200,
+          data: updatedProposal,
+        }));
+      }
+
+      toast.success('Proposal changes saved successfully!');
+      navigate(`/expert/proposals/${proposalId}`);
+      return;
+    }
+
     submitMutation.mutate(data);
   };
 
@@ -77,7 +141,7 @@ export const JobDetailsPage = () => {
   const formattedBudgetRange = `$${budgetMin.toLocaleString()} - $${budgetMax.toLocaleString()}`;
   const skills = job?.skills ?? [];
 
-  if (isLoading) {
+  if (isLoading || isProposalLoading) {
     return (
       <div className="flex justify-center items-center h-96">
         <Loader2 className="size-10 animate-spin text-brand-accent" />
@@ -102,7 +166,7 @@ export const JobDetailsPage = () => {
         className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-brand-accent transition-colors group"
       >
         <ChevronLeft className="size-4 group-hover:-translate-x-1 transition-transform" />
-        Back to Job Board
+        {isEditMode ? 'Back to Proposal' : 'Back to Job Board'}
       </button>
 
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-6 items-start">
@@ -201,10 +265,12 @@ export const JobDetailsPage = () => {
                 <div>
                   <p className="text-xs font-black text-brand-accent uppercase tracking-[0.2em] mb-2">Proposal</p>
                   <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-                    {hasSubmitted ? 'Your Proposal' : 'Submit a Proposal'}
+                    {isEditMode ? 'Edit Proposal' : hasSubmitted ? 'Your Proposal' : 'Submit a Proposal'}
                   </h2>
                   <p className="text-sm text-slate-500 font-medium mt-1 max-w-2xl">
-                    {hasSubmitted
+                    {isEditMode
+                      ? 'Review and adjust the proposal details you submitted for this job.'
+                      : hasSubmitted
                       ? 'You have already submitted a proposal for this project.'
                       : 'Share your bid, delivery plan, portfolio references, and a concise pitch tailored to this job.'}
                   </p>
@@ -215,7 +281,7 @@ export const JobDetailsPage = () => {
                 </div>
               </div>
 
-              {hasSubmitted ? (
+              {hasSubmitted && !isEditMode ? (
                 <div className="space-y-4 pt-4 border-t border-slate-100">
                   <div className="bg-emerald-50 rounded-xl p-4 flex items-center gap-3 border border-emerald-100">
                     <BadgeCheck className="size-6 text-emerald-600 shrink-0" />
@@ -354,7 +420,7 @@ export const JobDetailsPage = () => {
                         <Loader2 className="size-4 animate-spin" />
                         Submitting Proposal...
                       </span>
-                    ) : 'Submit Proposal'}
+                    ) : isEditMode ? 'Save Proposal Changes' : 'Submit Proposal'}
                   </Button>
                 </form>
               )}
