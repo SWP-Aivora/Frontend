@@ -62,8 +62,12 @@ export const ClientJobProposalsPage = () => {
   const createProjectMutation = useMutation({
     mutationFn: (pid: string) => projectService.createProjectFromProposal(pid),
     onSuccess: (res) => {
+      const projectId = res.data?.projectId;
+      if (!projectId) {
+        toast.error('Workspace created, but backend did not return Project ID.');
+        return;
+      }
       toast.success(`Project Workspace created successfully!`);
-      const projectId = res.data?.projectId || id; // Fallback to id if not provided
       navigate(`/client/projects/${projectId}/workspace`);
     },
     onError: () => {

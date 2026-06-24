@@ -112,14 +112,17 @@ export const IdeaInputForm = () => {
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">Min Budget ($)</label>
             <Input type="number" {...register('budgetMin', { valueAsNumber: true })} placeholder="500" className="h-12 rounded-xl bg-slate-50 border-slate-100 focus:bg-white" />
+            {errors.budgetMin && <p className="text-xs text-destructive font-bold ml-1">{errors.budgetMin.message}</p>}
           </div>
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">Max Budget ($)</label>
             <Input type="number" {...register('budgetMax', { valueAsNumber: true })} placeholder="1000" className="h-12 rounded-xl bg-slate-50 border-slate-100 focus:bg-white" />
+            {errors.budgetMax && <p className="text-xs text-destructive font-bold ml-1">{errors.budgetMax.message}</p>}
           </div>
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">Timeline (Days)</label>
             <Input type="number" {...register('timelineDays', { valueAsNumber: true })} placeholder="14" className="h-12 rounded-xl bg-slate-50 border-slate-100 focus:bg-white" />
+            {errors.timelineDays && <p className="text-xs text-destructive font-bold ml-1">{errors.timelineDays.message}</p>}
           </div>
         </div>
 
