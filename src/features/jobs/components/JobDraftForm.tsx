@@ -1,4 +1,4 @@
-import { useForm } from 'react-hook-form';
+import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { 
@@ -12,16 +12,43 @@ import type { AiJobSuggestion, SuggestedMilestone } from '../types';
 import { BudgetType } from '@/shared/types/enums';
 import type { Category } from '@/shared/services/categoryService';
 
+const requiredPositiveNumberField = (label: string) =>
+  z.preprocess(
+    (value) => {
+      if (value === '' || value === null || value === undefined) {
+        return null;
+      }
+
+      if (typeof value === 'number' && Number.isNaN(value)) {
+        return null;
+      }
+
+      return value;
+    },
+    z
+      .number({ invalid_type_error: `${label} must be a number` })
+      .min(1, `${label} must be at least 1`)
+      .nullable()
+  )
+  .refine((value): value is number => value !== null, `${label} is required`);
+
 const jobDraftSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters'),
   description: z.string().min(20, 'Description must be at least 20 characters').max(5000, 'Description is too long'),
   budgetType: z.nativeEnum(BudgetType),
-  budgetMin: z.number().min(1, 'Minimum budget must be at least 1'),
-  budgetMax: z.number().min(1, 'Maximum budget must be at least 1'),
-  timelineDays: z.number().min(1, 'Timeline must be at least 1 day'),
+  budgetMin: requiredPositiveNumberField('Minimum budget'),
+  budgetMax: requiredPositiveNumberField('Maximum budget'),
+  timelineDays: requiredPositiveNumberField('Timeline'),
 });
 
-type JobDraftFormValues = z.infer<typeof jobDraftSchema>;
+type JobDraftFormValues = {
+  title: string;
+  description: string;
+  budgetType: BudgetType;
+  budgetMin: number | null;
+  budgetMax: number | null;
+  timelineDays: number | null;
+};
 
 interface JobDraftFormProps {
   suggestion: AiJobSuggestion;
@@ -52,9 +79,9 @@ export const JobDraftForm = ({
       title: suggestion.suggestedTitle,
       description: suggestion.suggestedDescription,
       budgetType: suggestion.budgetType,
-      budgetMin: suggestion.suggestedBudgetMin ?? ('' as unknown as number),
-      budgetMax: suggestion.suggestedBudgetMax ?? ('' as unknown as number),
-      timelineDays: suggestion.suggestedTimelineDays ?? ('' as unknown as number),
+      budgetMin: suggestion.suggestedBudgetMin ?? null,
+      budgetMax: suggestion.suggestedBudgetMax ?? null,
+      timelineDays: suggestion.suggestedTimelineDays ?? null,
     }
   });
   const titleField = register('title');
@@ -68,7 +95,11 @@ export const JobDraftForm = ({
   const budgetMaxErrorId = errors.budgetMax ? 'job-draft-budget-max-error' : undefined;
   const timelineErrorId = errors.timelineDays ? 'job-draft-timeline-error' : undefined;
 
-  const onSubmit = (data: JobDraftFormValues) => {
+  const onSubmit: SubmitHandler<JobDraftFormValues> = (data) => {
+    if (data.budgetMin === null || data.budgetMax === null || data.timelineDays === null) {
+      return;
+    }
+
     onUpdate({
       suggestedTitle: data.title,
       suggestedDescription: data.description,
@@ -221,7 +252,9 @@ export const JobDraftForm = ({
                           {...budgetMinField}
                           onChange={(e) => {
                             budgetMinField.onChange(e);
-                            onUpdate({ suggestedBudgetMin: Number(e.target.value) });
+                            onUpdate({
+                              suggestedBudgetMin: e.target.value === '' ? null : Number(e.target.value)
+                            });
                           }}
                           aria-invalid={errors.budgetMin ? 'true' : 'false'}
                           aria-describedby={budgetMinErrorId}
@@ -237,7 +270,9 @@ export const JobDraftForm = ({
                           {...budgetMaxField}
                           onChange={(e) => {
                             budgetMaxField.onChange(e);
-                            onUpdate({ suggestedBudgetMax: Number(e.target.value) });
+                            onUpdate({
+                              suggestedBudgetMax: e.target.value === '' ? null : Number(e.target.value)
+                            });
                           }}
                           aria-invalid={errors.budgetMax ? 'true' : 'false'}
                           aria-describedby={budgetMaxErrorId}
@@ -288,7 +323,9 @@ export const JobDraftForm = ({
                   {...timelineDaysField}
                   onChange={(e) => {
                     timelineDaysField.onChange(e);
-                    onUpdate({ suggestedTimelineDays: Number(e.target.value) });
+                    onUpdate({
+                      suggestedTimelineDays: e.target.value === '' ? null : Number(e.target.value)
+                    });
                   }}
                   aria-invalid={errors.timelineDays ? 'true' : 'false'}
                   aria-describedby={timelineErrorId}
