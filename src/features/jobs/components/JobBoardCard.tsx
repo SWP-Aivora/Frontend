@@ -19,8 +19,9 @@ export const JobBoardCard = ({ job }: JobBoardCardProps) => {
 
   const getExperienceLevel = () => {
     switch (job.experienceLevel) {
-      case 1: return 'Entry Level';
-      case 2: return 'Intermediate';
+      case 0: return 'Beginner';
+      case 1: return 'Intermediate';
+      case 2: return 'Advanced';
       case 3: return 'Expert';
       default: return 'Any Level';
     }

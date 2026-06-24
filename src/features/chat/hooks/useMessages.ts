@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { chatService } from '../services';
 import type { SendMessagePayload } from '../types';
+import { useAuthStore } from '@/features/auth/store';
 
 export const useMessages = (conversationId: string, params?: Record<string, unknown>) => {
   return useQuery({
@@ -24,9 +25,10 @@ export const useMarkRead = () => {
 
 export const useSendMessage = (conversationId: string) => {
   const queryClient = useQueryClient();
+  const token = useAuthStore((state) => state.accessToken);
 
   return useMutation({
-    mutationFn: (payload: SendMessagePayload) => chatService.sendMessage(conversationId, payload),
+    mutationFn: (payload: SendMessagePayload) => chatService.sendMessage(conversationId, payload, token || undefined),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });

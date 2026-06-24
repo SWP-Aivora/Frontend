@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { proposalService } from '../services';
+import { projectService } from '@/features/projects/services';
 import { 
   Clock, 
   DollarSign, 
@@ -23,29 +24,48 @@ export const ExpertMyProposalsPage = () => {
     queryKey: ['myProposals'],
     queryFn: proposalService.getMyProposals,
   });
+
+  const { data: projectsResponse, isLoading: isProjectsLoading } = useQuery({
+    queryKey: ['expertProjects'],
+    queryFn: () => projectService.getProjects({ PageSize: 100 }),
+  });
   
   const proposals = response?.data || [];
+  const projects = projectsResponse?.data || [];
   const [filter, setFilter] = useState<'all' | 'pending' | 'accepted' | 'declined'>('all');
 
-  const getStatusConfig = (status: number) => {
-    switch (status) {
-      case 1: return { label: 'Pending', color: 'text-amber-600 bg-amber-50', icon: Clock };
-      case 2: return { label: 'Accepted', color: 'text-brand-success bg-brand-success/10', icon: CheckCircle2 };
-      case 3: return { label: 'Declined', color: 'text-destructive bg-destructive/10', icon: XCircle };
-      default: return { label: 'Unknown', color: 'text-slate-400 bg-slate-100', icon: Clock };
-    }
+  const getStatusKey = (status: number | string) => {
+    const normalized = String(status).toUpperCase();
+
+    if (status === 2 || normalized === 'ACCEPTED') return 'accepted';
+    if (status === 3 || normalized === 'REJECTED' || normalized === 'DECLINED') return 'declined';
+    if (status === 1 || normalized === 'SUBMITTED' || normalized === 'SHORTLISTED') return 'pending';
+
+    return 'unknown';
+  };
+
+  const getStatusConfig = (status: number | string) => {
+    const statusKey = getStatusKey(status);
+
+    if (statusKey === 'accepted') return { label: 'Accepted', color: 'text-brand-success bg-brand-success/10', icon: CheckCircle2 };
+    if (statusKey === 'declined') return { label: 'Declined', color: 'text-destructive bg-destructive/10', icon: XCircle };
+    if (statusKey === 'pending') return { label: 'Pending', color: 'text-amber-600 bg-amber-50', icon: Clock };
+
+    return { label: 'Unknown', color: 'text-slate-400 bg-slate-100', icon: Clock };
+  };
+
+  const getWorkspaceHref = (proposalId: string, jobId: string) => {
+    const project = projects.find(p => p.acceptedProposalId === proposalId) ?? projects.find(p => p.jobId === jobId);
+    return project ? `/expert/projects/${project.id}/workspace` : '/expert/my-jobs';
   };
 
   // Logic lọc các đơn báo giá theo trạng thái (Pending, Accepted, Declined)
   const filteredProposals = proposals.filter(p => {
     if (filter === 'all') return true;
-    if (filter === 'pending') return p.status === 1;
-    if (filter === 'accepted') return p.status === 2;
-    if (filter === 'declined') return p.status === 3;
-    return true;
+    return getStatusKey(p.status) === filter;
   });
 
-  if (isLoading) {
+  if (isLoading || isProjectsLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 space-y-4" role="status" aria-live="polite">
          <Loader2 className="size-10 text-brand-accent animate-spin" aria-label="Loading" />
@@ -82,8 +102,8 @@ export const ExpertMyProposalsPage = () => {
       {/* Stats Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
          {[
-           { label: 'Active Proposals', value: proposals.filter(p => p.status === 1).length, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
-           { label: 'Projects Won', value: proposals.filter(p => p.status === 2).length, icon: CheckCircle2, color: 'text-brand-success', bg: 'bg-brand-success/10' },
+           { label: 'Active Proposals', value: proposals.filter(p => getStatusKey(p.status) === 'pending').length, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
+           { label: 'Projects Won', value: proposals.filter(p => getStatusKey(p.status) === 'accepted').length, icon: CheckCircle2, color: 'text-brand-success', bg: 'bg-brand-success/10' },
            { label: 'Total Bids', value: proposals.length, icon: Briefcase, color: 'text-brand-accent', bg: 'bg-brand-accent/5' },
          ].map((stat, i) => (
            <div key={i} className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm flex items-center gap-5">
@@ -137,6 +157,7 @@ export const ExpertMyProposalsPage = () => {
          {filteredProposals.map((proposal) => {
             const config = getStatusConfig(proposal.status);
             const StatusIcon = config.icon;
+            const submittedAt = proposal.createdAt || proposal.submittedAt;
 
             return (
               <div key={proposal.id} className="group bg-white border border-slate-100 hover:border-brand-accent/30 rounded-xl p-8 shadow-sm hover:shadow-xl hover:shadow-brand-accent/5 transition-all duration-300 relative overflow-hidden">
@@ -149,7 +170,7 @@ export const ExpertMyProposalsPage = () => {
                           </div>
                           <span className="text-xs font-bold text-slate-400 flex items-center gap-1.5">
                              <Calendar className="size-3.5" />
-                             Submitted {new Date(proposal.createdAt).toLocaleDateString()}
+                             {submittedAt ? `Submitted ${new Date(submittedAt).toLocaleDateString()}` : 'Submitted'}
                           </span>
                        </div>
 
@@ -185,9 +206,9 @@ export const ExpertMyProposalsPage = () => {
                     </div>
 
                     <div className="flex flex-col items-center md:items-end justify-center gap-2 min-w-[140px]">
-                       {proposal.status === 2 ? (
+                       {getStatusKey(proposal.status) === 'accepted' ? (
                          <Button asChild className="w-full rounded-full bg-emerald-600 hover:bg-emerald-700 text-white group/btn pr-3 pl-6 shadow-lg shadow-emerald-600/20">
-                            <Link to={`/expert/projects/${proposal.jobId}`}>
+                            <Link to={getWorkspaceHref(proposal.id, proposal.jobId)}>
                               Go to Workspace
                               <ArrowRight className="size-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />
                             </Link>

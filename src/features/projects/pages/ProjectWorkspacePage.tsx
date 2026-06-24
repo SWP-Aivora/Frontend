@@ -23,6 +23,8 @@ import { cn } from '@/lib/utils';
 import { ProjectDisputeStatusBadge } from '../components/ProjectDisputeStatusBadge';
 import { getDefaultNonDisputeProjectStatus, isProjectDisputed } from '../utils';
 import { useProjectMilestones } from '../hooks/useProjectMilestones';
+import { chatService } from '@/features/chat/services';
+import { toast } from 'sonner';
 
 export const ProjectWorkspacePage = () => {
   const { id } = useParams();
@@ -119,6 +121,37 @@ export const ProjectWorkspacePage = () => {
     }
   });
 
+  const openChatMutation = useMutation({
+    mutationFn: async () => {
+      if (!project) throw new Error('Project is not loaded yet.');
+      if (!project.expertId) throw new Error('This project is missing an expert.');
+
+      return chatService.initializeConversation({
+        expertId: project.expertId,
+        jobId: project.jobId,
+        projectId: project.id,
+      }, user?.id);
+    },
+    onSuccess: (response) => {
+      const conversationId = response.data?.id;
+      if (!conversationId) {
+        toast.error('Conversation opened, but no conversation id was returned.');
+        return;
+      }
+
+      const target = user?.role === Role.EXPERT
+        ? '/expert/messages'
+        : user?.role === Role.ADMIN
+          ? '/admin/messages'
+          : '/client/messages';
+
+      navigate(target, { state: { conversationId } });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to open chat.');
+    },
+  });
+
   const handleMilestoneClick = (milestone: Milestone) => setSelectedMilestone(milestone);
 
   const getStatusLabel = (status: ProjectStatus) => {
@@ -144,12 +177,7 @@ export const ProjectWorkspacePage = () => {
       return;
     }
 
-    if (user?.role === Role.EXPERT) {
-      navigate('/expert/messages');
-      return;
-    }
-
-    navigate('/client/messages');
+    openChatMutation.mutate();
   };
 
   const canShowFinishProject = user?.role === Role.CLIENT && user.id === project?.clientId;
@@ -265,9 +293,13 @@ export const ProjectWorkspacePage = () => {
                 Finish Project
              </Button>
            )}
-           <Button onClick={handleOpenChat} className="rounded-full px-6 shadow-lg shadow-primary/20 flex items-center gap-2">
+           <Button
+             onClick={handleOpenChat}
+             disabled={openChatMutation.isPending}
+             className="rounded-full px-6 shadow-lg shadow-primary/20 flex items-center gap-2"
+           >
               <MessageSquare className="size-4" />
-              Open Chat
+              {openChatMutation.isPending ? 'Opening...' : 'Open Chat'}
            </Button>
         </div>
       </div>

@@ -12,8 +12,10 @@ import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { projectService } from '@/features/projects/services';
 import { toast } from 'sonner';
+import { useLocation } from 'react-router-dom';
 
 export const ChatWorkspacePage = () => {
+  const location = useLocation();
   const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isRightPanelCollapsed, setIsRightPanelCollapsed] = useState(false);
@@ -57,9 +59,54 @@ export const ChatWorkspacePage = () => {
     return Array.isArray(conversationsData?.data) ? conversationsData.data : [];
   }, [conversationsData]);
 
+  const hasProjectConversations = conversations.some((conversation) => !!conversation.projectId);
+
+  const { data: projectsResponse } = useQuery({
+    queryKey: ['projects', 'conversation-labels'],
+    queryFn: () => projectService.getProjects({ PageSize: 100 }),
+    enabled: hasProjectConversations,
+  });
+
+  const projectTitleById = useMemo(() => {
+    const projects = Array.isArray(projectsResponse?.data) ? projectsResponse.data : [];
+    return new Map(projects.map((project) => [project.id, project.title]));
+  }, [projectsResponse]);
+
+  const conversationsWithProjectTitles = useMemo(() => {
+    return conversations.map((conversation) => {
+      const projectTitle = conversation.projectId
+        ? projectTitleById.get(conversation.projectId)
+        : undefined;
+
+      if (!projectTitle) return conversation;
+
+      return {
+        ...conversation,
+        relatedTitle: projectTitle,
+      };
+    });
+  }, [conversations, projectTitleById]);
+
+  const targetConversationId = useMemo(() => {
+    const stateConversationId = (location.state as { conversationId?: string } | null)?.conversationId;
+    if (stateConversationId) return stateConversationId;
+
+    return new URLSearchParams(location.search).get('conversationId') || undefined;
+  }, [location.search, location.state]);
+
+  useEffect(() => {
+    if (!targetConversationId) return;
+    if (selectedConversationId === targetConversationId) return;
+
+    const conversationExists = conversationsWithProjectTitles.some((conversation) => conversation.id === targetConversationId);
+    if (conversationExists) {
+      setSelectedConversationId(targetConversationId);
+    }
+  }, [conversationsWithProjectTitles, selectedConversationId, targetConversationId]);
+
   const selectedConversation = useMemo(() => 
-    conversations.find((c: Conversation) => c.id === selectedConversationId),
-  [conversations, selectedConversationId]);
+    conversationsWithProjectTitles.find((c: Conversation) => c.id === selectedConversationId),
+  [conversationsWithProjectTitles, selectedConversationId]);
 
   const selectedProjectId = useMemo(() => {
     return typeof selectedConversation?.projectId === 'string' ? selectedConversation.projectId.trim() : '';
@@ -152,7 +199,7 @@ export const ChatWorkspacePage = () => {
           </div>
         ) : (
           <ConversationList
-            conversations={conversations}
+            conversations={conversationsWithProjectTitles}
             selectedId={selectedConversationId}
             onSelect={setSelectedConversationId}
             isLoading={isLoadingConversations}
