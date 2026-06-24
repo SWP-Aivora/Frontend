@@ -27,13 +27,20 @@ type ProposalFilter = 'all' | 'shortlisted' | 'refused';
 type NormalizedProposalStatus = 'submitted' | 'shortlisted' | 'accepted' | 'rejected' | 'withdrawn';
 
 const normalizeProposalStatus = (status: unknown): NormalizedProposalStatus => {
-  if (status === 0) return 'submitted';
-  if (status === 1) return 'shortlisted';
-  if (status === 2) return 'accepted';
-  if (status === 3) return 'rejected';
-  if (status === 4) return 'withdrawn';
+  const numericStatus = typeof status === 'number'
+    ? status
+    : typeof status === 'string' && status.trim() !== '' && !Number.isNaN(Number(status))
+      ? Number(status)
+      : null;
+
+  if (numericStatus === 0) return 'submitted';
+  if (numericStatus === 1) return 'shortlisted';
+  if (numericStatus === 2) return 'accepted';
+  if (numericStatus === 3) return 'rejected';
+  if (numericStatus === 4) return 'withdrawn';
 
   const normalized = String(status ?? '').toUpperCase().replace(/\s+|_/g, '');
+  if (normalized === 'SUBMITTED' || normalized === 'PENDING') return 'submitted';
   if (normalized === 'SHORTLISTED') return 'shortlisted';
   if (normalized === 'ACCEPTED') return 'accepted';
   if (normalized === 'REJECTED' || normalized === 'REFUSED') return 'rejected';
