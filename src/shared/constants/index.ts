@@ -37,6 +37,7 @@ export const API_ENDPOINTS = {
     EXPERT: 'profiles/expert',
     EXPERT_BY_ID: (id: string) => `profiles/expert/${id}`,
     FEATURED_EXPERTS: 'profiles/experts/featured',
+    SEARCH_EXPERTS: 'profiles/experts/search',
   },
   MEDIA: {
     UPLOAD_IMAGE: 'media/upload-image',

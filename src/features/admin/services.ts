@@ -18,6 +18,7 @@ import type {
 import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
 import { normalizeBaseResponse, normalizePaginatedResponse } from '@/lib/api-utils';
 import type { AxiosResponse } from 'axios';
+import { isProjectDisputed } from '@/features/projects/utils';
 
 interface DashboardSummaryParams {
   projectPage?: number;
@@ -204,6 +205,17 @@ const getStringOrNumberValue = (value: unknown, fallback: string | number): stri
 
 const hasZeroNumericValue = (value: unknown): boolean => getNumericValue(value) === 0;
 
+const getBooleanValue = (source: AdminRecord, ...keys: string[]): boolean | undefined => {
+  const value = getValue(source, ...keys);
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true') return true;
+    if (normalized === 'false') return false;
+  }
+  return undefined;
+};
+
 const BACKEND_STATS_KEYS = [
   'totalUsers',
   'totalClients',
@@ -385,6 +397,8 @@ const normalizeAdminProjectMilestone = (raw: unknown): AdminProjectMilestone => 
 const normalizeAdminProject = (raw: unknown): AdminProject => {
   const project = getRecord(raw);
   const milestones = getArrayValue(project, 'milestones', 'Milestones');
+  const status = getStringOrNumberValue(getValue(project, 'status', 'Status'), 'Unknown');
+  const explicitHasDispute = getBooleanValue(project, 'hasDispute', 'HasDispute', 'isDisputed', 'IsDisputed');
 
   return {
     id: getStringValue(getValue(project, 'id', 'Id')),
@@ -398,7 +412,8 @@ const normalizeAdminProject = (raw: unknown): AdminProject => {
     description: getNullableString(project, 'description', 'Description'),
     totalBudget: getNumberOr(project, 0, 'totalBudget', 'TotalBudget'),
     currency: getStringValue(getValue(project, 'currency', 'Currency'), 'VND'),
-    status: getStringOrNumberValue(getValue(project, 'status', 'Status'), 'Unknown'),
+    status,
+    hasDispute: explicitHasDispute ?? isProjectDisputed(status),
     startDate: getNullableString(project, 'startDate', 'StartDate'),
     endDate: getNullableString(project, 'endDate', 'EndDate'),
     completedAt: getNullableString(project, 'completedAt', 'CompletedAt'),

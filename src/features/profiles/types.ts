@@ -44,4 +44,11 @@ export interface ExpertProfileResponse {
   totalReviews: number;
   completedProjects: number;
   successRate: number;
+  skills?: ExpertSkillResponse[];
+}
+
+export interface ExpertSkillResponse {
+  skillId: string;
+  skillName: string;
+  proficiencyLevel: number;
 }

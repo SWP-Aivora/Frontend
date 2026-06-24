@@ -30,9 +30,11 @@ export const MyProjectsPage = () => {
   // Map API ProjectStatus to our UI filter statuses
   const mapStatusToUI = (status: ProjectStatus): StatusFilter => {
     switch (status) {
-      case ProjectStatus.DRAFT: return 'draft';
+      case ProjectStatus.PENDING_PAYMENT: return 'open';
       case ProjectStatus.PENDING_FUNDING: return 'open';
       case ProjectStatus.IN_PROGRESS: return 'in-progress';
+      case ProjectStatus.IN_REVIEW: return 'in-progress';
+      case ProjectStatus.DISPUTED: return 'in-progress';
       case ProjectStatus.COMPLETED: return 'completed';
       default: return 'open';
     }

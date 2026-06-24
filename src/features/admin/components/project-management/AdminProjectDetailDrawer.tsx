@@ -3,6 +3,7 @@ import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
 import type { AdminProject } from '../../types';
 import { useAdminProjectDetail } from '../../hooks/useAdminProjectDetail';
 import { AdminProjectStatusBadge } from './AdminProjectStatusBadge';
+import { ProjectDisputeStatusBadge } from '@/features/projects/components/ProjectDisputeStatusBadge';
 
 const formatMoney = (amount: number, currency: string) => {
   return new Intl.NumberFormat('en-US', {
@@ -37,6 +38,11 @@ export const AdminProjectDetailDrawer = ({ project, onClose }: AdminProjectDetai
           <div className="min-w-0">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Project detail</p>
             <h2 className="text-lg font-black text-slate-900 leading-tight">{visibleProject.title}</h2>
+            <ProjectDisputeStatusBadge
+              status={visibleProject.status}
+              hasDispute={visibleProject.hasDispute}
+              className="mt-2"
+            />
             <p className="text-[11px] text-slate-500 font-medium mt-1 truncate">{visibleProject.id}</p>
           </div>
           <button
@@ -68,6 +74,7 @@ export const AdminProjectDetailDrawer = ({ project, onClose }: AdminProjectDetai
 
           <div className="flex flex-wrap items-center gap-2">
             <AdminProjectStatusBadge status={visibleProject.status} />
+            <ProjectDisputeStatusBadge status={visibleProject.status} hasDispute={visibleProject.hasDispute} />
             <span className="bg-slate-50 text-slate-600 border border-slate-200 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider">
               {visibleProject.currency}
             </span>
