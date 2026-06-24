@@ -161,7 +161,7 @@ export const ClientJobProposalsPage = () => {
         toast.success('Proposal accepted. Refreshing project data...');
       }
     },
-    onError: (error, pid, context) => {
+    onError: (error, _pid, context) => {
       if (context?.previousProposals) {
         queryClient.setQueryData(['proposals', id], context.previousProposals);
       }
@@ -191,7 +191,7 @@ export const ClientJobProposalsPage = () => {
 
       return { previousProposals };
     },
-    onError: (err, pid, context) => {
+    onError: (_err, _pid, context) => {
       if (context?.previousProposals) {
         queryClient.setQueryData(['proposals', id], context.previousProposals);
       }
@@ -227,7 +227,7 @@ export const ClientJobProposalsPage = () => {
 
       return { previousProposals };
     },
-    onError: (err, pid, context) => {
+    onError: (_err, _pid, context) => {
       if (context?.previousProposals) {
         queryClient.setQueryData(['proposals', id], context.previousProposals);
       }
