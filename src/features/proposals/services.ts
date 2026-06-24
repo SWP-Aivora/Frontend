@@ -109,7 +109,6 @@ export const proposalService = {
       data: normalized.data ? normalizeProposal(normalized.data) : null,
     };
   },
-
   acceptProposal: async (proposalId: string): Promise<BaseResponse<AcceptProposalResult>> => {
     const response = await apiClient.put(API_ENDPOINTS.PROPOSALS.ACCEPT(proposalId));
     const normalized = normalizeBaseResponse<AcceptProposalResultRecord>(response);

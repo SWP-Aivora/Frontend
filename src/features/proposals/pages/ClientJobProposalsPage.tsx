@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProposalListCard } from '../components/ProposalListCard';
 import { jobService } from '../../jobs/services';
@@ -104,8 +104,8 @@ export const ClientJobProposalsPage = () => {
     if (activeTab === 'refused') return status === 'rejected';
     return true;
   });
-  const shortlistedCount = proposals.filter(proposal => getProposalStatus(proposal) === 'shortlisted').length;
-  const refusedCount = proposals.filter(proposal => getProposalStatus(proposal) === 'rejected').length;
+  const shortlistedCount = useMemo(() => proposals.filter(proposal => getProposalStatus(proposal) === 'shortlisted').length, [proposals, localStatuses]);
+  const refusedCount = useMemo(() => proposals.filter(proposal => getProposalStatus(proposal) === 'rejected').length, [proposals, localStatuses]);
   const averageBid = proposals.length
     ? Math.round(proposals.reduce((total, proposal) => total + Number(proposal.proposedBudget || 0), 0) / proposals.length)
     : 0;

@@ -96,13 +96,12 @@ export const FindWorkPage = () => {
     });
   }, [jobsResponse?.data, pageIndex]);
 
-  const allJobs = useMemo(() => loadedJobs, [loadedJobs]);
   const hasNextPage = jobsResponse?.metadata?.hasNextPage ?? false;
 
   const filteredJobs = useMemo(() => {
     const normalizedSearch = appliedSearchTerm.trim().toLowerCase();
 
-    return allJobs.filter(job => {
+    return loadedJobs.filter(job => {
       const budgetType = normalizeBudgetType(job.budgetType);
       const skillLevel = normalizeSkillLevel(job.experienceLevel);
       const clientName = job.client?.fullName || ('clientName' in job ? String(job.clientName || '') : '');
@@ -124,7 +123,7 @@ export const FindWorkPage = () => {
 
       return matchesBudgetType && matchesSkillLevel && matchesSearch;
     });
-  }, [allJobs, appliedSearchTerm, selectedBudgetTypes, selectedSkillLevels]);
+  }, [loadedJobs, appliedSearchTerm, selectedBudgetTypes, selectedSkillLevels]);
 
   const toggleSelectedValue = (
     value: string,
