@@ -207,6 +207,15 @@ export const MyProjectsPage = () => {
                          {job.budget}
                        </span>
                     </div>
+                    {(job.status === 'draft' || job.status === 'open') && (
+                      <Link
+                        to={`/client/post-job?editJobId=${job.id}`}
+                        className="mt-3 inline-flex items-center text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
+                      >
+                        Edit Job Post
+                        <ChevronRight className="ml-1 size-4" />
+                      </Link>
+                    )}
                   </div>
                 </div>
 
