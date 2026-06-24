@@ -327,7 +327,7 @@ jobs:
 
           FOOTER = [
               '---',
-              '<sub>🤖 Reviewed by Gemini 2.0 Flash | '
+              '<sub>🤖 Reviewed by Gemini 3.2 Flash Lite | '
               'React with 👍 if helpful, 👎 if not</sub>',
           ]
 

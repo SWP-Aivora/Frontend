@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProposalListCard } from '../components/ProposalListCard';
 import { jobService } from '../../jobs/services';
-import { proposalService } from '../services';
+import { proposalService, type AcceptProposalResult } from '../services';
 import { 
   ChevronLeft, 
   Sparkles, 
@@ -22,6 +22,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { AxiosError } from 'axios';
 import type { Proposal } from '../types';
+import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
 
 type ProposalFilter = 'all' | 'shortlisted' | 'refused';
 type NormalizedProposalStatus = 'submitted' | 'shortlisted' | 'accepted' | 'rejected' | 'withdrawn';
@@ -117,7 +118,12 @@ export const ClientJobProposalsPage = () => {
     toast.success('AI Insights updated!');
   };
 
-  const acceptMutation = useMutation({
+  const acceptMutation = useMutation<
+    BaseResponse<AcceptProposalResult>,
+    unknown,
+    string,
+    { previousProposals: PaginatedResponse<Proposal> | undefined }
+  >({
     mutationFn: (pid: string) => proposalService.acceptProposal(pid),
     onMutate: async (pid) => {
       await queryClient.cancelQueries({ queryKey: ['proposals', id] });
@@ -163,7 +169,12 @@ export const ClientJobProposalsPage = () => {
     },
   });
 
-  const rejectMutation = useMutation({
+  const rejectMutation = useMutation<
+    BaseResponse<void>,
+    unknown,
+    string,
+    { previousProposals: PaginatedResponse<Proposal> | undefined }
+  >({
     mutationFn: (pid: string) => proposalService.rejectProposal(pid),
     onMutate: async (pid) => {
       await queryClient.cancelQueries({ queryKey: ['proposals', id] });
@@ -194,7 +205,12 @@ export const ClientJobProposalsPage = () => {
     },
   });
 
-  const shortlistMutation = useMutation({
+  const shortlistMutation = useMutation<
+    BaseResponse<void>,
+    unknown,
+    string,
+    { previousProposals: PaginatedResponse<Proposal> | undefined }
+  >({
     mutationFn: (pid: string) => proposalService.shortlistProposal(pid),
     onMutate: async (pid) => {
       await queryClient.cancelQueries({ queryKey: ['proposals', id] });
