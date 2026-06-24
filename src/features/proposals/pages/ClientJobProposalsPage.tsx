@@ -46,8 +46,7 @@ export const ClientJobProposalsPage = () => {
 
   const job = jobResponse?.data;
   const proposals = proposalsResponse?.data || [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const proposalList: any[] = proposals;
+  const proposalList = proposals;
   const isLoading = isJobLoading || isProposalsLoading;
 
   const handleGenerateAI = async () => {
@@ -65,7 +64,7 @@ export const ClientJobProposalsPage = () => {
     onSuccess: (res) => {
       toast.success(`Project Workspace created successfully!`);
       const projectId = res.data?.projectId || id; // Fallback to id if not provided
-      setTimeout(() => navigate(`/client/projects/${projectId}/workspace`), 2000);
+      navigate(`/client/projects/${projectId}/workspace`);
     },
     onError: () => {
       toast.error('Failed to create Project Workspace from accepted proposal.');
