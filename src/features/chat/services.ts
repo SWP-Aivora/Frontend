@@ -293,5 +293,5 @@ class ChatService extends BaseService<Conversation> {
 export const chatService = new ChatService();
 
 if (typeof window !== 'undefined') {
-  (window as any).chatService = chatService;
+  (window as unknown as { chatService: ChatService }).chatService = chatService;
 }

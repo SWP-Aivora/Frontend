@@ -212,7 +212,12 @@ test.describe('Real-time Chat Flow', () => {
 
     // Override chatService.sendMessage to mock SignalR call
     await page.evaluate(() => {
-      (window as any).chatService.sendMessage = async () => {
+      const customWindow = window as unknown as {
+        chatService: {
+          sendMessage: () => Promise<void>;
+        };
+      };
+      customWindow.chatService.sendMessage = async () => {
         return Promise.resolve();
       };
     });
