@@ -66,7 +66,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
     setShowSubmitConfirmation(true);
   };
 
-  const onConfirmSubmit = () => {
+  const onConfirmSubmit = async () => {
     if (!pendingData) return;
     
     // Note: Tags are not in the API, so we could append them to the comment if needed
@@ -74,26 +74,24 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
       ? `${pendingData.comment}\n\nTags: ${selectedTags.join(', ')}`
       : pendingData.comment;
 
-    // Mutate with onSuccess callback for cleanup and navigation
-    submitReview.mutate({
-      ...pendingData,
-      comment: finalComment,
-    }, {
-      onSuccess: () => {
-        // Close everything only after success
-        setShowSubmitConfirmation(false);
-        reset();
-        onClose();
-        
-        // Role-based navigation
-        if (user?.role === 'EXPERT') {
-          navigate('/expert/my-jobs');
-        } else {
-          // Fallback to /client/projects for Client or if role is missing
-          navigate('/client/projects');
-        }
+    try {
+      await submitReview.mutateAsync({
+        ...pendingData,
+        comment: finalComment,
+      });
+
+      setShowSubmitConfirmation(false);
+      reset();
+      onClose();
+
+      if (user?.role === 'EXPERT') {
+        navigate(`/expert/projects/${projectInfo.id}/workspace`);
+      } else {
+        navigate(`/client/projects/${projectInfo.id}/workspace`);
       }
-    });
+    } catch {
+      setShowSubmitConfirmation(false);
+    }
   };
 
   const addTag = () => {
@@ -139,6 +137,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
             </p>
             <div className="flex flex-col gap-3">
               <Button
+                type="button"
                 onClick={onConfirmSubmit}
                 disabled={submitReview.isPending}
                 className="w-full bg-[#1f6eeb] hover:bg-[#1656c0] text-white rounded-xl font-bold h-12 shadow-lg shadow-blue-200"

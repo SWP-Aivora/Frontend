@@ -270,7 +270,7 @@ export const JobDetailsPage = () => {
                   </Button>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" data-testid="proposal-form">
                   {/* Budget & Timeline */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -282,6 +282,8 @@ export const JobDetailsPage = () => {
                           min="1"
                           step="0.01"
                           {...register('proposedBudget')}
+                          aria-label="Proposal bid"
+                          data-testid="proposal-budget-input"
                           className="h-12 rounded-xl bg-slate-50 pl-8 font-bold"
                         />
                       </div>
@@ -294,6 +296,8 @@ export const JobDetailsPage = () => {
                           type="number"
                           min="1"
                           {...register('proposedTimelineDays')}
+                          aria-label="Proposal delivery time"
+                          data-testid="proposal-timeline-input"
                           className="h-12 rounded-xl bg-slate-50 pr-14 font-bold"
                         />
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-black uppercase">Days</span>
@@ -307,6 +311,8 @@ export const JobDetailsPage = () => {
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Cover Letter / Pitch</label>
                     <textarea
                       {...register('coverLetter')}
+                      aria-label="Proposal cover letter"
+                      data-testid="proposal-cover-letter"
                       placeholder="Introduce yourself, describe your solution approach, and explain why you are the right expert for this project..."
                       className="w-full min-h-[180px] p-4 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-accent/20 text-sm leading-6 transition-colors"
                     />
@@ -325,6 +331,8 @@ export const JobDetailsPage = () => {
                           <p className="text-sm font-bold text-slate-700">Paste portfolio, GitHub, HuggingFace, demo, or case-study links.</p>
                           <textarea
                             {...register('attachments')}
+                            aria-label="Proposal portfolio links"
+                            data-testid="proposal-attachments"
                             placeholder="https://github.com/yourname/project&#10;https://huggingface.co/your-model"
                             className="w-full min-h-[86px] p-3 rounded-xl bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-accent/20 text-sm"
                           />
@@ -352,19 +360,42 @@ export const JobDetailsPage = () => {
                     {fields.map((field, index) => (
                       <div key={field.id} className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_140px_120px_36px] gap-2 items-start bg-white p-3 rounded-xl border border-slate-200">
                         <div>
-                          <Input {...register(`milestones.${index}.title`)} placeholder="Milestone title" className="h-10 text-sm rounded-lg" />
+                          <Input
+                            {...register(`milestones.${index}.title`)}
+                            aria-label={`Proposal milestone ${index + 1} title`}
+                            data-testid="proposal-milestone-title"
+                            placeholder="Milestone title"
+                            className="h-10 text-sm rounded-lg"
+                          />
                           {errors.milestones?.[index]?.title && (
                             <p className="text-[11px] text-destructive font-bold mt-1">{errors.milestones[index]?.title?.message}</p>
                           )}
                         </div>
                         <div>
-                          <Input type="number" min="1" step="0.01" {...register(`milestones.${index}.amount`)} placeholder="$ Amount" className="h-10 text-sm rounded-lg" />
+                          <Input
+                            type="number"
+                            min="1"
+                            step="0.01"
+                            {...register(`milestones.${index}.amount`)}
+                            aria-label={`Proposal milestone ${index + 1} amount`}
+                            data-testid="proposal-milestone-amount"
+                            placeholder="$ Amount"
+                            className="h-10 text-sm rounded-lg"
+                          />
                           {errors.milestones?.[index]?.amount && (
                             <p className="text-[11px] text-destructive font-bold mt-1">{errors.milestones[index]?.amount?.message}</p>
                           )}
                         </div>
                         <div>
-                          <Input type="number" min="1" {...register(`milestones.${index}.dueDays`)} placeholder="Days" className="h-10 text-sm rounded-lg" />
+                          <Input
+                            type="number"
+                            min="1"
+                            {...register(`milestones.${index}.dueDays`)}
+                            aria-label={`Proposal milestone ${index + 1} due days`}
+                            data-testid="proposal-milestone-days"
+                            placeholder="Days"
+                            className="h-10 text-sm rounded-lg"
+                          />
                           {errors.milestones?.[index]?.dueDays && (
                             <p className="text-[11px] text-destructive font-bold mt-1">{errors.milestones[index]?.dueDays?.message}</p>
                           )}
