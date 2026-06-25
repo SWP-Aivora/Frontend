@@ -14,7 +14,7 @@ export interface Job {
   finalDescription: string | null;
   businessDomain: string | null;
   expectedOutcome: string | null;
-  categoryId: string;
+  categoryId: string | null;
   categoryName?: string | null;
   budgetType: BudgetType;
   budgetMin: number | null;
@@ -90,7 +90,7 @@ export interface RefineAiJobSuggestionResult {
 }
 
 export interface AcceptAiJobSuggestionRequest {
-  categoryId: string;
+  categoryId: string | null;
   selectedSkillIds?: string[];
 }
 

@@ -214,7 +214,7 @@ export const PostJobPage = () => {
         finalDescription: string;
         businessDomain: string | null;
         expectedOutcome: string | null;
-        categoryId: string;
+        categoryId: string | null;
         budgetType: AiJobSuggestion['budgetType'];
         budgetMin: number | null;
         budgetMax: number | null;
@@ -379,13 +379,12 @@ export const PostJobPage = () => {
   };
 
   const buildAcceptRequest = (): AcceptAiJobSuggestionRequest | null => {
-    if (!suggestion?.categoryId) {
-      toast.error('Category is required before saving or publishing this draft.');
+    if (!suggestion) {
       return null;
     }
 
     return {
-      categoryId: suggestion.categoryId,
+      categoryId: suggestion.categoryId ?? null,
     };
   };
 
@@ -406,8 +405,7 @@ export const PostJobPage = () => {
   };
 
   const buildDraftJobUpdateData = () => {
-    if (!suggestion?.categoryId) {
-      toast.error('Category is required before saving or publishing this draft.');
+    if (!suggestion) {
       return null;
     }
 
@@ -416,7 +414,7 @@ export const PostJobPage = () => {
       finalDescription: suggestion.suggestedDescription,
       businessDomain: suggestion.businessDomain,
       expectedOutcome: suggestion.expectedOutcome,
-      categoryId: suggestion.categoryId,
+      categoryId: suggestion.categoryId ?? null,
       budgetType: suggestion.budgetType,
       budgetMin: suggestion.suggestedBudgetMin,
       budgetMax: suggestion.suggestedBudgetMax,
@@ -736,7 +734,7 @@ export const PostJobPage = () => {
             <Button 
               variant="outline" 
               onClick={() => setStep('DRAFTING')}
-              disabled={isPublishing || !!createdJobId}
+              disabled={isPublishing}
               className="rounded-full px-7 py-2 text-[84%] sm:text-[88%] lg:text-[14px]"
             >
               Back to Edit
