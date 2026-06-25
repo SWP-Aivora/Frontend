@@ -80,10 +80,24 @@ export const authService = {
       };
     } catch (error) {
       console.error('[authService] Login exception:', error);
+      
+      let message = 'A network error occurred during login';
+      let statusCode = 500;
+      
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { data?: { message?: string }; status?: number } };
+        if (axiosError.response?.data?.message) {
+          message = axiosError.response.data.message;
+        }
+        if (axiosError.response?.status) {
+          statusCode = axiosError.response.status;
+        }
+      }
+      
       return {
         success: false,
-        message: 'A network error occurred during login',
-        statusCode: 500,
+        message,
+        statusCode,
         data: null
       };
     }
