@@ -350,7 +350,7 @@ export const JobDraftForm = ({
 
             <div className="space-y-3">
               {suggestion.suggestedMilestones.map((ms, idx) => (
-                <div key={ms.id || `milestone-${idx}-${ms.title}`} className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col gap-4 group">
+                <div key={ms.id || `milestone-${idx}`} className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col gap-4 group">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-4 flex-1">
                       <div className="size-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 font-black text-xs text-slate-400">

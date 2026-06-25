@@ -90,7 +90,7 @@ export interface RefineAiJobSuggestionResult {
 }
 
 export interface AcceptAiJobSuggestionRequest {
-  categoryId: string;
+  categoryId: string | null;
   selectedSkillIds?: string[];
 }
 

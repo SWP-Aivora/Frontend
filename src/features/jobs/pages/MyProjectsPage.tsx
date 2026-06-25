@@ -16,6 +16,7 @@ const normalizeJobStatus = (status: unknown): StatusFilter | 'cancelled' => {
   if (status === 1) return 'open';
   if (status === 2) return 'in-progress';
   if (status === 3) return 'completed';
+  if (status === 4 || status === 5) return 'cancelled';
 
   const normalized = String(status ?? '').toUpperCase().replace(/\s+|_/g, '');
   if (normalized === 'DRAFT') return 'draft';
@@ -26,6 +27,8 @@ const normalizeJobStatus = (status: unknown): StatusFilter | 'cancelled' => {
 
   return 'open';
 };
+
+const canEditJobPost = (status: StatusFilter | 'cancelled') => status === 'draft' || status === 'open';
 
 const getJobBudgetLabel = (job: Job) => {
   const min = job.budgetMin ?? 0;
@@ -207,7 +210,7 @@ export const MyProjectsPage = () => {
                          {job.budget}
                        </span>
                     </div>
-                    {(job.status === 'draft' || job.status === 'open') && (
+                    {canEditJobPost(job.status) && (
                       <Link
                         to={`/client/post-job?editJobId=${job.id}`}
                         className="mt-3 inline-flex items-center text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
