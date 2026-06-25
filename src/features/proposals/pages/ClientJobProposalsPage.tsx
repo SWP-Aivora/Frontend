@@ -93,7 +93,7 @@ export const ClientJobProposalsPage = () => {
   });
 
   const job = jobResponse?.data;
-  const proposals = proposalsResponse?.data || [];
+  const proposals = useMemo(() => proposalsResponse?.data || [], [proposalsResponse?.data]);
   const getProposalStatus = (proposal: Proposal) => normalizeProposalStatus(proposal.status);
   const isJobLocked = normalizeJobStatus(job?.status) === 'in-progress' || normalizeJobStatus(job?.status) === 'completed';
   const acceptedProposal = proposals.find(proposal => getProposalStatus(proposal) === 'accepted');
