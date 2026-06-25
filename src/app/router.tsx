@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate, useParams } from 'react-router-dom';
 import { LoginPage } from '../features/auth/pages/LoginPage';
 import { RegisterPage } from '../features/auth/pages/RegisterPage';
 import { ProfilePage } from '../features/profiles/pages/ProfilePage';
@@ -34,6 +34,11 @@ import { Role } from '../shared/types/enums';
 /**
  * Global Router Configuration
  */
+const ProposalCreateRouteRedirect = () => {
+  const { jobId } = useParams();
+  return <Navigate to={`/expert/jobs/${jobId ?? ''}`} replace />;
+};
+
 export const router = createBrowserRouter([
   {
     path: '/',
@@ -54,6 +59,10 @@ export const router = createBrowserRouter([
         <ReviewPage />
       </ProtectedRoute>
     ),
+  },
+  {
+    path: '/jobs/:jobId/proposals/new',
+    element: <ProposalCreateRouteRedirect />,
   },
   
   // Client Routes

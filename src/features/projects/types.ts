@@ -50,10 +50,15 @@ export interface Project {
 export interface Deliverable {
   id: string;
   milestoneId: string;
+  expertId?: string;
   description: string;
   fileUrl: string | null;
   demoUrl: string | null;
   sourceCodeUrl: string | null;
   note: string | null;
-  createdAt: string;
+  revisionNumber?: number;
+  status?: number | string;
+  submittedAt?: string;
+  reviewedAt?: string | null;
+  createdAt?: string;
 }

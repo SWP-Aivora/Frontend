@@ -12,7 +12,7 @@ import { categoryService } from '@/shared/services/categoryService';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useDebouncedCallback } from '@/shared/hooks/useDebounce';
-import { BudgetType, SkillLevel } from '@/shared/types/enums';
+import { BudgetType, JobVisibility, SkillLevel } from '@/shared/types/enums';
 
 type FlowStep = 'PLANNING' | 'DRAFTING' | 'REVIEWING' | 'MATCHING';
 
@@ -221,6 +221,7 @@ export const PostJobPage = () => {
         currency: string;
         timelineDays: number | null;
         experienceLevel: AiJobSuggestion['experienceLevel'];
+        visibility?: JobVisibility;
       };
     }) => jobService.updateJob(payload.jobId, payload.data),
     onSuccess: () => {
@@ -404,7 +405,7 @@ export const PostJobPage = () => {
     }
   };
 
-  const buildDraftJobUpdateData = () => {
+  const buildDraftJobUpdateData = (visibility?: JobVisibility) => {
     if (!suggestion) {
       return null;
     }
@@ -421,6 +422,7 @@ export const PostJobPage = () => {
       currency: suggestion.currency,
       timelineDays: suggestion.suggestedTimelineDays,
       experienceLevel: suggestion.experienceLevel,
+      ...(visibility !== undefined ? { visibility } : {}),
     };
   };
 
@@ -512,7 +514,7 @@ export const PostJobPage = () => {
       }
 
       if (jobId) {
-        const updateData = buildDraftJobUpdateData();
+        const updateData = buildDraftJobUpdateData(JobVisibility.PUBLIC);
         if (!updateData) {
           return;
         }

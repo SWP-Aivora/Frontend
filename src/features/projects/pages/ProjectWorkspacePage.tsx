@@ -15,6 +15,8 @@ import {
   Clock,
   ShieldAlert,
   Users,
+  ExternalLink,
+  FileText,
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { useAuthStore } from '@/features/auth/store';
@@ -58,18 +60,74 @@ export const ProjectWorkspacePage = () => {
   const isLoading = isLoadingProject || isLoadingMilestones || (!projectResponse?.data && isLoadingFallbackProjects);
   const hasProjectDispute = isProjectDisputed(project?.status, project?.hasDispute);
 
+  const getPartyName = (
+    responseName: string | undefined,
+    loadedName: string | undefined,
+    fallbackName: string | undefined,
+    defaultLabel: string
+  ) => {
+    const normalizedResponseName = responseName?.trim();
+    if (normalizedResponseName && normalizedResponseName.toUpperCase() !== 'N/A') {
+      return normalizedResponseName;
+    }
+
+    return loadedName?.trim() || fallbackName?.trim() || defaultLabel;
+  };
+
+  const buildReviewState = (sourceProject = project) => {
+    if (!sourceProject) return null;
+
+    const clientName = getPartyName(
+      sourceProject.clientName,
+      project?.clientName,
+      project?.client?.fullName,
+      'Client'
+    );
+    const expertName = getPartyName(
+      sourceProject.expertName,
+      project?.expertName,
+      project?.expert?.fullName,
+      'Expert'
+    );
+
+    return {
+      id: sourceProject.id,
+      title: sourceProject.title,
+      milestone: `${sourceProject.milestones.length} milestone${sourceProject.milestones.length === 1 ? '' : 's'}`,
+      completedDate: new Date().toLocaleDateString(),
+      clientName,
+      expertName,
+      amount: `$${sourceProject.totalBudget?.toLocaleString() || 0}`,
+      revieweeId: sourceProject.expertId,
+    };
+  };
+
   // Modals state
   const queryClient = useQueryClient();
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
   const [submitData, setSubmitData] = useState({ description: '', fileUrl: '', demoUrl: '', sourceCodeUrl: '', note: '' });
   const [revisionReason, setRevisionReason] = useState('');
+  const selectedMilestoneId = selectedMilestone?.id;
+
+  const {
+    data: deliverablesResponse,
+    isLoading: isLoadingDeliverables,
+    isError: isDeliverablesError,
+  } = useQuery({
+    queryKey: ['milestone', selectedMilestoneId, 'deliverables'],
+    queryFn: () => projectService.getDeliverables(selectedMilestoneId!),
+    enabled: !!selectedMilestoneId,
+  });
+
+  const deliverables = deliverablesResponse?.data ?? [];
 
   // API Nộp sản phẩm (Expert bấm Submit)
   const submitMutation = useMutation({
     mutationFn: (data: { description: string; fileUrl: string; demoUrl: string; sourceCodeUrl: string; note: string }) => projectService.submitDeliverable(selectedMilestone!.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project', id, 'milestones'] });
+      queryClient.invalidateQueries({ queryKey: ['milestone', selectedMilestone?.id, 'deliverables'] });
       setIsSubmitModalOpen(false);
       setSelectedMilestone(null);
     }
@@ -89,7 +147,20 @@ export const ProjectWorkspacePage = () => {
       queryClient.invalidateQueries({ queryKey: ['project', id, 'milestones'] });
       setIsRevisionModalOpen(false);
       setSelectedMilestone(null);
-    }
+    },
+    onError: (error) => {
+      const message =
+        typeof error === 'object' &&
+        error !== null &&
+        'response' in error &&
+        typeof (error as { response?: { data?: { message?: unknown } } }).response?.data?.message === 'string'
+          ? (error as { response: { data: { message: string } } }).response.data.message
+          : error instanceof Error
+            ? error.message
+            : 'Failed to request revision.';
+
+      toast.error(message);
+    },
   });
 
   const finishProjectMutation = useMutation({
@@ -106,19 +177,26 @@ export const ProjectWorkspacePage = () => {
       setIsFinishModalOpen(false);
 
       if (!completedProject) return;
+      const reviewState = buildReviewState(completedProject);
+      if (!reviewState) return;
+
       navigate('/reviews', {
-        state: {
-          id: completedProject.id,
-          title: completedProject.title,
-          milestone: `${completedProject.milestones.length} milestone${completedProject.milestones.length === 1 ? '' : 's'}`,
-          completedDate: new Date().toLocaleDateString(),
-          clientName: completedProject.clientName || completedProject.client?.fullName || 'Client',
-          expertName: completedProject.expertName || completedProject.expert?.fullName || 'Expert',
-          amount: `$${completedProject.totalBudget?.toLocaleString() || 0}`,
-          revieweeId: completedProject.expertId,
-        },
+        state: reviewState,
       });
-    }
+    },
+    onError: (error) => {
+      const message =
+        typeof error === 'object' &&
+        error !== null &&
+        'response' in error &&
+        typeof (error as { response?: { data?: { message?: unknown } } }).response?.data?.message === 'string'
+          ? (error as { response: { data: { message: string } } }).response.data.message
+          : error instanceof Error
+            ? error.message
+            : 'Failed to finish project.';
+
+      toast.error(message);
+    },
   });
 
   const openChatMutation = useMutation({
@@ -181,12 +259,48 @@ export const ProjectWorkspacePage = () => {
   };
 
   const canShowFinishProject = user?.role === Role.CLIENT && user.id === project?.clientId;
-  const canRequestFinishProject = !!id && project?.status !== ProjectStatus.COMPLETED && project?.status !== ProjectStatus.CANCELLED;
+  const canRequestFinishProject = !!id && project?.status !== ProjectStatus.CANCELLED;
+  const canReviewCompletedProject = project?.status === ProjectStatus.COMPLETED;
   const canToggleProjectDispute = Boolean(
     project
       && (user?.role === Role.CLIENT || user?.role === Role.EXPERT)
       && (user.id === project.clientId || user.id === project.expertId)
   );
+
+  const resetDeliverableForm = () => {
+    setSubmitData({ description: '', fileUrl: '', demoUrl: '', sourceCodeUrl: '', note: '' });
+  };
+
+  const openDeliverableModal = () => {
+    if (selectedMilestone?.status === MilestoneStatus.REVISION_REQUESTED && deliverables.length > 0) {
+      const latestDeliverable = deliverables[0];
+      setSubmitData({
+        description: latestDeliverable.description ?? '',
+        fileUrl: latestDeliverable.fileUrl ?? '',
+        demoUrl: latestDeliverable.demoUrl ?? '',
+        sourceCodeUrl: latestDeliverable.sourceCodeUrl ?? '',
+        note: latestDeliverable.note ?? '',
+      });
+    } else {
+      resetDeliverableForm();
+    }
+
+    setIsSubmitModalOpen(true);
+  };
+
+  const handleFinishProject = () => {
+    if (!project) return;
+
+    if (canReviewCompletedProject) {
+      const reviewState = buildReviewState(project);
+      if (reviewState) {
+        navigate('/reviews', { state: reviewState });
+      }
+      return;
+    }
+
+    finishProjectMutation.mutate();
+  };
 
   const handleToggleProjectDispute = () => {
     if (!id || !project) return;
@@ -285,12 +399,12 @@ export const ProjectWorkspacePage = () => {
            {canShowFinishProject && (
              <Button
                variant="outline"
-               onClick={() => setIsFinishModalOpen(true)}
-               disabled={!canRequestFinishProject}
+               onClick={handleFinishProject}
+               disabled={!canRequestFinishProject || finishProjectMutation.isPending}
                className="rounded-full px-6 border-slate-200 font-black"
                title={!canRequestFinishProject ? 'This project cannot be finished from this state.' : undefined}
              >
-                Finish Project
+                {finishProjectMutation.isPending ? 'Finishing...' : 'Finish Project'}
              </Button>
            )}
            <Button
@@ -383,7 +497,7 @@ export const ProjectWorkspacePage = () => {
                     </div>
                  </div>
 
-                 <div className="space-y-4">
+                  <div className="space-y-4">
                     <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
                        <CheckCircle2 className="size-4 text-primary" />
                        Acceptance Criteria
@@ -399,9 +513,91 @@ export const ProjectWorkspacePage = () => {
                        ) : (
                          <li className="text-sm text-slate-400 font-medium italic">No criteria specified</li>
                        )}
-                    </ul>
-                 </div>
-              </div>
+                     </ul>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                      <FileText className="size-4 text-primary" />
+                      Submitted Deliverables
+                    </h3>
+
+                    {isLoadingDeliverables ? (
+                      <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm font-semibold text-slate-500">
+                        Loading deliverables...
+                      </div>
+                    ) : isDeliverablesError ? (
+                      <div className="rounded-xl border border-rose-100 bg-rose-50 p-4 text-sm font-semibold text-rose-600">
+                        Failed to load deliverables.
+                      </div>
+                    ) : deliverables.length === 0 ? (
+                      <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm font-semibold text-slate-400">
+                        No deliverables submitted for this milestone yet.
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {deliverables.map((deliverable) => {
+                          const links = [
+                            { label: 'File', href: deliverable.fileUrl },
+                            { label: 'Demo', href: deliverable.demoUrl },
+                            { label: 'Source Code', href: deliverable.sourceCodeUrl },
+                          ].filter((link): link is { label: string; href: string } => Boolean(link.href));
+
+                          return (
+                            <div key={deliverable.id} className="rounded-xl border border-slate-100 bg-slate-50 p-4 space-y-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className="text-xs font-black uppercase tracking-widest text-primary">
+                                    Revision #{deliverable.revisionNumber ?? 1}
+                                  </p>
+                                  {deliverable.submittedAt && (
+                                    <p className="mt-1 text-[11px] font-semibold text-slate-400">
+                                      Submitted {new Date(deliverable.submittedAt).toLocaleString()}
+                                    </p>
+                                  )}
+                                </div>
+                                {deliverable.status !== undefined && (
+                                  <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-500 border border-slate-200">
+                                    {String(deliverable.status)}
+                                  </span>
+                                )}
+                              </div>
+
+                              {deliverable.description && (
+                                <p className="whitespace-pre-wrap text-sm font-medium leading-6 text-slate-600">
+                                  {deliverable.description}
+                                </p>
+                              )}
+
+                              {deliverable.note && (
+                                <p className="rounded-lg bg-white p-3 text-xs font-medium leading-5 text-slate-500 border border-slate-100">
+                                  {deliverable.note}
+                                </p>
+                              )}
+
+                              {links.length > 0 && (
+                                <div className="flex flex-wrap gap-2">
+                                  {links.map((link) => (
+                                    <a
+                                      key={link.label}
+                                      href={link.href}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-primary border border-primary/10 hover:border-primary/30"
+                                    >
+                                      {link.label}
+                                      <ExternalLink className="size-3" />
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+               </div>
 
               {/* Action Buttons based on status and role */}
               <div className="pt-8 border-t border-slate-100 space-y-3">
@@ -411,15 +607,15 @@ export const ProjectWorkspacePage = () => {
                    </Button>
                  )}
                  {([MilestoneStatus.FUNDED, MilestoneStatus.IN_PROGRESS, MilestoneStatus.REVISION_REQUESTED] as MilestoneStatus[]).includes(selectedMilestone.status) && user?.role === Role.EXPERT && (
-                   <Button 
-                     onClick={() => setIsSubmitModalOpen(true)}
-                     className="w-full h-14 rounded-full font-black text-base bg-brand-accent hover:bg-brand-accent/90 shadow-xl shadow-brand-accent/20 flex items-center justify-center gap-2"
-                   >
-                      <Upload className="size-5" />
-                      Submit Deliverables
-                   </Button>
-                 )}
-                 {([MilestoneStatus.SUBMITTED, MilestoneStatus.UNDER_REVIEW, MilestoneStatus.APPROVED] as MilestoneStatus[]).includes(selectedMilestone.status) && user?.role === Role.CLIENT && (
+                    <Button 
+                      onClick={openDeliverableModal}
+                      className="w-full h-14 rounded-full font-black text-base bg-brand-accent hover:bg-brand-accent/90 shadow-xl shadow-brand-accent/20 flex items-center justify-center gap-2"
+                    >
+                       <Upload className="size-5" />
+                       {selectedMilestone.status === MilestoneStatus.REVISION_REQUESTED ? 'Edit Deliverables' : 'Submit Deliverables'}
+                    </Button>
+                  )}
+                 {selectedMilestone.status === MilestoneStatus.SUBMITTED && user?.role === Role.CLIENT && (
                    <div className="flex gap-3">
                       <Button 
                         onClick={() => setIsRevisionModalOpen(true)}
@@ -456,8 +652,14 @@ export const ProjectWorkspacePage = () => {
         <div className="fixed inset-0 z-[60] flex items-center justify-center">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsSubmitModalOpen(false)} />
           <div className="bg-white rounded-3xl p-8 w-[90%] max-w-lg relative z-10 shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-2xl font-black text-slate-900 mb-2">Submit Deliverables</h3>
-            <p className="text-sm text-slate-500 mb-6">Provide the required links and files for this milestone.</p>
+            <h3 className="text-2xl font-black text-slate-900 mb-2">
+              {selectedMilestone?.status === MilestoneStatus.REVISION_REQUESTED ? 'Edit Deliverables' : 'Submit Deliverables'}
+            </h3>
+            <p className="text-sm text-slate-500 mb-6">
+              {selectedMilestone?.status === MilestoneStatus.REVISION_REQUESTED
+                ? 'Update your deliverable details and resubmit them for client review.'
+                : 'Provide the required links and files for this milestone.'}
+            </p>
             
             <div className="space-y-4 mb-8">
               <div>
@@ -490,6 +692,26 @@ export const ProjectWorkspacePage = () => {
                   onChange={e => setSubmitData({...submitData, demoUrl: e.target.value})}
                 />
               </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Source Code URL</label>
+                <input
+                  type="text"
+                  className="w-full rounded-xl border-slate-200 p-3 text-sm focus:ring-primary focus:border-primary"
+                  placeholder="https://..."
+                  value={submitData.sourceCodeUrl}
+                  onChange={e => setSubmitData({...submitData, sourceCodeUrl: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Note</label>
+                <textarea
+                  className="w-full rounded-xl border-slate-200 p-3 text-sm focus:ring-primary focus:border-primary"
+                  rows={2}
+                  placeholder="Anything the client should know..."
+                  value={submitData.note}
+                  onChange={e => setSubmitData({...submitData, note: e.target.value})}
+                />
+              </div>
             </div>
 
             <div className="flex justify-end gap-3">
@@ -499,7 +721,11 @@ export const ProjectWorkspacePage = () => {
                 disabled={submitMutation.isPending || !submitData.description.trim()}
                 className="rounded-full shadow-lg shadow-primary/20 font-black"
               >
-                {submitMutation.isPending ? 'Submitting...' : 'Submit Work'}
+                {submitMutation.isPending
+                  ? 'Submitting...'
+                  : selectedMilestone?.status === MilestoneStatus.REVISION_REQUESTED
+                    ? 'Resubmit Work'
+                    : 'Submit Work'}
               </Button>
             </div>
           </div>

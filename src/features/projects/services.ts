@@ -8,9 +8,14 @@ import { normalizeMilestoneStatus, normalizeProjectStatus } from './utils';
 
 type ProjectRecord = Project & Record<string, unknown>;
 type MilestoneRecord = Milestone & Record<string, unknown>;
+type DeliverableRecord = Deliverable & Record<string, unknown>;
 
 const getString = (value: unknown, fallback = ''): string => (
   typeof value === 'string' ? value : fallback
+);
+
+const getStringOrNumber = (value: unknown): string | number | undefined => (
+  typeof value === 'string' || typeof value === 'number' ? value : undefined
 );
 
 const normalizeMilestone = (milestone: Milestone): Milestone => {
@@ -74,6 +79,27 @@ const normalizeProject = (project: Project): Project => {
       avatarUrl: null,
       role: 'EXPERT',
     },
+  };
+};
+
+const normalizeDeliverable = (deliverable: Deliverable): Deliverable => {
+  const raw = deliverable as DeliverableRecord;
+
+  return {
+    ...deliverable,
+    id: deliverable.id || getString(raw.Id),
+    milestoneId: deliverable.milestoneId || getString(raw.MilestoneId),
+    expertId: deliverable.expertId || getString(raw.ExpertId),
+    description: deliverable.description || getString(raw.Description),
+    fileUrl: (deliverable.fileUrl ?? getString(raw.FileUrl, '')) || null,
+    demoUrl: (deliverable.demoUrl ?? getString(raw.DemoUrl, '')) || null,
+    sourceCodeUrl: (deliverable.sourceCodeUrl ?? getString(raw.SourceCodeUrl, '')) || null,
+    note: (deliverable.note ?? getString(raw.Note, '')) || null,
+    revisionNumber: Number(deliverable.revisionNumber ?? raw.RevisionNumber ?? 1),
+    status: deliverable.status ?? getStringOrNumber(raw.Status),
+    submittedAt: deliverable.submittedAt || getString(raw.SubmittedAt),
+    reviewedAt: (deliverable.reviewedAt ?? getString(raw.ReviewedAt, '')) || null,
+    createdAt: deliverable.createdAt || getString(raw.CreatedAt),
   };
 };
 
@@ -154,14 +180,19 @@ export const projectService = {
   },
 
   requestRevision: async (id: string, reason: string): Promise<BaseResponse<void>> => {
-    const response = await apiClient.put(API_ENDPOINTS.MILESTONES.REVISION(id), { reason });
+    const response = await apiClient.put(API_ENDPOINTS.MILESTONES.REVISION(id), reason);
     return normalizeBaseResponse<void>(response);
   },
 
   // Deliverable endpoints
   getDeliverables: async (milestoneId: string): Promise<PaginatedResponse<Deliverable>> => {
     const response = await apiClient.get(API_ENDPOINTS.MILESTONES.DELIVERABLES(milestoneId));
-    return normalizePaginatedResponse<Deliverable>(response);
+    const normalized = normalizePaginatedResponse<Deliverable>(response);
+
+    return {
+      ...normalized,
+      data: (normalized.data ?? []).map(normalizeDeliverable),
+    };
   },
 
   submitDeliverable: async (milestoneId: string, data: Partial<Deliverable>): Promise<BaseResponse<Deliverable>> => {

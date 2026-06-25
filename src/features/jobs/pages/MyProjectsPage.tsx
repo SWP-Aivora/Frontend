@@ -8,6 +8,7 @@ import { projectService } from '@/features/projects/services';
 import { jobService } from '@/features/jobs/services';
 import { proposalService } from '@/features/proposals/services';
 import type { Job } from '@/features/jobs/types';
+import { ProjectStatus } from '@/shared/types/enums';
 
 type StatusFilter = 'all' | 'draft' | 'open' | 'in-progress' | 'completed';
 
@@ -29,6 +30,10 @@ const normalizeJobStatus = (status: unknown): StatusFilter | 'cancelled' => {
 };
 
 const canEditJobPost = (status: StatusFilter | 'cancelled') => status === 'draft' || status === 'open';
+
+const normalizeProjectStatusForJobCard = (status: ProjectStatus): Extract<StatusFilter, 'in-progress' | 'completed'> => (
+  status === ProjectStatus.COMPLETED ? 'completed' : 'in-progress'
+);
 
 const getJobBudgetLabel = (job: Job) => {
   const min = job.budgetMin ?? 0;
@@ -71,8 +76,8 @@ export const MyProjectsPage = () => {
 
   const displayJobs = jobs
     .map((job, index) => {
-      const status = normalizeJobStatus(job.status);
       const project = projects.find(item => item.jobId === job.id);
+      const status = project ? normalizeProjectStatusForJobCard(project.status) : normalizeJobStatus(job.status);
       const proposalCount = proposalCountQueries[index]?.data?.data?.length ?? 0;
 
       return {
