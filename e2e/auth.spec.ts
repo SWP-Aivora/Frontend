@@ -2,9 +2,9 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Authentication & Authorization Flow', () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to login page
+    // Navigate to login page and wait for the form to render
     await page.goto('/login');
-    await page.waitForLoadState('networkidle');
+    await expect(page.locator('form')).toBeVisible();
   });
 
   test('should display client-side validation errors for empty fields', async ({ page }) => {
