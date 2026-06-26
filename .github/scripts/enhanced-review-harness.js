@@ -73,7 +73,6 @@ export class EnhancedReviewHarness {
 
 // CLI interface
 
-import { EnhancedReviewHarness } from './enhanced-review-harness.js';
 import { argv } from 'node:process';
 
 // Parse command line arguments
