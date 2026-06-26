@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate, useParams } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { LoginPage } from '../features/auth/pages/LoginPage';
 import { RegisterPage } from '../features/auth/pages/RegisterPage';
 import { ProfilePage } from '../features/profiles/pages/ProfilePage';
@@ -30,14 +30,7 @@ import { ExpertDashboardPage } from '../features/dashboard/pages/ExpertDashboard
 import { ProtectedRoute } from '../shared/components/common/ProtectedRoute';
 import { ClientLayout, ExpertLayout, AdminLayout } from '../shared/layouts';
 import { Role } from '../shared/types/enums';
-
-/**
- * Global Router Configuration
- */
-const ProposalCreateRouteRedirect = () => {
-  const { jobId } = useParams();
-  return <Navigate to={`/expert/jobs/${jobId ?? ''}`} replace />;
-};
+import ProposalCreateRouteRedirect from './ProposalCreateRouteRedirect';
 
 export const router = createBrowserRouter([
   {
