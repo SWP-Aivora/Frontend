@@ -51,12 +51,18 @@ export const WalletPage = () => {
   const isLoading = isLoadingWallet || isLoadingHistory;
 
   const totals = useMemo(() => {
+    const isOutgoing = (t: typeof validTx[number]) =>
+      t.type === TransactionType.DEBIT || t.type === TransactionType.WITHDRAWAL || t.type === TransactionType.PAYMENT;
+
+    const isIncoming = (t: typeof validTx[number]) =>
+      t.type === TransactionType.CREDIT || t.type === TransactionType.DEPOSIT || t.type === TransactionType.PAYMENT_RELEASE || t.type === TransactionType.REFUND;
+
     const spent = validTx
-      .filter(t => t.type === TransactionType.PAYMENT && t.status === TransactionStatus.COMPLETED)
+      .filter(t => isOutgoing(t) && t.status === TransactionStatus.COMPLETED)
       .reduce((acc, t) => acc + t.amount, 0);
-    
+
     const earned = validTx
-      .filter(t => (t.type === TransactionType.DEPOSIT || t.type === TransactionType.REFUND) && t.status === TransactionStatus.COMPLETED)
+      .filter(t => isIncoming(t) && t.status === TransactionStatus.COMPLETED)
       .reduce((acc, t) => acc + t.amount, 0);
 
     const inEscrow = validTx
@@ -106,15 +112,15 @@ export const WalletPage = () => {
            {isClient ? (
              <DepositModal />
            ) : (
-             <WithdrawModal maxBalance={wallet?.balance || 0} />
+             <WithdrawModal maxBalance={wallet?.availableBalance ?? wallet?.balance ?? 0} />
            )}
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-           <WalletBalanceCard 
-             balance={wallet?.balance || 0} 
+           <WalletBalanceCard
+             balance={wallet?.availableBalance ?? wallet?.balance ?? 0}
              inEscrow={totals.inEscrow}
              totalStats={isClient ? totals.spent : totals.earned}
              isClient={isClient}
