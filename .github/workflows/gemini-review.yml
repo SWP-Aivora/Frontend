@@ -251,7 +251,7 @@ jobs:
           print(f"Low: {len(review_data.get('low_priority', []))}")
 
           with open("$GITHUB_OUTPUT", "a") as f:
-    f.write("bugs-review-result=$(cat /tmp/bugs_review.json)\n")
+              f.write("bugs-review-result=$(cat /tmp/bugs_review.json)\n")
           EOF
 
   review-security:
@@ -372,7 +372,7 @@ jobs:
           print(f"High: {len(review_data.get('high', []))}")
 
           with open("$GITHUB_OUTPUT", "a") as f:
-    f.write("security-review-result=$(cat /tmp/security_review.json)\n")
+              f.write("security-review-result=$(cat /tmp/security_review.json)\n")
           EOF
 
   review-typescript:
@@ -492,7 +492,7 @@ jobs:
           print(f"Improvements: {len(review_data.get('improvements', []))}")
 
           with open("$GITHUB_OUTPUT", "a") as f:
-    f.write("typescript-review-result=$(cat /tmp/typescript_review.json)\n")
+              f.write("typescript-review-result=$(cat /tmp/typescript_review.json)\n")
           EOF
 
   review-architecture:
@@ -611,7 +611,7 @@ jobs:
           print(f"Warnings: {len(review_data.get('warnings', []))}")
 
           with open("$GITHUB_OUTPUT", "a") as f:
-    f.write("architecture-review-result=$(cat /tmp/architecture_review.json)\n")
+              f.write("architecture-review-result=$(cat /tmp/architecture_review.json)\n")
           EOF
 
   # Aggregate Results
