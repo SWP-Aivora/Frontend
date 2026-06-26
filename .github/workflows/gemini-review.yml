@@ -1,9 +1,9 @@
-name: Enhanced Gemini AI Code Review with Multi-Agent Architecture
+name: Gemini AI Code Review
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
-    branches: [main, develop]
+    types: [opened, synchronize]
+    branches: [main]
 
 concurrency:
   group: gemini-review-${{ github.event.pull_request.number }}
@@ -12,31 +12,19 @@ concurrency:
 permissions:
   contents: read
   pull-requests: write
-  issues: write
-
-env:
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
-  prepare-diff:
-    name: Prepare PR Diff
+  review:
+    name: AI Code Review
     runs-on: ubuntu-latest
-    outputs:
-      skip-review: ${{ steps.diff.outputs.skip }}
-      pr-files: ${{ steps.list-files.outputs.files }}
-      diff-size: ${{ steps.diff.outputs.diff-size }}
+    # Skip draft PRs
+    if: github.event.pull_request.draft == false
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: List PR files
-        id: list-files
-        run: |
-          gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" \
-            --jq '[.[] | .filename] | join(",")' > /tmp/pr_files.txt
-          echo "files=$(cat /tmp/pr_files.txt)" >> $GITHUB_OUTPUT
 
       - name: Get PR diff
         id: diff
@@ -48,7 +36,8 @@ jobs:
             -H "Accept: application/vnd.github.diff" \
             > /tmp/pr_full.diff
 
-          python3 << 'EOF'
+          # Filter out files that don't need review
+          python3 << 'PYEOF'
           import re, sys
 
           SKIP_PATTERNS = [
@@ -58,24 +47,22 @@ jobs:
               r'\.png$', r'\.jpg$', r'\.jpeg$', r'\.gif$', r'\.svg$', r'\.ico$', r'\.webp$',
               r'\.woff2?$', r'\.ttf$', r'\.eot$',
               r'^dist/',
-              r'^build/',
-              r'^\.next/',
               r'\.env\.example$',
               r'\.gitattributes$',
               r'\.gitignore$',
-              r'node_modules/',
-              r'\.DS_Store$',
           ]
 
           with open('/tmp/pr_full.diff', 'r', errors='replace') as f:
               full_diff = f.read()
 
+          # Split into per-file diffs
           file_diffs = re.split(r'(?=^diff --git )', full_diff, flags=re.MULTILINE)
           filtered = []
 
           for chunk in file_diffs:
               if not chunk.strip():
                   continue
+              # Extract file path from "diff --git a/path b/path"
               match = re.match(r'diff --git a/(.*?) b/(.*)', chunk)
               if not match:
                   filtered.append(chunk)
@@ -87,232 +74,122 @@ jobs:
 
           result = ''.join(filtered)
 
-          # Calculate diff size
-          diff_size = len(result)
-
-          # Truncate to manageable size
-          MAX_CHARS = 150_000
+          # Truncate to ~100k chars to stay within Gemini context limits
+          MAX_CHARS = 100_000
           if len(result) > MAX_CHARS:
-              result = result[:MAX_CHARS] + '\n\n... [diff truncated to {} chars] ...'.format(MAX_CHARS)
+              result = result[:MAX_CHARS] + '\n\n... [diff truncated due to size] ...'
 
           with open('/tmp/pr_filtered.diff', 'w') as f:
               f.write(result)
 
-          with open('/tmp/skip_review', 'w') as f:
-              f.write('false' if result.strip() else 'true')
+          # Check if there's anything left to review
+          if not result.strip():
+              print('NO_DIFF=true')
+              with open('/tmp/skip_review', 'w') as f:
+                  f.write('true')
+          else:
+              with open('/tmp/skip_review', 'w') as f:
+                  f.write('false')
+          PYEOF
 
-          # Write diff size for monitoring
-          with open('/tmp/diff_size.txt', 'w') as f:
-              f.write(str(diff_size))
-
-          with open("$GITHUB_OUTPUT", "a") as f:
-              f.write(f"skip=$(cat /tmp/skip_review)\n")
-              f.write(f"diff-size=$(cat /tmp/diff_size.txt)\n")
-          EOF
+          echo "skip=$(cat /tmp/skip_review)" >> "$GITHUB_OUTPUT"
 
       - name: Skip if no reviewable changes
         if: steps.diff.outputs.skip == 'true'
-        run: |
-          echo "::notice::No reviewable file changes found. Skipping review."
-          echo "review_summary=No reviewable changes found" >> $GITHUB_OUTPUT
-
-      - name: Upload diff as artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: pr-diff
-          path: /tmp/pr_filtered.diff
-          retention-days: 1
-
-  # Multi-Agent Review Jobs
-  review-bugs:
-    name: Review for Bugs & Logic Errors
-    runs-on: ubuntu-latest
-    needs: prepare-diff
-    if: needs.prepare-diff.outputs.skip != 'true'
-    strategy:
-      matrix:
-        review-type: ['bugs']
-    outputs:
-      review-result: ${{ steps.review.outputs.result }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Download PR diff
-        uses: actions/download-artifact@v4
-        with:
-          name: pr-diff
-          path: /tmp/
-
-      - name: Prepare review payload
-        id: payload
-        run: |
-          cat > /tmp/bugs_prompt.txt << 'EOF'
-          You are a Senior Frontend Engineer specializing in bug detection and logic error analysis for the AIVORA project.
-
-          ## Focus Areas (Bugs Only):
-          1. **Critical Logic Errors**: Null/undefined risks, type mismatches, incorrect state management
-          2. **Performance Issues**: Infinite loops, memory leaks, inefficient algorithms, unnecessary re-renders
-          3. **Edge Cases**: Missing error handling, unhandled promises, race conditions
-          4. **Data Flow Issues**: Incorrect prop drilling, broken context usage, improper state updates
-          5. **React Specific**: Hooks violations, missing dependencies, improper key usage
-
-          ## Confidence Scoring:
-          - 100: Critical bug that will cause runtime errors or data corruption
-          - 90: High severity bug affecting core functionality
-          - 75: Bug that causes unexpected behavior or minor issues
-          - 50: Potential bug or code smell that might cause issues
-          - 25: Minor concern with low impact
-
-          ## Output Format:
-          {
-            "summary": "Brief summary of bugs found",
-            "critical_issues": [],
-            "high_priority": [],
-            "medium_priority": [],
-            "low_priority": [],
-            "total_issues": 0
-          }
-          EOF
-
-          jq -n \
-            --rawfile prompt /tmp/bugs_prompt.txt \
-            --rawfile diff /tmp/pr_filtered.diff \
-            --arg title "${{ github.event.pull_request.title }}" \
-            --arg body "${{ github.event.pull_request.body || 'No description' }}" \
-            --arg author "${{ github.event.pull_request.user.login }}" \
-            --arg pr_number "${{ github.event.pull_request.number }}" \
-            --arg diff_size "${{ needs.prepare-diff.outputs.diff-size }}" \
-            '{
-              "contents": [{
-                "parts": [{
-                  "text": ($prompt + "\n\n## PR Information\n- **#**: " + $pr_number + "\n- **Title**: " + $title + "\n- **Author**: " + $author + "\n- **Description**: " + $body + "\n\n## Diff (Size: " + $diff_size + " chars)\n```diff\n" + $diff + "\n```")
-                }]
-              }],
-              "generationConfig": {
-                "temperature": 0.1,
-                "topP": 0.8,
-                "maxOutputTokens": 4096,
-                "responseMimeType": "application/json"
-              }
-            }' > /tmp/bugs_payload.json
+        run: echo "No reviewable file changes found. Skipping review."
 
       - name: Review with Gemini
-        id: review
+        if: steps.diff.outputs.skip != 'true'
+        id: gemini
         env:
           GEMINI_AI_KEY: ${{ secrets.GEMINI_AI_KEY }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
-          python3 << 'EOF'
-          import json, os, subprocess, sys
+          # Write prompt to a separate file to avoid heredoc shell injection
+          cat > /tmp/review_prompt.txt << 'PROMPT_END'
+          You are a Senior Frontend Engineer performing an automated code review for the AIVORA project — an AI Marketplace built with React, TypeScript (strict mode), Vite, Tailwind v4, and Feature-Sliced Design (FSD) architecture.
 
-          with open('/tmp/bugs_payload.json', 'r') as f:
-              payload = json.load(f)
+          ## Project Guidelines (from GEMINI.md)
 
-          response = subprocess.run([
-              'curl', '-s', '-w', '\n%{http_code}',
-              'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${GEMINI_AI_KEY}',
-              '-H', 'Content-Type: application/json',
-              '-d', json.dumps(payload)
-          ], capture_output=True, text=True)
+          ### Architecture (FSD)
+          - Features are strictly isolated in `src/features/<name>/` with: components/, hooks/, pages/, schema.ts, services.ts, store.ts, types.ts, index.ts
+          - Shared layer: `src/shared/`, App layer: `src/app/`, Lib layer: `src/lib/`
 
-          if response.returncode != 0:
-              print(f"::error::API call failed: {response.stderr}")
-              sys.exit(1)
+          ### TypeScript Strictness
+          - MUST use `import type` for type-only imports (`verbatimModuleSyntax`)
+          - MUST NOT use standard `enum` — use `const X = {...} as const` instead (`erasableSyntaxOnly`)
 
-          http_code = response.stdout.split('\n')[-1]
-          body = '\n'.join(response.stdout.split('\n')[:-1])
+          ### Styling
+          - Tailwind v4 with `@theme` — NO legacy `tailwind.config.js`
+          - Prefer `class-variance-authority` (CVA) for component variants
 
-          if http_code != '200':
-              print(f"::error::Gemini API returned HTTP {http_code}")
-              print(body[:500])
-              sys.exit(1)
+          ### Data & API
+          - Use Zod + react-hook-form for validation
+          - API endpoints managed in `src/shared/constants/index.ts`
 
-          result = json.loads(body)['candidates'][0]['content']['parts'][0]['text']
+          ### Security
+          - Never log/print/commit secrets, API keys, or `.env` files
+          - Never commit AI metadata (`.gemini/`, `MEMORY.md`)
 
-          # Clean up potential markdown fences
-          result = result.replace('```json', '').replace('```', '').strip()
+          ## Your Review Task
 
-          review_data = json.loads(result)
+          Review the PR diff below. Focus ONLY on changes introduced in this PR (not pre-existing code).
 
-          # Save result
-          with open('/tmp/bugs_review.json', 'w') as f:
-              json.dump(review_data, f, indent=2)
+          ### Review Focus Areas (ordered by priority):
+          1. **Bugs**: Logic errors, null/undefined risks, race conditions, infinite loops, missing error handling
+          2. **Security**: XSS vulnerabilities, credential exposure, unsafe `dangerouslySetInnerHTML`, eval usage
+          3. **TypeScript compliance**: Missing `import type`, enum usage, `any` types where avoidable
+          4. **FSD architecture violations**: Cross-feature imports, wrong layer dependencies
+          5. **React anti-patterns**: Rules of Hooks violations, missing deps in useEffect, missing keys in lists
 
-          # Format for output
-          print("Review completed:")
-          print(f"Summary: {review_data.get('summary', 'No summary')}")
-          print(f"Total Issues: {review_data.get('total_issues', 0)}")
-          print(f"Critical: {len(review_data.get('critical_issues', []))}")
-          print(f"High: {len(review_data.get('high_priority', []))}")
-          print(f"Medium: {len(review_data.get('medium_priority', []))}")
-          print(f"Low: {len(review_data.get('low_priority', []))}")
+          ### Confidence Scoring
+          For each issue found, assign a confidence score (0-100):
+          - 0: False positive, doesn't hold up under scrutiny
+          - 25: Might be real, could also be false positive. Stylistic issue not in GEMINI.md
+          - 50: Real but minor, nitpick, or unlikely in practice
+          - 75: Verified real and important, directly impacts functionality or violates GEMINI.md
+          - 100: Absolutely certain, confirmed real issue, will cause problems
 
-          with open("$GITHUB_OUTPUT", "a") as f:
-              f.write("bugs-review-result=$(cat /tmp/bugs_review.json)\n")
-          EOF
+          ### What is NOT an issue (false positives to ignore):
+          - Pre-existing issues not introduced in this PR
+          - Things linters/typecheckers will catch (imports, formatting, unused vars)
+          - Pedantic style nitpicks a senior engineer wouldn't flag
+          - Intentional functionality changes related to the PR's purpose
+          - General code quality concerns not in GEMINI.md (unless severe bugs)
+          - Issues on lines the author did not modify
 
-  review-security:
-    name: Review for Security Issues
-    runs-on: ubuntu-latest
-    needs: prepare-diff
-    if: needs.prepare-diff.outputs.skip != 'true'
-    strategy:
-      matrix:
-        review-type: ['security']
-    outputs:
-      review-result: ${{ steps.review.outputs.result }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Download PR diff
-        uses: actions/download-artifact@v4
-        with:
-          name: pr-diff
-          path: /tmp/
-
-      - name: Prepare review payload
-        id: payload
-        run: |
-          cat > /tmp/security_prompt.txt << 'EOF'
-          You are a Security Specialist reviewing code for the AIVORA marketplace platform.
-
-          ## Security Focus Areas:
-          1. **XSS Vulnerabilities**: dangerouslySetInnerHTML, eval() usage, unescaped user input
-          2. **Data Exposure**: Logging sensitive data, insecure storage of tokens/API keys
-          3. **Authentication**: Missing authentication checks, insecure session handling
-          4. **API Security**: Unvalidated inputs, SQL injection risks (even in frontend)
-          5. **Environment Variables**: Exposure of secrets, hardcoded credentials
-          6. **Content Security**: Missing CSP headers, untrusted script execution
-
-          ## Severity Levels:
-          - Critical: Immediate security risk, data breach possible
-          - High: Significant security vulnerability
-          - Medium: Moderate security concern
-          - Low: Minor security consideration
-
-          ## Output Format:
+          ### Output Format
+          Respond with ONLY valid JSON, no markdown fences, no extra text:
           {
-            "summary": "Security review summary",
-            "critical": [],
-            "high": [],
-            "medium": [],
-            "low": [],
-            "total_issues": 0
+            "summary": "Brief 1-2 sentence summary of the PR changes",
+            "issues": [
+              {
+                "file": "path/to/file.ts",
+                "line": 42,
+                "description": "Brief description of the issue",
+                "confidence": 85,
+                "category": "bug|security|typescript|architecture|react",
+                "suggestion": "How to fix it (optional, brief)"
+              }
+            ]
           }
-          EOF
 
+          If no issues with confidence >= 50 exist, return:
+          {
+            "summary": "Brief summary of changes",
+            "issues": []
+          }
+          PROMPT_END
+
+          # Build JSON payload using --rawfile to safely handle special chars and large diffs
           jq -n \
-            --rawfile prompt /tmp/security_prompt.txt \
+            --rawfile prompt /tmp/review_prompt.txt \
             --rawfile diff /tmp/pr_filtered.diff \
-            --arg title "${{ github.event.pull_request.title }}" \
-            --arg body "${{ github.event.pull_request.body || 'No description' }}" \
-            --arg author "${{ github.event.pull_request.user.login }}" \
+            --arg title "$PR_TITLE" \
+            --arg body "${PR_BODY:-No description provided}" \
+            --arg author "$PR_AUTHOR" \
             '{
               "contents": [{
                 "parts": [{
@@ -320,561 +197,208 @@ jobs:
                 }]
               }],
               "generationConfig": {
-                "temperature": 0.0,
+                "temperature": 0.2,
                 "topP": 0.8,
-                "maxOutputTokens": 4096,
+                "maxOutputTokens": 8192,
                 "responseMimeType": "application/json"
               }
-            }' > /tmp/security_payload.json
+            }' > /tmp/gemini_payload.json
 
-      - name: Review with Gemini
-        id: review
+          # Call Gemini API with payload from file
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${GEMINI_AI_KEY}" \
+            -H "Content-Type: application/json" \
+            -d @/tmp/gemini_payload.json)
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+
+          if [ "$HTTP_CODE" -ne 200 ]; then
+            echo "::error::Gemini API returned HTTP $HTTP_CODE"
+            echo "$BODY" | head -20
+            exit 1
+          fi
+
+          # Extract the text content from Gemini response
+          REVIEW_JSON=$(echo "$BODY" | jq -r '.candidates[0].content.parts[0].text // empty')
+
+          if [ -z "$REVIEW_JSON" ]; then
+            echo "::error::Empty response from Gemini"
+            echo "$BODY" | jq . || echo "$BODY"
+            exit 1
+          fi
+
+          echo "$REVIEW_JSON" > /tmp/review_result.json
+
+          # Validate it's proper JSON
+          if ! jq empty /tmp/review_result.json 2>/dev/null; then
+            echo "::warning::Gemini returned invalid JSON, attempting cleanup..."
+            # Try to extract JSON from potential markdown fences
+            echo "$REVIEW_JSON" | sed 's/^```json//; s/^```//; s/```$//' | jq . > /tmp/review_result.json 2>/dev/null || {
+              echo "::error::Could not parse Gemini response as JSON"
+              echo "$REVIEW_JSON"
+              exit 1
+            }
+          fi
+
+          echo "Review result:"
+          jq . /tmp/review_result.json
+
+      - name: Submit GitHub Review
+        if: steps.diff.outputs.skip != 'true'
         env:
-          GEMINI_AI_KEY: ${{ secrets.GEMINI_AI_KEY }}
+          GH_TOKEN: ${{ secrets.BOT_GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          REPO: ${{ github.repository }}
         run: |
-          python3 << 'EOF'
+          python3 << 'PYEOF'
           import json, os, subprocess, sys
 
-          with open('/tmp/security_payload.json', 'r') as f:
-              payload = json.load(f)
+          with open('/tmp/review_result.json', 'r') as f:
+              review = json.load(f)
 
-          response = subprocess.run([
-              'curl', '-s', '-w', '\n%{http_code}',
-              'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${GEMINI_AI_KEY}',
-              '-H', 'Content-Type: application/json',
-              '-d', json.dumps(payload)
-          ], capture_output=True, text=True)
+          summary = review.get('summary', 'No summary provided.')
+          issues = review.get('issues', [])
 
-          if response.returncode != 0:
-              print(f"::error::API call failed: {response.stderr}")
-              sys.exit(1)
+          # Categorize issues by confidence tier
+          high_confidence = [i for i in issues if i.get('confidence', 0) >= 80]
+          medium_confidence = [i for i in issues if 50 <= i.get('confidence', 0) < 80]
 
-          http_code = response.stdout.split('\n')[-1]
-          body = '\n'.join(response.stdout.split('\n')[:-1])
+          pr_number = os.environ['PR_NUMBER']
+          head_sha = os.environ['HEAD_SHA']
+          repo = os.environ['REPO']
 
-          if http_code != '200':
-              print(f"::error::Gemini API returned HTTP {http_code}")
-              print(body[:500])
-              sys.exit(1)
+          # Dismiss any previous reviews from this bot to avoid stale REQUEST_CHANGES blocking PRs
+          prev_reviews = subprocess.run(
+              ['gh', 'api', f'repos/{repo}/pulls/{pr_number}/reviews', '--jq',
+               '[.[] | select(.user.login == "github-actions[bot]" and .state == "CHANGES_REQUESTED") | .id]'],
+              capture_output=True, text=True,
+          )
+          if prev_reviews.returncode == 0 and prev_reviews.stdout.strip():
+              try:
+                  review_ids = json.loads(prev_reviews.stdout.strip())
+                  for rid in review_ids:
+                      subprocess.run(
+                          ['gh', 'api', '--method', 'PUT',
+                           f'repos/{repo}/pulls/{pr_number}/reviews/{rid}/dismissals',
+                           '-f', 'message=Superseded by new review run',
+                           '-f', 'event=DISMISS'],
+                          capture_output=True, text=True,
+                      )
+                      print(f'Dismissed previous review {rid}')
+              except (json.JSONDecodeError, TypeError):
+                  pass  # No previous reviews to dismiss
 
-          result = json.loads(body)['candidates'][0]['content']['parts'][0]['text']
-          result = result.replace('```json', '').replace('```', '').strip()
-
-          review_data = json.loads(result)
-
-          with open('/tmp/security_review.json', 'w') as f:
-              json.dump(review_data, f, indent=2)
-
-          print("Security review completed:")
-          print(f"Summary: {review_data.get('summary', 'No summary')}")
-          print(f"Total Issues: {review_data.get('total_issues', 0)}")
-          print(f"Critical: {len(review_data.get('critical', []))}")
-          print(f"High: {len(review_data.get('high', []))}")
-
-          with open("$GITHUB_OUTPUT", "a") as f:
-              f.write("security-review-result=$(cat /tmp/security_review.json)\n")
-          EOF
-
-  review-typescript:
-    name: Review TypeScript & Code Quality
-    runs-on: ubuntu-latest
-    needs: prepare-diff
-    if: needs.prepare-diff.outputs.skip != 'true'
-    strategy:
-      matrix:
-        review-type: ['typescript']
-    outputs:
-      review-result: ${{ steps.review.outputs.result }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Download PR diff
-        uses: actions/download-artifact@v4
-        with:
-          name: pr-diff
-          path: /tmp/
-
-      - name: Prepare review payload
-        id: payload
-        run: |
-          cat > /tmp/typescript_prompt.txt << 'EOF'
-          You are a TypeScript Specialist enforcing strict code quality for AIVORA.
-
-          ## TypeScript Focus Areas:
-          1. **Type Safety**: Missing types, usage of `any`, improper generic types
-          2. **Import Rules**: Using `import type` for type-only imports, avoiding regular enums
-          3. **Interface Design**: Proper typing for props, API responses, and state
-          4. **React Patterns**: Proper typing for hooks, components, and event handlers
-          5. **Validation**: Zod schema compliance, proper typing for form data
-
-          ## Quality Levels:
-          - Violation: Direct violation of project standards
-          - Improvement: Could be better typed
-          - Suggestion: Optional improvement suggestion
-          - Compliant: Good TypeScript usage
-
-          ## Output Format:
-          {
-            "summary": "TypeScript review summary",
-            "violations": [],
-            "improvements": [],
-            "suggestions": [],
-            "compliant": [],
-            "total_checks": 0
-          }
-          EOF
-
-          jq -n \
-            --rawfile prompt /tmp/typescript_prompt.txt \
-            --rawfile diff /tmp/pr_filtered.diff \
-            --arg title "${{ github.event.pull_request.title }}" \
-            --arg body "${{ github.event.pull_request.body || 'No description' }}" \
-            --arg author "${{ github.event.pull_request.user.login }}" \
-            '{
-              "contents": [{
-                "parts": [{
-                  "text": ($prompt + "\n\n## PR Information\n- **Title**: " + $title + "\n- **Author**: " + $author + "\n- **Description**: " + $body + "\n\n## Diff\n```diff\n" + $diff + "\n```")
-                }]
-              }],
-              "generationConfig": {
-                "temperature": 0.0,
-                "topP": 0.8,
-                "maxOutputTokens": 4096,
-                "responseMimeType": "application/json"
-              }
-            }' > /tmp/typescript_payload.json
-
-      - name: Review with Gemini
-        id: review
-        env:
-          GEMINI_AI_KEY: ${{ secrets.GEMINI_AI_KEY }}
-        run: |
-          python3 << 'EOF'
-          import json, os, subprocess, sys
-
-          with open('/tmp/typescript_payload.json', 'r') as f:
-              payload = json.load(f)
-
-          response = subprocess.run([
-              'curl', '-s', '-w', '\n%{http_code}',
-              'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${GEMINI_AI_KEY}',
-              '-H', 'Content-Type: application/json',
-              '-d', json.dumps(payload)
-          ], capture_output=True, text=True)
-
-          if response.returncode != 0:
-              print(f"::error::API call failed: {response.stderr}")
-              sys.exit(1)
-
-          http_code = response.stdout.split('\n')[-1]
-          body = '\n'.join(response.stdout.split('\n')[:-1])
-
-          if http_code != '200':
-              print(f"::error::Gemini API returned HTTP {http_code}")
-              print(body[:500])
-              sys.exit(1)
-
-          result = json.loads(body)['candidates'][0]['content']['parts'][0]['text']
-          result = result.replace('```json', '').replace('```', '').strip()
-
-          review_data = json.loads(result)
-
-          with open('/tmp/typescript_review.json', 'w') as f:
-              json.dump(review_data, f, indent=2)
-
-          print("TypeScript review completed:")
-          print(f"Summary: {review_data.get('summary', 'No summary')}")
-          print(f"Total Checks: {review_data.get('total_checks', 0)}")
-          print(f"Violations: {len(review_data.get('violations', []))}")
-          print(f"Improvements: {len(review_data.get('improvements', []))}")
-
-          with open("$GITHUB_OUTPUT", "a") as f:
-              f.write("typescript-review-result=$(cat /tmp/typescript_review.json)\n")
-          EOF
-
-  review-architecture:
-    name: Review Architecture & Best Practices
-    runs-on: ubuntu-latest
-    needs: prepare-diff
-    if: needs.prepare-diff.outputs.skip != 'true'
-    strategy:
-      matrix:
-        review-type: ['architecture']
-    outputs:
-      review-result: ${{ steps.review.outputs.result }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Download PR diff
-        uses: actions/download-artifact@v4
-        with:
-          name: pr-diff
-          path: /tmp/
-
-      - name: Prepare review payload
-        id: payload
-        run: |
-          cat > /tmp/architecture_prompt.txt << 'EOF'
-          You are an Architecture Specialist enforcing Feature-Sliced Design (FSD) for AIVORA.
-
-          ## Architecture Focus Areas:
-          1. **FSD Layers**: Proper layer isolation (Features → Shared → App → Lib)
-          2. **Cross-Feature Imports**: No direct dependencies between features
-          3. **Component Structure**: Proper component organization within features
-          4. **Hooks & Services**: Proper placement and isolation
-          5. **API Integration**: Proper separation of API calls and business logic
-
-          ## Violation Types:
-          - Critical: Breaks architecture principles
-          - Warning: Potential architecture issue
-          - Info: Best practice suggestion
-
-          ## Output Format:
-          {
-            "summary": "Architecture review summary",
-            "critical_violations": [],
-            "warnings": [],
-            "suggestions": [],
-            "compliant": [],
-            "total_checks": 0
-          }
-          EOF
-
-          jq -n \
-            --rawfile prompt /tmp/architecture_prompt.txt \
-            --rawfile diff /tmp/pr_filtered.diff \
-            --arg title "${{ github.event.pull_request.title }}" \
-            --arg body "${{ github.event.pull_request.body || 'No description' }}" \
-            --arg author "${{ github.event.pull_request.user.login }}" \
-            '{
-              "contents": [{
-                "parts": [{
-                  "text": ($prompt + "\n\n## PR Information\n- **Title**: " + $title + "\n- **Author**: " + $author + "\n- **Description**: " + $body + "\n\n## Diff\n```diff\n" + $diff + "\n```")
-                }]
-              }],
-              "generationConfig": {
-                "temperature": 0.1,
-                "topP": 0.8,
-                "maxOutputTokens": 4096,
-                "responseMimeType": "application/json"
-              }
-            }' > /tmp/architecture_payload.json
-
-      - name: Review with Gemini
-        id: review
-        env:
-          GEMINI_AI_KEY: ${{ secrets.GEMINI_AI_KEY }}
-        run: |
-          python3 << 'EOF'
-          import json, os, subprocess, sys
-
-          with open('/tmp/architecture_payload.json', 'r') as f:
-              payload = json.load(f)
-
-          response = subprocess.run([
-              'curl', '-s', '-w', '\n%{http_code}',
-              'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${GEMINI_AI_KEY}',
-              '-H', 'Content-Type: application/json',
-              '-d', json.dumps(payload)
-          ], capture_output=True, text=True)
-
-          if response.returncode != 0:
-              print(f"::error::API call failed: {response.stderr}")
-              sys.exit(1)
-
-          http_code = response.stdout.split('\n')[-1]
-          body = '\n'.join(response.stdout.split('\n')[:-1])
-
-          if http_code != '200':
-              print(f"::error::Gemini API returned HTTP {http_code}")
-              print(body[:500])
-              sys.exit(1)
-
-          result = json.loads(body)['candidates'][0]['content']['parts'][0]['text']
-          result = result.replace('```json', '').replace('```', '').strip()
-
-          review_data = json.loads(result)
-
-          with open('/tmp/architecture_review.json', 'w') as f:
-              json.dump(review_data, f, indent=2)
-
-          print("Architecture review completed:")
-          print(f"Summary: {review_data.get('summary', 'No summary')}")
-          print(f"Total Checks: {review_data.get('total_checks', 0)}")
-          print(f"Critical Violations: {len(review_data.get('critical_violations', []))}")
-          print(f"Warnings: {len(review_data.get('warnings', []))}")
-
-          with open("$GITHUB_OUTPUT", "a") as f:
-              f.write("architecture-review-result=$(cat /tmp/architecture_review.json)\n")
-          EOF
-
-  # Aggregate Results
-  aggregate-results:
-    name: Aggregate Review Results
-    runs-on: ubuntu-latest
-    needs: [prepare-diff, review-bugs, review-security, review-typescript, review-architecture]
-    if: always()
-    outputs:
-      overall-status: ${{ steps.aggregate.outputs.overall-status }}
-      pr-number: ${{ steps.aggregate.outputs.pr-number }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Aggregate results
-        id: aggregate
-        run: |
-          python3 << 'EOF'
-          import json, os
-
-          # Check if any review failed
-          failed_reviews = []
-          success_reviews = []
-
-          # Collect all review results
-          reviews = {}
-
-          for review_type in ['bugs', 'security', 'typescript', 'architecture']:
-              review_file = f'/tmp/{review_type}_review.json'
-              if os.path.exists(review_file):
-                  with open(review_file, 'r') as f:
-                      reviews[review_type] = json.load(f)
-                  success_reviews.append(review_type)
-              else:
-                  failed_reviews.append(review_type)
-
-          # Prepare summary
-          overall_status = "APPROVE"
-          summary_lines = []
-
-          if failed_reviews:
-              summary_lines.append(f"⚠️ Failed to get reviews for: {', '.join(failed_reviews)}")
-              overall_status = "COMMENT"
-
-          # Analyze critical issues
-          critical_issues = []
-          high_issues = []
-
-          if 'bugs' in reviews:
-              bugs = reviews['bugs']
-              critical_issues.extend([{
-                  'type': 'bug',
-                  'file': issue.get('file', 'unknown'),
-                  'line': issue.get('line', 0),
-                  'description': issue.get('description', ''),
-                  'confidence': issue.get('confidence', 0)
-              } for issue in bugs.get('critical_issues', [])])
-              high_issues.extend([{
-                  'type': 'bug',
-                  'file': issue.get('file', 'unknown'),
-                  'line': issue.get('line', 0),
-                  'description': issue.get('description', ''),
-                  'confidence': issue.get('confidence', 0)
-              } for issue in bugs.get('high_priority', [])])
-
-          if 'security' in reviews:
-              security = reviews['security']
-              critical_issues.extend([{
-                  'type': 'security',
-                  'file': issue.get('file', 'unknown'),
-                  'line': issue.get('line', 0),
-                  'description': issue.get('description', ''),
-                  'severity': issue.get('severity', 'unknown')
-              } for issue in security.get('critical', [])])
-              high_issues.extend([{
-                  'type': 'security',
-                  'file': issue.get('file', 'unknown'),
-                  'line': issue.get('line', 0),
-                  'description': issue.get('description', ''),
-                  'severity': issue.get('severity', 'unknown')
-              } for issue in security.get('high', [])])
-
-          if 'typescript' in reviews:
-              ts = reviews['typescript']
-              if ts.get('violations'):
-                  overall_status = "REQUEST_CHANGES"
-                  critical_issues.extend([{
-                      'type': 'typescript',
-                      'file': issue.get('file', 'unknown'),
-                      'line': issue.get('line', 0),
-                      'description': issue.get('description', ''),
-                      'severity': 'violation'
-                  } for issue in ts.get('violations', [])])
-
-          if 'architecture' in reviews:
-              arch = reviews['architecture']
-              if arch.get('critical_violations'):
-                  overall_status = "REQUEST_CHANGES"
-                  critical_issues.extend([{
-                      'type': 'architecture',
-                      'file': issue.get('file', 'unknown'),
-                      'line': issue.get('line', 0),
-                      'description': issue.get('description', ''),
-                      'severity': 'critical'
-                  } for issue in arch.get('critical_violations', [])])
-
-          # Determine final status
-          if critical_issues:
-              overall_status = "REQUEST_CHANGES"
-          elif high_issues and overall_status != "REQUEST_CHANGES":
-              overall_status = "COMMENT"
-
-          # Save results for later use
-          aggregated_results = {
-              'overall_status': overall_status,
-              'critical_issues': critical_issues,
-              'high_issues': high_issues,
-              'reviews': reviews,
-              'failed_reviews': failed_reviews,
-              'pr_number': os.environ.get('PR_NUMBER', '')
+          CATEGORY_ICONS = {
+              'bug': '🐛',
+              'security': '🔒',
+              'typescript': '📘',
+              'architecture': '🏗️',
+              'react': '⚛️',
           }
 
-          with open('/tmp/aggregated_results.json', 'w') as f:
-              json.dump(aggregated_results, f, indent=2)
+          def format_issues(issue_list, start_idx=1):
+              """Format a list of issues into markdown lines."""
+              lines = []
+              for idx, issue in enumerate(issue_list, start_idx):
+                  icon = CATEGORY_ICONS.get(issue.get('category', ''), '⚠️')
+                  conf = issue.get('confidence', 0)
+                  file_path = issue.get('file', 'unknown')
+                  line = issue.get('line', 0)
+                  desc = issue.get('description', 'No description')
+                  suggestion = issue.get('suggestion', '')
+                  category = issue.get('category', 'other').upper()
 
-          # Set outputs
-          with open("$GITHUB_OUTPUT", "a") as f:
-              f.write(f"overall-status={overall_status}\n")
-              f.write(f"pr-number=${{ github.event.pull_request.number }}\n")
+                  link = f'https://github.com/{repo}/blob/{head_sha}/{file_path}'
+                  if line:
+                      start = max(1, line - 1)
+                      end = line + 1
+                      link += f'#L{start}-L{end}'
 
-          # Print summary
-          print("\n=== Review Summary ===")
-          print(f"Overall Status: {overall_status}")
-          print(f"Successful Reviews: {len(success_reviews)}")
-          print(f"Failed Reviews: {len(failed_reviews)}")
-          print(f"Critical Issues: {len(critical_issues)}")
-          print(f"High Priority Issues: {len(high_issues)}")
-          EOF
+                  lines.append(f'{idx}. {icon} **[{category}]** {desc} (confidence: {conf})')
+                  lines.append('')
+                  lines.append(f'   📄 [{file_path}:{line}]({link})')
+                  if suggestion:
+                      lines.append('')
+                      lines.append(f'   💡 **Suggestion:** {suggestion}')
+                  lines.append('')
+              return lines
 
-      - name: Upload diff as artifact
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: pr-diff
-          path: /tmp/pr_filtered.diff
-          retention-days: 1
+          FOOTER = [
+              '---',
+              '<sub>🤖 Reviewed by Gemini 3.1 Flash Lite | '
+              'React with 👍 if helpful, 👎 if not</sub>',
+          ]
 
-      - name: Upload results as artifact
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: review-results-${{ github.event.pull_request.number }}
-          path: /tmp/aggregated_results.json
-          retention-days: 30
+          if high_confidence:
+              # REQUEST_CHANGES — critical issues found
+              body_lines = [
+                  '## 🤖 Gemini AI Code Review',
+                  '',
+                  f'> {summary}',
+                  '',
+                  f'### 🚨 Found **{len(high_confidence)}** critical issue(s) (confidence ≥ 80):',
+                  '',
+              ]
+              body_lines.extend(format_issues(high_confidence))
 
-  # Submit final review
-  submit-review:
-    name: Submit GitHub Review
-    runs-on: ubuntu-latest
-    needs: [aggregate-results]
-    if: needs.aggregate-results.outputs.overall-status != ''
-    env:
-      PR_NUMBER: ${{ github.event.pull_request.number }}
-      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-      REPO: ${{ github.repository }}
-    steps:
-      - name: Download results
-        uses: actions/download-artifact@v4
-        with:
-          name: review-results-${{ github.event.pull_request.number }}
-          path: /tmp/
+              if medium_confidence:
+                  body_lines.extend([
+                      f'### 💬 Additionally, **{len(medium_confidence)}** minor note(s) (confidence 50-79):',
+                      '',
+                  ])
+                  body_lines.extend(format_issues(medium_confidence))
 
-      - name: Submit review
-        run: |
-          python3 << 'EOF'
-          import json, os, subprocess, sys
+              body_lines.extend(FOOTER)
+              event = 'REQUEST_CHANGES'
 
-          # Load aggregated results
-          with open('/tmp/aggregated_results.json', 'r') as f:
-              results = json.load(f)
+          elif medium_confidence:
+              # APPROVE with notes — minor issues don't block the PR
+              body_lines = [
+                  '## 🤖 Gemini AI Code Review',
+                  '',
+                  f'> {summary}',
+                  '',
+                  '✅ **Approved** — no critical issues found.',
+                  '',
+                  f'### 💬 **{len(medium_confidence)}** minor note(s) for your consideration (confidence 50-79):',
+                  '',
+                  '*These are observations, not blockers. Review at your discretion.*',
+                  '',
+              ]
+              body_lines.extend(format_issues(medium_confidence))
+              body_lines.extend(FOOTER)
+              event = 'APPROVE'
 
-          overall_status = results['overall_status']
-          critical_issues = results['critical_issues']
-          high_issues = results['high_issues']
-          reviews = results['reviews']
-          failed_reviews = results['failed_reviews']
+          else:
+              # APPROVE — no issues at all
+              body_lines = [
+                  '## 🤖 Gemini AI Code Review',
+                  '',
+                  f'> {summary}',
+                  '',
+                  '✅ No significant issues found. Code looks good!',
+                  '',
+                  'Checked for: bugs, security, TypeScript compliance, FSD architecture, React best practices.',
+                  '',
+              ]
+              body_lines.extend(FOOTER)
+              event = 'APPROVE'
 
-          # Build review body
-          body_parts = []
+          body = '\n'.join(body_lines)
 
-          # Header
-          body_parts.append("# 🤖 Enhanced Gemini AI Code Review")
-          body_parts.append("")
-          body_parts.append("## Automated Review Summary")
-          body_parts.append(f"- **Status**: {overall_status}")
-          body_parts.append(f"- **PR**: #{results['pr_number']}")
-          body_parts.append("")
-
-          # Failed reviews section
-          if failed_reviews:
-              body_parts.append("## ⚠️ Review Failures")
-              body_parts.append(f"Failed to get reviews for: {', '.join(failed_reviews)}")
-              body_parts.append("")
-
-          # Individual review summaries
-          for review_type in ['bugs', 'security', 'typescript', 'architecture']:
-              if review_type in reviews:
-                  review = reviews[review_type]
-                  body_parts.append(f"## {review_type.title()} Review")
-                  body_parts.append(f"> {review.get('summary', 'No summary provided.')}")
-                  body_parts.append("")
-
-          # Critical issues
-          if critical_issues:
-              body_parts.append("## 🚨 Critical Issues (Must Fix)")
-              body_parts.append("")
-              for i, issue in enumerate(critical_issues, 1):
-                  icon = "🐛" if issue['type'] == 'bug' else "🔒" if issue['type'] == 'security' else "📘" if issue['type'] == 'typescript' else "🏗️"
-                  body_parts.append(f"{i}. {icon} **[{issue['type'].upper()}]** {issue['description']} (severity: {issue.get('severity', 'critical')})")
-
-                  if issue.get('file') and issue.get('line'):
-                      link = f'https://github.com/{os.environ["REPO"]}/blob/{os.environ["HEAD_SHA"]}/{issue["file"]}'
-                      if issue['line']:
-                          link += f'#L{issue["line"]}'
-                      body_parts.append(f"   📄 [{issue['file']}:{issue['line']}]({link})")
-                  body_parts.append("")
-
-          # High priority issues
-          if high_issues and overall_status != "REQUEST_CHANGES":
-              body_parts.append("## 💬 High Priority Issues (Review)")
-              body_parts.append("")
-              for i, issue in enumerate(high_issues, 1):
-                  icon = "🐛" if issue['type'] == 'bug' else "🔒" if issue['type'] == 'security' else "📘" if issue['type'] == 'typescript' else "🏗️"
-                  body_parts.append(f"{i}. {icon} **[{issue['type'].upper()}]** {issue['description']} (severity: {issue.get('severity', 'high')})")
-
-                  if issue.get('file') and issue.get('line'):
-                      link = f'https://github.com/{os.environ["REPO"]}/blob/{os.environ["HEAD_SHA"]}/{issue["file"]}'
-                      if issue['line']:
-                          link += f'#L{issue["line"]}'
-                      body_parts.append(f"   📄 [{issue['file']}:{issue['line']}]({link})")
-                  body_parts.append("")
-
-          # Footer
-          body_parts.append("---")
-          body_parts.append("<sub>🤖 Reviewed by Enhanced Gemini Multi-Agent Review System | ")
-          body_parts.append("React with 👍 if helpful, 👎 if not</sub>")
-
-          body = "\n".join(body_parts)
-
-          # Submit review
+          # Submit the review via GitHub API
           review_payload = json.dumps({
               'body': body,
-              'event': overall_status,
-              'commit_id': os.environ['HEAD_SHA'],
+              'event': event,
+              'commit_id': head_sha,
           })
 
           result = subprocess.run(
               [
                   'gh', 'api',
-                  f'repos/{os.environ["REPO"]}/pulls/{os.environ["PR_NUMBER"]}/reviews',
+                  f'repos/{repo}/pulls/{pr_number}/reviews',
                   '--method', 'POST',
                   '--input', '-',
               ],
@@ -883,32 +407,56 @@ jobs:
               text=True,
           )
 
-          if result.returncode == 0:
-              print(f"Review submitted successfully: {overall_status}")
-          elif '422' in result.stderr:
-              print(f"::warning::Self-approval not allowed, submitting as COMMENT")
-              fallback_payload = json.dumps({
-                  'body': body,
-                  'event': 'COMMENT',
-                  'commit_id': os.environ['HEAD_SHA'],
-              })
-              fallback_result = subprocess.run(
-                  [
-                      'gh', 'api',
-                      f'repos/{os.environ["REPO"]}/pulls/{os.environ["PR_NUMBER"]}/reviews',
-                      '--method', 'POST',
-                      '--input', '-',
-                  ],
-                  input=fallback_payload,
-                  capture_output=True,
-                  text=True,
-              )
-              if fallback_result.returncode == 0:
-                  print("Fallback review submitted successfully as COMMENT")
+          if result.returncode != 0:
+              # Check if it failed because of 422 Unprocessable Entity (likely due to self-approval or Workflow permissions)
+              if '422' in result.stderr or 'Unprocessable Entity' in result.stderr:
+                  print("::warning::Failed to submit review as APPROVE/REQUEST_CHANGES (HTTP 422). "
+                        "This can happen if: 1) The PR author is the owner of the token (GitHub prevents self-approval), "
+                        "or 2) Workflow permissions block Actions from approving PRs. Falling back to COMMENT review.")
+                  
+                  # Prepend a warning message to the body to inform the author/admin
+                  warning_header = (
+                      "⚠️ **Note:** Bot attempted to submit this review as "
+                      f"`{event}` but fell back to `COMMENT` (HTTP 422).\n\n"
+                      "*Why this happens: GitHub prevents users from approving their own PRs (if using a personal token), "
+                      "or the GITHUB_TOKEN lacks approval permissions.*"
+                  )
+                  fallback_body = f"{warning_header}\n\n---\n\n{body}"
+                  
+                  fallback_payload = json.dumps({
+                      'body': fallback_body,
+                      'event': 'COMMENT',
+                      'commit_id': head_sha,
+                  })
+                  
+                  fallback_result = subprocess.run(
+                      [
+                          'gh', 'api',
+                          f'repos/{repo}/pulls/{pr_number}/reviews',
+                          '--method', 'POST',
+                          '--input', '-',
+                      ],
+                      input=fallback_payload,
+                      capture_output=True,
+                      text=True,
+                  )
+                  
+                  if fallback_result.returncode == 0:
+                      print(f'Review submitted successfully as COMMENT (Fallback).')
+                      sys.exit(0)
+                  else:
+                      print(f'::error::Fallback submission failed: {fallback_result.stderr}')
+                      sys.exit(1)
               else:
-                  print(f"::error::Fallback review failed: {fallback_result.stderr}")
+                  print(f'::error::Failed to submit review: {result.stderr}')
                   sys.exit(1)
-          else:
-              print(f"::error::Review submission failed: {result.stderr}")
-              sys.exit(1)
-          EOF
+
+          STATUS_MAP = {
+              'REQUEST_CHANGES': f'🚨 Issues found: {len(high_confidence)} critical, {len(medium_confidence)} minor',
+              'APPROVE': f'✅ Approved' + (f' with {len(medium_confidence)} minor note(s)' if medium_confidence else ' — no issues!'),
+              'COMMENT': f'💬 Commented'
+          }
+          print(f'Review submitted: {event}')
+          print(f'   {STATUS_MAP[event]}')
+
+          PYEOF
