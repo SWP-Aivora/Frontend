@@ -133,6 +133,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Download PR diff
+        uses: actions/download-artifact@v4
+        with:
+          name: pr-diff
+          path: /tmp/
+
       - name: Prepare review payload
         id: payload
         run: |
@@ -255,6 +261,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Download PR diff
+        uses: actions/download-artifact@v4
+        with:
+          name: pr-diff
+          path: /tmp/
+
       - name: Prepare review payload
         id: payload
         run: |
@@ -369,6 +381,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Download PR diff
+        uses: actions/download-artifact@v4
+        with:
+          name: pr-diff
+          path: /tmp/
+
       - name: Prepare review payload
         id: payload
         run: |
@@ -481,6 +499,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Download PR diff
+        uses: actions/download-artifact@v4
+        with:
+          name: pr-diff
+          path: /tmp/
 
       - name: Prepare review payload
         id: payload
@@ -717,6 +741,14 @@ jobs:
           print(f"Critical Issues: {len(critical_issues)}")
           print(f"High Priority Issues: {len(high_issues)}")
           EOF
+
+      - name: Upload diff as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr-diff
+          path: /tmp/pr_filtered.diff
+          retention-days: 1
 
       - name: Upload results as artifact
         uses: actions/upload-artifact@v4
