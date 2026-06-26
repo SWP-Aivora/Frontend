@@ -76,3 +76,51 @@ export class SubagentReviewHarness {
     }
   }
 }
+
+#!/usr/bin/env node
+
+import { SubagentReviewHarness } from './subagent-review-harness.js';
+import { argv } from 'node:process';
+
+// Parse command line arguments
+const args = argv.slice(2);
+const options = {};
+
+for (let i = 0; i < args.length; i++) {
+  const arg = args[i];
+
+  if (arg.startsWith('--')) {
+    const key = arg.slice(2).replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+    options[key] = args[++i];
+  }
+}
+
+// Validate required arguments
+if (!options.prNumber || !options.prTitle || !options.prSha || !options.diffFile) {
+  console.error('Missing required arguments:');
+  console.error('--pr-number PR_NUMBER');
+  console.error('--pr-title "PR Title"');
+  console.error('--pr-sha abc123');
+  console.error('--diff-file /path/to/diff');
+  process.exit(1);
+}
+
+// Run harness
+async function main() {
+  try {
+    const harness = new SubagentReviewHarness(process.env.GEMINI_AI_KEY);
+    const result = await harness.run({
+      prNumber: parseInt(options.prNumber),
+      prTitle: options.prTitle,
+      prSha: options.prSha,
+      diffFile: options.diffFile
+    });
+
+    console.log(JSON.stringify(result, null, 2));
+  } catch (error) {
+    console.error('Error:', error.message);
+    process.exit(1);
+  }
+}
+
+main();
