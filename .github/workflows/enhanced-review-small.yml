@@ -1,0 +1,273 @@
+name: Gemini AI Enhanced Code Review (Small)
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches: [main]
+
+concurrency:
+  group: enhanced-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    name: Enhanced Code Review
+    runs-on: ubuntu-latest
+    # Skip draft PRs
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          # Install the enhanced review dependencies
+          npm install @google/generative-ai
+
+      - name: Get PR diff
+        id: diff
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api \
+            "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}" \
+            -H "Accept: application/vnd.github.diff" \
+            > /tmp/pr_full.diff
+
+          # Filter out files that don't need review
+          python3 << 'PYEOF'
+          import re, sys
+
+          SKIP_PATTERNS = [
+              r'package-lock\.json$',
+              r'pnpm-lock\.yaml$',
+              r'yarn\.lock$',
+              r'\.png$', r'\.jpg$', r'\.jpeg$', r'\.gif$', r'\.svg$', r'\.ico$', r'\.webp$',
+              r'\.woff2?$', r'\.ttf$', r'\.eot$',
+              r'^dist/',
+              r'\.env\.example$',
+              r'\.gitattributes$',
+              r'\.gitignore$',
+          ]
+
+          with open('/tmp/pr_full.diff', 'r', errors='replace') as f:
+              full_diff = f.read()
+
+          # Split into per-file diffs
+          file_diffs = re.split(r'(?=^diff --git )', full_diff, flags=re.MULTILINE)
+          filtered = []
+
+          for chunk in file_diffs:
+              if not chunk.strip():
+                  continue
+              # Extract file path from "diff --git a/path b/path"
+              match = re.match(r'diff --git a/(.*?) b/(.*)', chunk)
+              if not match:
+                  filtered.append(chunk)
+                  continue
+              filepath = match.group(2)
+              if any(re.search(p, filepath) for p in SKIP_PATTERNS):
+                  continue
+              filtered.append(chunk)
+
+          result = ''.join(filtered)
+
+          # Truncate to ~100k chars to stay within Gemini context limits
+          MAX_CHARS = 100_000
+          if len(result) > MAX_CHARS:
+              result = result[:MAX_CHARS] + '\n\n... [diff truncated due to size] ...'
+
+          with open('/tmp/pr_filtered.diff', 'w') as f:
+              f.write(result)
+
+          # Check if there's anything left to review
+          if not result.strip():
+              print('NO_DIFF=true')
+              with open('/tmp/skip_review', 'w') as f:
+                  f.write('true')
+          else:
+              with open('/tmp/skip_review', 'w') as f:
+                  f.write('false')
+          PYEOF
+
+          echo "skip=$(cat /tmp/skip_review)" >> "$GITHUB_OUTPUT"
+
+      - name: Skip if no reviewable changes
+        if: steps.diff.outputs.skip == 'true'
+        run: echo "No reviewable file changes found. Skipping review."
+
+      - name: Run Enhanced Review
+        if: steps.diff.outputs.skip != 'true'
+        id: enhanced-review
+        env:
+          GEMINI_AI_KEY: ${{ secrets.GEMINI_AI_KEY }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # Run the enhanced review harness
+          node .github/scripts/enhanced-review-harness.js \
+            --pr-number "$PR_NUMBER" \
+            --pr-title "$PR_TITLE" \
+            --pr-sha "$PR_SHA" \
+            --diff-file /tmp/pr_filtered.diff \
+            > /tmp/enhanced_review_result.json
+
+          echo "Enhanced review completed:"
+          cat /tmp/enhanced_review_result.json
+
+      - name: Submit GitHub Review
+        if: steps.diff.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.BOT_GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          REPO: ${{ github.repository }}
+          REVIEW_RESULT: $(cat /tmp/enhanced_review_result.json)
+        run: |
+          python3 << 'PYEOF'
+          import json, os, subprocess, sys
+
+          # Load enhanced review result
+          with open('/tmp/enhanced_review_result.json', 'r') as f:
+              result = json.load(f)
+
+          review_comment = result['reviewComment']
+          metrics = result['performanceMetrics']
+          issues = result['issues']
+
+          # Dismiss any previous reviews from this bot
+          prev_reviews = subprocess.run(
+              ['gh', 'api', f'repos/{repo}/pulls/{pr_number}/reviews', '--jq',
+               '[.[] | select(.user.login == "github-actions[bot]" and .state == "CHANGES_REQUESTED") | .id]'],
+              capture_output=True, text=True,
+          )
+          if prev_reviews.returncode == 0 and prev_reviews.stdout.strip():
+              try:
+                  review_ids = json.loads(prev_reviews.stdout.strip())
+                  for rid in review_ids:
+                      subprocess.run(
+                          ['gh', 'api', '--method', 'PUT',
+                           f'repos/{repo}/pulls/{pr_number}/reviews/{rid}/dismissals',
+                           '-f', 'message=Superseded by enhanced review',
+                           '-f', 'event=DISMISS'],
+                          capture_output=True, text=True,
+                      )
+                      print(f'Dismissed previous review {rid}')
+              except (json.JSONDecodeError, TypeError):
+                  pass  # No previous reviews to dismiss
+
+          # Determine review event based on critical issues
+          critical_issues = [i for i in issues if i.get('confidence', 0) >= 80]
+
+          if critical_issues:
+              event = 'REQUEST_CHANGES'
+              status_message = f'🚨 Found {len(critical_issues)} critical issue(s)'
+          else:
+              event = 'APPROVE'
+              status_message = f'✅ Approved — {metrics["issuesFound"]} issue(s) found'
+
+          # Add performance metrics to the review
+          enhanced_comment = f'''{review_comment}
+
+---
+
+### 🚀 Enhanced Review Performance
+- Review Time: {metrics["duration"]}ms
+- Agents Used: {metrics["agentsSpawned"]}
+- Total Issues Found: {metrics["issuesFound"]}
+- Critical Issues: {metrics["criticalIssues"]}
+- Important Issues: {metrics["importantIssues"]}
+
+---
+
+*This enhanced review uses specialized AI agents for better code quality analysis.*
+'''
+
+          # Submit the review
+          review_payload = json.dumps({
+              'body': enhanced_comment,
+              'event': event,
+              'commit_id': head_sha,
+          })
+
+          result = subprocess.run(
+              [
+                  'gh', 'api',
+                  f'repos/{repo}/pulls/{pr_number}/reviews',
+                  '--method', 'POST',
+                  '--input', '-',
+              ],
+              input=review_payload,
+              capture_output=True,
+              text=True,
+          )
+
+          if result.returncode == 0:
+              print(f'✅ Review submitted: {event}')
+              print(f'   {status_message}')
+              print(f'   Performance: {metrics["duration"]}ms')
+          else:
+              # Check if it failed due to self-approval
+              if '422' in result.stderr or 'Unprocessable Entity' in result.stderr:
+                  print("⚠️ Cannot approve own PR, falling back to COMMENT")
+
+                  # Create fallback comment
+                  fallback_body = f"""⚠️ **Note:** Enhanced review completed but cannot auto-approve.
+
+## Review Summary
+{status_message}
+
+## Performance Metrics
+- Review Time: {metrics["duration"]}ms
+- Agents Used: {metrics["agentsSpawned"]}
+- Total Issues: {metrics["issuesFound"]}
+
+---
+
+{review_comment}
+
+---
+*Enhanced review by Gemini AI agents*"""
+
+                  fallback_payload = json.dumps({
+                      'body': fallback_body,
+                      'event': 'COMMENT',
+                      'commit_id': head_sha,
+                  })
+
+                  fallback_result = subprocess.run(
+                      [
+                          'gh', 'api',
+                          f'repos/{repo}/pulls/{pr_number}/reviews',
+                          '--method', 'POST',
+                          '--input', '-',
+                      ],
+                      input=fallback_payload,
+                      capture_output=True,
+                      text=True,
+                  )
+
+                  if fallback_result.returncode == 0:
+                      print('✅ Review submitted as COMMENT (Fallback)')
+                  else:
+                      print(f'❌ Fallback failed: {fallback_result.stderr}')
+                      sys.exit(1)
+              else:
+                  print(f'❌ Review submission failed: {result.stderr}')
+                  sys.exit(1)
+          PYEOF

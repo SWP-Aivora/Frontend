@@ -37,6 +37,7 @@
     "zustand": "^4.4.0"
   },
   "devDependencies": {
+    "@google/generative-ai": "^0.21.0",
     "@emnapi/core": "^1.10.0",
     "@emnapi/runtime": "^1.10.0",
     "@eslint/js": "^9.0.0",
