@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { queryClient } from '@/lib/queryClient';
 import type { User } from './types';
 
 interface AuthState {
@@ -18,7 +19,9 @@ interface AuthState {
 }
 
 /**
- * Auth Store for managing authentication state
+ * Auth Store for managing authentication state.
+ * On logout, also clears React Query cache to prevent stale data
+ * from leaking across different user sessions.
  */
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -31,12 +34,12 @@ export const useAuthStore = create<AuthState>()(
       isLoading: false,
       error: null,
       setAuth: (user, token, refreshToken) => {
-        set({ 
-          user, 
-          accessToken: token, 
-          refreshToken: refreshToken || null, 
-          isAuthenticated: true, 
-          error: null 
+        set({
+          user,
+          accessToken: token,
+          refreshToken: refreshToken || null,
+          isAuthenticated: true,
+          error: null
         });
       },
       setUser: (user) => set({ user }),
@@ -46,22 +49,24 @@ export const useAuthStore = create<AuthState>()(
         // Clear legacy tokens if they exist
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
-        set({ 
-          user: null, 
-          accessToken: null, 
-          refreshToken: null, 
-          isAuthenticated: false, 
-          error: null 
+        // Clear React Query cache to prevent stale data leak between sessions
+        queryClient.clear();
+        set({
+          user: null,
+          accessToken: null,
+          refreshToken: null,
+          isAuthenticated: false,
+          error: null
         });
       },
     }),
     {
       name: 'aivora-auth-store',
-      partialize: (state) => ({ 
-        user: state.user, 
-        accessToken: state.accessToken, 
+      partialize: (state) => ({
+        user: state.user,
+        accessToken: state.accessToken,
         refreshToken: state.refreshToken,
-        isAuthenticated: state.isAuthenticated 
+        isAuthenticated: state.isAuthenticated
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {

@@ -8,13 +8,25 @@ interface TransactionTableProps {
 }
 
 export const TransactionTable = ({ transactions }: TransactionTableProps) => {
+  /**
+   * Maps transaction type string from backend to display info.
+   * CREDIT / DEPOSIT → green (incoming), DEBIT / PAYMENT / WITHDRAWAL → outgoing,
+   * PAYMENT_RELEASE / REFUND → green (incoming release).
+   */
   const getTransactionTypeInfo = (type: TransactionType) => {
     switch (type) {
-      case TransactionType.DEPOSIT: return { label: 'Deposit', icon: ArrowDownLeft, color: 'text-emerald-600', bg: 'bg-emerald-50' };
-      case TransactionType.WITHDRAWAL: return { label: 'Withdrawal', icon: ArrowUpRight, color: 'text-rose-600', bg: 'bg-rose-50' };
-      case TransactionType.PAYMENT: return { label: 'Payment', icon: ArrowUpRight, color: 'text-blue-600', bg: 'bg-blue-50' };
-      case TransactionType.REFUND: return { label: 'Refund', icon: ArrowDownLeft, color: 'text-emerald-600', bg: 'bg-emerald-50' };
-      default: return { label: 'Unknown', icon: ArrowUpRight, color: 'text-slate-600', bg: 'bg-slate-50' };
+      case TransactionType.CREDIT:
+      case TransactionType.DEPOSIT:
+        return { label: 'Deposit', icon: ArrowDownLeft, color: 'text-emerald-600', bg: 'bg-emerald-50' };
+      case TransactionType.DEBIT:
+      case TransactionType.WITHDRAWAL:
+        return { label: 'Withdrawal', icon: ArrowUpRight, color: 'text-rose-600', bg: 'bg-rose-50' };
+      case TransactionType.PAYMENT:
+        return { label: 'Payment', icon: ArrowUpRight, color: 'text-blue-600', bg: 'bg-blue-50' };
+      case TransactionType.PAYMENT_RELEASE:
+      case TransactionType.REFUND:
+        return { label: 'Release', icon: ArrowDownLeft, color: 'text-emerald-600', bg: 'bg-emerald-50' };
+      default: return { label: String(type), icon: ArrowUpRight, color: 'text-slate-600', bg: 'bg-slate-50' };
     }
   };
 
@@ -23,7 +35,7 @@ export const TransactionTable = ({ transactions }: TransactionTableProps) => {
       case TransactionStatus.PENDING: return { label: 'Pending', color: 'bg-amber-50 text-amber-600' };
       case TransactionStatus.COMPLETED: return { label: 'Completed', color: 'bg-emerald-50 text-emerald-600' };
       case TransactionStatus.FAILED: return { label: 'Failed', color: 'bg-rose-50 text-rose-600' };
-      default: return { label: 'Unknown', color: 'bg-slate-50 text-slate-600' };
+      default: return { label: String(status), color: 'bg-slate-50 text-slate-600' };
     }
   };
 
@@ -85,7 +97,7 @@ export const TransactionTable = ({ transactions }: TransactionTableProps) => {
                   "text-base font-black",
                   (t.type === TransactionType.DEPOSIT || t.type === TransactionType.REFUND) ? "text-emerald-600" : "text-slate-900"
                 )}>
-                  {(t.type === TransactionType.DEPOSIT || t.type === TransactionType.REFUND) ? '+' : '-'}{t.amount?.toLocaleString() ?? '0'} Xu
+                  {(t.type === TransactionType.CREDIT || t.type === TransactionType.DEPOSIT || t.type === TransactionType.PAYMENT_RELEASE || t.type === TransactionType.REFUND) ? '+' : '-'}{t.amount?.toLocaleString() ?? '0'} Xu
                 </span>
               </td>
             </tr>
