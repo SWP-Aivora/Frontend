@@ -250,7 +250,8 @@ jobs:
           print(f"Medium: {len(review_data.get('medium_priority', []))}")
           print(f"Low: {len(review_data.get('low_priority', []))}")
 
-          print "bugs-review-result=$(cat /tmp/bugs_review.json)" >> "$GITHUB_OUTPUT"
+          with open("$GITHUB_OUTPUT", "a") as f:
+    f.write("bugs-review-result=$(cat /tmp/bugs_review.json)\n")
           EOF
 
   review-security:
@@ -370,7 +371,8 @@ jobs:
           print(f"Critical: {len(review_data.get('critical', []))}")
           print(f"High: {len(review_data.get('high', []))}")
 
-          print "security-review-result=$(cat /tmp/security_review.json)" >> "$GITHUB_OUTPUT"
+          with open("$GITHUB_OUTPUT", "a") as f:
+    f.write("security-review-result=$(cat /tmp/security_review.json)\n")
           EOF
 
   review-typescript:
@@ -489,7 +491,8 @@ jobs:
           print(f"Violations: {len(review_data.get('violations', []))}")
           print(f"Improvements: {len(review_data.get('improvements', []))}")
 
-          print "typescript-review-result=$(cat /tmp/typescript_review.json)" >> "$GITHUB_OUTPUT"
+          with open("$GITHUB_OUTPUT", "a") as f:
+    f.write("typescript-review-result=$(cat /tmp/typescript_review.json)\n")
           EOF
 
   review-architecture:
@@ -607,7 +610,8 @@ jobs:
           print(f"Critical Violations: {len(review_data.get('critical_violations', []))}")
           print(f"Warnings: {len(review_data.get('warnings', []))}")
 
-          print "architecture-review-result=$(cat /tmp/architecture_review.json)" >> "$GITHUB_OUTPUT"
+          with open("$GITHUB_OUTPUT", "a") as f:
+    f.write("architecture-review-result=$(cat /tmp/architecture_review.json)\n")
           EOF
 
   # Aggregate Results
