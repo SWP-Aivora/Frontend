@@ -116,6 +116,14 @@ jobs:
           echo "::notice::No reviewable file changes found. Skipping review."
           echo "review_summary=No reviewable changes found" >> $GITHUB_OUTPUT
 
+      - name: Upload diff as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-diff
+          path: /tmp/pr_filtered.diff
+          retention-days: 1
+
   # Multi-Agent Review Jobs
   review-bugs:
     name: Review for Bugs & Logic Errors
