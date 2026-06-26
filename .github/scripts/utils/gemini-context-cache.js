@@ -248,9 +248,10 @@ export async function readGeminiContext(filePath = './GEMINI.md') {
                   console.warn(`Security: Invalid coding standards file path: ${file}`);
                 } else {
                   try {
-                    metadata.codingStandards = JSON.parse(await fs.readFile(file, 'utf8'));
+                    const fileContent = await fs.readFile(file, 'utf8');
+                    metadata.codingStandards = JSON.parse(fileContent);
                   } catch (e) {
-                    console.warn(`Failed to read coding standards from ${file}`);
+                    console.warn(`Failed to read coding standards from ${file}:`, e.message);
                   }
                 }
               }
@@ -263,9 +264,10 @@ export async function readGeminiContext(filePath = './GEMINI.md') {
                   console.warn(`Security: Invalid patterns file path: ${file}`);
                 } else {
                   try {
-                    metadata.patterns = JSON.parse(await fs.readFile(file, 'utf8'));
+                    const fileContent = await fs.readFile(file, 'utf8');
+                    metadata.patterns = JSON.parse(fileContent);
                   } catch (e) {
-                    console.warn(`Failed to read patterns from ${file}`);
+                    console.warn(`Failed to read patterns from ${file}:`, e.message);
                   }
                 }
               }
