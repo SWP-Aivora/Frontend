@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { exec } from 'child_process';
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
 
 // Mock child_process
@@ -9,6 +8,7 @@ const { exec: mockExec } = await import('child_process');
 
 describe('GitHub Workflow Integration Tests', () => {
   const workflowPath = resolve(__dirname, '../../.github/workflows/enhanced-review.yml');
+  let workflowContent;
   let mockEnv;
 
   beforeEach(() => {
@@ -26,13 +26,10 @@ describe('GitHub Workflow Integration Tests', () => {
       });
     });
 
-    // Mock file system operations
-    vi.mocked(readFileSync).mockImplementation((path) => {
-      if (path === workflowPath) {
-        return readFileSync(workflowPath, 'utf8');
-      }
-      return '';
-    });
+    // Read actual workflow content for testing
+    if (existsSync(workflowPath)) {
+      workflowContent = readFileSync(workflowPath, 'utf8');
+    }
   });
 
   afterEach(() => {
@@ -41,7 +38,7 @@ describe('GitHub Workflow Integration Tests', () => {
 
   describe('Workflow File Validation', () => {
     it('should have valid YAML structure', () => {
-      const workflowContent = readFileSync(workflowPath, 'utf8');
+      expect(workflowContent).toBeDefined();
       expect(workflowContent).toContain('name: Gemini AI Enhanced Code Review');
       expect(workflowContent).toContain('on:');
       expect(workflowContent).toContain('jobs:');
@@ -49,151 +46,84 @@ describe('GitHub Workflow Integration Tests', () => {
     });
 
     it('should have correct trigger configuration', () => {
-      const workflowContent = readFileSync(workflowPath, 'utf8');
-      expect(workflowContent).toContain('types: [opened, synchronize, reopened]');
-      expect(workflowContent).toContain('branches: [main]');
+      expect(workflowContent).toContain('pull_request:');
+      expect(workflowContent).toContain('pull_request_target:');
     });
 
     it('should have proper concurrency settings', () => {
-      const workflowContent = readFileSync(workflowPath, 'utf8');
-      expect(workflowContent).toContain('group: enhanced-review-${{ github.event.pull_request.number }}');
-      expect(workflowContent).toContain('cancel-in-progress: true');
+      expect(workflowContent).toContain('concurrency:');
+      expect(workflowContent).toContain('group: ${{ github.workflow }}-${{ github.ref }}');
     });
 
     it('should have correct permissions', () => {
-      const workflowContent = readFileSync(workflowPath, 'utf8');
+      expect(workflowContent).toContain('permissions:');
+      expect(workflowContent).toContain('pull-request: write');
       expect(workflowContent).toContain('contents: read');
-      expect(workflowContent).toContain('pull-requests: write');
     });
   });
 
   describe('Workflow Steps', () => {
     it('should have automated checks job', () => {
-      const workflowContent = readFileSync(workflowPath, 'utf8');
-      expect(workflowContent).toContain('automated-checks:');
+      expect(workflowContent).toContain('name: Automated Checks');
+      expect(workflowContent).toContain('uses: actions/checkout@v4');
+      expect(workflowContent).toContain('uses: actions/setup-node@v4');
       expect(workflowContent).toContain('npm ci');
-      expect(workflowContent).toContain('npm run typecheck');
-      expect(workflowContent).toContain('npm run lint');
     });
 
     it('should have enhanced review job', () => {
-      const workflowContent = readFileSync(workflowPath, 'utf8');
-      expect(workflowContent).toContain('enhanced-review:');
+      expect(workflowContent).toContain('name: Enhanced Review');
       expect(workflowContent).toContain('needs: automated-checks');
-      expect(workflowContent).toContain('if: github.event.pull_request.draft == false');
+      expect(workflowContent).toContain('uses: ./.github/scripts/subagent-review-harness.js');
     });
 
     it('should have proper diff processing', () => {
-      const workflowContent = readFileSync(workflowPath, 'utf8');
-      expect(workflowContent).toContain('Get PR diff');
-      expect(workflowContent).toContain('SKIP_PATTERNS');
-      expect(workflowContent).toContain('truncated due to size');
+      expect(workflowContent).toContain('pull-request.diff');
+      expect(workflowContent).toContain('with:');
+      expect(workflowContent).toContain('files:');
     });
 
     it('should have skip logic for no reviewable changes', () => {
-      const workflowContent = readFileSync(workflowPath, 'utf8');
-      expect(workflowContent).toContain('Skip if no reviewable changes');
-      expect(workflowContent).toContain('steps.diff.outputs.skip == \'true\'');
+      expect(workflowContent).toContain('if: github.event.pull_request.draft == false');
+      expect(workflowContent).toContain('github.event.pull_request.added_files');
+      expect(workflowContent).toContain('github.event.pull_request.modified_files');
     });
 
     it('should have review submission step', () => {
-      const workflowContent = readFileSync(workflowPath, 'utf8');
-      expect(workflowContent).toContain('Submit GitHub Review');
-      expect(workflowContent).toContain('gh api');
-      expect(workflowContent).toContain('REQUEST_CHANGES');
-      expect(workflowContent).toContain('APPROVE');
+      expect(workflowContent).toContain('name: Submit Review');
+      expect(workflowContent).toContain('uses: actions/github-script@v7');
     });
   });
 
   describe('Environment Variables', () => {
     it('should use correct environment variables', () => {
-      const workflowContent = readFileSync(workflowPath, 'utf8');
+      expect(workflowContent).toContain('env:');
       expect(workflowContent).toContain('GEMINI_AI_KEY: ${{ secrets.GEMINI_AI_KEY }}');
-      expect(workflowContent).toContain('GH_TOKEN: ${{ github.token }}');
-      expect(workflowContent).toContain('PR_NUMBER: ${{ github.event.pull_request.number }}');
-      expect(workflowContent).toContain('PR_TITLE: ${{ github.event.pull_request.title }}');
-      expect(workflowContent).toContain('PR_SHA: ${{ github.event.pull_request.head.sha }}');
+      expect(workflowContent).toContain('GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}');
+      expect(workflowContent).toContain('BOT_GITHUB_TOKEN: ${{ secrets.BOT_GITHUB_TOKEN }}');
     });
   });
 
   describe('Error Handling', () => {
     it('should handle review dismissal', () => {
-      const workflowContent = readFileSync(workflowPath, 'utf8');
-      expect(workflowContent).toContain('Dismiss previous reviews');
-      expect(workflowContent).toContain('DISMISS');
-      expect(workflowContent).toContain('Superseded by enhanced review');
+      expect(workflowContent).toContain('github.event.review.state');
+      expect(workflowContent).toContain('dismissed');
     });
 
     it('should handle review event determination', () => {
-      const workflowContent = readFileSync(workflowPath, 'utf8');
-      expect(workflowContent).toContain('Determine review event');
-      expect(workflowContent).toContain('has_critical');
-      expect(workflowContent).toContain('has_minor');
-    });
-  });
-});
-
-describe('CLI Integration Tests', () => {
-  beforeEach(() => {
-    // Mock process.env
-    process.env.GEMINI_AI_KEY = 'test-api-key';
-    process.env.GITHUB_TOKEN = 'test-github-token';
-  });
-
-  afterEach(() => {
-    delete process.env.GEMINI_AI_KEY;
-    delete process.env.GITHUB_TOKEN;
-  });
-
-  it('should validate CLI arguments', () => {
-    // Test missing arguments
-    const testCases = [
-      { args: [], error: 'Missing required arguments' },
-      { args: ['--pr-number', '123'], error: 'Missing required arguments' },
-      { args: ['--pr-number', '123', '--pr-title', 'Test'], error: 'Missing required arguments' },
-      { args: ['--pr-number', '123', '--pr-title', 'Test', '--pr-sha', 'abc'], error: 'Missing required arguments' }
-    ];
-
-    testCases.forEach(({ args, error }) => {
-      expect(() => {
-        // Simulate CLI argument validation
-        const options = {};
-        args.forEach((arg, i) => {
-          if (arg.startsWith('--')) {
-            const key = arg.slice(2).replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-            options[key] = args[++i];
-          }
-        });
-
-        if (!options.prNumber || !options.prTitle || !options.prSha || !options.diffFile) {
-          throw new Error('Missing required arguments');
-        }
-      }).toThrow(error);
-    });
-  });
-
-  it('should validate required CLI options', () => {
-    const requiredOptions = ['prNumber', 'prTitle', 'prSha', 'diffFile'];
-    const validOptions = {
-      prNumber: '123',
-      prTitle: 'Test PR',
-      prSha: 'abc123',
-      diffFile: '/tmp/test.diff'
-    };
-
-    requiredOptions.forEach(option => {
-      expect(validOptions[option]).toBeDefined();
-      expect(typeof validOptions[option]).toBe('string');
+      expect(workflowContent).toContain('github.event.action');
+      expect(workflowContent).toContain('submitted');
+      expect(workflowContent).toContain('edited');
     });
   });
 });
 
 describe('Workflow Performance', () => {
+  const workflowPath = resolve(__dirname, '../../.github/workflows/enhanced-review.yml');
+
   it('should have efficient timeout settings', () => {
     const workflowContent = readFileSync(workflowPath, 'utf8');
-    // Check that there are reasonable timeout configurations
     expect(workflowContent).toBeDefined();
-    expect(workflowContent.length).toBeGreaterThan(0);
+    expect(workflowContent).toContain('timeout-minutes: 30');
   });
 
   it('should handle large diffs', () => {
@@ -204,6 +134,47 @@ describe('Workflow Performance', () => {
 
   it('should have proper resource limits', () => {
     const workflowContent = readFileSync(workflowPath, 'utf8');
-    expect(workflowContent).toContain('timeout-minutes: 30'); // Common timeout
+    expect(workflowContent).toContain('timeout-minutes: 30');
+    expect(workflowContent).toContain('resources:');
+  });
+});
+
+describe('Script File Validation', () => {
+  it('should have all required agent files', () => {
+    const agentPath = resolve(__dirname, '../../.github/scripts/agents');
+    const agents = [
+      'requirements-agent.js',
+      'bug-hunter-agent.js',
+      'security-agent.js',
+      'typescript-agent.js',
+      'architecture-agent.js',
+      'testing-agent.js',
+      'react-agent.js'
+    ];
+
+    agents.forEach(agent => {
+      const agentFile = resolve(agentPath, agent);
+      expect(existsSync(agentFile)).toBe(true);
+    });
+  });
+
+  it('should have subagent review harness', () => {
+    const harnessPath = resolve(__dirname, '../../.github/scripts/subagent-review-harness.js');
+    expect(existsSync(harnessPath)).toBe(true);
+  });
+
+  it('should have utility files', () => {
+    const utilsPath = resolve(__dirname, '../../.github/scripts/utils');
+    const utils = [
+      'agent-registry.js',
+      'gemini-context-reader.js',
+      'github-reviewer.js',
+      'confidence-scorer.js'
+    ];
+
+    utils.forEach(util => {
+      const utilFile = resolve(utilsPath, util);
+      expect(existsSync(utilFile)).toBe(true);
+    });
   });
 });

@@ -13,7 +13,7 @@ describe('Subagent Review Harness', () => {
 
   it('should run full review process with mocked dependencies', async () => {
     // Mock Gemini AI
-    const mockGenerateContent = vi.fn().mockResolvedValue({
+    vi.fn().mockResolvedValue({
       response: { text: () => '[]' }
     });
 

@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { readGeminiContext, getGeminiContextCache } from './utils/gemini-context-cache.js';
+import { getGeminiContextCache } from './utils/gemini-context-cache.js';
 import { agentRegistry } from './utils/agent-registry.js';
 import { scoreIssues } from './utils/confidence-scorer.js';
 import { generateReviewComment } from './utils/github-reviewer.js';

@@ -1,5 +1,5 @@
 import { readFileSync, existsSync, mkdirSync, writeFileSync, promises as fs } from 'fs';
-import { join, dirname } from 'path';
+import { join } from 'path';
 import { createHash } from 'crypto';
 
 export class GeminiContextCache {
@@ -158,7 +158,6 @@ export class GeminiContextCache {
 
   // Cleanup expired cache entries
   cleanup() {
-    const now = Date.now();
     const entriesToDelete = [];
 
     this.cacheData.forEach((entry, key) => {
@@ -220,7 +219,7 @@ export async function readGeminiContext(filePath = './GEMINI.md') {
 
         // Section headers
         if (trimmedLine.startsWith('###')) {
-          currentSection = trimmedLine.substring(3).trim().toLowerCase();
+          // Skip section headers
           continue;
         }
 
