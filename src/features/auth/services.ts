@@ -21,6 +21,17 @@ interface MeBackendResponse {
   fullName?: string; FullName?: string;
 }
 
+interface AxiosErrorShape {
+  response?: {
+    data?: { message?: string };
+    status?: number;
+  };
+}
+
+function isAxiosError(error: unknown): error is AxiosErrorShape {
+  return typeof error === 'object' && error !== null && 'response' in error;
+}
+
 export const authService = {
   login: async (data: LoginFormValues): Promise<BaseResponse<AuthResponse | null>> => {
     try {
@@ -80,10 +91,23 @@ export const authService = {
       };
     } catch (error) {
       console.error('[authService] Login exception:', error);
+      
+      let message = 'A network error occurred during login';
+      let statusCode = 500;
+      
+      if (isAxiosError(error)) {
+        if (error.response?.data?.message) {
+          message = error.response.data.message;
+        }
+        if (error.response?.status) {
+          statusCode = error.response.status;
+        }
+      }
+      
       return {
         success: false,
-        message: 'A network error occurred during login',
-        statusCode: 500,
+        message,
+        statusCode,
         data: null
       };
     }
