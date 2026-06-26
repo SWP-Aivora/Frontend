@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { readGeminiContext } from './utils/gemini-context-reader.js';
+import { readGeminiContext, getGeminiContextCache } from './utils/gemini-context-cache.js';
 import { RequirementsAgent } from './agents/requirements-agent.js';
 import { BugHunterAgent } from './agents/bug-hunter-agent.js';
 import { SecurityAgent } from './agents/security-agent.js';
@@ -18,6 +18,7 @@ export class SubagentReviewHarness {
     this.genAI = new GoogleGenerativeAI(apiKey);
     this.rateLimiter = new RateLimiter();
     this.performanceMonitor = new PerformanceMonitor();
+    this.cache = getGeminiContextCache();
     this.agents = [
       new RequirementsAgent(),
       new BugHunterAgent(),
@@ -37,8 +38,8 @@ export class SubagentReviewHarness {
       // Step 1: Check rate limit before spawning agents
       await this.rateLimiter.waitForSafeExecution(this.agents.length);
 
-      // Step 2: Read GEMINI.md context
-      const geminiContext = await readGeminiContext();
+      // Step 2: Read GEMINI.md context with caching
+      const geminiContext = await this.cache.getContextWithCache('./GEMINI.md');
       this.performanceMonitor.recordApiCall();
 
       // Step 3: Read diff from file
