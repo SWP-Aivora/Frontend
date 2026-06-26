@@ -10,12 +10,14 @@ import { ReactAgent } from './agents/react-agent.js';
 import { scoreIssues } from './utils/confidence-scorer.js';
 import { generateReviewComment } from './utils/github-reviewer.js';
 import { RateLimiter } from './utils/rate-limiter.js';
+import { PerformanceMonitor } from './utils/performance-monitor.js';
 import { readFileSync } from 'fs';
 
 export class SubagentReviewHarness {
   constructor(apiKey) {
     this.genAI = new GoogleGenerativeAI(apiKey);
     this.rateLimiter = new RateLimiter();
+    this.performanceMonitor = new PerformanceMonitor();
     this.agents = [
       new RequirementsAgent(),
       new BugHunterAgent(),
@@ -28,22 +30,37 @@ export class SubagentReviewHarness {
   }
 
   async run(prInfo) {
-    const startTime = Date.now();
-
     try {
-      // Step 1: Check rate limit
-      await this.rateLimiter.waitForRateLimit();
+      // Start performance monitoring
+      this.performanceMonitor.start();
+
+      // Step 1: Check rate limit before spawning agents
+      await this.rateLimiter.waitForSafeExecution(this.agents.length);
 
       // Step 2: Read GEMINI.md context
       const geminiContext = await readGeminiContext();
+      this.performanceMonitor.recordApiCall();
 
       // Step 3: Read diff from file
       const diff = readFileSync(prInfo.diffFile, 'utf8');
 
       // Step 4: Spawn all agents in parallel with rate limiting
       const agentPromises = this.agents.map(async (agent) => {
+        const agentName = agent.constructor.name;
+        this.performanceMonitor.recordAgentSpawn(agentName);
+        this.performanceMonitor.recordRateLimitCheck();
+
         await this.rateLimiter.waitForRateLimit();
-        return agent.run(diff, geminiContext);
+
+        const result = await agent.run(diff, geminiContext);
+        this.performanceMonitor.recordAgentCompletion(agentName);
+
+        // Record issues found by this agent
+        if (result.issues && result.issues.length > 0) {
+          this.performanceMonitor.recordIssuesFound(result.issues.length);
+        }
+
+        return result;
       });
 
       const agentResults = await Promise.all(agentPromises);
@@ -59,19 +76,26 @@ export class SubagentReviewHarness {
         prInfo.prSha
       );
 
-      const endTime = Date.now();
-      const duration = endTime - startTime;
+      // Stop performance monitoring and generate report
+      const performanceReport = await this.performanceMonitor.stop();
+
+      // Log performance summary
+      console.log('\n📊 Performance Summary:');
+      console.log(`   - Total duration: ${performanceReport.duration}ms`);
+      console.log(`   - Agents spawned: ${performanceReport.agentsSpawned}`);
+      console.log(`   - Issues found: ${performanceReport.issuesFound}`);
+      console.log(`   - API calls: ${performanceReport.apiCalls}`);
+      console.log(`   - Errors: ${performanceReport.errors}`);
+      console.log(`   - Efficiency: ${performanceReport.efficiency} issues/min`);
+      console.log(`   - Peak memory: ${performanceReport.peakMemory.heapUsed}MB used`);
+      console.log(`   - Avg agent time: ${performanceReport.averageAgentTime}ms`);
 
       return {
         reviewComment,
-        performanceMetrics: {
-          duration,
-          agentsSpawned: this.agents.length,
-          issuesFound: allIssues.length,
-          reviewGenerated: scoredIssues.highConfidence.length > 0 || scoredIssues.mediumConfidence.length > 0
-        }
+        performanceMetrics: performanceReport
       };
     } catch (error) {
+      this.performanceMonitor.recordError(error);
       throw new Error(`Harness failed: ${error.message}`);
     }
   }
@@ -105,9 +129,22 @@ if (!options.prNumber || !options.prTitle || !options.prSha || !options.diffFile
   process.exit(1);
 }
 
+// Parse additional options
+const optionsWithDefaults = {
+  ...options,
+  verbose: options.verbose || false
+};
+
 // Run harness
 async function main() {
   try {
+    if (optionsWithDefaults.verbose) {
+      console.log('🚀 Starting Enhanced Code Review...');
+      console.log(`📄 PR #${options.prNumber}: ${options.prTitle}`);
+      console.log(`🔍 Analyzing diff from: ${options.diffFile}`);
+      console.log('');
+    }
+
     const harness = new SubagentReviewHarness(process.env.GEMINI_AI_KEY);
     const result = await harness.run({
       prNumber: parseInt(options.prNumber),
