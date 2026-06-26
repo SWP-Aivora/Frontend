@@ -34,7 +34,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm ci
+          npm install
           # Install the enhanced review dependencies
           npm install @google/generative-ai
 
