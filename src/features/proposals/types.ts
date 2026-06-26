@@ -13,12 +13,16 @@ export interface ProposalMilestone {
 export interface Proposal {
   id: string;
   jobId: string;
+  jobTitle?: string;
   expertId: string;
+  expertName?: string;
   coverLetter: string;
   proposedBudget: number;
   proposedTimelineDays: number | null;
-  status: number;
-  createdAt: string;
+  currency?: string;
+  status: number | string;
+  createdAt?: string;
+  submittedAt?: string;
   milestones: ProposalMilestone[];
-  expert: UserBasicInfo;
+  expert?: UserBasicInfo;
 }

@@ -1,10 +1,11 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate, useParams } from 'react-router-dom';
 import { LoginPage } from '../features/auth/pages/LoginPage';
 import { RegisterPage } from '../features/auth/pages/RegisterPage';
 import { ProfilePage } from '../features/profiles/pages/ProfilePage';
 import { PostJobPage } from '../features/jobs/pages/PostJobPage';
 import { MyProjectsPage } from '../features/jobs/pages/MyProjectsPage';
 import { ClientJobProposalsPage } from '../features/proposals/pages/ClientJobProposalsPage';
+import { ProposalDetailsPage } from '../features/proposals/pages/ProposalDetailsPage';
 import { FindWorkPage } from '../features/jobs/pages/FindWorkPage';
 import { ProjectWorkspacePage } from '../features/projects/pages/ProjectWorkspacePage';
 import { WalletPage } from '../features/wallet/pages/WalletPage';
@@ -33,6 +34,11 @@ import { Role } from '../shared/types/enums';
 /**
  * Global Router Configuration
  */
+const ProposalCreateRouteRedirect = () => {
+  const { jobId } = useParams();
+  return <Navigate to={`/expert/jobs/${jobId ?? ''}`} replace />;
+};
+
 export const router = createBrowserRouter([
   {
     path: '/',
@@ -54,6 +60,10 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
+  {
+    path: '/jobs/:jobId/proposals/new',
+    element: <ProposalCreateRouteRedirect />,
+  },
   
   // Client Routes
   {
@@ -68,6 +78,7 @@ export const router = createBrowserRouter([
       { path: 'profile', element: <ProfilePage /> },
       { path: 'projects', element: <MyProjectsPage /> },
       { path: 'projects/:id/proposals', element: <ClientJobProposalsPage /> },
+      { path: 'proposals/:proposalId', element: <ProposalDetailsPage /> },
       { path: 'projects/:id/workspace', element: <ProjectWorkspacePage /> },
       { path: 'experts', element: <SearchExpertsPage /> },
       { path: 'experts/:id', element: <ExpertPublicProfilePage /> },
@@ -92,7 +103,9 @@ export const router = createBrowserRouter([
       { path: 'profile', element: <ProfilePage /> },
       { path: 'jobs', element: <FindWorkPage /> },
       { path: 'jobs/:id', element: <JobDetailsPage /> },
+      { path: 'jobs/:id/proposals/:proposalId/edit', element: <JobDetailsPage /> },
       { path: 'proposals', element: <ExpertMyProposalsPage /> },
+      { path: 'proposals/:proposalId', element: <ProposalDetailsPage /> },
       { path: 'projects/:id/workspace', element: <ProjectWorkspacePage /> },
       { path: 'my-jobs', element: <ExpertMyJobsPage /> },
       { path: 'messages', element: <ChatWorkspacePage /> },
