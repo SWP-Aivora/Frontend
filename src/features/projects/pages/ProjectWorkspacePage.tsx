@@ -141,6 +141,26 @@ export const ProjectWorkspacePage = () => {
     }
   });
 
+  const fundMilestoneMutation = useMutation({
+    mutationFn: () => projectService.fundMilestone(selectedMilestone!.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project', id, 'milestones'] });
+      setSelectedMilestone(null);
+    },
+    onError: (error) => {
+      const message =
+        typeof error === 'object' &&
+        error !== null &&
+        'response' in error &&
+        typeof (error as { response?: { data?: { message?: unknown } } }).response?.data?.message === 'string'
+          ? (error as { response: { data: { message: string } } }).response.data.message
+          : error instanceof Error
+            ? error.message
+            : 'Failed to fund milestone.';
+      toast.error(message);
+    },
+  });
+
   const revisionMutation = useMutation({
     mutationFn: (reason: string) => projectService.requestRevision(selectedMilestone!.id, reason),
     onSuccess: () => {
@@ -602,8 +622,12 @@ export const ProjectWorkspacePage = () => {
               {/* Action Buttons based on status and role */}
               <div className="pt-8 border-t border-slate-100 space-y-3">
                  {selectedMilestone.status === MilestoneStatus.PENDING && user?.role === Role.CLIENT && (
-                   <Button className="w-full h-14 rounded-full font-black text-base shadow-xl shadow-primary/20">
-                      Fund Milestone
+                   <Button
+                     onClick={() => fundMilestoneMutation.mutate()}
+                     disabled={fundMilestoneMutation.isPending}
+                     className="w-full h-14 rounded-full font-black text-base shadow-xl shadow-primary/20"
+                   >
+                      {fundMilestoneMutation.isPending ? 'Funding...' : 'Fund Milestone'}
                    </Button>
                  )}
                  {([MilestoneStatus.FUNDED, MilestoneStatus.IN_PROGRESS, MilestoneStatus.REVISION_REQUESTED] as MilestoneStatus[]).includes(selectedMilestone.status) && user?.role === Role.EXPERT && (
