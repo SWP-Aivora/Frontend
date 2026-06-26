@@ -3,7 +3,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const repoRoot = join(__dirname, '..', '..', '..', '..');
+const repoRoot = join(__dirname, '..', '..', '..');
 
 export async function readGeminiContext() {
   try {
