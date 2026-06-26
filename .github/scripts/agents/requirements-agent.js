@@ -1,4 +1,4 @@
-import { AgentBase } from '../utils/agent-base.js';
+import type { AgentBase } from '../utils/agent-base.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export class RequirementsAgent extends AgentBase {
@@ -11,9 +11,9 @@ export class RequirementsAgent extends AgentBase {
 You are a Senior Requirements Analyst validating PR changes against GEMINI.md guidelines.
 
 ## Project Guidelines
-${context.security}
-${context.architecture}
-${context.typescript}
+${context?.security || ''}
+${context?.architecture || ''}
+${context?.typescript || ''}
 
 ## Your Task
 Review the PR diff and check for compliance with GEMINI.md requirements.

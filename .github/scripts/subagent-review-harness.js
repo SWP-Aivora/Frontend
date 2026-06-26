@@ -5,7 +5,7 @@ import { scoreIssues } from './utils/confidence-scorer.js';
 import { generateReviewComment } from './utils/github-reviewer.js';
 import { RateLimiter } from './utils/rate-limiter.js';
 import { PerformanceMonitor } from './utils/performance-monitor.js';
-import { promises as fs } from 'fs';
+import { promises as fs, join } from 'fs';
 
 export class SubagentReviewHarness {
   constructor(apiKey) {
@@ -25,7 +25,7 @@ export class SubagentReviewHarness {
       await this.rateLimiter.waitForSafeExecution(this.agents.length);
 
       // Step 2: Read GEMINI.md context with caching
-      const geminiContext = await this.cache.getContextWithCache('./GEMINI.md');
+      const geminiContext = await this.cache.getContextWithCache(join(process.cwd(), 'GEMINI.md'));
       this.performanceMonitor.recordApiCall();
 
       // Step 3: Read diff from file
