@@ -179,21 +179,18 @@ jobs:
               status_message = f'✅ Approved — {metrics["issuesFound"]} issue(s) found'
 
           # Add performance metrics to the review
-          enhanced_comment = f"""{review_comment}
-
----
-
-### 🚀 Enhanced Review Performance
-- Review Time: {metrics["duration"]}ms
-- Agents Used: {metrics["agentsSpawned"]}
-- Total Issues Found: {metrics["issuesFound"]}
-- Critical Issues: {metrics["criticalIssues"]}
-- Important Issues: {metrics["importantIssues"]}
-
----
-
-*This enhanced review uses specialized AI agents for better code quality analysis.*
-"""
+          enhanced_comment = (
+              f"{review_comment}\n\n"
+              "---\n\n"
+              "### 🚀 Enhanced Review Performance\n"
+              f"- Review Time: {metrics['duration']}ms\n"
+              f"- Agents Used: {metrics['agentsSpawned']}\n"
+              f"- Total Issues Found: {metrics['issuesFound']}\n"
+              f"- Critical Issues: {metrics['criticalIssues']}\n"
+              f"- Important Issues: {metrics['importantIssues']}\n\n"
+              "---\n\n"
+              "*This enhanced review uses specialized AI agents for better code quality analysis.*"
+          )
 
           # Submit the review
           review_payload = json.dumps({
