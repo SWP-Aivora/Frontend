@@ -33,10 +33,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: |
-          npm install
-          # Install the enhanced review dependencies
-          npm install @google/generative-ai
+        run: npm install
 
       - name: Get PR diff
         id: diff
