@@ -25,7 +25,6 @@ import { ExpertMyJobsPage } from '../features/jobs/pages/ExpertMyJobsPage';
 import { SettingsPage } from '../features/settings/pages/SettingsPage';
 import { ClientDashboardPage } from '../features/dashboard/pages/ClientDashboardPage';
 import { ExpertDashboardPage } from '../features/dashboard/pages/ExpertDashboardPage';
-// import { ProtectedRoute } from '../shared/components/common/ProtectedRoute';
 import { ProtectedRoute } from '../shared/components/common/ProtectedRoute';
 import { ClientLayout, ExpertLayout, AdminLayout } from '../shared/layouts';
 import { Role } from '../shared/types/enums';
