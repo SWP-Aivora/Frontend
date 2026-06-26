@@ -179,7 +179,7 @@ jobs:
               status_message = f'✅ Approved — {metrics["issuesFound"]} issue(s) found'
 
           # Add performance metrics to the review
-          enhanced_comment = f'''{review_comment}
+          enhanced_comment = f"""{review_comment}
 
 ---
 
@@ -193,7 +193,7 @@ jobs:
 ---
 
 *This enhanced review uses specialized AI agents for better code quality analysis.*
-'''
+"""
 
           # Submit the review
           review_payload = json.dumps({
