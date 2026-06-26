@@ -102,9 +102,7 @@ export class SubagentReviewHarness {
   }
 }
 
-#!/usr/bin/env node
 
-import { SubagentReviewHarness } from './subagent-review-harness.js';
 import { argv } from 'node:process';
 
 // Parse command line arguments
@@ -146,9 +144,14 @@ async function main() {
       console.log('');
     }
 
+    const prNumber = parseInt(options.prNumber);
+    if (isNaN(prNumber)) {
+      throw new Error('prNumber must be a valid number');
+    }
+
     const harness = new SubagentReviewHarness(process.env.GEMINI_AI_KEY);
     const result = await harness.run({
-      prNumber: parseInt(options.prNumber),
+      prNumber: prNumber,
       prTitle: options.prTitle,
       prSha: options.prSha,
       diffFile: options.diffFile

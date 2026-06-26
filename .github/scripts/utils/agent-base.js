@@ -1,5 +1,5 @@
 export class AgentBase {
-  constructor(name, model = 'gemini-3.1-flash-lite') {
+  constructor(name, model = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite') {
     this.name = name;
     this.model = model;
   }

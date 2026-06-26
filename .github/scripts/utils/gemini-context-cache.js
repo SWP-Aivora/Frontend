@@ -1,4 +1,4 @@
-import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
+import { readFileSync, existsSync, mkdirSync, writeFileSync, promises as fs } from 'fs';
 import { join, dirname } from 'path';
 import { createHash } from 'crypto';
 
@@ -214,21 +214,21 @@ export async function readGeminiContext(filePath = './GEMINI.md') {
 
       let currentSection = null;
 
-      lines.forEach(line => {
-        line = line.trim();
-        if (!line) return;
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (!trimmedLine) continue;
 
         // Section headers
-        if (line.startsWith('###')) {
-          currentSection = line.substring(3).trim().toLowerCase();
-          return;
+        if (trimmedLine.startsWith('###')) {
+          currentSection = trimmedLine.substring(3).trim().toLowerCase();
+          continue;
         }
 
         // Field assignments
-        const colonIndex = line.indexOf(':');
+        const colonIndex = trimmedLine.indexOf(':');
         if (colonIndex > 0) {
-          const key = line.substring(0, colonIndex).trim();
-          const value = line.substring(colonIndex + 1).trim();
+          const key = trimmedLine.substring(0, colonIndex).trim();
+          const value = trimmedLine.substring(colonIndex + 1).trim();
 
           switch (key.toLowerCase()) {
             case 'title':
@@ -244,7 +244,7 @@ export async function readGeminiContext(filePath = './GEMINI.md') {
               if (value.toLowerCase().startsWith('file:')) {
                 const file = value.substring(5).trim();
                 try {
-                  metadata.codingStandards = JSON.parse(readFileSync(file, 'utf8'));
+                  metadata.codingStandards = JSON.parse(await fs.readFile(file, 'utf8'));
                 } catch (e) {
                   console.warn(`Failed to read coding standards from ${file}`);
                 }
@@ -254,7 +254,7 @@ export async function readGeminiContext(filePath = './GEMINI.md') {
               if (value.toLowerCase().startsWith('file:')) {
                 const file = value.substring(5).trim();
                 try {
-                  metadata.patterns = JSON.parse(readFileSync(file, 'utf8'));
+                  metadata.patterns = JSON.parse(await fs.readFile(file, 'utf8'));
                 } catch (e) {
                   console.warn(`Failed to read patterns from ${file}`);
                 }
@@ -262,7 +262,7 @@ export async function readGeminiContext(filePath = './GEMINI.md') {
               break;
           }
         }
-      });
+      }
 
       return {
         title: metadata.title || 'Default Project Title',

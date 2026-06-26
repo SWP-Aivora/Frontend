@@ -41,6 +41,10 @@ Return JSON array:
   }
 
   async analyzeWithAI(prompt, diff) {
+    if (!process.env.GEMINI_AI_KEY) {
+      throw new Error('GEMINI_AI_KEY environment variable is required');
+    }
+
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_AI_KEY);
     const model = genAI.getGenerativeModel({ model: this.model });
 
