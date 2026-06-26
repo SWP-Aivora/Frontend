@@ -104,7 +104,7 @@ export class EnhancedAgentBase {
 
   createIssue(category, title, description, confidence, recommendations = [], location = null) {
     return {
-      id: `${category}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `${category}-${Date.now()}-${Math.floor(Math.random() * 1000000).toString(36).padStart(6, '0')}`,
       title,
       description,
       confidence: Math.max(0, Math.min(100, confidence)),

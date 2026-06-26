@@ -1,12 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { readGeminiContext, getGeminiContextCache } from './utils/gemini-context-cache.js';
-import { RequirementsAgent } from './agents/requirements-agent.js';
-import { BugHunterAgent } from './agents/bug-hunter-agent.js';
-import { SecurityAgent } from './agents/security-agent.js';
-import { TypeScriptAgent } from './agents/typescript-agent.js';
-import { ArchitectureAgent } from './agents/architecture-agent.js';
-import { TestingAgent } from './agents/testing-agent.js';
-import { ReactAgent } from './agents/react-agent.js';
+import { agentRegistry } from './utils/agent-registry.js';
 import { scoreIssues } from './utils/confidence-scorer.js';
 import { generateReviewComment } from './utils/github-reviewer.js';
 import { RateLimiter } from './utils/rate-limiter.js';
@@ -19,15 +13,7 @@ export class SubagentReviewHarness {
     this.rateLimiter = new RateLimiter();
     this.performanceMonitor = new PerformanceMonitor();
     this.cache = getGeminiContextCache();
-    this.agents = [
-      new RequirementsAgent(),
-      new BugHunterAgent(),
-      new SecurityAgent(),
-      new TypeScriptAgent(),
-      new ArchitectureAgent(),
-      new TestingAgent(),
-      new ReactAgent()
-    ];
+    this.agents = agentRegistry.getAll();
   }
 
   async run(prInfo) {

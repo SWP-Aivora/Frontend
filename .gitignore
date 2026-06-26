@@ -35,4 +35,7 @@ docs/superpowers/
 MEMORY.md
 *.heapsnapshot
 trace.json
+
+# Cache directories
+.github/cache/
   

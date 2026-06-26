@@ -243,20 +243,30 @@ export async function readGeminiContext(filePath = './GEMINI.md') {
             case 'coding standards':
               if (value.toLowerCase().startsWith('file:')) {
                 const file = value.substring(5).trim();
-                try {
-                  metadata.codingStandards = JSON.parse(await fs.readFile(file, 'utf8'));
-                } catch (e) {
-                  console.warn(`Failed to read coding standards from ${file}`);
+                // Validate file path is within project directory
+                if (file.startsWith('/') || file.startsWith('..') || file.includes('../')) {
+                  console.warn(`Security: Invalid coding standards file path: ${file}`);
+                } else {
+                  try {
+                    metadata.codingStandards = JSON.parse(await fs.readFile(file, 'utf8'));
+                  } catch (e) {
+                    console.warn(`Failed to read coding standards from ${file}`);
+                  }
                 }
               }
               break;
             case 'patterns':
               if (value.toLowerCase().startsWith('file:')) {
                 const file = value.substring(5).trim();
-                try {
-                  metadata.patterns = JSON.parse(await fs.readFile(file, 'utf8'));
-                } catch (e) {
-                  console.warn(`Failed to read patterns from ${file}`);
+                // Validate file path is within project directory
+                if (file.startsWith('/') || file.startsWith('..') || file.includes('../')) {
+                  console.warn(`Security: Invalid patterns file path: ${file}`);
+                } else {
+                  try {
+                    metadata.patterns = JSON.parse(await fs.readFile(file, 'utf8'));
+                  } catch (e) {
+                    console.warn(`Failed to read patterns from ${file}`);
+                  }
                 }
               }
               break;
