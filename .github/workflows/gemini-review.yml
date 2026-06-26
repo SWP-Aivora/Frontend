@@ -105,8 +105,9 @@ jobs:
           with open('/tmp/diff_size.txt', 'w') as f:
               f.write(str(diff_size))
 
-          print(f"skip=$(cat /tmp/skip_review)" >> "$GITHUB_OUTPUT")
-          print(f"diff-size=$(cat /tmp/diff_size.txt)" >> "$GITHUB_OUTPUT")
+          with open("$GITHUB_OUTPUT", "a") as f:
+              f.write(f"skip=$(cat /tmp/skip_review)\n")
+              f.write(f"diff-size=$(cat /tmp/diff_size.txt)\n")
           EOF
 
       - name: Skip if no reviewable changes
@@ -704,8 +705,9 @@ jobs:
               json.dump(aggregated_results, f, indent=2)
 
           # Set outputs
-          print(f"overall-status={overall_status}" >> "$GITHUB_OUTPUT")
-          print(f"pr-number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT")
+          with open("$GITHUB_OUTPUT", "a") as f:
+              f.write(f"overall-status={overall_status}\n")
+              f.write(f"pr-number=${{ github.event.pull_request.number }}\n")
 
           # Print summary
           print("\n=== Review Summary ===")
