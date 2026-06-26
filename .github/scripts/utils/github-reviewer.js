@@ -1,5 +1,5 @@
 export function generateReviewComment(scoredIssues, prTitle, prSha) {
-  const { highConfidence, mediumConfidence, lowConfidence, summary } = scoredIssues;
+  const { highConfidence, mediumConfidence, summary } = scoredIssues;
 
   const lines = [
     '## 🤖 Gemini AI Enhanced Code Review',
