@@ -131,137 +131,67 @@ jobs:
         if: steps.diff.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ secrets.BOT_GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          REPO: ${{ github.repository }}
-          REVIEW_RESULT: $(cat /tmp/enhanced_review_result.json)
         run: |
-          python3 << 'PYEOF'
-          import json, os, subprocess, sys
+          # Load review result
+          REVIEW_RESULT=$(cat /tmp/enhanced_review_result.json)
 
-          # Load enhanced review result
-          with open('/tmp/enhanced_review_result.json', 'r') as f:
-              result = json.load(f)
+          # Extract values using jq
+          REVIEW_COMMENT=$(echo "$REVIEW_RESULT" | jq -r '.reviewComment')
+          CRITICAL_ISSUES=$(echo "$REVIEW_RESULT" | jq '.issues[] | select(.confidence >= 80) | .confidence' | wc -l)
+          TOTAL_ISSUES=$(echo "$REVIEW_RESULT" | jq '.issues | length')
+          DURATION=$(echo "$REVIEW_RESULT" | jq '.performanceMetrics.duration')
+          AGENTS=$(echo "$REVIEW_RESULT" | jq '.performanceMetrics.agentsSpawned')
 
-          review_comment = result['reviewComment']
-          metrics = result['performanceMetrics']
-          issues = result['issues']
+                        # Dismiss previous reviews
+              gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews" \
+                --jq '[.[] | select(.user.login == "github-actions[bot]" and .state == "CHANGES_REQUESTED") | .id]' \
+                > /tmp/previous_reviews.json
 
-          # Dismiss any previous reviews from this bot
-          prev_reviews = subprocess.run(
-              ['gh', 'api', f'repos/{repo}/pulls/{pr_number}/reviews', '--jq',
-               '[.[] | select(.user.login == "github-actions[bot]" and .state == "CHANGES_REQUESTED") | .id]'],
-              capture_output=True, text=True,
-          )
-          if prev_reviews.returncode == 0 and prev_reviews.stdout.strip():
-              try:
-                  review_ids = json.loads(prev_reviews.stdout.strip())
-                  for rid in review_ids:
-                      subprocess.run(
-                          ['gh', 'api', '--method', 'PUT',
-                           f'repos/{repo}/pulls/{pr_number}/reviews/{rid}/dismissals',
-                           '-f', 'message=Superseded by enhanced review',
-                           '-f', 'event=DISMISS'],
-                          capture_output=True, text=True,
-                      )
-                      print(f'Dismissed previous review {rid}')
-              except (json.JSONDecodeError, TypeError):
-                  pass  # No previous reviews to dismiss
+              if [ -s /tmp/previous_reviews.json ]; then
+                review_ids=$(jq -r '.[]' /tmp/previous_reviews.json)
+                for rid in $review_ids; do
+                  gh api --method PUT \
+                    "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews/$rid/dismissals" \
+                    -f message="Superseded by enhanced review" \
+                    -f event=DISMISS
+                  echo "Dismissed previous review $rid"
+                done
+              fi
 
-          # Determine review event based on critical issues
-          critical_issues = [i for i in issues if i.get('confidence', 0) >= 80]
+              # Determine review event
+              if [ "$CRITICAL_ISSUES" -gt 0 ]; then
+                event="REQUEST_CHANGES"
+                status_message="🚨 Found $CRITICAL_ISSUES critical issue(s)"
+              else
+                event="APPROVE"
+                status_message="✅ Approved — $TOTAL_ISSUES issue(s) found"
+              fi
 
-          if critical_issues:
-              event = 'REQUEST_CHANGES'
-              status_message = f'🚨 Found {len(critical_issues)} critical issue(s)'
-          else:
-              event = 'APPROVE'
-              status_message = f'✅ Approved — {metrics["issuesFound"]} issue(s) found'
-
-          # Add performance metrics to the review
-          enhanced_comment = (
-              f"{review_comment}\n\n"
-              "---\n\n"
-              "### 🚀 Enhanced Review Performance\n"
-              f"- Review Time: {metrics['duration']}ms\n"
-              f"- Agents Used: {metrics['agentsSpawned']}\n"
-              f"- Total Issues Found: {metrics['issuesFound']}\n"
-              f"- Critical Issues: {metrics['criticalIssues']}\n"
-              f"- Important Issues: {metrics['importantIssues']}\n\n"
-              "---\n\n"
-              "*This enhanced review uses specialized AI agents for better code quality analysis.*"
-          )
-
-          # Submit the review
-          review_payload = json.dumps({
-              'body': enhanced_comment,
-              'event': event,
-              'commit_id': head_sha,
-          })
-
-          result = subprocess.run(
-              [
-                  'gh', 'api',
-                  f'repos/{repo}/pulls/{pr_number}/reviews',
-                  '--method', 'POST',
-                  '--input', '-',
-              ],
-              input=review_payload,
-              capture_output=True,
-              text=True,
-          )
-
-          if result.returncode == 0:
-              print(f'✅ Review submitted: {event}')
-              print(f'   {status_message}')
-              print(f'   Performance: {metrics["duration"]}ms')
-          else:
-              # Check if it failed due to self-approval
-              if '422' in result.stderr or 'Unprocessable Entity' in result.stderr:
-                  print("⚠️ Cannot approve own PR, falling back to COMMENT")
-
-                  # Create fallback comment
-                  fallback_body = f"""⚠️ **Note:** Enhanced review completed but cannot auto-approve.
-
-## Review Summary
-{status_message}
-
-## Performance Metrics
-- Review Time: {metrics["duration"]}ms
-- Agents Used: {metrics["agentsSpawned"]}
-- Total Issues: {metrics["issuesFound"]}
+              # Create review body
+              REVIEW_BODY="$(cat <<EOF
+$REVIEW_COMMENT
 
 ---
 
-{review_comment}
+### 🚀 Enhanced Review Performance
+- Review Time: ${DURATION}ms
+- Agents Used: ${AGENTS}
+- Total Issues Found: ${TOTAL_ISSUES}
+- Critical Issues: ${CRITICAL_ISSUES}
 
 ---
-*Enhanced review by Gemini AI agents*"""
 
-                  fallback_payload = json.dumps({
-                      'body': fallback_body,
-                      'event': 'COMMENT',
-                      'commit_id': head_sha,
-                  })
+*This enhanced review uses specialized AI agents for better code quality analysis.*
+EOF
+)"
 
-                  fallback_result = subprocess.run(
-                      [
-                          'gh', 'api',
-                          f'repos/{repo}/pulls/{pr_number}/reviews',
-                          '--method', 'POST',
-                          '--input', '-',
-                      ],
-                      input=fallback_payload,
-                      capture_output=True,
-                      text=True,
-                  )
+              # Submit review
+              gh api \
+                "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews" \
+                --method POST \
+                -f body="$REVIEW_BODY" \
+                -f event="$event" \
+                -f commit_id="${{ github.event.pull_request.head.sha }}"
 
-                  if fallback_result.returncode == 0:
-                      print('✅ Review submitted as COMMENT (Fallback)')
-                  else:
-                      print(f'❌ Fallback failed: {fallback_result.stderr}')
-                      sys.exit(1)
-              else:
-                  print(f'❌ Review submission failed: {result.stderr}')
-                  sys.exit(1)
-          PYEOF
+              echo "✅ Review submitted: $event"
+              echo "   $status_message"
