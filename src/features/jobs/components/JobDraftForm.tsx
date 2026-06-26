@@ -39,6 +39,7 @@ const jobDraftSchema = z.object({
   budgetMin: requiredPositiveNumberField('Minimum budget'),
   budgetMax: requiredPositiveNumberField('Maximum budget'),
   timelineDays: requiredPositiveNumberField('Timeline'),
+  businessDomain: z.string().nullable(),
 });
 
 type JobDraftFormValues = {
@@ -48,6 +49,7 @@ type JobDraftFormValues = {
   budgetMin: number | null;
   budgetMax: number | null;
   timelineDays: number | null;
+  businessDomain: string | null;
 };
 
 interface JobDraftFormProps {
@@ -82,6 +84,7 @@ export const JobDraftForm = ({
       budgetMin: suggestion.suggestedBudgetMin ?? null,
       budgetMax: suggestion.suggestedBudgetMax ?? null,
       timelineDays: suggestion.suggestedTimelineDays ?? null,
+      businessDomain: suggestion.businessDomain ?? null,
     }
   });
   const titleField = register('title');
@@ -89,11 +92,13 @@ export const JobDraftForm = ({
   const budgetMinField = register('budgetMin', { valueAsNumber: true });
   const budgetMaxField = register('budgetMax', { valueAsNumber: true });
   const timelineDaysField = register('timelineDays', { valueAsNumber: true });
+  const businessDomainField = register('businessDomain');
   const titleErrorId = errors.title ? 'job-draft-title-error' : undefined;
   const descriptionErrorId = errors.description ? 'job-draft-description-error' : undefined;
   const budgetMinErrorId = errors.budgetMin ? 'job-draft-budget-min-error' : undefined;
   const budgetMaxErrorId = errors.budgetMax ? 'job-draft-budget-max-error' : undefined;
   const timelineErrorId = errors.timelineDays ? 'job-draft-timeline-error' : undefined;
+  const businessDomainErrorId = errors.businessDomain ? 'job-draft-business-domain-error' : undefined;
 
   const onSubmit: SubmitHandler<JobDraftFormValues> = (data) => {
     if (data.budgetMin === null || data.budgetMax === null || data.timelineDays === null) {
@@ -232,6 +237,24 @@ export const JobDraftForm = ({
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="job-draft-business-domain" className="text-xs font-bold text-slate-500 ml-1 uppercase">Business Domain</label>
+              <Input
+                id="job-draft-business-domain"
+                {...businessDomainField}
+                onChange={(e) => {
+                  businessDomainField.onChange(e);
+                  onUpdate({ businessDomain: e.target.value || null });
+                }}
+                placeholder="e.g. E-commerce, Healthcare, FinTech"
+                aria-invalid={errors.businessDomain ? 'true' : 'false'}
+                aria-describedby={businessDomainErrorId}
+                className="h-12 rounded-xl bg-slate-50 border-slate-100 focus:bg-white text-base font-bold text-slate-900"
+              />
+              <p className="text-[10px] font-bold text-slate-400 mt-1">Required before publishing. Describes the industry sector of your project.</p>
+              {errors.businessDomain && <p id={businessDomainErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{errors.businessDomain.message}</p>}
             </div>
           </section>
 
