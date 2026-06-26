@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { 
   Star, MapPin, ShieldCheck, 
-  Briefcase, Globe, Clock
+  Briefcase, Globe, Clock, ChevronLeft
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { profileService } from '../services';
@@ -12,10 +12,13 @@ import { reviewService } from '@/features/reviews/services';
 import { projectService } from '@/features/projects/services';
 import { chatService } from '@/features/chat/services';
 import { ProjectStatus } from '@/shared/types/enums';
+import { useAuthStore } from '@/features/auth/store';
 
 export const ExpertPublicProfilePage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const currentUserId = useAuthStore((state) => state.user?.id);
 
   const [activeTab, setActiveTab] = useState('overview');
 
@@ -74,17 +77,33 @@ export const ExpertPublicProfilePage = () => {
 
   // 4. Initialize Chat Mutation
   const initChatMutation = useMutation({
-    mutationFn: () => chatService.initializeConversation({ expertId }),
-    onSuccess: (response) => {
-      const conversationId = response.data?.id;
-      if (conversationId) {
-        navigate(`/client/messages?conversationId=${conversationId}`);
-      } else {
-        navigate('/client/messages');
+    mutationFn: async () => {
+      const conversationsResponse = await chatService.getAll({
+        PageIndex: 1,
+        PageSize: 100,
+      }, currentUserId);
+
+      const existingConversation = conversationsResponse.data?.find(
+        (conversation) => conversation.recipient.id === expertId
+      );
+
+      if (existingConversation) {
+        return existingConversation;
       }
+
+      const response = await chatService.initializeConversation({ expertId }, currentUserId);
+      if (!response.data) {
+        throw new Error('Conversation opened, but no conversation id was returned.');
+      }
+
+      return response.data;
     },
-    onError: () => {
-      toast.error('Failed to initiate conversation. Please try again.');
+    onSuccess: (response) => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      navigate('/client/messages', { state: { conversationId: response.id } });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to initiate conversation. Please try again.');
     }
   });
 
@@ -125,6 +144,14 @@ export const ExpertPublicProfilePage = () => {
       <div className="absolute top-[-160px] right-[-100px] w-[520px] h-[520px] bg-blue-300/20 blur-[120px] rounded-full pointer-events-none" />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-6 relative z-10">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-brand-primary transition-colors"
+        >
+          <ChevronLeft className="size-4" />
+          Go back
+        </button>
         
         {/* Header Section */}
         <div className="bg-gradient-to-r from-blue-50 to-[#edf6ff] rounded-[30px] p-8 shadow-sm border border-blue-100/50 relative overflow-hidden">

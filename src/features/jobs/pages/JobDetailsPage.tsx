@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/components/ui/Button';
 import {
@@ -26,8 +26,9 @@ import { jobService } from '../services';
 import { proposalService } from '../../proposals/services';
 
 export const JobDetailsPage = () => {
-  const { id } = useParams();
+  const { id, proposalId } = useParams();
   const navigate = useNavigate();
+  const isEditMode = Boolean(proposalId);
   const [hasSubmitted, setHasSubmitted] = useState(() => localStorage.getItem(`submitted_proposal_${id}`) === 'true');
 
   const { data: jobResponse, isLoading } = useQuery({
@@ -38,7 +39,15 @@ export const JobDetailsPage = () => {
   
   const job = jobResponse?.data;
 
-  const { register, control, handleSubmit, formState: { errors } } = useForm<CreateProposalFormValues>({
+  const { data: proposalResponse, isLoading: isProposalLoading } = useQuery({
+    queryKey: ['proposal', proposalId],
+    queryFn: () => proposalService.getProposalById(proposalId!),
+    enabled: isEditMode,
+  });
+
+  const proposal = proposalResponse?.data;
+
+  const { register, control, handleSubmit, reset, formState: { errors } } = useForm<CreateProposalFormValues>({
     resolver: zodResolver(createProposalSchema),
     defaultValues: {
       coverLetter: '',
@@ -50,6 +59,27 @@ export const JobDetailsPage = () => {
       ],
     }
   });
+
+  useEffect(() => {
+    if (!proposal) return;
+
+    reset({
+      coverLetter: proposal.coverLetter,
+      proposedBudget: proposal.proposedBudget,
+      proposedTimelineDays: proposal.proposedTimelineDays,
+      attachments: '',
+      milestones: proposal.milestones.length > 0
+        ? proposal.milestones.map((milestone, index) => ({
+            title: milestone.title,
+            description: milestone.description,
+            amount: milestone.amount,
+            dueDays: milestone.dueDays,
+            acceptanceCriteria: milestone.acceptanceCriteria,
+            orderIndex: milestone.orderIndex ?? index,
+          }))
+        : [{ title: 'Discovery & implementation plan', amount: 1, dueDays: 1, orderIndex: 0 }],
+    });
+  }, [proposal, reset]);
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -69,6 +99,11 @@ export const JobDetailsPage = () => {
   });
 
   const onSubmit = (data: CreateProposalFormValues) => {
+    if (isEditMode) {
+      toast.error('Proposal editing is not available yet because the API does not support updating proposals.');
+      return;
+    }
+
     submitMutation.mutate(data);
   };
 
@@ -77,7 +112,7 @@ export const JobDetailsPage = () => {
   const formattedBudgetRange = `$${budgetMin.toLocaleString()} - $${budgetMax.toLocaleString()}`;
   const skills = job?.skills ?? [];
 
-  if (isLoading) {
+  if (isLoading || isProposalLoading) {
     return (
       <div className="flex justify-center items-center h-96">
         <Loader2 className="size-10 animate-spin text-brand-accent" />
@@ -102,7 +137,7 @@ export const JobDetailsPage = () => {
         className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-brand-accent transition-colors group"
       >
         <ChevronLeft className="size-4 group-hover:-translate-x-1 transition-transform" />
-        Back to Job Board
+        {isEditMode ? 'Back to Proposal' : 'Back to Job Board'}
       </button>
 
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-6 items-start">
@@ -201,10 +236,12 @@ export const JobDetailsPage = () => {
                 <div>
                   <p className="text-xs font-black text-brand-accent uppercase tracking-[0.2em] mb-2">Proposal</p>
                   <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-                    {hasSubmitted ? 'Your Proposal' : 'Submit a Proposal'}
+                    {isEditMode ? 'Edit Proposal' : hasSubmitted ? 'Your Proposal' : 'Submit a Proposal'}
                   </h2>
                   <p className="text-sm text-slate-500 font-medium mt-1 max-w-2xl">
-                    {hasSubmitted
+                    {isEditMode
+                      ? 'Review and adjust the proposal details you submitted for this job.'
+                      : hasSubmitted
                       ? 'You have already submitted a proposal for this project.'
                       : 'Share your bid, delivery plan, portfolio references, and a concise pitch tailored to this job.'}
                   </p>
@@ -215,7 +252,7 @@ export const JobDetailsPage = () => {
                 </div>
               </div>
 
-              {hasSubmitted ? (
+              {hasSubmitted && !isEditMode ? (
                 <div className="space-y-4 pt-4 border-t border-slate-100">
                   <div className="bg-emerald-50 rounded-xl p-4 flex items-center gap-3 border border-emerald-100">
                     <BadgeCheck className="size-6 text-emerald-600 shrink-0" />
@@ -233,7 +270,7 @@ export const JobDetailsPage = () => {
                   </Button>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" data-testid="proposal-form">
                   {/* Budget & Timeline */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -245,6 +282,8 @@ export const JobDetailsPage = () => {
                           min="1"
                           step="0.01"
                           {...register('proposedBudget')}
+                          aria-label="Proposal bid"
+                          data-testid="proposal-budget-input"
                           className="h-12 rounded-xl bg-slate-50 pl-8 font-bold"
                         />
                       </div>
@@ -257,6 +296,8 @@ export const JobDetailsPage = () => {
                           type="number"
                           min="1"
                           {...register('proposedTimelineDays')}
+                          aria-label="Proposal delivery time"
+                          data-testid="proposal-timeline-input"
                           className="h-12 rounded-xl bg-slate-50 pr-14 font-bold"
                         />
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-black uppercase">Days</span>
@@ -270,6 +311,8 @@ export const JobDetailsPage = () => {
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Cover Letter / Pitch</label>
                     <textarea
                       {...register('coverLetter')}
+                      aria-label="Proposal cover letter"
+                      data-testid="proposal-cover-letter"
                       placeholder="Introduce yourself, describe your solution approach, and explain why you are the right expert for this project..."
                       className="w-full min-h-[180px] p-4 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-accent/20 text-sm leading-6 transition-colors"
                     />
@@ -288,6 +331,8 @@ export const JobDetailsPage = () => {
                           <p className="text-sm font-bold text-slate-700">Paste portfolio, GitHub, HuggingFace, demo, or case-study links.</p>
                           <textarea
                             {...register('attachments')}
+                            aria-label="Proposal portfolio links"
+                            data-testid="proposal-attachments"
                             placeholder="https://github.com/yourname/project&#10;https://huggingface.co/your-model"
                             className="w-full min-h-[86px] p-3 rounded-xl bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-accent/20 text-sm"
                           />
@@ -315,19 +360,42 @@ export const JobDetailsPage = () => {
                     {fields.map((field, index) => (
                       <div key={field.id} className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_140px_120px_36px] gap-2 items-start bg-white p-3 rounded-xl border border-slate-200">
                         <div>
-                          <Input {...register(`milestones.${index}.title`)} placeholder="Milestone title" className="h-10 text-sm rounded-lg" />
+                          <Input
+                            {...register(`milestones.${index}.title`)}
+                            aria-label={`Proposal milestone ${index + 1} title`}
+                            data-testid="proposal-milestone-title"
+                            placeholder="Milestone title"
+                            className="h-10 text-sm rounded-lg"
+                          />
                           {errors.milestones?.[index]?.title && (
                             <p className="text-[11px] text-destructive font-bold mt-1">{errors.milestones[index]?.title?.message}</p>
                           )}
                         </div>
                         <div>
-                          <Input type="number" min="1" step="0.01" {...register(`milestones.${index}.amount`)} placeholder="$ Amount" className="h-10 text-sm rounded-lg" />
+                          <Input
+                            type="number"
+                            min="1"
+                            step="0.01"
+                            {...register(`milestones.${index}.amount`)}
+                            aria-label={`Proposal milestone ${index + 1} amount`}
+                            data-testid="proposal-milestone-amount"
+                            placeholder="$ Amount"
+                            className="h-10 text-sm rounded-lg"
+                          />
                           {errors.milestones?.[index]?.amount && (
                             <p className="text-[11px] text-destructive font-bold mt-1">{errors.milestones[index]?.amount?.message}</p>
                           )}
                         </div>
                         <div>
-                          <Input type="number" min="1" {...register(`milestones.${index}.dueDays`)} placeholder="Days" className="h-10 text-sm rounded-lg" />
+                          <Input
+                            type="number"
+                            min="1"
+                            {...register(`milestones.${index}.dueDays`)}
+                            aria-label={`Proposal milestone ${index + 1} due days`}
+                            data-testid="proposal-milestone-days"
+                            placeholder="Days"
+                            className="h-10 text-sm rounded-lg"
+                          />
                           {errors.milestones?.[index]?.dueDays && (
                             <p className="text-[11px] text-destructive font-bold mt-1">{errors.milestones[index]?.dueDays?.message}</p>
                           )}
@@ -348,13 +416,13 @@ export const JobDetailsPage = () => {
                     )}
                   </div>
 
-                  <Button type="submit" disabled={submitMutation.isPending} className="w-full rounded-full h-14 font-bold text-base bg-brand-accent hover:bg-brand-accent/90 shadow-lg shadow-brand-accent/20">
+                  <Button type="submit" disabled={submitMutation.isPending || isEditMode} className="w-full rounded-full h-14 font-bold text-base bg-brand-accent hover:bg-brand-accent/90 shadow-lg shadow-brand-accent/20">
                     {submitMutation.isPending ? (
                       <span className="inline-flex items-center gap-2">
                         <Loader2 className="size-4 animate-spin" />
                         Submitting Proposal...
                       </span>
-                    ) : 'Submit Proposal'}
+                    ) : isEditMode ? 'Proposal Editing Unavailable' : 'Submit Proposal'}
                   </Button>
                 </form>
               )}

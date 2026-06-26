@@ -59,6 +59,14 @@ export const API_ENDPOINTS = {
     INIT: 'conversations/init',
     CHAT_HUB: 'chat',
   },
+  PROPOSALS: {
+    ID: (id: string) => `proposals/${id}`,
+    ACCEPT: (id: string) => `proposals/${id}/accept`,
+    REJECT: (id: string) => `proposals/${id}/reject`,
+    SHORTLIST: (id: string) => `proposals/${id}/shortlist`,
+    WITHDRAW: (id: string) => `proposals/${id}/withdraw`,
+    ME: 'proposals/me',
+  },
   NOTIFICATIONS: {
     BASE: 'notifications',
     UNREAD_COUNT: 'notifications/unread-count',
