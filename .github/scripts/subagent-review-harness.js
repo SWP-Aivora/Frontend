@@ -5,7 +5,7 @@ import { scoreIssues } from './utils/confidence-scorer.js';
 import { generateReviewComment } from './utils/github-reviewer.js';
 import { RateLimiter } from './utils/rate-limiter.js';
 import { PerformanceMonitor } from './utils/performance-monitor.js';
-import { readFileSync } from 'fs';
+import { promises as fs } from 'fs';
 
 export class SubagentReviewHarness {
   constructor(apiKey) {
@@ -29,7 +29,7 @@ export class SubagentReviewHarness {
       this.performanceMonitor.recordApiCall();
 
       // Step 3: Read diff from file
-      const diff = readFileSync(prInfo.diffFile, 'utf8');
+      const diff = await fs.readFile(prInfo.diffFile, 'utf8');
 
       // Step 4: Spawn all agents in parallel with rate limiting
       const agentPromises = this.agents.map(async (agent) => {

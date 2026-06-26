@@ -124,7 +124,7 @@ export class EnhancedAgentBase {
       }
 
       // Check if the issue's file is in the diff
-      const filePattern = new RegExp(issue.location.file.replace(/\./g, '\\.'));
+      const filePattern = new RegExp(issue.location.file.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
       return filePattern.test(diff);
     });
   }
