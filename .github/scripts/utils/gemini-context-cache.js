@@ -211,8 +211,7 @@ export async function readGeminiContext(filePath = './GEMINI.md') {
         patterns: {}
       };
 
-      let currentSection = null;
-
+      
       for (const line of lines) {
         const trimmedLine = line.trim();
         if (!trimmedLine) continue;
