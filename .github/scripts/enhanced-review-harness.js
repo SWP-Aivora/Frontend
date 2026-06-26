@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { readGeminiContext } from './utils/gemini-context-reader.js';
 import { BugHunterAgent } from './agents/bug-hunter-agent.js';
@@ -70,7 +72,6 @@ export class EnhancedReviewHarness {
 }
 
 // CLI interface
-#!/usr/bin/env node
 
 import { EnhancedReviewHarness } from './enhanced-review-harness.js';
 import { argv } from 'node:process';
