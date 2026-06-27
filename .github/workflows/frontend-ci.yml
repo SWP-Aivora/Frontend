@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - main
+      - test-new-gemini-workflow
   pull_request:
     branches:
       - main
+      - test-new-gemini-workflow
   workflow_dispatch:
 
 concurrency:
