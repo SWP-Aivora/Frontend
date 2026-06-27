@@ -50,11 +50,13 @@ export const WithdrawModal = ({ maxBalance }: WithdrawModalProps) => {
 
   const isInvalid = amountStr.trim() === '' || isNaN(Number(amountStr)) || Number(amountStr) <= 0 || Number(amountStr) > maxBalance;
 
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen);
+    if (!nextOpen) setAmountStr('500');
+  };
+
   return (
-    <Dialog.Root open={open} onOpenChange={(o: boolean) => {
-      setOpen(o);
-      if (!o) setAmountStr('500');
-      }}>
+    <Dialog.Root open={open} onOpenChange={handleOpenChange}>
       <Dialog.Trigger asChild>
         <Button disabled={withdrawMutation.isPending} className="rounded-full px-6 bg-brand-accent hover:bg-brand-accent/90 shadow-lg shadow-brand-accent/20 font-bold">
           Withdraw Earnings

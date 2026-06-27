@@ -108,7 +108,7 @@ export const jobService = {
   },
 
   // Update job
-  updateJob: async (id: string, data: Partial<Job>): Promise<BaseResponse<Job>> => {
+  updateJob: async (id: string, data: Record<string, unknown>): Promise<BaseResponse<Job>> => {
     const response = await apiClient.put(`/jobs/${id}`, data);
     const normalized = normalizeBaseResponse<Job>(response);
     return {

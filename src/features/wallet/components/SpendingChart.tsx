@@ -1,8 +1,11 @@
 import { useMemo } from 'react';
-import { TransactionStatus, TransactionType } from '../types';
-import type { Transaction } from '../types';
+import type { Transaction, TransactionStatus, TransactionType } from '../types';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const DEPOSIT: TransactionType = 0;
+const PAYMENT: TransactionType = 2;
+const REFUND: TransactionType = 3;
+const COMPLETED: TransactionStatus = 1;
 
 interface SpendingChartProps {
   transactions: Transaction[];
@@ -14,8 +17,8 @@ export const SpendingChart = ({ transactions, isClient }: SpendingChartProps) =>
     const totals = Array.from({ length: 12 }, () => 0);
 
     transactions
-      .filter(t => t.status === TransactionStatus.COMPLETED)
-      .filter(t => isClient ? t.type === TransactionType.PAYMENT : (t.type === TransactionType.DEPOSIT || t.type === TransactionType.REFUND))
+      .filter(t => t.status === COMPLETED)
+      .filter(t => isClient ? t.type === PAYMENT : (t.type === DEPOSIT || t.type === REFUND))
       .forEach(t => {
         const date = new Date(t.createdAt);
         if (!isNaN(date.getTime())) {

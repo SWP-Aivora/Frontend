@@ -106,7 +106,7 @@ export const walletService = {
     const normalized = normalizePaginatedResponse<unknown>(response);
     return {
       ...normalized,
-      data: normalized.data.map(mapHistoryItemToTransaction).filter((item): item is Transaction => item !== null),
+      data: (normalized.data ?? []).map(mapHistoryItemToTransaction).filter((item): item is Transaction => item !== null),
     };
   },
 };

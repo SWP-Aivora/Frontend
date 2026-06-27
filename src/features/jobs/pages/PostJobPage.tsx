@@ -260,12 +260,12 @@ export const PostJobPage = () => {
         businessDomain: string | null;
         expectedOutcome: string | null;
         categoryId: string | null;
-        budgetType: AiJobSuggestion['budgetType'];
+        budgetType: CreateJobRequest['budgetType'];
         budgetMin: number | null;
         budgetMax: number | null;
         currency: string;
         timelineDays: number | null;
-        experienceLevel: AiJobSuggestion['experienceLevel'];
+        experienceLevel: CreateJobRequest['experienceLevel'];
         visibility?: JobVisibility;
       };
     }) => jobService.updateJob(payload.jobId, payload.data),
@@ -505,8 +505,8 @@ export const PostJobPage = () => {
         title: milestone.title,
         description: milestone.description,
         acceptanceCriteria: milestone.acceptanceCriteria,
-        amount: milestone.amount,
-        dueDays: milestone.dueDays,
+        amount: milestone.amount ?? 0,
+        dueDays: milestone.dueDays ?? 0,
         orderIndex: milestone.orderIndex ?? index,
       })),
     };
