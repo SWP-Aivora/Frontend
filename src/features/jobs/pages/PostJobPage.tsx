@@ -7,7 +7,7 @@ import { AiChatPanel } from '../components/AiChatPanel';
 import { JobDraftForm } from '../components/JobDraftForm';
 import { ExpertMatchInsights } from '../components/ExpertMatchInsights';
 import { jobService } from '../services';
-import { AiJobAssistantStatus, type ChatMessage, type AiJobSuggestion, type PatchAiJobSuggestionRequest, type AcceptAiJobSuggestionRequest, type AcceptedJobResponse, type Job } from '../types';
+import { AiJobAssistantStatus, type ChatMessage, type AiJobSuggestion, type PatchAiJobSuggestionRequest, type AcceptAiJobSuggestionRequest, type AcceptedJobResponse, type CreateJobRequest, type Job } from '../types';
 import { categoryService } from '@/shared/services/categoryService';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -15,6 +15,35 @@ import { useDebouncedCallback } from '@/shared/hooks/useDebounce';
 import { BudgetType, JobVisibility, SkillLevel } from '@/shared/types/enums';
 
 type FlowStep = 'PLANNING' | 'DRAFTING' | 'REVIEWING' | 'MATCHING';
+
+const getDateAfterDays = (days: number | null | undefined): string | null => {
+  if (!days || days < 1) {
+    return null;
+  }
+
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+};
+
+const toCreateJobBudgetType = (value: AiJobSuggestion['budgetType']): CreateJobRequest['budgetType'] => (
+  value === BudgetType.HOURLY ? 'HOURLY' : 'FIXED'
+);
+
+const toCreateJobSkillLevel = (value: AiJobSuggestion['experienceLevel']): CreateJobRequest['experienceLevel'] => {
+  switch (value) {
+    case SkillLevel.BEGINNER:
+      return 'BEGINNER';
+    case SkillLevel.INTERMEDIATE:
+      return 'INTERMEDIATE';
+    case SkillLevel.EXPERIENCED:
+      return 'ADVANCED';
+    case SkillLevel.EXPERT:
+      return 'EXPERT';
+    default:
+      return null;
+  }
+};
 
 export const PostJobPage = () => {
   // Quản lý các bước tạo Job: PLANNING (Chat với AI) -> DRAFTING (Xem bản nháp) -> REVIEWING (Sửa thủ công) -> MATCHING (Tìm chuyên gia)
@@ -206,9 +235,25 @@ export const PostJobPage = () => {
     }
   });
 
+  const createDraftJobMutation = useMutation({
+    mutationFn: (data: CreateJobRequest) => jobService.createJob(data),
+    onSuccess: (response) => {
+      if (!response.data?.id) {
+        toast.error('Failed to create draft job');
+        return;
+      }
+
+      setJobId(response.data.id);
+      setIsDraftSaved(true);
+    },
+    onError: (error: unknown) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to save draft');
+    }
+  });
+
   const updateDraftJobMutation = useMutation({
-    mutationFn: (payload: {
-      jobId: string;
+    mutationFn: (payload: { 
+      jobId: string; 
       data: {
         title: string;
         finalDescription: string;
@@ -238,12 +283,14 @@ export const PostJobPage = () => {
       initMutation.isPending ||
       refineMutation.isPending ||
       acceptMutation.isPending ||
+      createDraftJobMutation.isPending ||
       patchMutation.isPending ||
       updateDraftJobMutation.isPending;
   }, [
     initMutation.isPending,
     refineMutation.isPending,
     acceptMutation.isPending,
+    createDraftJobMutation.isPending,
     patchMutation.isPending,
     updateDraftJobMutation.isPending,
   ]);
@@ -416,13 +463,52 @@ export const PostJobPage = () => {
       businessDomain: suggestion.businessDomain,
       expectedOutcome: suggestion.expectedOutcome,
       categoryId: suggestion.categoryId ?? null,
-      budgetType: suggestion.budgetType,
+      budgetType: toCreateJobBudgetType(suggestion.budgetType),
       budgetMin: suggestion.suggestedBudgetMin,
       budgetMax: suggestion.suggestedBudgetMax,
       currency: suggestion.currency,
       timelineDays: suggestion.suggestedTimelineDays,
-      experienceLevel: suggestion.experienceLevel,
+      experienceLevel: toCreateJobSkillLevel(suggestion.experienceLevel),
       ...(visibility !== undefined ? { visibility } : {}),
+    };
+  };
+
+  const buildCreateJobRequest = (): CreateJobRequest | null => {
+    if (!suggestion) {
+      return null;
+    }
+
+    if (!suggestion.categoryId) {
+      toast.error('Please select a category before saving the draft.');
+      return null;
+    }
+
+    const currency = suggestion.currency || 'Xu';
+
+    return {
+      title: suggestion.suggestedTitle,
+      originalDescription: suggestion.rawInput || suggestion.suggestedDescription,
+      finalDescription: suggestion.suggestedDescription,
+      businessDomain: suggestion.businessDomain,
+      expectedOutcome: suggestion.expectedOutcome,
+      categoryId: suggestion.categoryId,
+      budgetType: toCreateJobBudgetType(suggestion.budgetType),
+      budgetMin: suggestion.suggestedBudgetMin,
+      budgetMax: suggestion.suggestedBudgetMax,
+      currency,
+      timelineDays: suggestion.suggestedTimelineDays,
+      deadline: getDateAfterDays(suggestion.suggestedTimelineDays),
+      experienceLevel: toCreateJobSkillLevel(suggestion.experienceLevel),
+      visibility: JobVisibility.PRIVATE,
+      skillIds: [],
+      milestones: suggestion.suggestedMilestones.map((milestone, index) => ({
+        title: milestone.title,
+        description: milestone.description,
+        acceptanceCriteria: milestone.acceptanceCriteria,
+        amount: milestone.amount,
+        dueDays: milestone.dueDays,
+        orderIndex: milestone.orderIndex ?? index,
+      })),
     };
   };
 
@@ -454,18 +540,36 @@ export const PostJobPage = () => {
         return;
       }
 
-      await updateDraftJobMutation.mutateAsync({
-        jobId: createdJobId,
-        data: updateData,
-      });
+      try {
+        await updateDraftJobMutation.mutateAsync({
+          jobId: createdJobId,
+          data: updateData,
+        });
+      } catch {
+        return;
+      }
+
       toast.success('Draft saved successfully!');
       return;
     }
 
-    const job = await ensureDraftJob();
-    if (job) {
-      toast.success('Draft saved successfully!');
+    const createData = buildCreateJobRequest();
+    if (!createData) {
+      return;
     }
+
+    let response;
+    try {
+      response = await createDraftJobMutation.mutateAsync(createData);
+    } catch {
+      return;
+    }
+
+    if (!response.data?.id) {
+      return;
+    }
+
+    toast.success('Draft saved successfully!');
   };
 
   const handleAccept = () => {

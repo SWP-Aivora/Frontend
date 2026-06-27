@@ -77,7 +77,7 @@ export const ProposalListCard = ({
         </div>
 
         {/* Proposal Content */}
-        <div className="flex-1 space-y-4">
+        <div className="min-w-0 flex-1 space-y-4">
            <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-1.5 text-slate-700 font-bold bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">
                  <DollarSign className="size-3.5 text-emerald-600" />
@@ -119,9 +119,9 @@ export const ProposalListCard = ({
            {proposal.milestones.length > 0 && (
              <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
                 <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Proposed Milestones ({proposal.milestones.length})</p>
-                <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                    {proposal.milestones.map((m) => (
-                      <div key={m.id} className="min-w-[120px] bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm">
+                      <div key={m.id} className="min-w-0 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm">
                          <p className="text-xs font-bold text-slate-900 truncate">{m.title}</p>
                          <p className="text-xs font-black text-emerald-600 mt-1">${m.amount}</p>
                       </div>
@@ -132,7 +132,7 @@ export const ProposalListCard = ({
         </div>
 
         {/* Actions */}
-        <div className="flex flex-row md:flex-col justify-end md:justify-start gap-2 min-w-[120px] pt-4 md:pt-0">
+        <div className="flex flex-row md:flex-col justify-end md:justify-start gap-2 shrink-0 md:w-[132px] pt-4 md:pt-0">
            {isAccepted ? (
              <div className="flex flex-col gap-2 w-full">
                {detailHref && (

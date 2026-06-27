@@ -15,6 +15,38 @@ import { LinkedMethodsCard } from '../components/LinkedMethodsCard';
 import { EscrowInfoCard } from '../components/EscrowInfoCard';
 import { ErrorBoundary } from '@/shared/components/common';
 
+const toNumber = (value: unknown): number | null => {
+  if (typeof value === 'number' && !isNaN(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    return isNaN(parsed) ? null : parsed;
+  }
+  return null;
+};
+
+const getWalletBalance = (wallet: unknown): number => {
+  if (!wallet || typeof wallet !== 'object') return 0;
+
+  const record = wallet as Record<string, unknown>;
+  const balance = [
+    record.balance,
+    record.availableBalance,
+    record.walletBalance,
+    record.amount,
+    record.coins,
+    record.coin,
+    record.xu,
+  ].map(toNumber).find((value): value is number => value !== null);
+
+  if (balance !== undefined) return balance;
+
+  if (record.wallet && typeof record.wallet === 'object') {
+    return getWalletBalance(record.wallet);
+  }
+
+  return 0;
+};
+
 export const WalletPage = () => {
   const { user } = useAuthStore();
   const isClient = user?.role === Role.CLIENT;
@@ -30,16 +62,17 @@ export const WalletPage = () => {
   });
 
   const { 
-    data: historyResponse, 
-    isLoading: isLoadingHistory, 
-    isError: isHistoryError, 
-    refetch: refetchHistory 
+    data: historyResponse,
+    isLoading: isLoadingHistory,
+    isError: isHistoryError,
+    refetch: refetchHistory,
   } = useQuery({
-    queryKey: ['payments-history'],
+    queryKey: ['wallet-transactions'],
     queryFn: () => walletService.getPaymentHistory(),
   });
 
   const wallet = walletResponse?.data;
+  const walletBalance = getWalletBalance(wallet);
   const transactions = useMemo(() => historyResponse?.data || [], [historyResponse?.data]);
   
   // High #2: Runtime type guard for amount to prevent NaN poison
@@ -48,7 +81,7 @@ export const WalletPage = () => {
     [transactions]
   );
 
-  const isLoading = isLoadingWallet || isLoadingHistory;
+  const isLoading = isLoadingWallet;
 
   const totals = useMemo(() => {
     const spent = validTx
@@ -75,8 +108,8 @@ export const WalletPage = () => {
     );
   }
 
-  // High #1: Error state for failed queries
-  if (isWalletError || isHistoryError) {
+  // High #1: Error state for failed wallet balance query
+  if (isWalletError) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <div className="size-16 rounded-2xl bg-rose-50 flex items-center justify-center mb-4">
@@ -84,7 +117,7 @@ export const WalletPage = () => {
         </div>
         <h3 className="text-2xl font-black text-slate-900">Failed to load wallet data</h3>
         <p className="text-slate-500 font-medium max-w-sm text-center">There was a problem retrieving your financial data. Please try again.</p>
-        <Button onClick={() => { refetchWallet(); refetchHistory(); }} className="rounded-full mt-4">
+        <Button onClick={() => { refetchWallet(); }} className="rounded-full mt-4">
           Retry Connection
         </Button>
       </div>
@@ -106,7 +139,7 @@ export const WalletPage = () => {
            {isClient ? (
              <DepositModal />
            ) : (
-             <WithdrawModal maxBalance={wallet?.balance || 0} />
+             <WithdrawModal maxBalance={walletBalance} />
            )}
         </div>
       </div>
@@ -114,12 +147,12 @@ export const WalletPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
            <WalletBalanceCard 
-             balance={wallet?.balance || 0} 
+             balance={walletBalance} 
              inEscrow={totals.inEscrow}
              totalStats={isClient ? totals.spent : totals.earned}
              isClient={isClient}
            />
-           <SpendingChart />
+           <SpendingChart transactions={validTx} isClient={isClient} />
         </div>
 
         <div className="space-y-6">
@@ -143,17 +176,28 @@ export const WalletPage = () => {
 
          {/* High #3 & Leader #1: ErrorBoundary wrapping the data-heavy section */}
          <div className="bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm">
+            {isHistoryError && (
+              <div className="border-b border-amber-100 bg-amber-50/60 px-6 py-4 text-sm font-semibold text-amber-700">
+                Payment history is temporarily unavailable. Your wallet balance is still shown above.
+              </div>
+            )}
             <ErrorBoundary fallback={
               <div className="p-12 text-center border-y border-rose-100 bg-rose-50/30 text-rose-600">
                 <p className="font-bold mb-2">Failed to load transaction table</p>
                 <p className="text-sm opacity-80">Some transaction data might be corrupted. Try refreshing or contact support.</p>
               </div>
             }>
-              <TransactionTable transactions={validTx} />
+              {isLoadingHistory ? (
+                <div className="px-8 py-10 text-center text-slate-400 font-medium">
+                  Loading transactions...
+                </div>
+              ) : (
+                <TransactionTable transactions={validTx} />
+              )}
             </ErrorBoundary>
             
             <div className="p-6 border-t border-slate-50 text-center">
-               <button className="text-xs font-black text-primary hover:underline uppercase tracking-widest transition-colors">Load full history</button>
+               <button onClick={() => refetchHistory()} className="text-xs font-black text-primary hover:underline uppercase tracking-widest transition-colors">Load full history</button>
             </div>
          </div>
       </div>

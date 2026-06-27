@@ -2,8 +2,10 @@ import { useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { withdrawSchema } from '../schema';
+import { walletService } from '../services';
 
 interface WithdrawModalProps {
   maxBalance: number;
@@ -12,6 +14,24 @@ interface WithdrawModalProps {
 export const WithdrawModal = ({ maxBalance }: WithdrawModalProps) => {
   const [open, setOpen] = useState(false);
   const [amountStr, setAmountStr] = useState<string>('500');
+  const queryClient = useQueryClient();
+
+  const withdrawMutation = useMutation({
+    mutationFn: (amt: number) => walletService.withdraw({
+      amount: amt,
+      description: 'Wallet withdrawal',
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wallet'] });
+      queryClient.invalidateQueries({ queryKey: ['wallet-transactions'] });
+      toast.success('Withdrawal request submitted successfully.');
+      setOpen(false);
+      setAmountStr('500');
+    },
+    onError: (error: Error) => {
+      toast.error(error?.message || 'Failed to request withdrawal. Please try again.');
+    },
+  });
 
   const confirmWithdraw = () => {
     const result = withdrawSchema.safeParse({ amount: amountStr });
@@ -25,10 +45,7 @@ export const WithdrawModal = ({ maxBalance }: WithdrawModalProps) => {
       return;
     }
 
-    // Mocking the withdrawal since there is no API endpoint for it yet
-    toast.info('Demo mode: no real transaction. Withdrawal API not yet implemented.');
-    setOpen(false);
-    setAmountStr('500');
+    withdrawMutation.mutate(result.data.amount);
   };
 
   const isInvalid = amountStr.trim() === '' || isNaN(Number(amountStr)) || Number(amountStr) <= 0 || Number(amountStr) > maxBalance;
@@ -37,9 +54,9 @@ export const WithdrawModal = ({ maxBalance }: WithdrawModalProps) => {
     <Dialog.Root open={open} onOpenChange={(o: boolean) => {
       setOpen(o);
       if (!o) setAmountStr('500');
-    }}>
+      }}>
       <Dialog.Trigger asChild>
-        <Button className="rounded-full px-6 bg-brand-accent hover:bg-brand-accent/90 shadow-lg shadow-brand-accent/20 font-bold">
+        <Button disabled={withdrawMutation.isPending} className="rounded-full px-6 bg-brand-accent hover:bg-brand-accent/90 shadow-lg shadow-brand-accent/20 font-bold">
           Withdraw Earnings
         </Button>
       </Dialog.Trigger>
@@ -84,10 +101,10 @@ export const WithdrawModal = ({ maxBalance }: WithdrawModalProps) => {
             </Dialog.Close>
             <Button 
               onClick={confirmWithdraw} 
-              disabled={isInvalid}
+              disabled={withdrawMutation.isPending || isInvalid}
               className="rounded-full shadow-lg shadow-brand-accent/20 font-black bg-brand-accent hover:bg-brand-accent/90"
             >
-              Request Withdrawal
+              {withdrawMutation.isPending ? 'Processing...' : 'Request Withdrawal'}
             </Button>
           </div>
         </Dialog.Content>

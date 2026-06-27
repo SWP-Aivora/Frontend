@@ -33,6 +33,37 @@ export interface Job {
   milestones?: AcceptedJobMilestone[];
 }
 
+export interface CreateJobMilestoneRequest {
+  title: string;
+  description?: string | null;
+  acceptanceCriteria?: string | null;
+  amount: number;
+  dueDays: number;
+  orderIndex: number;
+}
+
+export type CreateJobBudgetType = 'FIXED' | 'HOURLY';
+export type CreateJobSkillLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'EXPERT';
+
+export interface CreateJobRequest {
+  title: string;
+  originalDescription: string;
+  finalDescription?: string | null;
+  businessDomain?: string | null;
+  expectedOutcome?: string | null;
+  categoryId: string;
+  budgetType: CreateJobBudgetType;
+  budgetMin?: number | null;
+  budgetMax?: number | null;
+  currency?: string | null;
+  timelineDays?: number | null;
+  deadline?: string | null;
+  experienceLevel?: CreateJobSkillLevel | null;
+  visibility: number;
+  skillIds: string[];
+  milestones: CreateJobMilestoneRequest[];
+}
+
 
 // AI Job Assistant Types
 export const AiJobAssistantStatus = {

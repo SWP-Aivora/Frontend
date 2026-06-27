@@ -35,4 +35,17 @@ export interface Transaction {
 
 export interface DepositRequest {
   amount: number;
+  paymentMethod?: string | null;
+  paymentToken?: string | null;
+  description?: string | null;
+}
+
+export interface VnPayDepositRequest {
+  amount: number;
+}
+
+export interface WithdrawRequest {
+  amount: number;
+  description?: string | null;
+  paymentMethod?: string | null;
 }

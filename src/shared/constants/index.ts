@@ -29,8 +29,11 @@ export const API_ENDPOINTS = {
   },
   WALLET: {
     ME: 'wallet/me',
-    HISTORY: 'payments/history',
-    DEPOSIT_DEMO: 'wallet/deposit-demo',
+    TRANSACTIONS: 'wallet/transactions',
+    PAYMENT_HISTORY: 'payments/history',
+    DEPOSIT: 'wallet/deposit',
+    VNPAY_DEPOSIT: 'wallet/vnpay/deposit',
+    WITHDRAW: 'wallet/withdraw',
   },
   PROFILES: {
     CLIENT: 'profiles/client',
