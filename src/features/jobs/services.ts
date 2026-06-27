@@ -2,6 +2,7 @@
 import apiClient from '@/lib/axios';
 import type {
   Job,
+  CreateJobRequest,
   AiJobSuggestion,
   ExpertMatch,
   PatchAiJobSuggestionRequest,
@@ -96,8 +97,18 @@ export const jobService = {
     };
   },
 
+  // Create job
+  createJob: async (data: CreateJobRequest): Promise<BaseResponse<Job>> => {
+    const response = await apiClient.post('/jobs', data);
+    const normalized = normalizeBaseResponse<Job>(response);
+    return {
+      ...normalized,
+      data: normalized.data ? normalizeJob(normalized.data) : null,
+    };
+  },
+
   // Update job
-  updateJob: async (id: string, data: Partial<Job>): Promise<BaseResponse<Job>> => {
+  updateJob: async (id: string, data: Record<string, unknown>): Promise<BaseResponse<Job>> => {
     const response = await apiClient.put(`/jobs/${id}`, data);
     const normalized = normalizeBaseResponse<Job>(response);
     return {
