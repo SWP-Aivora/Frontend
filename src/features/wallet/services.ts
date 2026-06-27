@@ -50,7 +50,20 @@ const normalizeTransactionStatus = (value: unknown): Transaction['status'] => {
   return TransactionStatus.PENDING;
 };
 
-const mapHistoryItemToTransaction = (item: unknown): Transaction | null => {
+const buildFallbackTransactionId = (
+  item: Record<string, unknown>,
+  amount: number,
+  index: number
+): string => [
+  item.createdAt ?? item.paidAt ?? item.paymentDate ?? item.transactionDate ?? item.date ?? 'unknown-date',
+  item.amount ?? item.totalAmount ?? item.paymentAmount ?? item.value ?? amount,
+  item.type ?? item.paymentType ?? item.transactionType ?? 'unknown-type',
+  item.status ?? item.paymentStatus ?? 'unknown-status',
+  item.walletId ?? item.orderId ?? item.referenceId ?? item.milestoneId ?? item.paymentMethod ?? 'unknown-reference',
+  index,
+].map(value => String(value).trim() || 'unknown').join('-');
+
+const mapHistoryItemToTransaction = (item: unknown, index: number): Transaction | null => {
   if (!isRecord(item)) return null;
 
   const amount = [
@@ -63,7 +76,7 @@ const mapHistoryItemToTransaction = (item: unknown): Transaction | null => {
   if (amount === undefined) return null;
 
   return {
-    id: toStringValue(item.id) ?? toStringValue(item.paymentId) ?? toStringValue(item.transactionId) ?? `${item.createdAt ?? item.paidAt ?? amount}`,
+    id: toStringValue(item.id) ?? toStringValue(item.paymentId) ?? toStringValue(item.transactionId) ?? buildFallbackTransactionId(item, amount, index),
     walletId: toStringValue(item.walletId) ?? '',
     amount,
     type: normalizeTransactionType(item.type ?? item.paymentType ?? item.transactionType),
@@ -106,7 +119,7 @@ export const walletService = {
     const normalized = normalizePaginatedResponse<unknown>(response);
     return {
       ...normalized,
-      data: (normalized.data ?? []).map(mapHistoryItemToTransaction).filter((item): item is Transaction => item !== null),
+      data: (normalized.data ?? []).map((item, index) => mapHistoryItemToTransaction(item, index)).filter((item): item is Transaction => item !== null),
     };
   },
 };

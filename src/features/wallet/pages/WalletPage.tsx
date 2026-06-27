@@ -64,6 +64,7 @@ export const WalletPage = () => {
   const { 
     data: historyResponse,
     isLoading: isLoadingHistory,
+    isFetching: isFetchingHistory,
     isError: isHistoryError,
     refetch: refetchHistory,
   } = useQuery({
@@ -195,9 +196,20 @@ export const WalletPage = () => {
                 <TransactionTable transactions={validTx} />
               )}
             </ErrorBoundary>
+            {isFetchingHistory && !isLoadingHistory && (
+              <div className="px-6 pb-4 text-center text-xs font-bold uppercase tracking-widest text-slate-400">
+                Refreshing transactions...
+              </div>
+            )}
             
             <div className="p-6 border-t border-slate-50 text-center">
-               <button onClick={() => refetchHistory()} className="text-xs font-black text-primary hover:underline uppercase tracking-widest transition-colors">Load full history</button>
+               <button
+                 onClick={() => refetchHistory()}
+                 disabled={isFetchingHistory}
+                 className="text-xs font-black text-primary hover:underline uppercase tracking-widest transition-colors disabled:cursor-not-allowed disabled:text-slate-300 disabled:no-underline"
+               >
+                 {isFetchingHistory ? 'Loading history...' : 'Load full history'}
+               </button>
             </div>
          </div>
       </div>
