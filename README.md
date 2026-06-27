@@ -30,3 +30,5 @@ Chạy kiểm tra linter:
 ```bash
 npm run lint
 ```
+
+> **Lưu ý:** Đây là dòng được thêm để test workflow CI/CD.
