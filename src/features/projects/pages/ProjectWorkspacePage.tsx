@@ -26,7 +26,63 @@ import { ProjectDisputeStatusBadge } from '../components/ProjectDisputeStatusBad
 import { getDefaultNonDisputeProjectStatus, isProjectDisputed } from '../utils';
 import { useProjectMilestones } from '../hooks/useProjectMilestones';
 import { chatService } from '@/features/chat/services';
+import { walletService } from '@/features/wallet/services';
 import { toast } from 'sonner';
+
+const toNumber = (value: unknown): number | null => {
+  if (typeof value === 'number' && !isNaN(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    return isNaN(parsed) ? null : parsed;
+  }
+  return null;
+};
+
+const getWalletBalance = (wallet: unknown): number => {
+  if (!wallet || typeof wallet !== 'object') return 0;
+
+  const record = wallet as Record<string, unknown>;
+  const balance = [
+    record.balance,
+    record.availableBalance,
+    record.walletBalance,
+    record.amount,
+    record.coins,
+    record.coin,
+    record.xu,
+  ].map(toNumber).find((value): value is number => value !== null);
+
+  if (balance !== undefined) return balance;
+
+  if (record.wallet && typeof record.wallet === 'object') {
+    return getWalletBalance(record.wallet);
+  }
+
+  return 0;
+};
+
+const getApiErrorMessage = (error: unknown, fallback: string): string => {
+  if (typeof error === 'object' && error !== null && 'response' in error) {
+    const response = (error as { response?: { data?: unknown; status?: number } }).response;
+    const data = response?.data;
+
+    if (typeof data === 'string' && data.trim() !== '') return data;
+
+    if (data && typeof data === 'object') {
+      const record = data as Record<string, unknown>;
+      const message = [record.message, record.detail, record.title, record.error]
+        .find((value): value is string => typeof value === 'string' && value.trim() !== '');
+
+      if (message) return message;
+    }
+
+    if (response?.status === 500) {
+      return 'The server failed while funding this milestone. Please check the backend log for this request.';
+    }
+  }
+
+  return error instanceof Error ? error.message : fallback;
+};
 
 export const ProjectWorkspacePage = () => {
   const { id } = useParams();
@@ -51,7 +107,15 @@ export const ProjectWorkspacePage = () => {
     retry: false,
   });
 
+  const { data: walletResponse, isLoading: isLoadingWallet } = useQuery({
+    queryKey: ['wallet'],
+    queryFn: () => walletService.getWallet(),
+    enabled: user?.role === Role.CLIENT,
+    retry: false,
+  });
+
   const project = projectResponse?.data ?? fallbackProjectsResponse?.data?.find((item) => item.id === id);
+  const walletBalance = getWalletBalance(walletResponse?.data);
   const { data: milestonesResponse, isLoading: isLoadingMilestones } = useProjectMilestones(id || '');
   const projectMilestones = project?.milestones ?? [];
   const milestones = milestonesResponse?.success === false
@@ -139,6 +203,19 @@ export const ProjectWorkspacePage = () => {
       queryClient.invalidateQueries({ queryKey: ['project', id, 'milestones'] });
       setSelectedMilestone(null);
     }
+  });
+
+  const fundMutation = useMutation({
+    mutationFn: () => projectService.fundMilestone(selectedMilestone!.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
+      queryClient.invalidateQueries({ queryKey: ['project', id, 'milestones'] });
+      toast.success('Milestone funded successfully.');
+      setSelectedMilestone(null);
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Failed to fund milestone.'));
+    },
   });
 
   const revisionMutation = useMutation({
@@ -231,6 +308,23 @@ export const ProjectWorkspacePage = () => {
   });
 
   const handleMilestoneClick = (milestone: Milestone) => setSelectedMilestone(milestone);
+
+  const handleFundMilestone = () => {
+    if (!selectedMilestone) return;
+
+    if (!selectedMilestone.id) {
+      toast.error('Cannot fund this milestone because its id is missing.');
+      return;
+    }
+
+    const amount = Number(selectedMilestone.amount ?? 0);
+    if (walletBalance < amount) {
+      toast.error(`Insufficient wallet balance. Please deposit at least ${(amount - walletBalance).toLocaleString()} Xu more.`);
+      return;
+    }
+
+    fundMutation.mutate();
+  };
 
   const getStatusLabel = (status: ProjectStatus) => {
     switch (status) {
@@ -602,8 +696,12 @@ export const ProjectWorkspacePage = () => {
               {/* Action Buttons based on status and role */}
               <div className="pt-8 border-t border-slate-100 space-y-3">
                  {selectedMilestone.status === MilestoneStatus.PENDING && user?.role === Role.CLIENT && (
-                   <Button className="w-full h-14 rounded-full font-black text-base shadow-xl shadow-primary/20">
-                      Fund Milestone
+                   <Button
+                     onClick={handleFundMilestone}
+                     disabled={fundMutation.isPending || isLoadingWallet}
+                     className="w-full h-14 rounded-full font-black text-base shadow-xl shadow-primary/20"
+                   >
+                      {fundMutation.isPending ? 'Funding...' : isLoadingWallet ? 'Checking Wallet...' : 'Fund Milestone'}
                    </Button>
                  )}
                  {([MilestoneStatus.FUNDED, MilestoneStatus.IN_PROGRESS, MilestoneStatus.REVISION_REQUESTED] as MilestoneStatus[]).includes(selectedMilestone.status) && user?.role === Role.EXPERT && (

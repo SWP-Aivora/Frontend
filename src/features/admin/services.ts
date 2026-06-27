@@ -542,7 +542,7 @@ export const adminService = {
       apiClient.get<unknown>(API_ENDPOINTS.DISPUTES.BASE, { params: { PageSize: 50 } }),
       apiClient.get<unknown>(API_ENDPOINTS.ADMIN.USERS, { params: { PageSize: 50 } }),
       apiClient.get<unknown>(API_ENDPOINTS.ADMIN.EXPERT_REVIEWS, { params: { PageSize: 50 } }),
-      apiClient.get<unknown>(API_ENDPOINTS.WALLET.HISTORY, { params: { PageSize: 50 } })
+      apiClient.get<unknown>(API_ENDPOINTS.WALLET.PAYMENT_HISTORY, { params: { PageSize: 50 } })
     ]);
 
     const statsData = getSettledBaseData(results[0], isMutableRecord);

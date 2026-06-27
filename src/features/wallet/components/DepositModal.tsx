@@ -7,22 +7,48 @@ import { walletService } from '../services';
 import { toast } from 'sonner';
 import { depositSchema } from '../schema';
 
+const getDepositRedirectUrl = (data: unknown): string | null => {
+  if (typeof data === 'string') return data.trim() || null;
+  if (!data || typeof data !== 'object') return null;
+
+  const record = data as Record<string, unknown>;
+  const candidates = [
+    record.paymentUrl,
+    record.paymentURL,
+    record.url,
+    record.redirectUrl,
+    record.redirectURL,
+    record.checkoutUrl,
+    record.checkoutURL,
+    record.vnpayUrl,
+    record.vnPayUrl,
+  ];
+
+  return candidates.find((value): value is string => typeof value === 'string' && value.trim() !== '') ?? null;
+};
+
 export const DepositModal = () => {
   const [open, setOpen] = useState(false);
   const [amountStr, setAmountStr] = useState<string>('1000');
   const queryClient = useQueryClient();
 
   const depositMutation = useMutation({
-    mutationFn: (amt: number) => walletService.depositDemo({ amount: amt }),
-    onSuccess: () => {
+    mutationFn: (amt: number) => walletService.createVnPayDeposit({ amount: amt }),
+    onSuccess: response => {
+      const redirectUrl = getDepositRedirectUrl(response.data);
       queryClient.invalidateQueries({ queryKey: ['wallet'] });
-      queryClient.invalidateQueries({ queryKey: ['payments-history'] });
-      toast.success('Successfully deposited funds!');
+      queryClient.invalidateQueries({ queryKey: ['wallet-transactions'] });
       setOpen(false);
       setAmountStr('1000');
+
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
+        return;
+      }
+
+      toast.success('Deposit request created successfully.');
     },
     onError: (error: Error) => {
-      console.error('Deposit error:', error);
       toast.error(error?.message || 'Failed to deposit funds. Please try again.');
     },
   });

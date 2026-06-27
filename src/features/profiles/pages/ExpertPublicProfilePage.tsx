@@ -450,9 +450,6 @@ export const ExpertPublicProfilePage = () => {
                 Select an existing project or start a chat to align on scope, budget, and requirements.
               </p>
               <div className="space-y-3">
-                <Button className="w-full rounded-xl shadow-sm bg-brand-primary hover:bg-brand-primary/95 text-white font-bold h-11 text-sm transition-all duration-300">
-                  Invite to Project
-                </Button>
                 <Button 
                   variant="outline" 
                   className="w-full rounded-xl border-blue-200 text-brand-primary hover:bg-blue-50/50 font-bold h-11 text-sm transition-all duration-300"
