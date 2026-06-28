@@ -129,6 +129,11 @@ export const proposalService = {
     return normalizeBaseResponse<void>(response);
   },
 
+  unshortlistProposal: async (proposalId: string): Promise<BaseResponse<void>> => {
+    const response = await apiClient.post(API_ENDPOINTS.PROPOSALS.UNSHORTLIST(proposalId));
+    return normalizeBaseResponse<void>(response);
+  },
+
   getMyProposals: async (): Promise<PaginatedResponse<Proposal>> => {
     const response = await apiClient.get(API_ENDPOINTS.PROPOSALS.ME);
     const normalized = normalizePaginatedResponse<ProposalApiRecord>(response);

@@ -7,17 +7,36 @@ import { Button, Input, Textarea } from '@/shared/components/ui';
 import { useProjects } from '@/features/projects/hooks/useProjects';
 import { useProjectMilestones } from '@/features/projects/hooks/useProjectMilestones';
 import type { Project, Milestone } from '@/features/projects/types';
+import { MilestoneStatus } from '@/shared/types/enums';
 import { toast } from 'sonner';
 import { sanitizeDisputeError } from '../utils';
 import { openDisputeSchema, type OpenDisputeFormData } from '../schema';
+
+const nonDisputableMilestoneStatuses = new Set<MilestoneStatus>([
+  MilestoneStatus.COMPLETED,
+  MilestoneStatus.RELEASED,
+  MilestoneStatus.REFUNDED,
+]);
+
+const isCompletedMilestone = (milestone?: Milestone): boolean => (
+  Boolean(milestone && nonDisputableMilestoneStatuses.has(milestone.status))
+);
 
 interface CreateDisputeModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  initialProjectId?: string;
+  lockProjectSelection?: boolean;
 }
 
-export const CreateDisputeModal: React.FC<CreateDisputeModalProps> = ({ isOpen, onClose, onSuccess }) => {
+export const CreateDisputeModal: React.FC<CreateDisputeModalProps> = ({
+  isOpen,
+  onClose,
+  onSuccess,
+  initialProjectId = '',
+  lockProjectSelection = false,
+}) => {
   const openDisputeMutation = useOpenDispute();
   const isSubmitting = openDisputeMutation.isPending;
 
@@ -41,6 +60,13 @@ export const CreateDisputeModal: React.FC<CreateDisputeModalProps> = ({ isOpen, 
 
   const selectedProjectId = watch('projectId');
 
+  React.useEffect(() => {
+    if (!isOpen || !initialProjectId) return;
+
+    setValue('projectId', initialProjectId, { shouldValidate: true });
+    setValue('milestoneId', '');
+  }, [initialProjectId, isOpen, setValue]);
+
   const { data: projectsResponse, isLoading: isLoadingProjects } = useProjects({ PageSize: 50 });
   const projects = projectsResponse?.data || [];
   
@@ -50,6 +76,12 @@ export const CreateDisputeModal: React.FC<CreateDisputeModalProps> = ({ isOpen, 
   const onSubmit = (data: OpenDisputeFormData) => {
     // Hard guard against duplicate submission
     if (isSubmitting) return;
+
+    const selectedMilestone = milestones.find(milestone => milestone.id === data.milestoneId);
+    if (isCompletedMilestone(selectedMilestone)) {
+      toast.error('This milestone is already completed, so a dispute cannot be opened for it.');
+      return;
+    }
 
     openDisputeMutation.mutate(
       {
@@ -104,10 +136,12 @@ export const CreateDisputeModal: React.FC<CreateDisputeModalProps> = ({ isOpen, 
               id="project-select"
               {...register('projectId')}
               onChange={(e) => {
+                if (lockProjectSelection) return;
                 setValue('projectId', e.target.value);
                 setValue('milestoneId', '');
               }}
-              className={`w-full h-10 px-3 py-2 bg-slate-50 border ${errors.projectId ? 'border-rose-500' : 'border-slate-200'} rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50`}
+              aria-disabled={lockProjectSelection}
+              className={`w-full h-10 px-3 py-2 bg-slate-50 border ${errors.projectId ? 'border-rose-500' : 'border-slate-200'} rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 ${lockProjectSelection ? 'pointer-events-none opacity-70' : ''}`}
               disabled={isSubmitting || isLoadingProjects}
             >
               <option value="" disabled>Select a project...</option>
@@ -146,7 +180,7 @@ export const CreateDisputeModal: React.FC<CreateDisputeModalProps> = ({ isOpen, 
               ) : (
                 milestones.map((milestone: Milestone) => (
                   <option key={milestone.id} value={milestone.id}>
-                    {milestone.title} - {milestone.amount} Aivora Coin
+                    {milestone.title} - {milestone.amount} Aivora Coin{isCompletedMilestone(milestone) ? ' - Completed' : ''}
                   </option>
                 ))
               )}
