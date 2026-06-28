@@ -10,10 +10,8 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Role } from '@/shared/types/enums';
 import { cn } from '@/lib/utils';
-
-const ASSETS = {
-  iconCircle: "https://www.figma.com/api/mcp/asset/fcaaabae-fe9a-4782-9a0c-33099504df26",
-};
+import { PolicyDialog } from './PolicyDialog';
+import { LockKeyhole, Mail, ShieldCheck, User } from 'lucide-react';
 
 interface RegisterFormProps {
   selectedRole: typeof Role.CLIENT | typeof Role.EXPERT;
@@ -64,10 +62,7 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
         <div className="space-y-2">
           <label htmlFor="fullName" className="text-sm font-bold text-slate-700 ml-1">Full Name</label>
           <div className="relative group">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 size-7 pointer-events-none">
-              <img src={ASSETS.iconCircle} alt="" className="size-full opacity-80 group-focus-within:opacity-100 transition-opacity" />
-              <span className="absolute inset-0 flex items-center justify-center font-bold text-primary text-xs">FN</span>
-            </div>
+            <User className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
             <Input 
               id="fullName"
               placeholder="Enter your full name" 
@@ -85,10 +80,7 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
         <div className="space-y-2">
           <label htmlFor="email" className="text-sm font-bold text-slate-700 ml-1">Email Address</label>
           <div className="relative group">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 size-7 pointer-events-none">
-              <img src={ASSETS.iconCircle} alt="" className="size-full opacity-80 group-focus-within:opacity-100 transition-opacity" />
-              <span className="absolute inset-0 flex items-center justify-center font-bold text-primary text-xs">@</span>
-            </div>
+            <Mail className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
             <Input 
               id="email"
               type="email" 
@@ -109,10 +101,7 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
         <div className="space-y-2">
           <label htmlFor="password" className="text-sm font-bold text-slate-700 ml-1">Password</label>
           <div className="relative group">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 size-7 pointer-events-none">
-              <img src={ASSETS.iconCircle} alt="" className="size-full opacity-80 group-focus-within:opacity-100 transition-opacity" />
-              <span className="absolute inset-0 flex items-center justify-center font-bold text-primary text-xs tracking-tighter">**</span>
-            </div>
+            <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
             <Input 
               id="password"
               type="password" 
@@ -131,10 +120,7 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
         <div className="space-y-2">
           <label htmlFor="confirmPassword" className="text-sm font-bold text-slate-700 ml-1">Confirm Password</label>
           <div className="relative group">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 size-7 pointer-events-none">
-              <img src={ASSETS.iconCircle} alt="" className="size-full opacity-80 group-focus-within:opacity-100 transition-opacity" />
-              <span className="absolute inset-0 flex items-center justify-center font-bold text-primary text-xs tracking-tighter">**</span>
-            </div>
+            <ShieldCheck className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
             <Input 
               id="confirmPassword"
               type="password" 
@@ -163,7 +149,21 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
           </div>
         </label>
         <div className="space-y-0.5">
-           <p className="text-[13px] font-bold text-slate-700">I agree to the Terms of Service and Privacy Policy.</p>
+           <p className="text-[13px] font-bold text-slate-700">
+             I agree to the{' '}
+             <PolicyDialog type="terms">
+               <button type="button" className="text-primary underline underline-offset-4 transition-colors hover:text-primary/80">
+                 Terms of Service
+               </button>
+             </PolicyDialog>
+             {' '}and{' '}
+             <PolicyDialog type="privacy">
+               <button type="button" className="text-primary underline underline-offset-4 transition-colors hover:text-primary/80">
+                 Privacy Policy
+               </button>
+             </PolicyDialog>
+             .
+           </p>
            <p className="text-xs font-medium text-slate-400">Use the service responsibly and follow AIVORA platform policies.</p>
         </div>
       </div>
