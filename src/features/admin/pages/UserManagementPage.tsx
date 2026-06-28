@@ -4,6 +4,7 @@ import { useAdminUsers } from '../hooks/useAdminUsers';
 import { useAdminDashboard } from '../hooks/useAdminDashboard';
 import { AdminPageTitle } from '../components/AdminPageTitle';
 import { MetricsSummaryCard } from '../components/MetricsSummaryCard';
+import { parseAdminApiDate } from '../utils/date';
 import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
 import { cn } from '@/lib/utils';
 import { 
@@ -27,23 +28,12 @@ const formatStatusLabel = (status: string) => {
   const normalized = normalizeStatus(status);
   return normalized.charAt(0) + normalized.slice(1).toLowerCase();
 };
-const parseApiDate = (value?: string | null) => {
-  if (!value) return null;
-
-  const directDate = new Date(value);
-  if (!Number.isNaN(directDate.getTime())) {
-    return directDate;
-  }
-
-  const isoLikeDate = new Date(value.replace(' ', 'T'));
-  return Number.isNaN(isoLikeDate.getTime()) ? null : isoLikeDate;
-};
 const formatDate = (value?: string | null) => {
-  const date = parseApiDate(value);
+  const date = parseAdminApiDate(value);
   return date ? date.toLocaleDateString() : 'Not provided';
 };
 const formatDateTime = (value?: string | null) => {
-  const date = parseApiDate(value);
+  const date = parseAdminApiDate(value);
   return date ? date.toLocaleString() : 'Not provided';
 };
 
@@ -99,8 +89,8 @@ export const UserManagementPage = () => {
       
       if (aActive !== bActive) return bActive - aActive; // Active (1) before others (0)
 
-      const aDate = parseApiDate(a.updatedAt || a.createdAt)?.getTime() ?? 0;
-      const bDate = parseApiDate(b.updatedAt || b.createdAt)?.getTime() ?? 0;
+      const aDate = parseAdminApiDate(a.updatedAt || a.createdAt)?.getTime() ?? 0;
+      const bDate = parseAdminApiDate(b.updatedAt || b.createdAt)?.getTime() ?? 0;
       return bDate - aDate;
     });
   }, [usersData?.users, roleFilter, statusFilter, searchTerm]);

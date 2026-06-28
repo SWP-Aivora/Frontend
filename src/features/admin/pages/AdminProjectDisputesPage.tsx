@@ -174,22 +174,26 @@ export const AdminProjectDisputesPage = () => {
     [allReturnedDisputes, resolvedProjectId]
   );
 
+  const detailQueryOptions = useMemo(() => projectDisputes.map(dispute => ({
+    queryKey: ['dispute', dispute.id],
+    queryFn: () => disputeService.getDisputeById(dispute.id),
+    enabled: Boolean(dispute.id),
+    retry: false,
+  })), [projectDisputes]);
+
   const detailQueries = useQueries({
-    queries: projectDisputes.map(dispute => ({
-      queryKey: ['dispute', dispute.id],
-      queryFn: () => disputeService.getDisputeById(dispute.id),
-      enabled: Boolean(dispute.id),
-      retry: false,
-    })),
+    queries: detailQueryOptions,
   });
 
+  const evidenceQueryOptions = useMemo(() => projectDisputes.map(dispute => ({
+    queryKey: ['dispute', dispute.id, 'evidence'],
+    queryFn: () => disputeService.getEvidence(dispute.id),
+    enabled: Boolean(dispute.id),
+    retry: false,
+  })), [projectDisputes]);
+
   const evidenceQueries = useQueries({
-    queries: projectDisputes.map(dispute => ({
-      queryKey: ['dispute', dispute.id, 'evidence'],
-      queryFn: () => disputeService.getEvidence(dispute.id),
-      enabled: Boolean(dispute.id),
-      retry: false,
-    })),
+    queries: evidenceQueryOptions,
   });
 
   const disputes = useMemo<Dispute[]>(() => (

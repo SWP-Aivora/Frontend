@@ -19,6 +19,7 @@ import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
 import { normalizeBaseResponse, normalizePaginatedResponse } from '@/lib/api-utils';
 import type { AxiosResponse } from 'axios';
 import { isProjectDisputed } from '@/features/projects/utils';
+import { parseAdminApiDate } from './utils/date';
 
 interface DashboardSummaryParams {
   projectPage?: number;
@@ -201,26 +202,6 @@ const getSettledBaseData = <T>(
 const getDateInput = (source: AdminRecord, ...keys: string[]): string | number | Date | undefined => {
   const value = getValue(source, ...keys);
   return typeof value === 'string' || typeof value === 'number' || value instanceof Date ? value : undefined;
-};
-
-const parseApiDate = (value: string | number | Date): Date => {
-  if (value instanceof Date) {
-    return value;
-  }
-
-  const directDate = new Date(value);
-  if (!Number.isNaN(directDate.getTime())) {
-    return directDate;
-  }
-
-  if (typeof value === 'string') {
-    const isoLikeDate = new Date(value.replace(' ', 'T'));
-    if (!Number.isNaN(isoLikeDate.getTime())) {
-      return isoLikeDate;
-    }
-  }
-
-  return new Date(Number.NaN);
 };
 
 const getStringOrNumberValue = (value: unknown, fallback: string | number): string | number => (
@@ -446,8 +427,8 @@ export const countNewToday = (items: AdminRecord[], dateFields: string | string[
       .find((value) => value !== undefined);
     if (!dateValue) return false;
     
-    const date = parseApiDate(dateValue);
-    return !isNaN(date.getTime()) && date >= todayStart && date < tomorrowStart;
+    const date = parseAdminApiDate(dateValue);
+    return Boolean(date && date >= todayStart && date < tomorrowStart);
   }).length;
 };
 

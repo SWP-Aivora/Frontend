@@ -9,6 +9,7 @@ import {
   countNewToday, 
   formatActivityDate 
 } from '../../../features/admin/services';
+import { parseAdminApiDate } from '../../../features/admin/utils/date';
 import apiClient from '../../../lib/axios';
 
 vi.mock('../../../lib/axios');
@@ -222,6 +223,20 @@ describe('adminService helpers', () => {
 
     it('returns 0 for empty array', () => {
       expect(countNewToday([], 'createdAt')).toBe(0);
+    });
+  });
+
+  describe('parseAdminApiDate', () => {
+    it('parses ISO and SQL-like backend timestamps with timezone offsets', () => {
+      expect(parseAdminApiDate('2026-06-28T09:09:07.475Z')?.toISOString()).toBe('2026-06-28T09:09:07.475Z');
+      expect(parseAdminApiDate('2026-06-28 16:09:07.475 +0700')?.toISOString()).toBe('2026-06-28T09:09:07.475Z');
+      expect(parseAdminApiDate('2026-06-28 16:09:07.475 +07:00')?.toISOString()).toBe('2026-06-28T09:09:07.475Z');
+    });
+
+    it('returns null for unsupported or empty date values', () => {
+      expect(parseAdminApiDate('')).toBeNull();
+      expect(parseAdminApiDate('not-a-date')).toBeNull();
+      expect(parseAdminApiDate(null)).toBeNull();
     });
   });
 
