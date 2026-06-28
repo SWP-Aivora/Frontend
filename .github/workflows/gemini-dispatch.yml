@@ -35,21 +35,6 @@ jobs:
           env | grep '^DEBUG_'
 
   dispatch:
-    # Trigger on PR opened (if not from fork) or comments starting with '@gemini-cli /review' on PRs by Owner/Member/Collaborator
-    if: |-
-      (
-        github.event_name == 'pull_request' &&
-        github.event.action == 'opened' &&
-        github.event.pull_request.head.repo.fork == false
-      ) || (
-        github.event.sender.type == 'User' &&
-        (github.event.issue.pull_request || github.event.pull_request) &&
-        (
-          startsWith(github.event.comment.body || '', '@gemini-cli /review') ||
-          startsWith(github.event.review.body || '', '@gemini-cli /review')
-        ) &&
-        contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association || github.event.review.author_association)
-      )
     runs-on: 'ubuntu-latest'
     permissions:
       contents: 'read'
@@ -76,22 +61,38 @@ jobs:
       - name: 'Extract command'
         id: 'extract_command'
         uses: 'actions/github-script@v7'
-        env:
-          EVENT_TYPE: '${{ github.event_name }}.${{ github.event.action }}'
-          REQUEST: '${{ github.event.comment.body || github.event.review.body }}'
         with:
           script: |
-            const eventType = process.env.EVENT_TYPE;
-            const request = process.env.REQUEST || '';
-            core.setOutput('request', request);
+            const event = context.payload;
+            const eventName = context.eventName;
+            const action = event.action || '';
+            const senderType = event.sender ? event.sender.type : '';
+            const authorAssociation = event.comment?.author_association || event.review?.author_association || '';
+            const request = event.comment?.body || event.review?.body || '';
 
-            if (eventType === 'pull_request.opened' || request.startsWith("@gemini-cli /review")) {
-              core.setOutput('command', 'review');
-              const additionalContext = request.replace(/^@gemini-cli \/review/, '').trim();
-              core.setOutput('additional_context', additionalContext);
-            } else {
-              core.setOutput('command', 'fallthrough');
+            let command = 'fallthrough';
+            let additionalContext = '';
+
+            // Kiểm tra 1: PR được mở mới (không phải từ repo fork)
+            if (eventName === 'pull_request' && action === 'opened') {
+              if (event.pull_request && event.pull_request.head && event.pull_request.head.repo && event.pull_request.head.repo.fork === false) {
+                command = 'review';
+              }
+            } 
+            // Kiểm tra 2: Comment hoặc Review trên PR bắt đầu bằng '@gemini-cli /review' từ OWNER/MEMBER/COLLABORATOR
+            else if (
+              senderType === 'User' &&
+              (event.issue?.pull_request || event.pull_request) &&
+              request.startsWith('@gemini-cli /review') &&
+              ['OWNER', 'MEMBER', 'COLLABORATOR'].includes(authorAssociation)
+            ) {
+              command = 'review';
+              additionalContext = request.replace(/^@gemini-cli \/review/, '').trim();
             }
+
+            core.setOutput('command', command);
+            core.setOutput('request', request);
+            core.setOutput('additional_context', additionalContext);
 
       - name: 'Acknowledge request'
         if: steps.extract_command.outputs.command == 'review'
