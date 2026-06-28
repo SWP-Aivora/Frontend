@@ -237,7 +237,7 @@ export const AdminProjectDisputesPage = () => {
           <div>
             <p className="text-sm font-black text-rose-900">Failed to load disputes</p>
             <p className="mt-1 text-xs font-semibold text-rose-700">
-              {(disputesError as Error)?.message || 'The dispute API did not return project disputes.'}
+              {getErrorMessage(disputesError, 'The dispute API did not return project disputes.')}
             </p>
           </div>
         </div>

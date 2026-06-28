@@ -34,6 +34,10 @@ const notifyCloseDisputeUnavailable = () => {
   toast.info('Close dispute is not available because the backend does not expose a close-dispute API yet.');
 };
 
+const getErrorMessage = (error: unknown, fallback: string): string => (
+  error instanceof Error ? error.message : fallback
+);
+
 export const ProjectDisputesPage = () => {
   const { id } = useParams();
   const { user } = useAuthStore();
@@ -126,7 +130,7 @@ export const ProjectDisputesPage = () => {
           <div>
             <p className="text-sm font-black text-rose-900">Failed to load disputes</p>
             <p className="mt-1 text-xs font-semibold text-rose-700">
-              {(error as Error)?.message || 'The dispute API did not return project disputes.'}
+              {getErrorMessage(error, 'The dispute API did not return project disputes.')}
             </p>
           </div>
         </div>

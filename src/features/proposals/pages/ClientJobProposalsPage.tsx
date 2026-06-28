@@ -289,6 +289,13 @@ export const ClientJobProposalsPage = () => {
     shortlistMutation.mutate(pid);
   };
   const onUnshortlist = (pid: string) => {
+    const proposal = proposals.find(item => item.id === pid);
+
+    if (normalizeProposalStatus(proposal?.status) !== 'shortlisted') {
+      toast.info('Only shortlisted proposals can be unshortlisted.');
+      return;
+    }
+
     unshortlistMutation.mutate(pid);
   };
 
