@@ -118,15 +118,22 @@ const ResolveDisputeActions = ({ disputes, projectId }: ResolveDisputeActionsPro
 
 export const AdminProjectDisputesPage = () => {
   const { projectId } = useParams();
+  const resolvedProjectId = projectId ?? '';
 
   const {
     data: projectResponse,
     isLoading: isLoadingProject,
     isError: isProjectError,
   } = useQuery({
-    queryKey: ['admin', 'projects', projectId],
-    queryFn: () => adminService.getProjectDetail(projectId!),
-    enabled: Boolean(projectId),
+    queryKey: ['admin', 'projects', resolvedProjectId],
+    queryFn: () => {
+      if (!projectId) {
+        throw new Error('Project ID is required to load project details.');
+      }
+
+      return adminService.getProjectDetail(projectId);
+    },
+    enabled: Boolean(resolvedProjectId),
     retry: false,
   });
 
@@ -136,9 +143,9 @@ export const AdminProjectDisputesPage = () => {
     isError: isDisputesError,
     error: disputesError,
   } = useQuery({
-    queryKey: ['admin', 'project-disputes', projectId],
+    queryKey: ['admin', 'project-disputes', resolvedProjectId],
     queryFn: () => disputeService.getDisputes({ PageIndex: 1, PageSize: DISPUTE_PAGE_SIZE }),
-    enabled: Boolean(projectId),
+    enabled: Boolean(resolvedProjectId),
     retry: false,
   });
 
@@ -149,9 +156,9 @@ export const AdminProjectDisputesPage = () => {
 
   const additionalDisputePageQueries = useQueries({
     queries: additionalDisputePageIndexes.map(pageIndex => ({
-      queryKey: ['admin', 'project-disputes', projectId, pageIndex],
+      queryKey: ['admin', 'project-disputes', resolvedProjectId, pageIndex],
       queryFn: () => disputeService.getDisputes({ PageIndex: pageIndex, PageSize: DISPUTE_PAGE_SIZE }),
-      enabled: Boolean(projectId) && Boolean(disputesResponse),
+      enabled: Boolean(resolvedProjectId) && Boolean(disputesResponse),
       retry: false,
     })),
   });
@@ -162,8 +169,8 @@ export const AdminProjectDisputesPage = () => {
     ...additionalDisputePageQueries.flatMap(query => query.data?.data ?? []),
   ], [additionalDisputePageQueries, disputesResponse?.data]);
   const projectDisputes = useMemo(
-    () => allReturnedDisputes.filter(dispute => dispute.projectId === projectId),
-    [allReturnedDisputes, projectId]
+    () => allReturnedDisputes.filter(dispute => dispute.projectId === resolvedProjectId),
+    [allReturnedDisputes, resolvedProjectId]
   );
 
   const detailQueries = useQueries({

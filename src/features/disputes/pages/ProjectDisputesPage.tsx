@@ -87,8 +87,8 @@ export const ProjectDisputesPage = () => {
     projectDisputes.map((summary, index) => detailQueries[index]?.data?.data ?? summary)
   ), [detailQueries, projectDisputes]);
 
-  const isLoading = isLoadingFirstPage || additionalPageQueries.some(query => query.isLoading);
   const isLoadingDetails = detailQueries.some(query => query.isLoading);
+  const isLoading = isLoadingFirstPage || additionalPageQueries.some(query => query.isLoading) || isLoadingDetails;
 
   if (!id) {
     return (
@@ -100,8 +100,11 @@ export const ProjectDisputesPage = () => {
 
   if (isLoading) {
     return (
-      <div className="flex h-[50vh] items-center justify-center">
+      <div className="flex h-[50vh] flex-col items-center justify-center gap-3">
         <LoadingSpinner size="lg" />
+        <p className="text-sm font-semibold text-slate-500">
+          {isLoadingDetails ? 'Loading detailed dispute records...' : 'Loading project disputes...'}
+        </p>
       </div>
     );
   }
