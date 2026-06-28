@@ -201,8 +201,8 @@ export const ExpertPublicProfilePage = () => {
             {/* Right Action / Rates */}
             <div className="flex flex-col items-start lg:items-end justify-center">
               <div className="flex items-baseline gap-1 mb-4">
-                <span className="text-3xl font-extrabold text-brand-dark">${hourlyRate}</span>
-                <span className="text-brand-muted text-sm font-medium">/hr</span>
+                <span className="text-3xl font-extrabold text-brand-dark">{hourlyRate}</span>
+                <span className="text-brand-muted text-sm font-medium"> Aivora Coin/hr</span>
               </div>
             </div>
           </div>
@@ -234,7 +234,7 @@ export const ExpertPublicProfilePage = () => {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="bg-white/85 backdrop-blur-md rounded-2xl p-1.5 shadow-sm border border-blue-100/30 flex items-center gap-1.5 overflow-x-auto sticky top-4 z-30">
+        <div className="bg-white/85 backdrop-blur-md rounded-xl p-1.5 shadow-sm border border-blue-100/30 flex items-center gap-1.5 overflow-x-auto sticky top-4 z-30">
           <button 
             onClick={() => handleTabClick('overview', 'overview')}
             className={`px-5 py-2 text-xs md:text-sm font-bold rounded-full transition-all duration-300 ${
@@ -284,7 +284,7 @@ export const ExpertPublicProfilePage = () => {
           <div className="lg:col-span-2 space-y-6">
             
             {/* About & Overview */}
-            <div id="overview" className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-100/80 transition-all hover:shadow-md/50 duration-300">
+            <div id="overview" className="bg-white rounded-xl p-6 md:p-8 shadow-sm border border-slate-100/80 transition-all hover:shadow-md/50 duration-300">
               <h3 className="text-xs font-bold text-brand-primary uppercase tracking-wider mb-3">About This Expert</h3>
               <h4 className="text-xl md:text-2xl font-bold text-slate-900 mb-4">{title}</h4>
               <p className="text-brand-secondary leading-relaxed whitespace-pre-wrap text-sm md:text-[15px]">
@@ -293,11 +293,11 @@ export const ExpertPublicProfilePage = () => {
             </div>
 
             {/* Skills */}
-            <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-100/80 transition-all hover:shadow-md/50 duration-300">
+            <div className="bg-white rounded-xl p-6 md:p-8 shadow-sm border border-slate-100/80 transition-all hover:shadow-md/50 duration-300">
               <h3 className="text-xs font-bold text-brand-primary uppercase tracking-wider mb-4">Skills & Expertise</h3>
               <div className="flex flex-wrap gap-2.5">
                 {skills.map((skill, idx) => (
-                  <span key={idx} className="bg-blue-50/70 hover:bg-blue-50 text-brand-primary px-3.5 py-1.5 rounded-xl text-xs md:text-sm font-bold border border-blue-100/50 transition-colors">
+                  <span key={idx} className="bg-blue-50/70 hover:bg-blue-50 text-brand-primary px-3.5 py-1.5 rounded-lg text-xs md:text-sm font-bold border border-blue-100/50 transition-colors">
                     {skill}
                   </span>
                 ))}
@@ -306,10 +306,10 @@ export const ExpertPublicProfilePage = () => {
             </div>
 
             {/* Portfolio Links */}
-            <div id="portfolio" className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-100/80 transition-all hover:shadow-md/50 duration-300">
+            <div id="portfolio" className="bg-white rounded-xl p-6 md:p-8 shadow-sm border border-slate-100/80 transition-all hover:shadow-md/50 duration-300">
               <h3 className="text-xs font-bold text-brand-primary uppercase tracking-wider mb-2">Portfolio Links</h3>
               <p className="text-xs text-slate-400 mb-4">View selected work samples, demos, profiles, case studies.</p>
-              <div className="flex flex-col items-center justify-center py-8 px-4 text-center border border-dashed border-slate-200 rounded-xl bg-slate-50/30">
+              <div className="flex flex-col items-center justify-center py-8 px-4 text-center border border-dashed border-slate-200 rounded-lg bg-slate-50/30">
                 <div className="w-10 h-10 rounded-full bg-blue-50/70 flex items-center justify-center mb-3">
                   <Globe className="w-5 h-5 text-brand-primary/70" />
                 </div>
@@ -321,7 +321,7 @@ export const ExpertPublicProfilePage = () => {
             </div>
 
             {/* Completed Projects */}
-            <div id="projects" className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-100/80 transition-all hover:shadow-md/50 duration-300">
+            <div id="projects" className="bg-white rounded-xl p-6 md:p-8 shadow-sm border border-slate-100/80 transition-all hover:shadow-md/50 duration-300">
               <div className="flex justify-between items-end mb-6">
                 <div>
                   <h3 className="text-xs font-bold text-brand-primary uppercase tracking-wider mb-1">Completed Projects</h3>
@@ -332,7 +332,7 @@ export const ExpertPublicProfilePage = () => {
               {displayProjects.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {displayProjects.map((project: { title: string; description: string; rating: number }, i) => (
-                    <div key={i} className="border border-blue-100/30 bg-slate-50/20 hover:bg-white rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer border-l-4 border-l-brand-primary">
+                    <div key={i} className="border border-blue-100/30 bg-slate-50/20 hover:bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer border-l-4 border-l-brand-primary">
                       <div className="flex justify-between items-start mb-3">
                         <span className="bg-blue-50/70 text-brand-primary text-xs font-bold px-2.5 py-1 rounded-lg">AI/ML Project</span>
                         <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
@@ -345,7 +345,7 @@ export const ExpertPublicProfilePage = () => {
                   ))}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-10 px-4 text-center border border-dashed border-slate-200 rounded-xl bg-slate-50/30">
+                <div className="flex flex-col items-center justify-center py-10 px-4 text-center border border-dashed border-slate-200 rounded-lg bg-slate-50/30">
                   <div className="w-10 h-10 rounded-full bg-blue-50/70 flex items-center justify-center mb-3">
                     <Briefcase className="w-5 h-5 text-brand-primary/70" />
                   </div>
@@ -358,12 +358,12 @@ export const ExpertPublicProfilePage = () => {
             </div>
 
             {/* Combined Rating Summary & Reviews Section */}
-            <div id="reviews" className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-slate-100/80 transition-all hover:shadow-md/50 duration-300">
+            <div id="reviews" className="bg-white rounded-xl p-6 md:p-8 shadow-sm border border-slate-100/80 transition-all hover:shadow-md/50 duration-300">
               <h3 className="text-xs font-bold text-brand-primary uppercase tracking-wider mb-6">Client Reviews & Rating Summary</h3>
               
               {/* Rating Overview Grid */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-6 border-b border-slate-100 mb-6">
-                <div className="flex flex-col items-center md:items-start justify-center p-5 bg-slate-50/50 rounded-2xl border border-slate-100/60 shrink-0">
+                <div className="flex flex-col items-center md:items-start justify-center p-5 bg-slate-50/50 rounded-xl border border-slate-100/60 shrink-0">
                   <div className="flex items-baseline gap-1.5 mb-1">
                     <span className="text-4xl font-extrabold text-slate-900">{rating.toFixed(1)}</span>
                     <span className="text-sm text-slate-400">/ 5.0</span>
@@ -442,7 +442,7 @@ export const ExpertPublicProfilePage = () => {
           <div className="lg:col-span-1 space-y-6 lg:sticky lg:top-24 self-start">
             
             {/* CTA Invite Card */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 relative overflow-hidden transition-all hover:shadow-md duration-300">
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 relative overflow-hidden transition-all hover:shadow-md duration-300">
               <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50/50 rounded-bl-full -z-10" />
               <h3 className="text-xs font-bold text-brand-primary uppercase tracking-wider mb-2">Ready to Collaborate</h3>
               <h4 className="text-lg font-bold text-slate-900 mb-3">Invite {name.split(' ')[0]} to your project</h4>
@@ -452,7 +452,7 @@ export const ExpertPublicProfilePage = () => {
               <div className="space-y-3">
                 <Button 
                   variant="outline" 
-                  className="w-full rounded-xl border-blue-200 text-brand-primary hover:bg-blue-50/50 font-bold h-11 text-sm transition-all duration-300"
+                  className="w-full rounded-lg border-blue-200 text-brand-primary hover:bg-blue-50/50 font-bold h-11 text-sm transition-all duration-300"
                   onClick={() => initChatMutation.mutate()}
                   disabled={initChatMutation.isPending}
                 >
@@ -462,7 +462,7 @@ export const ExpertPublicProfilePage = () => {
             </div>
 
             {/* Verification Badge */}
-            <div className="bg-emerald-50/40 rounded-2xl p-5 shadow-sm border border-emerald-100/50 flex gap-3.5 items-start">
+            <div className="bg-emerald-50/40 rounded-xl p-5 shadow-sm border border-emerald-100/50 flex gap-3.5 items-start">
               <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
               <div className="space-y-1">
                 <h3 className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Verified Expert</h3>
@@ -473,7 +473,7 @@ export const ExpertPublicProfilePage = () => {
             </div>
 
             {/* Work Preferences */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 transition-all hover:shadow-md duration-300">
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 transition-all hover:shadow-md duration-300">
               <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 pb-2 border-b border-slate-100/70">Work Preferences</h3>
               <div className="space-y-4">
                 <div className="flex gap-3">
@@ -495,7 +495,7 @@ export const ExpertPublicProfilePage = () => {
                   <div>
                     <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Hourly Rate</h4>
                     <p className="text-xs font-bold text-slate-700 mt-0.5">
-                      {hourlyRate > 0 ? `$${hourlyRate}/hr` : 'Not specified'}
+                      {hourlyRate > 0 ? `${hourlyRate} Aivora Coin/hr` : 'Not specified'}
                     </p>
                   </div>
                 </div>

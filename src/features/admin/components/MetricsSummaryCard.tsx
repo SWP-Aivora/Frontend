@@ -34,11 +34,11 @@ export const MetricsSummaryCard = ({
 
   return (
     <div className={cn(
-      "bg-white border border-slate-100 rounded-xl p-4 shadow-sm hover:shadow-md transition-all flex items-center gap-4",
+      "bg-white border border-slate-100 rounded-lg p-4 shadow-sm hover:shadow-md transition-all flex items-center gap-4",
       className
     )}>
       <div className={cn(
-        "size-10 rounded-xl flex items-center justify-center border shrink-0",
+        "size-10 rounded-lg flex items-center justify-center border shrink-0",
         variants[variant]
       )}>
         <Icon className="size-5" />

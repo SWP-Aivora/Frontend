@@ -70,7 +70,7 @@ export const RegisterPage = () => {
               { label: 'Hire Talent', color: 'bg-primary/10 text-primary', desc: 'Post projects and find the best AI experts worldwide.' },
               { label: 'Find Work', color: 'bg-brand-accent/10 text-brand-accent', desc: 'Apply for AI jobs and grow your professional portfolio.' },
             ].map((card, i) => (
-              <div key={i} className="p-5 rounded-xl bg-white border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+              <div key={i} className="p-5 rounded-lg bg-white border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
                 <span className={`text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full ${card.color} mb-3 inline-block`}>
                   {card.label}
                 </span>
@@ -86,7 +86,7 @@ export const RegisterPage = () => {
 
         {/* Right Panel: Interactive Card */}
         <div className="flex flex-col justify-center items-center py-12 lg:py-0">
-          <div className="w-full max-w-[640px] bg-white lg:rounded-xl p-8 sm:p-12 shadow-2xl border border-slate-100 relative overflow-hidden">
+          <div className="w-full max-w-[640px] bg-white lg:rounded-lg p-8 sm:p-12 shadow-2xl border border-slate-100 relative overflow-hidden">
             
             {step === 'selection' ? (
               <div className="space-y-8 animate-in fade-in zoom-in duration-500">
@@ -104,7 +104,7 @@ export const RegisterPage = () => {
                   {/* Client Card */}
                   <div 
                     onClick={() => handleRoleSelect(Role.CLIENT)}
-                    className="group cursor-pointer p-8 rounded-xl border-2 border-slate-100 hover:border-primary hover:bg-primary/5 transition-all duration-300 shadow-sm hover:shadow-xl hover:shadow-primary/10 flex flex-col items-center text-center space-y-4"
+                    className="group cursor-pointer p-8 rounded-lg border-2 border-slate-100 hover:border-primary hover:bg-primary/5 transition-all duration-300 shadow-sm hover:shadow-xl hover:shadow-primary/10 flex flex-col items-center text-center space-y-4"
                   >
                     <div className="size-16 rounded-full bg-slate-50 group-hover:bg-primary flex items-center justify-center font-bold text-xl transition-colors duration-300 group-hover:text-white">CL</div>
                     <div>
@@ -116,7 +116,7 @@ export const RegisterPage = () => {
                   {/* Expert Card */}
                   <div 
                     onClick={() => handleRoleSelect(Role.EXPERT)}
-                    className="group cursor-pointer p-8 rounded-xl border-2 border-slate-100 hover:border-brand-accent hover:bg-brand-accent/5 transition-all duration-300 shadow-sm hover:shadow-xl hover:shadow-brand-accent/10 flex flex-col items-center text-center space-y-4"
+                    className="group cursor-pointer p-8 rounded-lg border-2 border-slate-100 hover:border-brand-accent hover:bg-brand-accent/5 transition-all duration-300 shadow-sm hover:shadow-xl hover:shadow-brand-accent/10 flex flex-col items-center text-center space-y-4"
                   >
                     <div className="size-16 rounded-full bg-slate-50 group-hover:bg-brand-accent flex items-center justify-center font-bold text-xl transition-colors duration-300 group-hover:text-white">AI</div>
                     <div>

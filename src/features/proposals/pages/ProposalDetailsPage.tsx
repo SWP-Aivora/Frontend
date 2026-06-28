@@ -89,7 +89,7 @@ export const ProposalDetailsPage = () => {
         Back
       </button>
 
-      <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden">
         <div className="h-1.5 bg-gradient-to-r from-brand-accent via-primary to-blue-500" />
         <div className="p-6 md:p-8 space-y-8">
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
@@ -137,8 +137,8 @@ export const ProposalDetailsPage = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="rounded-xl bg-slate-50 border border-slate-100 p-5 flex items-center gap-3">
-              <div className="size-11 rounded-xl bg-white flex items-center justify-center border border-slate-100">
+            <div className="rounded-lg bg-slate-50 border border-slate-100 p-5 flex items-center gap-3">
+              <div className="size-11 rounded-lg bg-white flex items-center justify-center border border-slate-100">
                 <UserRound className="size-5 text-primary" />
               </div>
               <div>
@@ -146,19 +146,19 @@ export const ProposalDetailsPage = () => {
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Expert</p>
               </div>
             </div>
-            <div className="rounded-xl bg-emerald-50/60 border border-emerald-100 p-5 flex items-center gap-3">
-              <div className="size-11 rounded-xl bg-white flex items-center justify-center border border-emerald-100">
+            <div className="rounded-lg bg-emerald-50/60 border border-emerald-100 p-5 flex items-center gap-3">
+              <div className="size-11 rounded-lg bg-white flex items-center justify-center border border-emerald-100">
                 <DollarSign className="size-5 text-emerald-600" />
               </div>
               <div>
                 <p className="text-sm font-black text-slate-900">
-                  {proposal.currency || 'USD'} {Number(proposal.proposedBudget).toLocaleString()}
+                  {Number(proposal.proposedBudget).toLocaleString()} Aivora Coin
                 </p>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Bid</p>
               </div>
             </div>
-            <div className="rounded-xl bg-blue-50/60 border border-blue-100 p-5 flex items-center gap-3">
-              <div className="size-11 rounded-xl bg-white flex items-center justify-center border border-blue-100">
+            <div className="rounded-lg bg-blue-50/60 border border-blue-100 p-5 flex items-center gap-3">
+              <div className="size-11 rounded-lg bg-white flex items-center justify-center border border-blue-100">
                 <Clock className="size-5 text-blue-600" />
               </div>
               <div>
@@ -168,7 +168,7 @@ export const ProposalDetailsPage = () => {
             </div>
           </div>
 
-          <section className="rounded-xl border border-slate-100 bg-slate-50/60 p-5">
+          <section className="rounded-lg border border-slate-100 bg-slate-50/60 p-5">
             <h2 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
               <FileText className="size-4" />
               Cover Letter
@@ -176,7 +176,7 @@ export const ProposalDetailsPage = () => {
             <p className="text-sm text-slate-600 font-medium leading-7 whitespace-pre-wrap">{proposal.coverLetter}</p>
           </section>
 
-          <section className="rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
+          <section className="rounded-lg border border-slate-100 bg-white p-5 shadow-sm">
             <h2 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
               <Briefcase className="size-4" />
               Proposed Milestones
@@ -184,7 +184,7 @@ export const ProposalDetailsPage = () => {
             {proposal.milestones.length > 0 ? (
               <div className="space-y-3">
                 {proposal.milestones.map((milestone, index) => (
-                  <div key={milestone.id || index} className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_140px_120px] gap-4 rounded-xl border border-slate-100 bg-slate-50/60 p-4">
+                  <div key={milestone.id || index} className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_140px_120px] gap-4 rounded-lg border border-slate-100 bg-slate-50/60 p-4">
                     <div>
                       <p className="font-black text-slate-900">{milestone.title}</p>
                       {milestone.description && (
@@ -195,7 +195,7 @@ export const ProposalDetailsPage = () => {
                       )}
                     </div>
                     <div>
-                      <p className="text-sm font-black text-slate-900">{proposal.currency || 'USD'} {Number(milestone.amount).toLocaleString()}</p>
+                      <p className="text-sm font-black text-slate-900">{Number(milestone.amount).toLocaleString()} Aivora Coin</p>
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Amount</p>
                     </div>
                     <div>

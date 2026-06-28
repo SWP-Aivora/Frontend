@@ -127,7 +127,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
       {/* Actual Submit Confirmation Dialog */}
       {showSubmitConfirmation && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-200">
-          <div className="bg-white p-8 rounded-xl shadow-2xl max-w-sm w-full mx-4 border border-slate-100 animate-in zoom-in-95 duration-200">
+          <div className="bg-white p-8 rounded-lg shadow-2xl max-w-sm w-full mx-4 border border-slate-100 animate-in zoom-in-95 duration-200">
             <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
               <AlertTriangle className="w-8 h-8 text-blue-600" />
             </div>
@@ -140,7 +140,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
                 type="button"
                 onClick={onConfirmSubmit}
                 disabled={submitReview.isPending}
-                className="w-full bg-[#1f6eeb] hover:bg-[#1656c0] text-white rounded-xl font-bold h-12 shadow-lg shadow-blue-200"
+                className="w-full bg-[#1f6eeb] hover:bg-[#1656c0] text-white rounded-lg font-bold h-12 shadow-lg shadow-blue-200"
               >
                 {submitReview.isPending ? 'Submitting...' : 'Confirm & Submit'}
               </Button>
@@ -157,7 +157,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
         </div>
       )}
 
-      <div className="bg-white border border-[#c7dbf5] shadow-2xl rounded-xl w-full max-w-[720px] max-h-[90vh] overflow-y-auto relative animate-in fade-in zoom-in duration-200">
+      <div className="bg-white border border-[#c7dbf5] shadow-2xl rounded-lg w-full max-w-[720px] max-h-[90vh] overflow-y-auto relative animate-in fade-in zoom-in duration-200">
         {/* Modal Header Wash */}
         <div className="absolute top-0 left-0 w-full h-[154px] bg-[rgba(227,240,255,0.9)] rounded-t-xl -z-10" />
 

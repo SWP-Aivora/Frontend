@@ -49,7 +49,7 @@ export const AdminExpertReviewsPage = () => {
 
   if (isError) {
     return (
-      <div className="bg-rose-50 border border-rose-100 rounded-xl p-10 text-center max-w-2xl mx-auto my-10">
+      <div className="bg-rose-50 border border-rose-100 rounded-lg p-10 text-center max-w-2xl mx-auto my-10">
         <AlertCircle className="size-12 text-rose-500 mx-auto mb-4" />
         <h2 className="text-lg font-black text-rose-900 mb-2">
           {isMissingEndpoint ? 'Expert reviews API is unavailable' : 'Failed to load expert reviews'}
@@ -61,7 +61,7 @@ export const AdminExpertReviewsPage = () => {
         </p>
         <button 
           onClick={() => refetch()}
-          className="mt-6 px-4 py-2 bg-rose-600 text-white rounded-xl font-bold hover:bg-rose-700 transition-colors"
+          className="mt-6 px-4 py-2 bg-rose-600 text-white rounded-lg font-bold hover:bg-rose-700 transition-colors"
         >
           Try Again
         </button>
@@ -73,7 +73,7 @@ export const AdminExpertReviewsPage = () => {
     <div className="space-y-4 pb-10">
 
       {/* Header */}
-      <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="bg-white border border-slate-100 rounded-lg p-4 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <p className="text-slate-500 text-xs font-medium mb-1">Admin / Expert Verifications</p>
           <h1 className="text-xl font-black text-slate-900 leading-tight">Expert Verification Reviews</h1>
@@ -109,7 +109,7 @@ export const AdminExpertReviewsPage = () => {
       </div>
 
       {/* Hero Banner */}
-      <div className="bg-primary border border-primary-dark rounded-xl p-4 lg:p-5 flex flex-col lg:flex-row justify-between relative overflow-hidden shadow-sm">
+      <div className="bg-brand-blue-dark border border-brand-blue-dark rounded-lg p-4 lg:p-5 flex flex-col lg:flex-row justify-between relative overflow-hidden shadow-sm">
         <div className="absolute top-0 right-0 w-1/3 h-full bg-white/5 skew-x-12 -mr-16 pointer-events-none" />
         <div className="relative z-10 flex-1">
           <div className="inline-flex items-center bg-white/20 border border-white/20 text-white px-3 py-1 rounded-full text-xs font-semibold mb-4">
@@ -163,7 +163,7 @@ export const AdminExpertReviewsPage = () => {
       </div>
 
       {/* Main Table */}
-      <div className="bg-white border border-slate-100 rounded-xl shadow-sm flex flex-col">
+      <div className="bg-white border border-slate-100 rounded-lg shadow-sm flex flex-col">
         <div className="p-5 border-b border-slate-50 flex flex-col sm:flex-row justify-between items-center gap-4">
           <h3 className="text-[16px] font-bold text-slate-900">Expert Review Requests</h3>
           <div className="flex items-center gap-4">

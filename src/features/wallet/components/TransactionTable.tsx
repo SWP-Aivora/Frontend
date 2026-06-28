@@ -52,7 +52,7 @@ export const TransactionTable = ({ transactions }: TransactionTableProps) => {
               <td className="px-8 py-6">
                 <div className="flex items-center gap-4">
                   <div className={cn(
-                    "size-10 rounded-xl flex items-center justify-center shadow-sm",
+                    "size-10 rounded-lg flex items-center justify-center shadow-sm",
                     typeInfo.bg,
                     typeInfo.color
                   )}>
@@ -85,7 +85,7 @@ export const TransactionTable = ({ transactions }: TransactionTableProps) => {
                   "text-base font-black",
                   (t.type === TransactionType.DEPOSIT || t.type === TransactionType.REFUND) ? "text-emerald-600" : "text-slate-900"
                 )}>
-                  {(t.type === TransactionType.DEPOSIT || t.type === TransactionType.REFUND) ? '+' : '-'}{t.amount?.toLocaleString() ?? '0'} Xu
+                  {(t.type === TransactionType.DEPOSIT || t.type === TransactionType.REFUND) ? '+' : '-'}{t.amount?.toLocaleString() ?? '0'} Aivora Coin
                 </span>
               </td>
             </tr>

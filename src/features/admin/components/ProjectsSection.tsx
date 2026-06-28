@@ -19,7 +19,7 @@ export const ProjectsSection = ({
   onPageChange,
 }: ProjectsSectionProps) => (
   <div className="lg:col-span-2">
-    <div className="bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden h-fit flex flex-col">
+    <div className="bg-white border border-slate-100 rounded-lg shadow-sm overflow-hidden h-fit flex flex-col">
       <div className="p-6 border-b border-slate-50 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
           <h3 className="text-xl font-black text-slate-900 tracking-tight">Active Projects</h3>
@@ -81,7 +81,7 @@ export const ProjectsSection = ({
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <p className="text-sm font-black text-slate-900">${project.amount.toLocaleString()}</p>
+                    <p className="text-sm font-black text-slate-900">{project.amount.toLocaleString()} Aivora Coin</p>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter mt-0.5">
                       {project.paymentStatus}
                     </p>

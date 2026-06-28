@@ -28,7 +28,7 @@ export const MessageItem = ({ message, isCurrentUser }: MessageItemProps) => {
       isCurrentUser ? "items-end" : "items-start"
     )}>
       <div className={cn(
-        "max-w-[70%] rounded-xl px-4 py-2.5 shadow-sm text-sm",
+        "max-w-[70%] rounded-lg px-4 py-2.5 shadow-sm text-sm",
         isCurrentUser 
           ? "bg-blue-600 text-white rounded-tr-none" 
           : "bg-white text-slate-900 border border-slate-100 rounded-tl-none"

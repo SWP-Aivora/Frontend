@@ -54,7 +54,7 @@ export const SettingsPage = () => {
         <Button 
           onClick={handleSave} 
           disabled={isLoading}
-          className="rounded-xl px-8 h-12 font-bold shadow-lg shadow-primary/20"
+          className="rounded-lg px-8 h-12 font-bold shadow-lg shadow-primary/20"
         >
           {isLoading ? 'Updating...' : 'Apply Changes'}
         </Button>
@@ -71,7 +71,7 @@ export const SettingsPage = () => {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all duration-200 text-left",
+                  "w-full flex items-center gap-3 px-4 py-3 rounded-lg font-bold text-sm transition-all duration-200 text-left",
                   isActive 
                     ? "bg-primary text-white shadow-md shadow-primary/20" 
                     : "text-slate-500 hover:bg-white hover:text-primary border border-transparent hover:border-slate-100 shadow-sm hover:shadow-md"
@@ -87,9 +87,9 @@ export const SettingsPage = () => {
         {/* Content Area */}
         <div className="lg:col-span-3 space-y-6">
           {activeTab === 'appearance' && (
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-8 space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
               <div className="flex items-center gap-4 pb-6 border-b border-slate-50">
-                <div className="size-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+                <div className="size-12 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
                   <Layout className="size-6" />
                 </div>
                 <div>
@@ -110,7 +110,7 @@ export const SettingsPage = () => {
                         key={opt.id}
                         onClick={() => setSelectedTheme(opt.id as ThemeMode)}
                         className={cn(
-                          "p-4 rounded-xl border text-left transition-all group",
+                          "p-4 rounded-lg border text-left transition-all group",
                           selectedTheme === opt.id ? "border-primary bg-primary/5 shadow-sm" : "border-slate-100 hover:border-slate-300"
                         )}
                       >
@@ -123,7 +123,7 @@ export const SettingsPage = () => {
                 </div>
 
                 <div className="space-y-4 pt-4">
-                   <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50/50 border border-slate-100">
+                   <div className="flex items-center justify-between p-4 rounded-lg bg-slate-50/50 border border-slate-100">
                       <div className="flex items-center gap-4">
                          <div className="size-10 rounded-lg bg-white shadow-sm flex items-center justify-center text-slate-400">
                             <Zap className="size-5" />
@@ -139,7 +139,7 @@ export const SettingsPage = () => {
                       </label>
                    </div>
 
-                   <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50/50 border border-slate-100">
+                   <div className="flex items-center justify-between p-4 rounded-lg bg-slate-50/50 border border-slate-100">
                       <div className="flex items-center gap-4">
                          <div className="size-10 rounded-lg bg-white shadow-sm flex items-center justify-center text-slate-400">
                             <Layout className="size-5" />
@@ -160,9 +160,9 @@ export const SettingsPage = () => {
           )}
 
           {activeTab === 'notifications' && (
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-8 space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
               <div className="flex items-center gap-4 pb-6 border-b border-slate-50">
-                <div className="size-12 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
+                <div className="size-12 rounded-lg bg-blue-50 flex items-center justify-center text-primary">
                   <Bell className="size-6" />
                 </div>
                 <div>
@@ -179,7 +179,7 @@ export const SettingsPage = () => {
                   { title: 'Sound Effects', desc: 'Play sounds for incoming alerts.', icon: Volume2 },
                   { title: 'Security & Auth', desc: 'Critical alerts about logins and security.', icon: ShieldCheck, mandatory: true },
                 ].map((item, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
+                  <div key={idx} className="flex items-center justify-between p-4 rounded-lg hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
                     <div className="flex items-center gap-4">
                       <div className="size-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-slate-400">
                         <item.icon className="size-4" />
@@ -200,9 +200,9 @@ export const SettingsPage = () => {
           )}
 
           {activeTab === 'language' && (
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-8 space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
               <div className="flex items-center gap-4 pb-6 border-b border-slate-50">
-                <div className="size-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
+                <div className="size-12 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
                   <Globe className="size-6" />
                 </div>
                 <div>
@@ -214,22 +214,21 @@ export const SettingsPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Interface Language</label>
-                  <div className="w-full h-12 px-4 bg-slate-50/50 border border-slate-100 rounded-xl text-sm font-medium flex items-center text-slate-500">
+                  <div className="w-full h-12 px-4 bg-slate-50/50 border border-slate-100 rounded-lg text-sm font-medium flex items-center text-slate-500">
                     English (US) - Unified Default
                   </div>
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Timezone</label>
-                  <select className="w-full h-12 px-4 bg-slate-50/50 border border-slate-100 focus:bg-white rounded-xl text-sm font-medium appearance-none">
+                  <select className="w-full h-12 px-4 bg-slate-50/50 border border-slate-100 focus:bg-white rounded-lg text-sm font-medium appearance-none">
                     <option>(GMT+07:00) Bangkok, Hanoi, Jakarta</option>
                     <option>(GMT+00:00) UTC</option>
                   </select>
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Currency Display</label>
-                  <select className="w-full h-12 px-4 bg-slate-50/50 border border-slate-100 focus:bg-white rounded-xl text-sm font-medium appearance-none">
-                    <option>USD ($)</option>
-                    <option>VND (₫)</option>
+                  <select className="w-full h-12 px-4 bg-slate-50/50 border border-slate-100 focus:bg-white rounded-lg text-sm font-medium appearance-none">
+                    <option>Aivora Coin</option>
                   </select>
                 </div>
               </div>
@@ -237,9 +236,9 @@ export const SettingsPage = () => {
           )}
 
           {activeTab === 'privacy' && (
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-8 space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
               <div className="flex items-center gap-4 pb-6 border-b border-slate-50">
-                <div className="size-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+                <div className="size-12 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
                   <Eye className="size-6" />
                 </div>
                 <div>
@@ -251,7 +250,7 @@ export const SettingsPage = () => {
               <div className="space-y-6">
                 <div className="space-y-3">
                   <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Search Engine Indexing</label>
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50/50 border border-slate-100">
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-slate-50/50 border border-slate-100">
                     <div>
                       <p className="text-sm font-bold text-slate-900">Allow Indexing</p>
                       <p className="text-xs text-slate-500">Let search engines like Google index your public profile.</p>
@@ -265,7 +264,7 @@ export const SettingsPage = () => {
 
                 <div className="space-y-3">
                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Auto-Save Feature</label>
-                   <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50/50 border border-slate-100">
+                   <div className="flex items-center justify-between p-4 rounded-lg bg-slate-50/50 border border-slate-100">
                       <div>
                          <p className="text-sm font-bold text-slate-900">Enable Auto-Save</p>
                          <p className="text-xs text-slate-500">Automatically save drafts as you type.</p>

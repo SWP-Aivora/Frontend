@@ -31,7 +31,7 @@ export const SpendingChart = ({ transactions, isClient }: SpendingChartProps) =>
   }, [isClient, transactions]);
 
   return (
-    <div className="bg-white rounded-xl p-8 border border-slate-100 shadow-sm">
+    <div className="bg-white rounded-lg p-8 border border-slate-100 shadow-sm">
       <div className="flex items-center justify-between mb-8">
         <h3 className="text-lg font-black text-slate-900">{isClient ? 'Spending Trends' : 'Earning Trends'}</h3>
         <div className="flex items-center gap-4">
@@ -47,7 +47,7 @@ export const SpendingChart = ({ transactions, isClient }: SpendingChartProps) =>
       </div>
       <div className="h-48 flex items-end justify-between gap-2 px-2">
         {chartData.map((entry, i) => (
-          <div key={MONTHS[i]} title={`${MONTHS[i]}: ${entry.total.toLocaleString()} Xu`} className="flex-1 space-y-2 group cursor-help">
+          <div key={MONTHS[i]} title={`${MONTHS[i]}: ${entry.total.toLocaleString()} Aivora Coin`} className="flex-1 space-y-2 group cursor-help">
             <div className="relative w-full">
               <div className="h-32 w-full bg-slate-50 rounded-t-lg" />
               <div 

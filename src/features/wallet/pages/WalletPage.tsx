@@ -50,6 +50,7 @@ const getWalletBalance = (wallet: unknown): number => {
 export const WalletPage = () => {
   const { user } = useAuthStore();
   const isClient = user?.role === Role.CLIENT;
+  const isExpert = user?.role === Role.EXPERT;
 
   const { 
     data: walletResponse, 
@@ -113,7 +114,7 @@ export const WalletPage = () => {
   if (isWalletError) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-        <div className="size-16 rounded-2xl bg-rose-50 flex items-center justify-center mb-4">
+        <div className="size-16 rounded-xl bg-rose-50 flex items-center justify-center mb-4">
            <ArrowDownLeft className="size-8 text-rose-500" />
         </div>
         <h3 className="text-2xl font-black text-slate-900">Failed to load wallet data</h3>
@@ -137,11 +138,8 @@ export const WalletPage = () => {
         </div>
         <div className="flex items-center gap-3">
            <Button variant="outline" className="rounded-full border-slate-200">Export PDF</Button>
-           {isClient ? (
-             <DepositModal />
-           ) : (
-             <WithdrawModal maxBalance={walletBalance} />
-           )}
+           {isClient && <DepositModal />}
+           {isExpert && <WithdrawModal maxBalance={walletBalance} />}
         </div>
       </div>
 
@@ -169,14 +167,14 @@ export const WalletPage = () => {
             <div className="flex items-center gap-3">
                <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-                  <input type="text" placeholder="Search transactions..." className="h-10 pl-10 pr-4 rounded-xl bg-white border border-slate-100 text-sm focus:ring-2 focus:ring-primary/20 transition-all" />
+                  <input type="text" placeholder="Search transactions..." className="h-10 pl-10 pr-4 rounded-lg bg-white border border-slate-100 text-sm focus:ring-2 focus:ring-primary/20 transition-all" />
                </div>
-               <Button variant="outline" size="icon" className="size-10 rounded-xl border-slate-200"><Filter className="size-4" /></Button>
+               <Button variant="outline" size="icon" className="size-10 rounded-lg border-slate-200"><Filter className="size-4" /></Button>
             </div>
          </div>
 
          {/* High #3 & Leader #1: ErrorBoundary wrapping the data-heavy section */}
-         <div className="bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm">
+         <div className="bg-white border border-slate-100 rounded-lg overflow-hidden shadow-sm">
             {isHistoryError && (
               <div className="border-b border-amber-100 bg-amber-50/60 px-6 py-4 text-sm font-semibold text-amber-700">
                 Payment history is temporarily unavailable. Your wallet balance is still shown above.

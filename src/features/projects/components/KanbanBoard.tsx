@@ -24,7 +24,7 @@ export const KanbanBoard = ({ milestones, role, onMilestoneClick }: KanbanBoardP
         const columnMilestones = milestones.filter(m => column.status.includes(m.status));
         
         return (
-          <div key={column.title} className={cn("flex flex-col rounded-xl p-3 border border-slate-100/50 shadow-sm", column.bg)}>
+          <div key={column.title} className={cn("flex flex-col rounded-lg p-3 border border-slate-100/50 shadow-sm", column.bg)}>
             {/* Column Header */}
             <div className="px-4 py-4 flex items-center justify-between">
                <div className="flex items-center gap-2">
@@ -50,7 +50,7 @@ export const KanbanBoard = ({ milestones, role, onMilestoneClick }: KanbanBoardP
                ))}
 
                {columnMilestones.length === 0 && (
-                 <div className="h-32 rounded-xl border-2 border-dashed border-slate-200/50 flex flex-col items-center justify-center text-slate-300">
+                 <div className="h-32 rounded-lg border-2 border-dashed border-slate-200/50 flex flex-col items-center justify-center text-slate-300">
                     <Info className="size-5 mb-2 opacity-50" />
                     <span className="text-xs font-bold uppercase tracking-tighter">No tasks here</span>
                  </div>
@@ -59,8 +59,8 @@ export const KanbanBoard = ({ milestones, role, onMilestoneClick }: KanbanBoardP
             
             {/* AI Insight Footer (Optional) */}
             {column.status.includes(MilestoneStatus.IN_PROGRESS) && columnMilestones.length > 0 && (
-               <div className="mt-4 bg-white/50 backdrop-blur-md rounded-xl p-3 border border-amber-100 flex items-center gap-3">
-                  <div className="size-8 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+               <div className="mt-4 bg-white/50 backdrop-blur-md rounded-lg p-3 border border-amber-100 flex items-center gap-3">
+                  <div className="size-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
                      <Sparkles className="size-4 text-amber-600" />
                   </div>
                   <p className="text-xs font-bold text-amber-700 leading-tight">

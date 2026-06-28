@@ -80,7 +80,7 @@ export const CreateDisputeModal: React.FC<CreateDisputeModalProps> = ({ isOpen, 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div className="flex items-center gap-3">
             <div className="size-8 rounded-lg bg-rose-100 flex items-center justify-center">
@@ -146,7 +146,7 @@ export const CreateDisputeModal: React.FC<CreateDisputeModalProps> = ({ isOpen, 
               ) : (
                 milestones.map((milestone: Milestone) => (
                   <option key={milestone.id} value={milestone.id}>
-                    {milestone.title} - ${milestone.amount}
+                    {milestone.title} - {milestone.amount} Aivora Coin
                   </option>
                 ))
               )}
@@ -189,14 +189,14 @@ export const CreateDisputeModal: React.FC<CreateDisputeModalProps> = ({ isOpen, 
               type="button" 
               variant="outline" 
               onClick={handleClose}
-              className="flex-1 rounded-xl font-bold"
+              className="flex-1 rounded-lg font-bold"
               disabled={isSubmitting}
             >
               Cancel
             </Button>
             <Button 
               type="submit" 
-              className="flex-1 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold"
+              className="flex-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-bold"
               disabled={isSubmitting}
             >
               {isSubmitting ? 'Submitting...' : 'Submit Dispute'}

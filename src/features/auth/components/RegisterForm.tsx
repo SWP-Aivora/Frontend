@@ -73,7 +73,7 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
               placeholder="Enter your full name" 
               {...register('fullName')}
               className={cn(
-                "pl-14 h-14 bg-slate-50 border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300",
+                "pl-14 h-14 bg-slate-50 border-slate-200 rounded-lg focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300",
                 errors.fullName ? 'border-destructive' : 'hover:border-slate-300'
               )}
             />
@@ -95,7 +95,7 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
               placeholder="name@example.com" 
               {...register('email')}
               className={cn(
-                "pl-14 h-14 bg-slate-50 border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300",
+                "pl-14 h-14 bg-slate-50 border-slate-200 rounded-lg focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300",
                 errors.email ? 'border-destructive' : 'hover:border-slate-300'
               )}
             />
@@ -119,7 +119,7 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
               placeholder="••••••••" 
               {...register('password')}
               className={cn(
-                "pl-14 h-14 bg-slate-50 border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300",
+                "pl-14 h-14 bg-slate-50 border-slate-200 rounded-lg focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300",
                 errors.password ? 'border-destructive' : 'hover:border-slate-300'
               )}
             />
@@ -141,7 +141,7 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
               placeholder="••••••••" 
               {...register('confirmPassword')}
               className={cn(
-                "pl-14 h-14 bg-slate-50 border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300",
+                "pl-14 h-14 bg-slate-50 border-slate-200 rounded-lg focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300",
                 errors.confirmPassword ? 'border-destructive' : 'hover:border-slate-300'
               )}
             />
@@ -151,7 +151,7 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
       </div>
 
       {/* Terms Row */}
-      <div className="flex items-start gap-3 px-1 py-2 bg-slate-50/50 border border-slate-100 rounded-xl">
+      <div className="flex items-start gap-3 px-1 py-2 bg-slate-50/50 border border-slate-100 rounded-lg">
         <label className="flex items-center gap-2 cursor-pointer group mt-1 ml-2">
           <div className="relative size-5 rounded-md border-2 border-slate-300 bg-white group-hover:border-primary transition-colors overflow-hidden shrink-0">
              <input type="checkbox" className="peer absolute inset-0 opacity-0 cursor-pointer" required />

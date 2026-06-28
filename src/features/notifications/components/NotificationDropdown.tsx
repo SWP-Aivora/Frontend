@@ -61,7 +61,7 @@ export const NotificationDropdown = ({ role }: NotificationDropdownProps) => {
       <button 
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "relative p-2.5 rounded-xl transition-all duration-300",
+          "relative p-2.5 rounded-lg transition-all duration-300",
           isOpen ? "bg-primary/10 text-primary" : "hover:bg-slate-50 text-slate-500 hover:text-primary"
         )}
       >
@@ -72,7 +72,7 @@ export const NotificationDropdown = ({ role }: NotificationDropdownProps) => {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-80 bg-white border border-slate-100 rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute right-0 mt-3 w-80 bg-white border border-slate-100 rounded-lg shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="p-4 border-b border-slate-50 flex justify-between items-center">
             <h3 className="font-bold text-slate-900 text-sm">Unread Notifications</h3>
             <span className="bg-primary/10 text-primary text-xs font-bold px-2 py-0.5 rounded-full">

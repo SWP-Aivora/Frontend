@@ -1,8 +1,8 @@
-import { Search, Filter, Plus, FileText, ChevronRight, Clock, Users, CheckCircle2, Clock3, Eye } from 'lucide-react';
+import { Search, Plus, FileText, ChevronRight, Clock, Users, CheckCircle2, Clock3, Eye } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { projectService } from '@/features/projects/services';
 import { jobService } from '@/features/jobs/services';
@@ -11,6 +11,7 @@ import type { Job } from '@/features/jobs/types';
 import { ProjectStatus } from '@/shared/types/enums';
 
 type StatusFilter = 'all' | 'draft' | 'open' | 'in-progress' | 'completed';
+type SortOrder = 'newest' | 'oldest';
 
 const normalizeJobStatus = (status: unknown): StatusFilter | 'cancelled' => {
   if (status === 0) return 'draft';
@@ -40,15 +41,16 @@ const getJobBudgetLabel = (job: Job) => {
   const max = job.budgetMax ?? 0;
 
   if (!min && !max) return 'Negotiable';
-  if (min === max || !max) return `$${min.toLocaleString()}`;
-  if (!min) return `$${max.toLocaleString()}`;
+  if (min === max || !max) return `${min.toLocaleString()} Aivora Coin`;
+  if (!min) return `${max.toLocaleString()} Aivora Coin`;
 
-  return `$${min.toLocaleString()} - $${max.toLocaleString()}`;
+  return `${min.toLocaleString()} - ${max.toLocaleString()} Aivora Coin`;
 };
 
 export const MyProjectsPage = () => {
   const [filter, setFilter] = useState<StatusFilter>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
 
   const { data: projectsResponse, isLoading: isLoadingProjects } = useQuery({
     queryKey: ['clientProjects'],
@@ -74,8 +76,8 @@ export const MyProjectsPage = () => {
 
   const isLoading = isLoadingProjects || isLoadingJobs;
 
-  const displayJobs = jobs
-    .map((job, index) => {
+  const displayJobs = useMemo(() => (
+    jobs.map((job, index) => {
       const project = projects.find(item => item.jobId === job.id);
       const status = project ? normalizeProjectStatusForJobCard(project.status) : normalizeJobStatus(job.status);
       const proposalCount = proposalCountQueries[index]?.data?.data?.length ?? 0;
@@ -84,26 +86,32 @@ export const MyProjectsPage = () => {
         id: job.id,
         title: job.title,
         status,
-        createdAt: job.createdAt,
-        createdAtLabel: new Date(job.createdAt).toLocaleDateString(),
+        createdAt: project?.createdAt || job.createdAt,
+        createdAtLabel: new Date(project?.createdAt || job.createdAt).toLocaleDateString(),
         budget: getJobBudgetLabel(job),
         proposals: proposalCount,
         domain: job.businessDomain || 'General',
+        expertName: project?.expertName || project?.expert?.fullName || '',
         projectId: project?.id,
       };
     })
     .filter(job => job.status !== 'cancelled')
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  ), [jobs, projects, proposalCountQueries]);
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
-  const filteredJobs = displayJobs.filter(job => {
-    const matchesFilter = filter === 'all' || job.status === filter;
-    const matchesSearch =
-      normalizedSearch.length === 0 ||
-      [job.title, job.domain].some(value => value.toLowerCase().includes(normalizedSearch));
-
-    return matchesFilter && matchesSearch;
-  });
+  const filteredJobs = useMemo(() => (
+    displayJobs
+      .filter(job => filter === 'all' || job.status === filter)
+      .filter(job => (
+        normalizedSearch.length === 0 ||
+        [job.title, job.expertName].some(value => value.toLowerCase().includes(normalizedSearch))
+      ))
+      .sort((a, b) => {
+        const aTime = new Date(a.createdAt).getTime();
+        const bTime = new Date(b.createdAt).getTime();
+        return sortOrder === 'newest' ? bTime - aTime : aTime - bTime;
+      })
+  ), [displayJobs, filter, normalizedSearch, sortOrder]);
 
   const getStatusConfig = (status: string) => {
     switch (status) {
@@ -145,16 +153,16 @@ export const MyProjectsPage = () => {
       </div>
 
       {/* Toolbar */}
-      <div className="bg-white border border-slate-100 rounded-xl p-2 flex flex-col md:flex-row gap-4 justify-between items-center shadow-sm relative z-10">
+      <div className="bg-white border border-slate-100 rounded-lg p-2 flex flex-col md:flex-row gap-4 justify-between items-center shadow-sm relative z-10">
         <div className="flex items-center gap-2 p-1 overflow-x-auto w-full md:w-auto scrollbar-hide">
           {(['all', 'draft', 'open', 'in-progress', 'completed'] as StatusFilter[]).map((status) => (
             <button
               key={status}
               onClick={() => setFilter(status)}
               className={cn(
-                "px-5 py-2.5 rounded-xl text-sm font-bold capitalize whitespace-nowrap transition-all duration-300",
+                "px-5 py-2.5 rounded-lg text-sm font-bold capitalize whitespace-nowrap transition-all duration-300",
                 filter === status 
-                  ? "bg-slate-900 text-white shadow-md" 
+                  ? "bg-brand-blue-dark text-white shadow-md" 
                   : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
               )}
             >
@@ -167,15 +175,20 @@ export const MyProjectsPage = () => {
              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
              <input 
                type="text" 
-               placeholder="Search job posts..." 
+               placeholder="Search by project or expert..." 
                value={searchTerm}
                onChange={(event) => setSearchTerm(event.target.value)}
-               className="w-full h-10 pl-9 pr-4 rounded-xl bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm transition-all"
+               className="w-full h-10 pl-9 pr-4 rounded-lg bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm transition-all"
              />
           </div>
-          <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-slate-200 shrink-0">
-             <Filter className="size-4 text-slate-500" />
-          </Button>
+          <select
+            value={sortOrder}
+            onChange={(event) => setSortOrder(event.target.value as SortOrder)}
+            className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/20"
+          >
+            <option value="newest">Newest Created</option>
+            <option value="oldest">Oldest Created</option>
+          </select>
         </div>
       </div>
 
@@ -188,7 +201,7 @@ export const MyProjectsPage = () => {
           return (
             <div 
               key={job.id} 
-              className="group bg-white border border-slate-100 hover:border-primary/30 rounded-xl p-6 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 relative overflow-hidden"
+              className="group bg-white border border-slate-100 hover:border-primary/30 rounded-lg p-6 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 relative overflow-hidden"
             >
               <div className="flex flex-col md:flex-row justify-between gap-6">
                 <div className="space-y-4 flex-1">
@@ -264,8 +277,8 @@ export const MyProjectsPage = () => {
         })}
 
         {filteredJobs.length === 0 && (
-          <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl p-20 flex flex-col items-center justify-center text-center">
-            <div className="size-16 rounded-xl bg-white flex items-center justify-center shadow-sm mb-4">
+          <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-lg p-20 flex flex-col items-center justify-center text-center">
+            <div className="size-16 rounded-lg bg-white flex items-center justify-center shadow-sm mb-4">
                <FileText className="size-8 text-slate-300" />
             </div>
             <h3 className="text-xl font-black text-slate-900 mb-2">No job posts found</h3>

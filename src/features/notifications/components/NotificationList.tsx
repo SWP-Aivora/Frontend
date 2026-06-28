@@ -5,42 +5,22 @@ interface NotificationListProps {
   notifications: Notification[];
   isLoading: boolean;
   onMarkAsRead: (id: string) => void;
-  onMarkAllAsRead: () => void;
-  onExport?: () => void; // Optional if we don't have API for it
 }
 
 export const NotificationList = ({ 
   notifications, 
   isLoading, 
   onMarkAsRead, 
-  onMarkAllAsRead,
-  onExport
 }: NotificationListProps) => {
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 flex-1 min-h-[400px]">
+    <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-6 flex-1 min-h-[400px]">
       <div className="flex justify-between items-start mb-6">
         <div>
           <h2 className="text-lg font-bold text-slate-900">Notification History</h2>
           <p className="text-xs text-slate-500 mt-1">
             Bulk actions are available after selecting notifications.
           </p>
-        </div>
-        <div className="flex gap-3">
-          <button 
-            onClick={onMarkAllAsRead}
-            className="px-4 py-2 border border-slate-200 rounded-full text-xs font-semibold text-primary hover:bg-slate-50 transition-colors"
-          >
-            Mark all read
-          </button>
-          {onExport && (
-            <button 
-              onClick={onExport}
-              className="px-4 py-2 border border-slate-200 rounded-full text-xs font-semibold text-primary hover:bg-slate-50 transition-colors"
-            >
-              Export
-            </button>
-          )}
         </div>
       </div>
 
