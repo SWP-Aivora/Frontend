@@ -3,11 +3,13 @@ import {
   adminService, 
   normalizeList, 
   isOngoingStatus, 
+  isOpenJobPostStatus,
   isOpenDisputeStatus, 
   getStatusLabel, 
-  countNewInLast7Days, 
+  countNewToday, 
   formatActivityDate 
 } from '../../../features/admin/services';
+import { parseAdminApiDate } from '../../../features/admin/utils/date';
 import apiClient from '../../../lib/axios';
 
 vi.mock('../../../lib/axios');
@@ -143,6 +145,21 @@ describe('adminService helpers', () => {
     });
   });
 
+  describe('isOpenJobPostStatus', () => {
+    it('only returns true for open job post statuses', () => {
+      expect(isOpenJobPostStatus(1)).toBe(true);
+      expect(isOpenJobPostStatus('OPEN')).toBe(true);
+      expect(isOpenJobPostStatus('Published')).toBe(true);
+
+      expect(isOpenJobPostStatus(0)).toBe(false);
+      expect(isOpenJobPostStatus(2)).toBe(false);
+      expect(isOpenJobPostStatus(3)).toBe(false);
+      expect(isOpenJobPostStatus('IN_PROGRESS')).toBe(false);
+      expect(isOpenJobPostStatus('Draft')).toBe(false);
+      expect(isOpenJobPostStatus('Completed')).toBe(false);
+    });
+  });
+
   describe('isOpenDisputeStatus', () => {
     it('returns true for open statuses', () => {
       ['Open', 'Under Review', 'In Review', 'Pending'].forEach(s => expect(isOpenDisputeStatus(s)).toBe(true));
@@ -171,22 +188,55 @@ describe('adminService helpers', () => {
     });
   });
 
-  describe('countNewInLast7Days', () => {
-    it('counts items created within 7 days', () => {
+  describe('countNewToday', () => {
+    it('counts items created today', () => {
       const today = new Date().toISOString();
-      const eightDaysAgo = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString();
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       
       const items = [
         { createdAt: today },
         { CreatedAt: today },
-        { createdAt: eightDaysAgo },
+        { createdAt: yesterday },
       ];
       
-      expect(countNewInLast7Days(items, 'createdAt')).toBe(2);
+      expect(countNewToday(items, 'createdAt')).toBe(2);
+    });
+
+    it('uses fallback date fields in order', () => {
+      const today = new Date().toISOString();
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+      expect(countNewToday([{ publishedAt: today }, { createdAt: yesterday }], ['createdAt', 'publishedAt'])).toBe(1);
+    });
+
+    it('counts backend CreatedAt timestamps with database casing', () => {
+      const today = new Date();
+      const offset = -today.getTimezoneOffset();
+      const sign = offset >= 0 ? '+' : '-';
+      const absoluteOffset = Math.abs(offset);
+      const offsetHours = String(Math.floor(absoluteOffset / 60)).padStart(2, '0');
+      const offsetMinutes = String(absoluteOffset % 60).padStart(2, '0');
+      const timestamp = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')} 16:09:07.475 ${sign}${offsetHours}${offsetMinutes}`;
+
+      expect(countNewToday([{ CreatedAt: timestamp }], ['CreatedAt', 'createdAt'])).toBe(1);
     });
 
     it('returns 0 for empty array', () => {
-      expect(countNewInLast7Days([], 'createdAt')).toBe(0);
+      expect(countNewToday([], 'createdAt')).toBe(0);
+    });
+  });
+
+  describe('parseAdminApiDate', () => {
+    it('parses ISO and SQL-like backend timestamps with timezone offsets', () => {
+      expect(parseAdminApiDate('2026-06-28T09:09:07.475Z')?.toISOString()).toBe('2026-06-28T09:09:07.475Z');
+      expect(parseAdminApiDate('2026-06-28 16:09:07.475 +0700')?.toISOString()).toBe('2026-06-28T09:09:07.475Z');
+      expect(parseAdminApiDate('2026-06-28 16:09:07.475 +07:00')?.toISOString()).toBe('2026-06-28T09:09:07.475Z');
+    });
+
+    it('returns null for unsupported or empty date values', () => {
+      expect(parseAdminApiDate('')).toBeNull();
+      expect(parseAdminApiDate('not-a-date')).toBeNull();
+      expect(parseAdminApiDate(null)).toBeNull();
     });
   });
 
@@ -225,6 +275,89 @@ describe('adminService.getDashboardSummary', () => {
     expect(result.data?.openDisputes).toBe(5);
     // Other fields should have fallback 0 values
     expect(result.data?.totalTransactionsValue).toBe(0);
+  });
+
+  it('counts only open job posts in the Job Market summary', async () => {
+    (vi.mocked(apiClient.get)).mockImplementation((url: string) => {
+      if (url.includes('admin/stats')) {
+        return Promise.resolve({
+          data: {
+            success: true,
+            data: { totalUsers: 0, totalClients: 0, totalExperts: 0, totalJobs: 99, activeProjects: 0, openDisputes: 0 },
+          },
+        });
+      }
+
+      if (url.includes('jobs')) {
+        return Promise.resolve({
+          data: {
+            success: true,
+            data: {
+              items: [
+                { id: 'job-open-number', title: 'Open number', status: 1, CreatedAt: new Date().toISOString() },
+                { id: 'job-open-string', title: 'Open string', status: 'OPEN', CreatedAt: new Date().toISOString() },
+                { id: 'job-published', title: 'Published', status: 'PUBLISHED', CreatedAt: new Date().toISOString() },
+                { id: 'job-draft', title: 'Draft', status: 0, CreatedAt: new Date().toISOString() },
+                { id: 'job-progress', title: 'Progress', status: 2, CreatedAt: new Date().toISOString() },
+                { id: 'job-completed', title: 'Completed', status: 3, CreatedAt: new Date().toISOString() },
+              ],
+            },
+          },
+        });
+      }
+
+      return Promise.resolve({ data: { success: true, data: { items: [] } } });
+    });
+
+    const result = await adminService.getDashboardSummary();
+
+    expect(result.data?.openJobs).toBe(3);
+    expect(result.data?.newJobs7d).toBe(3);
+  });
+});
+
+describe('adminService.getUsers', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('maps admin users from backend PascalCase fields', async () => {
+    (vi.mocked(apiClient.get)).mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          items: [
+            {
+              Id: 'user-1',
+              FullName: 'Keo Client',
+              Email: 'keo@example.com',
+              Role: 'CLIENT',
+              Status: 'ACTIVE',
+              CreatedAt: '2026-06-28 16:09:07.475 +0700',
+              UpdatedAt: '2026-06-28 18:15:19.231 +0700',
+              IsVerified: true,
+            },
+          ],
+          totalItems: 1,
+          pageIndex: 1,
+          pageSize: 10,
+          totalPages: 1,
+        },
+      },
+    });
+
+    const result = await adminService.getUsers();
+
+    expect(result.data?.users[0]).toMatchObject({
+      id: 'user-1',
+      fullName: 'Keo Client',
+      email: 'keo@example.com',
+      role: 'Client',
+      status: 'Active',
+      verificationState: 'Verified',
+      createdAt: '2026-06-28 16:09:07.475 +0700',
+      updatedAt: '2026-06-28 18:15:19.231 +0700',
+    });
   });
 });
 

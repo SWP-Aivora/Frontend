@@ -4,6 +4,7 @@ import { API_ENDPOINTS } from '@/shared/constants';
 import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
 import type { 
   Dispute, 
+  Evidence,
   OpenDisputeRequest, 
   AddEvidenceRequest, 
   ResolveDisputeRequest,
@@ -15,12 +16,24 @@ import {
 import { normalizePaginatedResponse, normalizeBaseResponse } from '@/lib/api-utils';
 
 interface BEDisputeEvidenceResponse {
-  id: string;
-  submittedBy: string;
-  submittedByName: string;
-  content: string;
+  id?: string;
+  Id?: string;
+  disputeId?: string;
+  DisputeId?: string;
+  submittedBy?: string;
+  SubmittedBy?: string;
+  submitterId?: string;
+  SubmitterId?: string;
+  submittedByName?: string;
+  SubmittedByName?: string;
+  submitterName?: string;
+  SubmitterName?: string;
+  content?: string;
+  Content?: string;
   fileUrl?: string | null;
-  createdAt: string;
+  FileUrl?: string | null;
+  createdAt?: string;
+  CreatedAt?: string;
 }
 
 interface BEDisputeResponse {
@@ -99,6 +112,39 @@ const getNumberValue = (...values: unknown[]): number | undefined => {
 
   return undefined;
 };
+
+const getStringValue = (...values: unknown[]): string => {
+  for (const value of values) {
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number') return String(value);
+  }
+
+  return '';
+};
+
+const getNullableStringValue = (...values: unknown[]): string | null => {
+  for (const value of values) {
+    if (typeof value === 'string') return value;
+  }
+
+  return null;
+};
+
+const mapEvidence = (evidence: BEDisputeEvidenceResponse, disputeId: string): Evidence => ({
+  id: getStringValue(evidence.id, evidence.Id),
+  disputeId: getStringValue(evidence.disputeId, evidence.DisputeId, disputeId),
+  submitterId: getStringValue(evidence.submittedBy, evidence.SubmittedBy, evidence.submitterId, evidence.SubmitterId),
+  submitterName: getStringValue(
+    evidence.submittedByName,
+    evidence.SubmittedByName,
+    evidence.submitterName,
+    evidence.SubmitterName,
+    'Unknown'
+  ),
+  content: getStringValue(evidence.content, evidence.Content),
+  fileUrl: getNullableStringValue(evidence.fileUrl, evidence.FileUrl),
+  createdAt: getStringValue(evidence.createdAt, evidence.CreatedAt),
+});
 
 /**
  * Dispute Services
@@ -207,15 +253,7 @@ export const disputeService = {
               status: normalizeDisputeStatus(beData.status),
               resolutionType: normalizeDisputeResolutionType(beData.resolutionType),
               resolutionNote: beData.resolutionNote,
-              evidences: (beData.evidence || []).map((e) => ({
-                id: e.id,
-                disputeId: beData.id,
-                submitterId: e.submittedBy,
-                submitterName: e.submittedByName,
-                content: e.content,
-                fileUrl: e.fileUrl,
-                createdAt: e.createdAt,
-              })),
+              evidences: (beData.evidence || []).map((e) => mapEvidence(e, beData.id)),
               createdAt: beData.createdAt,
               updatedAt: beData.createdAt,
               resolvedAt: beData.resolvedAt,
@@ -266,6 +304,21 @@ export const disputeService = {
   async addEvidence(disputeId: string, data: AddEvidenceRequest): Promise<BaseResponse<void>> {
     const response = await apiClient.post(API_ENDPOINTS.DISPUTES.EVIDENCE(disputeId), data);
     return normalizeBaseResponse<void>(response);
+  },
+
+  /**
+   * Get evidence for an existing dispute.
+   */
+  async getEvidence(disputeId: string): Promise<BaseResponse<Evidence[]>> {
+    const response = await apiClient.get(API_ENDPOINTS.DISPUTES.EVIDENCE(disputeId));
+    const normalized = normalizePaginatedResponse<BEDisputeEvidenceResponse>(response);
+
+    return {
+      success: normalized.success,
+      message: normalized.message,
+      statusCode: normalized.statusCode,
+      data: (normalized.data ?? []).map((evidence) => mapEvidence(evidence, disputeId)),
+    };
   },
 
   /**

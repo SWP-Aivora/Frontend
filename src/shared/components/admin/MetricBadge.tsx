@@ -1,3 +1,4 @@
+import { ArrowUpRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MetricBadgeProps {
@@ -21,8 +22,6 @@ export const MetricBadge = ({ count, type }: MetricBadgeProps) => {
         ? 'bg-rose-50 border-rose-100 text-rose-700'
         : 'bg-orange-50 border-orange-100 text-orange-700';
 
-  const arrow = '↗';
-
   return (
     <div
       className={cn(
@@ -30,7 +29,7 @@ export const MetricBadge = ({ count, type }: MetricBadgeProps) => {
         colorClass,
       )}
     >
-      <span className="text-xs font-bold">{arrow}</span>
+      <ArrowUpRight className="size-3" aria-hidden="true" />
       {count} NEW
     </div>
   );

@@ -1,6 +1,6 @@
-import { Link } from 'react-router-dom';
-import { Activity, AlertCircle, ChevronRight, Clock, Layout } from 'lucide-react';
+import { AlertCircle, Layout } from 'lucide-react';
 import type { DashboardSummary } from '../types';
+import { AdminPageTitle } from './AdminPageTitle';
 
 interface DashboardHeaderProps {
   summary?: DashboardSummary;
@@ -10,7 +10,6 @@ interface DashboardHeaderProps {
 }
 
 export const DashboardHeader = ({
-  summary,
   isPartialData,
   isPreviewMode,
   onRetry,
@@ -51,79 +50,9 @@ export const DashboardHeader = ({
       </div>
     )}
 
-    <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-      <div>
-        <nav className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">
-          <span>Admin</span>
-          <ChevronRight className="size-3" />
-          <span>Dashboard</span>
-          <ChevronRight className="size-3" />
-          <span className="text-primary">Platform Summary</span>
-        </nav>
-        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Admin Dashboard</h1>
-      </div>
-
-      <div className="flex items-center gap-3">
-        <div className="px-4 py-2 bg-rose-50 border border-rose-100 rounded-lg flex items-center gap-2">
-          <span className="size-2 bg-rose-500 rounded-full animate-pulse" />
-          <span className="text-rose-600 text-xs font-black uppercase tracking-tight">
-            {summary?.openDisputes || 0} Open Disputes
-          </span>
-        </div>
-        <div className="px-4 py-2 bg-orange-50 border border-orange-100 rounded-lg flex items-center gap-2">
-          <span className="size-2 bg-orange-500 rounded-full" />
-          <span className="text-orange-600 text-xs font-black uppercase tracking-tight">
-            {summary?.pendingReviews || 0} Pending Reviews
-          </span>
-        </div>
-      </div>
-    </div>
-
-    <div className="bg-white border border-slate-100 rounded-lg overflow-hidden shadow-sm relative group">
-      <div className="absolute top-0 right-0 w-1/3 h-fit bg-gradient-to-l from-primary/5 to-transparent pointer-events-none" />
-      <div className="flex flex-col lg:flex-row items-stretch">
-        <div className="bg-primary/5 p-6 lg:w-1/3 flex flex-col justify-center border-r border-slate-100">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white border border-primary/10 rounded-full text-primary text-xs font-black uppercase tracking-wider mb-4 w-fit">
-            <Activity className="size-3" />
-            API Connected
-          </div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-tight">
-            Monitor Platform Health
-          </h2>
-        </div>
-        <div className="p-6 lg:flex-1 flex flex-col justify-center">
-          <p className="text-slate-600 text-sm font-medium mb-4 max-w-2xl">
-            Keep AIVORA safe and reliable by monitoring users, jobs, projects, transactions,
-            verifications, and disputes in one unified workspace.
-          </p>
-          <div className="flex flex-wrap gap-4">
-            <div className="px-4 py-2 bg-slate-50 border border-slate-100 rounded-lg flex items-center gap-2">
-              <Clock className="size-4 text-primary" />
-              <span className="text-slate-700 text-xs font-bold">Last 30 days</span>
-            </div>
-            <div className="px-4 py-2 bg-emerald-50 border border-emerald-100 rounded-lg flex items-center gap-2">
-              <div className="size-2 bg-emerald-500 rounded-full" />
-              <span className="text-emerald-700 text-xs font-bold uppercase tracking-tight">
-                Platform Operational
-              </span>
-            </div>
-          </div>
-        </div>
-        <div className="p-6 lg:w-fit flex flex-col justify-center gap-3 border-l border-slate-100">
-          <Link
-            to="/admin/expert-reviews"
-            className="flex items-center justify-center px-4 py-2 bg-white border border-primary/20 text-primary rounded-lg font-black text-sm hover:bg-primary/5 hover:border-primary transition-all whitespace-nowrap shadow-sm"
-          >
-            Expert Profile Review
-          </Link>
-          <Link
-            to="/admin/projects"
-            className="flex items-center justify-center px-4 py-2 bg-primary text-white rounded-lg font-black text-sm hover:bg-primary-dark transition-all whitespace-nowrap shadow-lg shadow-primary/20"
-          >
-            Review Project Disputes
-          </Link>
-        </div>
-      </div>
-    </div>
+    <AdminPageTitle
+      title="Admin Dashboard"
+      description="Monitor users, jobs, projects, transactions, verifications, and disputes in one unified workspace."
+    />
   </>
 );
