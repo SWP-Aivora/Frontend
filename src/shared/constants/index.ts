@@ -67,6 +67,7 @@ export const API_ENDPOINTS = {
     ACCEPT: (id: string) => `proposals/${id}/accept`,
     REJECT: (id: string) => `proposals/${id}/reject`,
     SHORTLIST: (id: string) => `proposals/${id}/shortlist`,
+    UNSHORTLIST: (id: string) => `proposals/${id}/unshortlist`,
     WITHDRAW: (id: string) => `proposals/${id}/withdraw`,
     ME: 'proposals/me',
   },

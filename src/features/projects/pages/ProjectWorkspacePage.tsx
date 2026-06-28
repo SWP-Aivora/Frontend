@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { KanbanBoard } from '../components/KanbanBoard';
@@ -23,10 +23,11 @@ import { useAuthStore } from '@/features/auth/store';
 import { Role, ProjectStatus, MilestoneStatus } from '@/shared/types/enums';
 import { cn } from '@/lib/utils';
 import { ProjectDisputeStatusBadge } from '../components/ProjectDisputeStatusBadge';
-import { getDefaultNonDisputeProjectStatus, isProjectDisputed } from '../utils';
+import { isProjectDisputed } from '../utils';
 import { useProjectMilestones } from '../hooks/useProjectMilestones';
 import { chatService } from '@/features/chat/services';
 import { walletService } from '@/features/wallet/services';
+import { CreateDisputeModal } from '@/features/disputes/components/CreateDisputeModal';
 import { toast } from 'sonner';
 
 const toNumber = (value: unknown): number | null => {
@@ -90,7 +91,7 @@ export const ProjectWorkspacePage = () => {
   const { user } = useAuthStore();
   const [selectedMilestone, setSelectedMilestone] = useState<Milestone | null>(null);
   const [isFinishModalOpen, setIsFinishModalOpen] = useState(false);
-  const lastNonDisputeStatusRef = useRef<ProjectStatus | null>(null);
+  const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
 
   // Fetch toàn bộ thông tin chi tiết của Project (Hợp đồng làm việc)
   const { data: projectResponse, isLoading: isLoadingProject } = useQuery({
@@ -355,7 +356,7 @@ export const ProjectWorkspacePage = () => {
   const canShowFinishProject = user?.role === Role.CLIENT && user.id === project?.clientId;
   const canRequestFinishProject = !!id && project?.status !== ProjectStatus.CANCELLED;
   const canReviewCompletedProject = project?.status === ProjectStatus.COMPLETED;
-  const canToggleProjectDispute = Boolean(
+  const canOpenProjectDispute = Boolean(
     project
       && (user?.role === Role.CLIENT || user?.role === Role.EXPERT)
       && (user.id === project.clientId || user.id === project.expertId)
@@ -396,30 +397,10 @@ export const ProjectWorkspacePage = () => {
     finishProjectMutation.mutate();
   };
 
-  const handleToggleProjectDispute = () => {
-    if (!id || !project) return;
-
-    const nextHasDispute = !hasProjectDispute;
-    if (nextHasDispute) {
-      lastNonDisputeStatusRef.current = getDefaultNonDisputeProjectStatus(project.status);
-    }
-
-    const nextStatus = nextHasDispute
-      ? ProjectStatus.DISPUTED
-      : lastNonDisputeStatusRef.current ?? ProjectStatus.IN_PROGRESS;
-
-    queryClient.setQueryData<typeof projectResponse>(['project', id], (current) => {
-      if (!current?.data) return current;
-
-      return {
-        ...current,
-        data: {
-          ...current.data,
-          status: nextStatus,
-          hasDispute: nextHasDispute,
-        },
-      };
-    });
+  const handleDisputeCreated = () => {
+    void queryClient.invalidateQueries({ queryKey: ['project', id] });
+    void queryClient.invalidateQueries({ queryKey: ['project', id, 'milestones'] });
+    void queryClient.invalidateQueries({ queryKey: ['disputes'] });
   };
 
   if (isLoading) {
@@ -477,17 +458,28 @@ export const ProjectWorkspacePage = () => {
         </div>
 
         <div className="flex flex-row flex-nowrap items-center gap-2">
-           {canToggleProjectDispute && (
+           {canOpenProjectDispute && (
              <Button
                variant="outline"
-               onClick={handleToggleProjectDispute}
+               onClick={() => setIsDisputeModalOpen(true)}
+               disabled={hasProjectDispute}
                className={cn(
                  'rounded-full px-5 border-slate-200 font-black flex items-center gap-2',
                  hasProjectDispute && 'border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100'
                )}
              >
                 <ShieldAlert className="size-4" />
-                {hasProjectDispute ? 'Close Dispute' : 'Open Dispute'}
+                {hasProjectDispute ? 'Dispute Opened' : 'Open Dispute'}
+             </Button>
+           )}
+           {(user?.role === Role.CLIENT || user?.role === Role.EXPERT) && (
+             <Button
+               variant="outline"
+               onClick={() => navigate(user.role === Role.EXPERT ? `/expert/projects/${project.id}/disputes` : `/client/projects/${project.id}/disputes`)}
+               className="rounded-full px-5 border-slate-200 font-black flex items-center gap-2"
+             >
+                <ShieldAlert className="size-4" />
+                View Disputes
              </Button>
            )}
            {canShowFinishProject && (
@@ -888,6 +880,14 @@ export const ProjectWorkspacePage = () => {
           </div>
         </div>
       )}
+
+      <CreateDisputeModal
+        isOpen={isDisputeModalOpen}
+        onClose={() => setIsDisputeModalOpen(false)}
+        onSuccess={handleDisputeCreated}
+        initialProjectId={project.id}
+        lockProjectSelection
+      />
 
       {/* Overlay backdrop */}
       {selectedMilestone && (

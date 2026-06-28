@@ -241,6 +241,36 @@ export const ClientJobProposalsPage = () => {
     },
   });
 
+  const unshortlistMutation = useMutation<
+    BaseResponse<void>,
+    unknown,
+    string
+  >({
+    mutationFn: (pid: string) => proposalService.unshortlistProposal(pid),
+    onMutate: async (pid) => {
+      await queryClient.cancelQueries({ queryKey: ['proposals', id] });
+      const previousProposals = queryClient.getQueryData<PaginatedResponse<Proposal>>(['proposals', id]);
+
+      if (previousProposals) {
+        queryClient.setQueryData<PaginatedResponse<Proposal>>(['proposals', id], {
+          ...previousProposals,
+          data: (previousProposals.data ?? []).map(proposal =>
+            proposal.id === pid ? { ...proposal, status: 0 } : proposal // 0 is SUBMITTED
+          ),
+        });
+      }
+    },
+    onError: () => {
+      toast.error('Failed to unshortlist proposal');
+    },
+    onSuccess: () => {
+      toast.success('Proposal returned to submitted status.');
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ['proposals', id] });
+    },
+  });
+
   const onAccept = (pid: string) => {
     acceptMutation.mutate(pid);
   };
@@ -258,20 +288,8 @@ export const ClientJobProposalsPage = () => {
 
     shortlistMutation.mutate(pid);
   };
-  const onUnshortlist = async (pid: string) => {
-    await queryClient.cancelQueries({ queryKey: ['proposals', id] });
-    const previousProposals = queryClient.getQueryData<PaginatedResponse<Proposal>>(['proposals', id]);
-
-    if (previousProposals) {
-      queryClient.setQueryData<PaginatedResponse<Proposal>>(['proposals', id], {
-        ...previousProposals,
-        data: (previousProposals.data ?? []).map(proposal =>
-          proposal.id === pid ? { ...proposal, status: 0 } : proposal // 0 is SUBMITTED
-        ),
-      });
-    }
-
-    toast.success('Proposal returned to submitted status.');
+  const onUnshortlist = (pid: string) => {
+    unshortlistMutation.mutate(pid);
   };
 
   if (isLoading) {
@@ -377,7 +395,7 @@ export const ClientJobProposalsPage = () => {
                       isShortlisted={status === 'shortlisted'}
                       canAccept={!proposalActionsLocked && (status === 'submitted' || status === 'shortlisted')}
                       canChangeStatus={!proposalActionsLocked && (status === 'submitted' || status === 'shortlisted')}
-                      isBusy={acceptMutation.isPending || rejectMutation.isPending || shortlistMutation.isPending}
+                      isBusy={acceptMutation.isPending || rejectMutation.isPending || shortlistMutation.isPending || unshortlistMutation.isPending}
                       isAccepting={acceptMutation.isPending && acceptMutation.variables === p.id}
                     />
                   </div>

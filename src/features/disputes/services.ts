@@ -88,6 +88,18 @@ export const normalizeDisputeResolutionType = (type: unknown): DisputeResolution
   return null;
 };
 
+const getNumberValue = (...values: unknown[]): number | undefined => {
+  for (const value of values) {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string' && value.trim() !== '') {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+
+  return undefined;
+};
+
 /**
  * Dispute Services
  */
@@ -122,6 +134,9 @@ export const disputeService = {
         clientName: beData.openerName || 'Unknown',
         expertId: beData.againstUserId || '',
         expertName: beData.againstUserName || 'Unknown',
+        openerId: beData.openedBy || '',
+        openerName: beData.openerName,
+        againstUserName: beData.againstUserName,
         evidences: [], // List view doesn't need evidence
       } as Dispute));
 
@@ -162,19 +177,29 @@ export const disputeService = {
           }
 
           if (projectData) {
-            const milestone = (projectData.milestones as Record<string, unknown>[])?.find((m) => m.id === beData.milestoneId);
+            const rawMilestones = projectData.milestones ?? projectData.Milestones;
+            const milestone = Array.isArray(rawMilestones)
+              ? (rawMilestones as Record<string, unknown>[]).find((m) => (m.id ?? m.Id) === beData.milestoneId)
+              : undefined;
+            const milestoneAmount = getNumberValue(
+              milestone?.amount,
+              milestone?.Amount,
+              milestone?.totalAmount,
+              milestone?.TotalAmount
+            );
             
             const mappedData: Dispute = {
               id: beData.id,
               projectId: beData.projectId,
               projectTitle: (beData.projectTitle || projectData.title || 'Unknown Project') as string,
               milestoneId: beData.milestoneId,
-              milestoneTitle: (beData.milestoneTitle || milestone?.title || 'General Milestone') as string,
-              milestoneAmount: (milestone?.amount as number) || beData.releaseAmount || beData.refundAmount || 0,
+              milestoneTitle: (beData.milestoneTitle || milestone?.title || milestone?.Title || 'General Milestone') as string,
+              milestoneAmount: milestoneAmount ?? 0,
               clientId: (projectData.clientId || beData.openedBy || '') as string,
               clientName: (projectData.clientName || beData.openerName || 'Unknown Client') as string,
               expertId: (projectData.expertId || beData.againstUserId || '') as string,
               expertName: (projectData.expertName || beData.againstUserName || 'Unknown Expert') as string,
+              openerId: beData.openedBy,
               openerName: beData.openerName,
               againstUserName: beData.againstUserName,
               reason: beData.reason,
@@ -251,4 +276,3 @@ export const disputeService = {
     return normalizeBaseResponse<void>(response);
   },
 };
-

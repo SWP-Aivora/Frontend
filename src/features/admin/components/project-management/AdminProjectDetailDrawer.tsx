@@ -1,9 +1,11 @@
-import { AlertCircle, Calendar, DollarSign, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { AlertCircle, Calendar, DollarSign, MessageSquareWarning, X } from 'lucide-react';
 import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
 import type { AdminProject } from '../../types';
 import { useAdminProjectDetail } from '../../hooks/useAdminProjectDetail';
 import { AdminProjectStatusBadge } from './AdminProjectStatusBadge';
 import { ProjectDisputeStatusBadge } from '@/features/projects/components/ProjectDisputeStatusBadge';
+import { isProjectDisputed } from '@/features/projects/utils';
 
 const formatMoney = (amount: number) => {
   return `${amount.toLocaleString()} Aivora Coin`;
@@ -23,6 +25,7 @@ interface AdminProjectDetailDrawerProps {
 export const AdminProjectDetailDrawer = ({ project, onClose }: AdminProjectDetailDrawerProps) => {
   const { data: detail, isLoading, isError, error } = useAdminProjectDetail(project?.id ?? null);
   const visibleProject = detail ?? project;
+  const hasDispute = isProjectDisputed(visibleProject?.status, visibleProject?.hasDispute);
 
   if (!project || !visibleProject) return null;
 
@@ -75,6 +78,23 @@ export const AdminProjectDetailDrawer = ({ project, onClose }: AdminProjectDetai
               Aivora Coin
             </span>
           </div>
+
+          {hasDispute && (
+            <Link
+              to={`/admin/projects/${visibleProject.id}/disputes`}
+              onClick={onClose}
+              className="flex items-center justify-between gap-4 rounded-lg border border-rose-100 bg-rose-50 p-4 text-rose-700 transition-colors hover:bg-rose-100"
+            >
+              <span className="flex items-center gap-3">
+                <MessageSquareWarning className="size-5 shrink-0" />
+                <span>
+                  <span className="block text-sm font-black">View dispute details</span>
+                  <span className="block text-xs font-semibold text-rose-600/80">Open all dispute records returned for this project.</span>
+                </span>
+              </span>
+              <span className="text-xs font-black uppercase tracking-widest">Open</span>
+            </Link>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="bg-slate-50 border border-slate-100 rounded-lg p-4">
