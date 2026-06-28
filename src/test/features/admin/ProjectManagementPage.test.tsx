@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { ProjectManagementPage } from '../../../features/admin/pages/ProjectManagementPage';
 import type { AdminProject } from '../../../features/admin/types';
 
@@ -30,6 +30,22 @@ const baseProject: AdminProject = {
   startDate: '2026-01-01T00:00:00.000Z',
   createdAt: '2026-01-01T00:00:00.000Z',
   milestones: [],
+};
+
+const disputedProject: AdminProject = {
+  ...baseProject,
+  id: 'project-2',
+  title: 'Dispute Review Platform',
+  status: 3,
+  hasDispute: true,
+};
+
+const completedProject: AdminProject = {
+  ...baseProject,
+  id: 'project-3',
+  title: 'Completed Chatbot Build',
+  status: 4,
+  hasDispute: false,
 };
 
 describe('ProjectManagementPage', () => {
@@ -121,6 +137,84 @@ describe('ProjectManagementPage', () => {
     expect(screen.getByText('AI Workflow Automation')).toBeInTheDocument();
     expect(screen.getByText('Client One')).toBeInTheDocument();
     expect(screen.getByText('Expert One')).toBeInTheDocument();
-    expect(screen.getByText('No admin mutation endpoints')).toBeInTheDocument();
+    expect(screen.getByText('Manage Projects')).toBeInTheDocument();
+  });
+
+  it('only applies project name search after clicking Search', () => {
+    mockUseAdminProjects.mockReturnValue({
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      refetch: mockRefetch,
+      data: {
+        data: [baseProject, disputedProject],
+        metadata: {
+          pageIndex: 1,
+          pageSize: 10,
+          totalCount: 2,
+          totalPages: 1,
+          hasPreviousPage: false,
+          hasNextPage: false,
+        },
+      },
+    });
+
+    render(<ProjectManagementPage />);
+
+    const searchInput = screen.getByPlaceholderText('Search project name...');
+    fireEvent.change(searchInput, { target: { value: 'Dispute' } });
+
+    expect(mockUseAdminProjects).toHaveBeenLastCalledWith({
+      PageIndex: 1,
+      PageSize: 10,
+      SearchTerm: undefined,
+      status: undefined,
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /search/i }));
+
+    expect(mockUseAdminProjects).toHaveBeenLastCalledWith({
+      PageIndex: 1,
+      PageSize: 10,
+      SearchTerm: 'Dispute',
+      status: undefined,
+    });
+  });
+
+  it('filters status separately from dispute state', () => {
+    mockUseAdminProjects.mockReturnValue({
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      refetch: mockRefetch,
+      data: {
+        data: [baseProject, disputedProject, completedProject],
+        metadata: {
+          pageIndex: 1,
+          pageSize: 10,
+          totalCount: 3,
+          totalPages: 1,
+          hasPreviousPage: false,
+          hasNextPage: false,
+        },
+      },
+    });
+
+    render(<ProjectManagementPage />);
+
+    fireEvent.change(screen.getByLabelText('Project status'), { target: { value: '4' } });
+
+    expect(mockUseAdminProjects).toHaveBeenLastCalledWith({
+      PageIndex: 1,
+      PageSize: 10,
+      SearchTerm: undefined,
+      status: 4,
+    });
+
+    fireEvent.change(screen.getByLabelText('Dispute filter'), { target: { value: 'Open' } });
+
+    expect(screen.getByText('Dispute Review Platform')).toBeInTheDocument();
+    expect(screen.queryByText('AI Workflow Automation')).not.toBeInTheDocument();
+    expect(screen.queryByText('Completed Chatbot Build')).not.toBeInTheDocument();
   });
 });

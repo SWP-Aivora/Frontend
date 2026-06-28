@@ -1,12 +1,13 @@
 import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, ArrowLeft, Calendar, FileText, MessageSquareWarning, UserRound } from 'lucide-react';
+import { AlertCircle, Calendar, FileText, MessageSquareWarning, UserRound } from 'lucide-react';
 import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
 import { Button } from '@/shared/components/ui/Button';
 import { DisputeStatusBadge } from '@/features/disputes/components/DisputeStatusBadge';
 import { disputeService } from '@/features/disputes/services';
 import { DisputeResolutionType, DisputeStatus, type Dispute, type ResolveDisputeRequest } from '@/features/disputes/types';
+import { AdminPageTitle } from '../components/AdminPageTitle';
 import { adminService } from '../services';
 import { toast } from 'sonner';
 
@@ -182,11 +183,29 @@ export const AdminProjectDisputesPage = () => {
     })),
   });
 
+  const evidenceQueries = useQueries({
+    queries: projectDisputes.map(dispute => ({
+      queryKey: ['dispute', dispute.id, 'evidence'],
+      queryFn: () => disputeService.getEvidence(dispute.id),
+      enabled: Boolean(dispute.id),
+      retry: false,
+    })),
+  });
+
   const disputes = useMemo<Dispute[]>(() => (
-    projectDisputes.map((summary, index) => detailQueries[index]?.data?.data ?? summary)
-  ), [detailQueries, projectDisputes]);
+    projectDisputes.map((summary, index) => {
+      const detail = detailQueries[index]?.data?.data ?? summary;
+      const evidence = evidenceQueries[index]?.data?.data;
+
+      return {
+        ...detail,
+        evidences: evidence ?? detail.evidences,
+      };
+    })
+  ), [detailQueries, evidenceQueries, projectDisputes]);
 
   const isLoadingDetails = detailQueries.some(query => query.isLoading);
+  const isLoadingEvidence = evidenceQueries.some(query => query.isLoading);
   const isLoadingAdditionalPages = additionalDisputePageQueries.some(query => query.isLoading);
   const isLoading = isLoadingProject || isLoadingDisputes || isLoadingAdditionalPages;
 
@@ -208,29 +227,16 @@ export const AdminProjectDisputesPage = () => {
 
   return (
     <div className="space-y-6 pb-10">
-      <div className="rounded-lg border border-slate-100 bg-white p-5 shadow-sm">
-        <Link to="/admin/projects" className="mb-4 inline-flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-primary">
-          <ArrowLeft className="size-3.5" />
-          Back to projects
-        </Link>
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="flex-1">
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Admin / Project Disputes</p>
-            <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900">
-              {project?.title ?? 'Project dispute details'}
-            </h1>
-            <div className="mt-4 w-full max-w-sm rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">
-              <p className="text-xs font-black uppercase tracking-wider text-slate-400">Disputes Found</p>
-              <p className="mt-1 text-2xl font-black text-slate-900">{disputes.length}</p>
-            </div>
-          </div>
-          <div className="w-full space-y-3 lg:w-[420px]">
-            {disputes.length > 0 && (
-              <ResolveDisputeActions disputes={disputes} projectId={projectId} />
-            )}
-          </div>
+      <AdminPageTitle
+        title={project?.title ?? 'Project dispute details'}
+        description="Review dispute records, submitted evidence, and resolution details for this project."
+      />
+
+      {disputes.length > 0 && (
+        <div className="rounded-lg border border-slate-100 bg-white p-5 shadow-sm">
+          <ResolveDisputeActions disputes={disputes} projectId={projectId} />
         </div>
-      </div>
+      )}
 
       {isProjectError && (
         <div className="rounded-lg border border-amber-100 bg-amber-50 p-4 text-sm font-semibold text-amber-700">
@@ -250,7 +256,7 @@ export const AdminProjectDisputesPage = () => {
         </div>
       )}
 
-      {isLoadingDetails && (
+      {(isLoadingDetails || isLoadingEvidence) && (
         <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm font-semibold text-blue-700">
           Loading detailed dispute evidence...
         </div>
@@ -326,7 +332,7 @@ export const AdminProjectDisputesPage = () => {
                 </div>
               ) : (
                 <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-xs font-bold uppercase tracking-widest text-slate-400">
-                  No evidence returned by the dispute detail API
+                  No evidence returned by the dispute evidence API
                 </p>
               )}
             </div>

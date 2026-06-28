@@ -26,18 +26,12 @@ export const SummaryCardsRow = ({ summary }: SummaryCardsRowProps) => (
             </Link>
           </div>
         </div>
-        <div className="flex-1 overflow-x-auto overflow-y-auto pr-1 custom-scrollbar space-y-3.5">
+        <div className="flex-1 overflow-hidden space-y-3.5">
           {summary?.userOverview?.map((item) => (
-            <div key={item.role} className="space-y-1.5 min-w-[200px]">
+            <div key={item.role} className="min-w-0">
               <div className="flex justify-between items-end">
                 <span className="text-slate-600 font-bold text-xs">{item.role}</span>
                 <span className="text-slate-900 font-black text-sm">{item.count.toLocaleString()}</span>
-              </div>
-              <div className="h-1.5 bg-slate-50 rounded-full overflow-hidden border border-slate-100">
-                <div
-                  className="h-full bg-primary rounded-full transition-all duration-1000"
-                  style={{ width: `${item.fillPercentage}%` }}
-                />
               </div>
             </div>
           ))}

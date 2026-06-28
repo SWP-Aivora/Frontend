@@ -68,9 +68,8 @@ describe('AdminDashboardPage', () => {
       </MemoryRouter>
     );
 
-    // Should display Retry button on header or similar
-    const retryButtons = screen.getAllByRole('button');
-    expect(retryButtons.length).toBeGreaterThan(0);
+    expect(screen.getByRole('heading', { name: /admin dashboard/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /all projects/i })).toBeInTheDocument();
   });
 
   it('renders data successfully', () => {

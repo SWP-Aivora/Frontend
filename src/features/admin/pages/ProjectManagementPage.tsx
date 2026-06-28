@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle, DollarSign, FolderKanban } from 'lucide-react';
 import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
+import { AdminPageTitle } from '../components/AdminPageTitle';
 import { MetricsSummaryCard } from '../components/MetricsSummaryCard';
 import { useAdminProjects } from '../hooks/useAdminProjects';
 import type { AdminProject } from '../types';
@@ -19,8 +20,10 @@ const normalizeStatusNumber = (value: string): number | undefined => {
 };
 
 export const ProjectManagementPage = () => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [disputeFilter, setDisputeFilter] = useState('All');
   const [pageIndex, setPageIndex] = useState(1);
   const [selectedProject, setSelectedProject] = useState<AdminProject | null>(null);
 
@@ -28,14 +31,28 @@ export const ProjectManagementPage = () => {
     () => ({
       PageIndex: pageIndex,
       PageSize: PAGE_SIZE,
-      SearchTerm: searchTerm.trim() || undefined,
+      SearchTerm: appliedSearchTerm.trim() || undefined,
       status: normalizeStatusNumber(statusFilter),
     }),
-    [pageIndex, searchTerm, statusFilter]
+    [pageIndex, appliedSearchTerm, statusFilter]
   );
 
-  const { data, isLoading, isFetching, isError, error, refetch } = useAdminProjects(queryParams);
-  const projects = useMemo(() => data?.data ?? [], [data?.data]);
+  const { data, isLoading, isError, error, refetch } = useAdminProjects(queryParams);
+  const projects = useMemo(() => {
+    const titleSearch = appliedSearchTerm.trim().toLowerCase();
+    return (data?.data ?? []).filter((project) => {
+      const matchesTitle = titleSearch ? project.title.toLowerCase().includes(titleSearch) : true;
+      const hasOpenDispute = isProjectDisputed(project.status, project.hasDispute);
+      const matchesDispute =
+        disputeFilter === 'All'
+          ? true
+          : disputeFilter === 'Open'
+            ? hasOpenDispute
+            : !hasOpenDispute;
+
+      return matchesTitle && matchesDispute;
+    });
+  }, [appliedSearchTerm, data?.data, disputeFilter]);
   const metadata = data?.metadata;
   const totalPages = Math.max(1, metadata?.totalPages ?? 1);
   const totalCount = metadata?.totalCount ?? 0;
@@ -54,13 +71,18 @@ export const ProjectManagementPage = () => {
     );
   }, [projects]);
 
-  const handleSearchChange = (value: string) => {
-    setSearchTerm(value);
+  const handleSearchSubmit = () => {
+    setAppliedSearchTerm(searchInput.trim());
     setPageIndex(1);
   };
 
   const handleStatusChange = (value: string) => {
     setStatusFilter(value);
+    setPageIndex(1);
+  };
+
+  const handleDisputeChange = (value: string) => {
+    setDisputeFilter(value);
     setPageIndex(1);
   };
 
@@ -83,41 +105,10 @@ export const ProjectManagementPage = () => {
 
   return (
     <div className="space-y-4 pb-10">
-      <div className="bg-white border border-slate-100 rounded-lg p-4 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <p className="text-slate-500 text-xs font-medium mb-1">Admin / Project Management</p>
-          <h1 className="text-xl font-black text-slate-900 leading-tight">Manage Projects</h1>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            onClick={() => refetch()}
-            className="bg-primary text-white px-6 py-2 rounded-lg text-xs font-bold hover:bg-primary-dark transition-all shadow-sm active:scale-95 disabled:opacity-60"
-            disabled={isFetching}
-          >
-            {isFetching ? 'Syncing...' : 'Sync Data'}
-          </button>
-        </div>
-      </div>
-
-      <div className="bg-brand-blue-dark border border-brand-blue-dark rounded-lg p-4 lg:p-5 flex flex-col lg:flex-row justify-between relative overflow-hidden shadow-sm">
-        <div className="absolute top-0 right-0 w-1/3 h-full bg-white/5 skew-x-12 -mr-16 pointer-events-none" />
-        <div className="relative z-10 flex-1">
-          <div className="inline-flex items-center bg-white/20 border border-white/20 text-white px-3 py-1 rounded-full text-xs font-semibold mb-4">
-            GET /api/v1/projects
-          </div>
-          <h2 className="text-white text-2xl lg:text-[28px] font-black leading-tight mb-2">Project Management</h2>
-          <p className="text-white/80 text-xs font-normal">Review active, disputed, completed, and pending projects from the real project API.</p>
-        </div>
-        <div className="relative z-10 lg:w-1/2 flex flex-col justify-between mt-6 lg:mt-0">
-          <p className="text-white/90 text-sm font-normal mb-4">
-            Search by project title, filter by backend status, inspect participants, budget, dates, and milestone data returned by the API.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <div className="bg-white text-primary px-3 py-1 rounded-full text-xs font-semibold">{totalCount.toLocaleString()} total projects</div>
-            <div className="bg-rose-50 text-rose-600 px-3 py-1 rounded-full text-xs font-semibold">No admin mutation endpoints</div>
-          </div>
-        </div>
-      </div>
+      <AdminPageTitle
+        title="Manage Projects"
+        description="Search by project title, filter by project status or dispute state, and inspect participants, budget, dates, and milestones."
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricsSummaryCard
@@ -152,10 +143,13 @@ export const ProjectManagementPage = () => {
 
       <div className="bg-white border border-slate-100 rounded-lg shadow-sm p-5">
         <AdminProjectFilters
-          searchTerm={searchTerm}
+          searchInput={searchInput}
           statusFilter={statusFilter}
-          onSearchChange={handleSearchChange}
+          disputeFilter={disputeFilter}
+          onSearchInputChange={setSearchInput}
+          onSearchSubmit={handleSearchSubmit}
           onStatusChange={handleStatusChange}
+          onDisputeChange={handleDisputeChange}
         />
       </div>
 
@@ -165,7 +159,7 @@ export const ProjectManagementPage = () => {
         totalPages={totalPages}
         totalCount={totalCount}
         pageSize={metadata?.pageSize ?? PAGE_SIZE}
-        hasFilters={Boolean(searchTerm.trim()) || statusFilter !== 'All'}
+        hasFilters={Boolean(appliedSearchTerm.trim()) || statusFilter !== 'All' || disputeFilter !== 'All'}
         onPageChange={setPageIndex}
         onSelectProject={setSelectedProject}
       />

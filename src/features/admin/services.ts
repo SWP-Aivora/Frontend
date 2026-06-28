@@ -183,6 +183,10 @@ const getStatusText = (source: AdminRecord, ...keys: string[]): string => (
   getStringValue(getValue(source, ...keys)).toUpperCase()
 );
 
+const getStatusToken = (value: unknown): string => (
+  String(value ?? '').toUpperCase().replace(/\s+|_/g, '')
+);
+
 const getSettledBaseData = <T>(
   result: PromiseSettledResult<AxiosResponse<unknown>>,
   dataGuard: TypeGuard<T>
@@ -197,6 +201,26 @@ const getSettledBaseData = <T>(
 const getDateInput = (source: AdminRecord, ...keys: string[]): string | number | Date | undefined => {
   const value = getValue(source, ...keys);
   return typeof value === 'string' || typeof value === 'number' || value instanceof Date ? value : undefined;
+};
+
+const parseApiDate = (value: string | number | Date): Date => {
+  if (value instanceof Date) {
+    return value;
+  }
+
+  const directDate = new Date(value);
+  if (!Number.isNaN(directDate.getTime())) {
+    return directDate;
+  }
+
+  if (typeof value === 'string') {
+    const isoLikeDate = new Date(value.replace(' ', 'T'));
+    if (!Number.isNaN(isoLikeDate.getTime())) {
+      return isoLikeDate;
+    }
+  }
+
+  return new Date(Number.NaN);
 };
 
 const getStringOrNumberValue = (value: unknown, fallback: string | number): string | number => (
@@ -245,6 +269,39 @@ const normalizeAdminUserStatus = (value: unknown): AdminUserManagementData['user
   if (normalized === 'SUSPENDED') return 'Suspended';
   if (normalized === 'PENDING') return 'Pending';
   return 'Active';
+};
+
+const normalizeAdminUserVerificationState = (
+  user: AdminRecord,
+  role: AdminUserManagementData['users'][number]['role']
+): AdminUserManagementData['users'][number]['verificationState'] => {
+  if (role === 'Admin') {
+    return 'Internal';
+  }
+
+  const rawState = getValue(
+    user,
+    'verificationState',
+    'VerificationState',
+    'verificationStatus',
+    'VerificationStatus',
+    'profileStatus',
+    'ProfileStatus',
+    'expertStatus',
+    'ExpertStatus',
+  );
+
+  const normalized = getStatusToken(rawState);
+  if (normalized === 'VERIFIED' || normalized === 'APPROVED' || normalized === 'ACTIVE') return 'Verified';
+  if (normalized === 'REJECTED' || normalized === 'DECLINED') return 'Rejected';
+  if (normalized === 'PENDING') return 'Pending';
+  if (normalized === 'REVIEW' || normalized === 'INREVIEW' || normalized === 'UNDERREVIEW') return 'Review';
+
+  const verified = getBooleanValue(user, 'isVerified', 'IsVerified', 'emailConfirmed', 'EmailConfirmed');
+  if (verified === true) return 'Verified';
+  if (verified === false) return 'Pending';
+
+  return 'Pending';
 };
 
 /**
@@ -318,9 +375,18 @@ export const isOngoingStatus = (status: unknown): boolean => {
   if (typeof status === 'number') {
     return [0, 1, 2, 3, 6].includes(status);
   }
-  const s = String(status).toUpperCase().replace(/\s+|_/g, '');
+  const s = getStatusToken(status);
   const finishedStatuses = ['COMPLETED', 'COMPLETE', 'CANCELLED', 'CANCELED', 'CLOSED', 'REFUNDED', 'FAILED'];
   return !finishedStatuses.includes(s);
+};
+
+export const isOpenJobPostStatus = (status: unknown): boolean => {
+  if (typeof status === 'number') {
+    return status === 1;
+  }
+
+  const statusToken = getStatusToken(status);
+  return statusToken === 'OPEN' || statusToken === 'PUBLISHED';
 };
 
 /**
@@ -328,7 +394,7 @@ export const isOngoingStatus = (status: unknown): boolean => {
  */
 export const isOpenDisputeStatus = (status: unknown): boolean => {
   if (status === undefined || status === null) return true;
-  const s = String(status).toUpperCase().replace(/\s+|_/g, '');
+  const s = getStatusToken(status);
   const openStatuses = ['OPEN', 'UNDERREVIEW', 'INREVIEW', 'PENDING', 'PENDINGREVIEW'];
   return openStatuses.includes(s);
 };
@@ -350,7 +416,7 @@ export const getStatusLabel = (status: unknown): string => {
     }
   }
   
-  const s = String(status).toUpperCase().replace(/\s+|_/g, '');
+  const s = getStatusToken(status);
   if (s === 'PENDINGPAYMENT') return 'Pending Payment';
   if (s === 'INREVIEW') return 'In Review';
   if (s === 'INPROGRESS') return 'Active';
@@ -361,21 +427,27 @@ export const getStatusLabel = (status: unknown): string => {
 };
 
 /**
- * Helper to calculate items created in the last 7 days
+ * Helper to calculate items created today.
  */
-export const countNewInLast7Days = (items: AdminRecord[], dateField: string): number => {
+export const countNewToday = (items: AdminRecord[], dateFields: string | string[]): number => {
   if (!items || !Array.isArray(items)) return 0;
-  
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  sevenDaysAgo.setHours(0, 0, 0, 0);
+
+  const fields = Array.isArray(dateFields) ? dateFields : [dateFields];
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  const tomorrowStart = new Date(todayStart);
+  tomorrowStart.setDate(tomorrowStart.getDate() + 1);
 
   return items.filter(item => {
-    const dateValue = getDateInput(item, dateField, dateField.charAt(0).toUpperCase() + dateField.slice(1));
+    const dateValue = fields
+      .flatMap((field) => [field, field.charAt(0).toUpperCase() + field.slice(1)])
+      .map((field) => getDateInput(item, field))
+      .find((value) => value !== undefined);
     if (!dateValue) return false;
     
-    const date = new Date(dateValue);
-    return !isNaN(date.getTime()) && date >= sevenDaysAgo;
+    const date = parseApiDate(dateValue);
+    return !isNaN(date.getTime()) && date >= todayStart && date < tomorrowStart;
   }).length;
 };
 
@@ -569,8 +641,7 @@ export const adminService = {
 
     // 1. Process Job Market
     const activeJobs = allJobs.filter(job => {
-      const s = getStatusText(job, 'status', 'Status');
-      return s === 'OPEN' || s === 'IN_PROGRESS' || s === 'PUBLISHED' || s === 'INPROGRESS';
+      return isOpenJobPostStatus(getValue(job, 'status', 'Status'));
     });
 
     const categoryMap = new Map<string, string>();
@@ -629,15 +700,34 @@ export const adminService = {
     const openDisputesCount = getNumberValue(backendStats, 'openDisputes') ?? realOpenDisputes.length;
 
     const pendingReviewsCount = getNumberValue(expertReviewsPayload, 'totalPending', 'TotalPending') ?? allExpertReviews.length;
-    const openJobsCount = Math.max(activeJobs.length, getNumberValue(backendStats, 'totalJobs') ?? 0);
+    const openJobsCount = activeJobs.length;
 
-    // 4. Calculate 7-day NEW counts
-    const newUsers7d = countNewInLast7Days(allUsers, 'createdAt');
-    const newJobs7d = countNewInLast7Days(allJobs, 'publishedAt');
-    const newProjects7d = countNewInLast7Days(allProjectsRaw, 'createdAt');
-    const newDisputes7d = countNewInLast7Days(allDisputes, 'createdAt');
-    const newExpertReviews7d = countNewInLast7Days(allExpertReviews, 'submittedAt');
-    const newTransactions7d = countNewInLast7Days(recentPayments, 'createdAt');
+    // 4. Calculate today's NEW counts
+    const newUsers7d =
+      getNumberValue(
+        backendStats,
+        'newUsersToday',
+        'NewUsersToday',
+        'newAccountsToday',
+        'NewAccountsToday',
+        'usersCreatedToday',
+        'UsersCreatedToday',
+        'newUsersCount',
+        'NewUsersCount',
+        'newAccountsCount',
+        'NewAccountsCount',
+        'newUsersInDay',
+        'NewUsersInDay',
+        'newAccountsInDay',
+        'NewAccountsInDay',
+        'newUsers',
+        'NewUsers',
+      ) ?? countNewToday(allUsers, ['CreatedAt', 'createdAt', 'createdDate', 'createdOn', 'registeredAt', 'joinedAt']);
+    const newJobs7d = countNewToday(activeJobs, ['CreatedAt', 'createdAt', 'publishedAt']);
+    const newProjects7d = countNewToday(allProjectsRaw, 'createdAt');
+    const newDisputes7d = countNewToday(allDisputes, 'createdAt');
+    const newExpertReviews7d = countNewToday(allExpertReviews, ['submittedAt', 'createdAt']);
+    const newTransactions7d = countNewToday(recentPayments, 'createdAt');
 
     // 5. Transaction Summary
     const transactionSummary: TransactionSummaryItem[] = [];
@@ -835,14 +925,16 @@ export const adminService = {
     const mappedUsers = items.map((user) => {
       const lastLoginRaw = getValue(user, 'lastLoginAt', 'LastLoginAt');
       const fullName = getStringValue(getValue(user, 'fullName', 'FullName'));
+      const role = normalizeAdminUserRole(getValue(user, 'role', 'Role'));
       return {
         id: getStringValue(getValue(user, 'id', 'Id')),
         fullName,
         email: getStringValue(getValue(user, 'email', 'Email')),
-        role: normalizeAdminUserRole(getValue(user, 'role', 'Role')),
+        role,
         status: normalizeAdminUserStatus(getValue(user, 'status', 'Status')),
-        verificationState: 'N/A' as const,
-        createdAt: getStringValue(getValue(user, 'createdAt', 'CreatedAt'), 'N/A'),
+        verificationState: normalizeAdminUserVerificationState(user, role),
+        createdAt: getStringValue(getValue(user, 'CreatedAt', 'createdAt'), ''),
+        updatedAt: getNullableString(user, 'UpdatedAt', 'updatedAt'),
         lastLoginAt: (() => {
           const normalized = getNumericValue(lastLoginRaw) ?? (typeof lastLoginRaw === 'string' ? lastLoginRaw : undefined);
           if (normalized === undefined) return null;

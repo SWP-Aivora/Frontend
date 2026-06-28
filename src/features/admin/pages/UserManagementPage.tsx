@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminUsers } from '../hooks/useAdminUsers';
 import { useAdminDashboard } from '../hooks/useAdminDashboard';
+import { AdminPageTitle } from '../components/AdminPageTitle';
 import { MetricsSummaryCard } from '../components/MetricsSummaryCard';
 import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
 import { cn } from '@/lib/utils';
@@ -26,6 +27,25 @@ const formatStatusLabel = (status: string) => {
   const normalized = normalizeStatus(status);
   return normalized.charAt(0) + normalized.slice(1).toLowerCase();
 };
+const parseApiDate = (value?: string | null) => {
+  if (!value) return null;
+
+  const directDate = new Date(value);
+  if (!Number.isNaN(directDate.getTime())) {
+    return directDate;
+  }
+
+  const isoLikeDate = new Date(value.replace(' ', 'T'));
+  return Number.isNaN(isoLikeDate.getTime()) ? null : isoLikeDate;
+};
+const formatDate = (value?: string | null) => {
+  const date = parseApiDate(value);
+  return date ? date.toLocaleDateString() : 'Not provided';
+};
+const formatDateTime = (value?: string | null) => {
+  const date = parseApiDate(value);
+  return date ? date.toLocaleString() : 'Not provided';
+};
 
 export const UserManagementPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -35,7 +55,7 @@ export const UserManagementPage = () => {
   const navigate = useNavigate();
 
   // Fetch a large dataset to perform client-side filtering/sorting/pagination as requested
-  const { data: usersData, isLoading: isLoadingUsers, isError: isErrorUsers, error: errorUsers, refetch } = useAdminUsers({ 
+  const { data: usersData, isLoading: isLoadingUsers, isError: isErrorUsers, error: errorUsers } = useAdminUsers({ 
     PageIndex: 1, 
     PageSize: 1000 // Fetch "full" dataset for FE-side logic
   });
@@ -72,19 +92,16 @@ export const UserManagementPage = () => {
       );
     }
 
-    // 4. Sort: ACTIVE first, then newest lastLogin first
+    // 4. Sort: ACTIVE first, then newest user update/create date first
     return filtered.sort((a, b) => {
       const aActive = isUserActive(a.status) ? 1 : 0;
       const bActive = isUserActive(b.status) ? 1 : 0;
       
       if (aActive !== bActive) return bActive - aActive; // Active (1) before others (0)
-      
-      // Both have same active status, sort by lastLoginAt
-      if (!a.lastLoginAt && !b.lastLoginAt) return 0;
-      if (!a.lastLoginAt) return 1; // a is null, b is not, so b comes first
-      if (!b.lastLoginAt) return -1; // b is null, a is not, so a comes first
-      
-      return new Date(b.lastLoginAt).getTime() - new Date(a.lastLoginAt).getTime();
+
+      const aDate = parseApiDate(a.updatedAt || a.createdAt)?.getTime() ?? 0;
+      const bDate = parseApiDate(b.updatedAt || b.createdAt)?.getTime() ?? 0;
+      return bDate - aDate;
     });
   }, [usersData?.users, roleFilter, statusFilter, searchTerm]);
 
@@ -132,10 +149,6 @@ export const UserManagementPage = () => {
     };
   }, [statsData]);
 
-  const handleSync = () => {
-    refetch();
-  };
-
   if (isLoading && !usersData) {
     return (
       <div className="h-[50vh] flex items-center justify-center">
@@ -162,37 +175,10 @@ export const UserManagementPage = () => {
 
   return (
     <div className="space-y-4 pb-10">
-      {/* Header */}
-      <div className="bg-white border border-slate-100 rounded-lg p-4 lg:p-4 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <p className="text-slate-500 text-xs font-medium mb-1">Admin / User Management</p>
-          <h1 className="text-xl font-black text-slate-900 leading-tight">Manage Platform Users</h1>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <button onClick={handleSync} className="bg-primary text-white px-6 py-2 rounded-lg text-xs font-bold hover:bg-primary-dark transition-all shadow-sm active:scale-95">Sync Data</button>
-        </div>
-      </div>
-
-      {/* Hero Banner */}
-      <div className="bg-brand-blue-dark border border-brand-blue-dark rounded-lg p-4 lg:p-5 flex flex-col lg:flex-row justify-between relative overflow-hidden shadow-sm">
-        <div className="absolute top-0 right-0 w-1/3 h-full bg-white/5 skew-x-12 -mr-16 pointer-events-none" />
-        <div className="relative z-10 flex-1">
-          <div className="inline-flex items-center bg-white/20 border border-white/20 text-white px-3 py-1 rounded-full text-xs font-semibold mb-4">
-            GET /admin/users
-          </div>
-          <h2 className="text-white text-2xl lg:text-[28px] font-black leading-tight mb-2">User Management</h2>
-          <p className="text-white/80 text-xs font-normal">Search, filter, suspend, activate, and audit every platform account.</p>
-        </div>
-        <div className="relative z-10 lg:w-1/2 flex flex-col justify-between mt-6 lg:mt-0">
-          <p className="text-white/90 text-sm font-normal mb-4">
-            View clients, experts, and admins in one operational surface. Risk signals, verification status, and recent activity are organized for fast review.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <div className="bg-white text-primary px-3 py-1 rounded-full text-xs font-semibold">{globalStats?.totalUsers?.toLocaleString() || '0'} total users</div>
-            <div className="bg-rose-50 text-rose-600 px-3 py-1 rounded-full text-xs font-semibold">{metrics.suspended} suspended (filtered)</div>
-          </div>
-        </div>
-      </div>
+      <AdminPageTitle
+        title="Manage Platform Users"
+        description="Search, filter, suspend, activate, and audit clients, experts, and admins in one operational surface."
+      />
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-4">
@@ -293,9 +279,9 @@ export const UserManagementPage = () => {
                     <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">User</th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">Role</th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">Status</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">Verify</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">User ID</th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">Created</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">Last login</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">Updated</th>
                     <th className="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wide">Actions</th>
                   </tr>
                 </thead>
@@ -342,21 +328,15 @@ export const UserManagementPage = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span className={cn(
-                          "px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border",
-                          user.verificationState === 'Verified' ? "bg-primary/5 text-primary border-primary/10" :
-                          user.verificationState === 'Rejected' ? "bg-rose-50 text-rose-600 border-rose-100" :
-                          user.verificationState === 'Review' ? "bg-orange-50 text-orange-600 border-orange-100" :
-                          user.verificationState === 'Internal' ? "bg-purple-50 text-purple-600 border-purple-100" : "bg-slate-50 text-slate-600 border-slate-200"
-                        )}>
-                          {user.verificationState}
+                        <span className="block max-w-[120px] truncate text-[11px] font-bold text-slate-600" title={user.id}>
+                          {user.id}
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-[11px] font-bold text-slate-600">
-                        {user.createdAt !== 'N/A' ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+                        {formatDate(user.createdAt)}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-[11px] font-bold text-slate-600">
-                        {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : 'N/A'}
+                        {formatDateTime(user.updatedAt)}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <button
