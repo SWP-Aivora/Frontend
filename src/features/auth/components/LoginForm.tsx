@@ -10,10 +10,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Role } from '@/shared/types/enums';
-
-const ASSETS = {
-  iconCircle: "https://www.figma.com/api/mcp/asset/b5419652-1b98-4868-81dd-4af0923d3db0",
-};
+import { LockKeyhole, Mail } from 'lucide-react';
 
 export const LoginForm = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -71,10 +68,7 @@ export const LoginForm = () => {
         <div className="space-y-2">
           <label htmlFor="email" className="text-sm font-bold text-slate-700 ml-1">Email Address</label>
           <div className="relative group">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 size-7 pointer-events-none">
-              <img src={ASSETS.iconCircle} alt="" className="size-full opacity-80 group-focus-within:opacity-100 transition-opacity" />
-              <span className="absolute inset-0 flex items-center justify-center font-bold text-primary text-xs">@</span>
-            </div>
+            <Mail className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
             <Input 
               id="email"
               type="email" 
@@ -90,10 +84,7 @@ export const LoginForm = () => {
         <div className="space-y-2">
           <label htmlFor="password" className="text-sm font-bold text-slate-700 ml-1">Password</label>
           <div className="relative group">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 size-7 pointer-events-none">
-              <img src={ASSETS.iconCircle} alt="" className="size-full opacity-80 group-focus-within:opacity-100 transition-opacity" />
-              <span className="absolute inset-0 flex items-center justify-center font-bold text-primary text-xs tracking-tighter">**</span>
-            </div>
+            <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
             <Input 
               id="password"
               type="password" 
@@ -135,4 +126,3 @@ export const LoginForm = () => {
     </form>
   );
 };
-
