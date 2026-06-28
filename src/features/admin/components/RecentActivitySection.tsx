@@ -18,7 +18,7 @@ export const RecentActivitySection = ({
   onRetry,
 }: RecentActivitySectionProps) => (
   <div className="lg:col-span-1">
-    <div className="bg-white border border-slate-100 rounded-xl p-6 shadow-sm h-full flex flex-col">
+    <div className="bg-white border border-slate-100 rounded-lg p-6 shadow-sm h-full flex flex-col">
       <h3 className="text-xl font-black text-slate-900 tracking-tight mb-6">Recent Activity</h3>
       <div className="flex-1 space-y-6">
         {isActivityLoading ? (

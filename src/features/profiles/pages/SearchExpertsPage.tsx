@@ -18,9 +18,9 @@ const experienceOptions: { value: ExperienceFilter; label: string }[] = [
 
 const rateOptions: { value: RateFilter; label: string }[] = [
   { value: 'all', label: 'Any hourly rate' },
-  { value: '10-30', label: '$10 - $30 / hr' },
-  { value: '30-60', label: '$30 - $60 / hr' },
-  { value: '60+', label: '$60+ / hr' },
+  { value: '10-30', label: '10 - 30 Aivora Coin / hr' },
+  { value: '30-60', label: '30 - 60 Aivora Coin / hr' },
+  { value: '60+', label: '60+ Aivora Coin / hr' },
 ];
 
 const getExpertSkills = (expert: ExpertProfileResponse): string[] => (
@@ -73,7 +73,7 @@ export const SearchExpertsPage = () => {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
-      <div className="bg-gradient-to-r from-blue-900 to-slate-900 rounded-[32px] p-8 md:p-12 text-white relative overflow-hidden shadow-xl">
+      <div className="bg-brand-blue-dark rounded-[28px] p-8 md:p-12 text-white relative overflow-hidden shadow-xl">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/20 blur-[100px] rounded-full mix-blend-screen pointer-events-none" />
         <div className="absolute bottom-0 left-10 w-[300px] h-[300px] bg-emerald-500/20 blur-[80px] rounded-full mix-blend-screen pointer-events-none" />
 
@@ -93,10 +93,10 @@ export const SearchExpertsPage = () => {
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
                 placeholder="Search by keyword, skill, or name..."
-                className="w-full h-14 pl-12 pr-4 rounded-2xl bg-white/10 border border-white/20 text-white placeholder:text-slate-400 focus:bg-white focus:text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/30 transition-all text-lg"
+                className="w-full h-14 pl-12 pr-4 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-slate-400 focus:bg-white focus:text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/30 transition-all text-lg"
               />
             </div>
-            <Button type="submit" className="h-14 px-8 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg shrink-0">
+            <Button type="submit" className="h-14 px-8 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg shrink-0">
               Search
             </Button>
           </form>
@@ -105,7 +105,7 @@ export const SearchExpertsPage = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
         <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+          <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-bold text-slate-900 flex items-center gap-2">
                 <SlidersHorizontal className="size-4" /> Filters
@@ -127,7 +127,7 @@ export const SearchExpertsPage = () => {
                           checked={experienceFilter === option.value}
                           onChange={() => setExperienceFilter(option.value)}
                         />
-                        <div className="w-5 h-5 rounded-md border-2 border-slate-200 peer-checked:border-primary peer-checked:bg-primary transition-colors flex items-center justify-center">
+                        <div className="w-5 h-5 rounded-md border-2 border-slate-200 peer-checked:border-brand-blue-dark peer-checked:bg-brand-blue-dark transition-colors flex items-center justify-center">
                           <CheckCircle2 className="size-3 text-white opacity-0 peer-checked:opacity-100" />
                         </div>
                       </div>
@@ -152,7 +152,7 @@ export const SearchExpertsPage = () => {
                           checked={rateFilter === option.value}
                           onChange={() => setRateFilter(option.value)}
                         />
-                        <div className="w-5 h-5 rounded-md border-2 border-slate-200 peer-checked:border-primary peer-checked:bg-primary transition-colors flex items-center justify-center">
+                        <div className="w-5 h-5 rounded-md border-2 border-slate-200 peer-checked:border-brand-blue-dark peer-checked:bg-brand-blue-dark transition-colors flex items-center justify-center">
                           <CheckCircle2 className="size-3 text-white opacity-0 peer-checked:opacity-100" />
                         </div>
                       </div>
@@ -205,7 +205,7 @@ export const SearchExpertsPage = () => {
                 return (
                   <div
                     key={profileId}
-                    className="bg-white border border-slate-100 hover:border-blue-200 rounded-[24px] p-6 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group"
+                    className="bg-white border border-slate-100 hover:border-blue-200 rounded-[20px] p-6 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group"
                   >
                     <div className="flex flex-col md:flex-row gap-6">
                       <div className="flex gap-4 md:w-1/3 shrink-0">
@@ -254,8 +254,8 @@ export const SearchExpertsPage = () => {
                       <div className="flex flex-col items-start md:items-end justify-between md:border-l border-slate-100 md:pl-6 shrink-0 md:w-40">
                         <div className="flex flex-row md:flex-col items-center md:items-end w-full justify-between md:justify-start gap-2 md:gap-0 mb-4 md:mb-0">
                           <div className="text-left md:text-right">
-                            <span className="text-xl font-black text-slate-900">${expert.hourlyRate || 0}</span>
-                            <span className="text-xs font-medium text-slate-500">/hr</span>
+                            <span className="text-xl font-black text-slate-900">{expert.hourlyRate || 0}</span>
+                            <span className="text-xs font-medium text-slate-500"> Aivora Coin/hr</span>
                           </div>
                           <div className="flex items-center gap-1 text-xs font-medium text-slate-500">
                             <MapPin className="size-3" /> {location}
@@ -273,7 +273,7 @@ export const SearchExpertsPage = () => {
             )}
 
             {!isLoading && !isError && filteredExperts.length === 0 && (
-              <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[32px] p-16 flex flex-col items-center justify-center text-center">
+              <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[28px] p-16 flex flex-col items-center justify-center text-center">
                 <Search className="size-12 text-slate-300 mb-4" />
                 <h3 className="text-xl font-black text-slate-900 mb-2">No experts found</h3>
                 <p className="text-slate-500 font-medium">Try adjusting your filters or search terms.</p>

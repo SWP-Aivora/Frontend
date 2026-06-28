@@ -91,7 +91,7 @@ export const ExpertMyProposalsPage = () => {
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">My Proposals</h1>
           <p className="text-slate-500 font-medium mt-1">Track the status of your applications and active bids.</p>
         </div>
-        <Button asChild className="rounded-full px-6 bg-brand-accent hover:bg-brand-accent/90 shadow-lg shadow-brand-accent/20">
+        <Button asChild className="rounded-full px-6 bg-brand-blue-dark hover:bg-brand-blue-dark/90 shadow-lg shadow-blue-900/20">
           <Link to="/expert/jobs" className="flex items-center gap-2">
             <Search className="size-4" />
             Find More Work
@@ -106,8 +106,8 @@ export const ExpertMyProposalsPage = () => {
            { label: 'Projects Won', value: proposals.filter(p => getStatusKey(p.status) === 'accepted').length, icon: CheckCircle2, color: 'text-brand-success', bg: 'bg-brand-success/10' },
            { label: 'Total Bids', value: proposals.length, icon: Briefcase, color: 'text-brand-accent', bg: 'bg-brand-accent/5' },
          ].map((stat, i) => (
-           <div key={i} className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm flex items-center gap-5">
-              <div className={cn("size-14 rounded-xl flex items-center justify-center", stat.bg)}>
+           <div key={i} className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm flex items-center gap-5">
+              <div className={cn("size-14 rounded-lg flex items-center justify-center", stat.bg)}>
                  <stat.icon className={cn("size-7", stat.color)} />
               </div>
               <div>
@@ -119,7 +119,7 @@ export const ExpertMyProposalsPage = () => {
       </div>
 
       {/* Filter Toolbar */}
-      <div className="bg-white border border-slate-100 rounded-xl p-2 flex flex-col md:flex-row gap-4 justify-between items-center shadow-sm">
+      <div className="bg-white border border-slate-100 rounded-lg p-2 flex flex-col md:flex-row gap-4 justify-between items-center shadow-sm">
         <div className="flex items-center gap-2 p-1 overflow-x-auto w-full md:w-auto scrollbar-hide">
           {(['all', 'pending', 'accepted', 'declined'] as const).map((s) => (
             <button
@@ -127,9 +127,9 @@ export const ExpertMyProposalsPage = () => {
               onClick={() => setFilter(s)}
               aria-pressed={filter === s}
               className={cn(
-                "px-6 py-2.5 rounded-xl text-xs font-black capitalize transition-all duration-300",
+                "px-6 py-2.5 rounded-lg text-xs font-black capitalize transition-all duration-300",
                 filter === s 
-                  ? "bg-brand-accent text-white shadow-lg shadow-brand-accent/20" 
+                  ? "bg-brand-blue-dark text-white shadow-lg shadow-blue-900/20" 
                   : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
               )}
             >
@@ -143,10 +143,10 @@ export const ExpertMyProposalsPage = () => {
               <input 
                 type="text" 
                 placeholder="Search proposals..." 
-                className="w-full h-11 pl-10 pr-4 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-brand-accent/20 text-sm"
+                className="w-full h-11 pl-10 pr-4 rounded-lg bg-slate-50 border-none focus:ring-2 focus:ring-brand-blue-dark/20 text-sm"
               />
            </div>
-           <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl border-slate-100 shrink-0">
+           <Button variant="outline" size="icon" className="h-11 w-11 rounded-lg border-slate-100 shrink-0">
               <Filter className="size-4 text-slate-500" />
            </Button>
         </div>
@@ -160,7 +160,7 @@ export const ExpertMyProposalsPage = () => {
             const submittedAt = proposal.createdAt || proposal.submittedAt;
 
             return (
-              <div key={proposal.id} className="group bg-white border border-slate-100 hover:border-brand-accent/30 rounded-xl p-8 shadow-sm hover:shadow-xl hover:shadow-brand-accent/5 transition-all duration-300 relative overflow-hidden">
+              <div key={proposal.id} className="group bg-white border border-slate-100 hover:border-brand-accent/30 rounded-lg p-8 shadow-sm hover:shadow-xl hover:shadow-brand-accent/5 transition-all duration-300 relative overflow-hidden">
                  <div className="flex flex-col md:flex-row justify-between gap-8">
                     <div className="flex-1 space-y-5">
                        <div className="flex items-center gap-3">
@@ -189,7 +189,7 @@ export const ExpertMyProposalsPage = () => {
                                 <DollarSign className="size-4 text-emerald-600" />
                              </div>
                              <div>
-                                <p className="text-sm font-black text-slate-900">${proposal.proposedBudget}</p>
+                                 <p className="text-sm font-black text-slate-900">{proposal.proposedBudget} Aivora Coin</p>
                                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">My Bid</p>
                              </div>
                           </div>
@@ -228,13 +228,13 @@ export const ExpertMyProposalsPage = () => {
          })}
 
          {filteredProposals.length === 0 && (
-           <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl p-20 flex flex-col items-center justify-center text-center">
-              <div className="size-20 rounded-xl bg-white flex items-center justify-center shadow-md mb-6">
+           <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-lg p-20 flex flex-col items-center justify-center text-center">
+              <div className="size-20 rounded-lg bg-white flex items-center justify-center shadow-md mb-6">
                  <Briefcase className="size-10 text-slate-200" />
               </div>
               <h3 className="text-2xl font-black text-slate-900 mb-2">No applications found</h3>
               <p className="text-slate-500 font-medium max-w-sm mb-8">You haven't submitted any proposals for this category yet.</p>
-              <Button asChild className="rounded-full h-14 px-8 bg-brand-accent hover:bg-brand-accent/90 shadow-xl shadow-brand-accent/20 font-black">
+              <Button asChild className="rounded-full h-14 px-8 bg-brand-blue-dark hover:bg-brand-blue-dark/90 shadow-xl shadow-blue-900/20 font-black">
                  <Link to="/expert/jobs">Browse AI Projects</Link>
               </Button>
            </div>

@@ -11,7 +11,7 @@ interface SummaryCardsRowProps {
 export const SummaryCardsRow = ({ summary }: SummaryCardsRowProps) => (
   <div className="w-full overflow-x-auto overflow-y-hidden pb-4 custom-scrollbar">
     <div className="flex flex-nowrap gap-6 min-w-max">
-      <div className="shrink-0 w-[400px] bg-white border border-slate-100 rounded-xl p-5 shadow-sm h-[240px] flex flex-col group hover:border-primary/20 transition-all">
+      <div className="shrink-0 w-[400px] bg-white border border-slate-100 rounded-lg p-5 shadow-sm h-[240px] flex flex-col group hover:border-primary/20 transition-all">
         <div className="flex justify-between items-start mb-4 shrink-0">
           <div className="space-y-1.5">
             <h3 className="text-lg font-black text-slate-900 tracking-tight">User Management</h3>
@@ -44,7 +44,7 @@ export const SummaryCardsRow = ({ summary }: SummaryCardsRowProps) => (
         </div>
       </div>
 
-      <div className="shrink-0 w-[400px] bg-white border border-slate-100 rounded-xl p-5 shadow-sm h-[240px] flex flex-col group hover:border-primary/20 transition-all">
+      <div className="shrink-0 w-[400px] bg-white border border-slate-100 rounded-lg p-5 shadow-sm h-[240px] flex flex-col group hover:border-primary/20 transition-all">
         <div className="flex justify-between items-start mb-4 shrink-0">
           <div className="space-y-1.5">
             <h3 className="text-lg font-black text-slate-900 tracking-tight">Expert Profile Review</h3>
@@ -93,7 +93,7 @@ export const SummaryCardsRow = ({ summary }: SummaryCardsRowProps) => (
         </div>
       </div>
 
-      <div className="shrink-0 w-[400px] bg-white border border-slate-100 rounded-xl p-5 shadow-sm h-[240px] flex flex-col group hover:border-primary/20 transition-all">
+      <div className="shrink-0 w-[400px] bg-white border border-slate-100 rounded-lg p-5 shadow-sm h-[240px] flex flex-col group hover:border-primary/20 transition-all">
         <div className="flex justify-between items-start mb-4 shrink-0">
           <div className="space-y-1.5">
             <h3 className="text-lg font-black text-slate-900 tracking-tight">Financials</h3>
@@ -101,7 +101,7 @@ export const SummaryCardsRow = ({ summary }: SummaryCardsRowProps) => (
           </div>
           <div className="text-right">
             <div className="text-3xl font-black text-emerald-600 tracking-tighter">
-              ${(summary?.totalTransactionsValue || 0).toLocaleString()}
+              {(summary?.totalTransactionsValue || 0).toLocaleString()} Aivora Coin
             </div>
           </div>
         </div>
@@ -112,7 +112,7 @@ export const SummaryCardsRow = ({ summary }: SummaryCardsRowProps) => (
                 <span className="text-slate-500 font-bold text-xs uppercase tracking-wider group-hover/item:text-primary transition-colors">
                   {item.type}
                 </span>
-                <span className="text-slate-900 font-black text-sm tracking-tight">${item.amount.toLocaleString()}</span>
+                <span className="text-slate-900 font-black text-sm tracking-tight">{item.amount.toLocaleString()} Aivora Coin</span>
               </div>
             ))
           ) : (
@@ -127,7 +127,7 @@ export const SummaryCardsRow = ({ summary }: SummaryCardsRowProps) => (
         </div>
       </div>
 
-      <div className="shrink-0 w-[400px] bg-white border border-slate-100 rounded-xl p-5 shadow-sm h-[240px] flex flex-col group hover:border-primary/20 transition-all">
+      <div className="shrink-0 w-[400px] bg-white border border-slate-100 rounded-lg p-5 shadow-sm h-[240px] flex flex-col group hover:border-primary/20 transition-all">
         <div className="flex justify-between items-start mb-4 shrink-0">
           <div className="space-y-1.5">
             <h3 className="text-lg font-black text-slate-900 tracking-tight">Job Market</h3>
@@ -175,7 +175,7 @@ export const SummaryCardsRow = ({ summary }: SummaryCardsRowProps) => (
         </div>
       </div>
 
-      <div className="shrink-0 w-[400px] bg-white border border-slate-100 rounded-xl p-5 shadow-sm h-[240px] flex flex-col group hover:border-primary/20 transition-all">
+      <div className="shrink-0 w-[400px] bg-white border border-slate-100 rounded-lg p-5 shadow-sm h-[240px] flex flex-col group hover:border-primary/20 transition-all">
         <div className="flex justify-between items-start mb-3 shrink-0">
           <div className="space-y-1.5">
             <h3 className="text-lg font-black text-slate-900 tracking-tight">Disputes</h3>
@@ -191,7 +191,7 @@ export const SummaryCardsRow = ({ summary }: SummaryCardsRowProps) => (
         <div className="flex-1 flex flex-col gap-4 overflow-x-auto">
           {(summary?.openDisputes || 0) > 0 ? (
             <>
-              <div className="flex items-center gap-3 p-3 bg-rose-50/50 rounded-xl border border-rose-100/50 min-w-[200px]">
+              <div className="flex items-center gap-3 p-3 bg-rose-50/50 rounded-lg border border-rose-100/50 min-w-[200px]">
                 <ShieldAlert className="size-5 text-rose-400 shrink-0" />
                 <p className="text-sm font-medium text-rose-700 leading-tight">
                   Active dispute resolution is required to maintain platform trust.
@@ -216,7 +216,7 @@ export const SummaryCardsRow = ({ summary }: SummaryCardsRowProps) => (
         </div>
       </div>
 
-      <div className="shrink-0 w-[400px] bg-white border border-slate-100 rounded-xl p-5 shadow-sm h-[240px] flex flex-col group hover:border-primary/20 transition-all">
+      <div className="shrink-0 w-[400px] bg-white border border-slate-100 rounded-lg p-5 shadow-sm h-[240px] flex flex-col group hover:border-primary/20 transition-all">
         <div className="flex justify-between items-start mb-4 shrink-0">
           <div>
             <h3 className="text-lg font-black text-slate-900 tracking-tight">Health Alerts</h3>

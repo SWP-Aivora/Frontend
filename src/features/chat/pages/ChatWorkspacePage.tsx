@@ -151,7 +151,7 @@ export const ChatWorkspacePage = () => {
   };
 
   const ErrorFallback = ({ message, onRetry }: { message: string, onRetry: () => void }) => (
-    <div className="flex flex-col items-center justify-center p-8 text-center bg-slate-50 rounded-xl border border-slate-100 m-4">
+    <div className="flex flex-col items-center justify-center p-8 text-center bg-slate-50 rounded-lg border border-slate-100 m-4">
       <AlertCircle className="size-8 text-rose-400 mb-3" />
       <p className="text-sm font-bold text-slate-800 mb-1">Failed to load content</p>
       <p className="text-xs text-slate-500 mb-4 max-w-[240px]">{message}</p>
@@ -168,7 +168,7 @@ export const ChatWorkspacePage = () => {
   );
 
   const ProjectContextNotice = ({ message, onRetry }: { message: string, onRetry: () => void }) => (
-    <div className="rounded-xl border border-amber-100 bg-amber-50 p-4">
+    <div className="rounded-lg border border-amber-100 bg-amber-50 p-4">
       <div className="flex items-start gap-3">
         <AlertCircle className="size-4 text-amber-500 shrink-0 mt-0.5" />
         <div className="min-w-0 flex-1">
@@ -299,7 +299,7 @@ export const ChatWorkspacePage = () => {
                       <div>
                         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Total Budget</p>
                         <p className="text-xs font-bold text-slate-900 bg-blue-50 px-2 py-1 rounded inline-block">
-                          ${project.totalBudget?.toLocaleString()}
+                          {project.totalBudget?.toLocaleString()} Aivora Coin
                         </p>
                       </div>
                       <div>
@@ -326,7 +326,7 @@ export const ChatWorkspacePage = () => {
                   <p className="text-xs text-slate-500 font-medium italic">No project context available yet.</p>
                 )}
 
-                <div className="mt-8 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="mt-8 p-4 bg-slate-50 rounded-lg border border-slate-100">
                   <div className="flex gap-3">
                     <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
                     <p className="text-xs text-slate-600 font-medium leading-relaxed">

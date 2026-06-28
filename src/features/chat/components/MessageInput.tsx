@@ -62,7 +62,7 @@ export const MessageInput = ({ onSendMessage, disabled, disabledReason = 'Please
           {disabledReason}
         </p>
       )}
-      <form onSubmit={handleSubmit} className="relative flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-300 transition-all">
+      <form onSubmit={handleSubmit} className="relative flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-300 transition-all">
         <div className="relative shrink-0" ref={actionMenuRef}>
           <button
             type="button"
@@ -75,7 +75,7 @@ export const MessageInput = ({ onSendMessage, disabled, disabledReason = 'Please
           </button>
 
           {isActionMenuOpen && (
-            <div className="absolute bottom-11 left-0 w-52 rounded-xl border border-slate-200 bg-white shadow-xl shadow-slate-200/60 p-1.5 z-20">
+            <div className="absolute bottom-11 left-0 w-52 rounded-lg border border-slate-200 bg-white shadow-xl shadow-slate-200/60 p-1.5 z-20">
               {actionItems.map((item) => {
                 const Icon = item.icon;
 

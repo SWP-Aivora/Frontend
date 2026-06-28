@@ -2,8 +2,8 @@ import { ShieldCheck } from 'lucide-react';
 
 export const EscrowInfoCard = () => {
   return (
-    <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-8">
-      <div className="size-12 rounded-xl bg-white flex items-center justify-center mb-6 shadow-sm">
+    <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-8">
+      <div className="size-12 rounded-lg bg-white flex items-center justify-center mb-6 shadow-sm">
         <ShieldCheck className="size-6 text-emerald-600" />
       </div>
       <h3 className="text-lg font-black text-emerald-900 mb-2">Secure Escrow</h3>

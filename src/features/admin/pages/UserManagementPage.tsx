@@ -146,13 +146,13 @@ export const UserManagementPage = () => {
 
   if (isError) {
     return (
-      <div className="bg-rose-50 border border-rose-100 rounded-xl p-10 text-center max-w-2xl mx-auto my-10">
+      <div className="bg-rose-50 border border-rose-100 rounded-lg p-10 text-center max-w-2xl mx-auto my-10">
         <AlertCircle className="size-12 text-rose-500 mx-auto mb-4" />
         <h2 className="text-lg font-black text-rose-900 mb-2">Failed to load users</h2>
         <p className="text-rose-600 font-medium">{(error as Error)?.message || 'Something went wrong while fetching users.'}</p>
         <button 
           onClick={() => window.location.reload()}
-          className="mt-6 px-4 py-2 bg-rose-600 text-white rounded-xl font-bold hover:bg-rose-700 transition-colors"
+          className="mt-6 px-4 py-2 bg-rose-600 text-white rounded-lg font-bold hover:bg-rose-700 transition-colors"
         >
           Try Again
         </button>
@@ -163,18 +163,18 @@ export const UserManagementPage = () => {
   return (
     <div className="space-y-4 pb-10">
       {/* Header */}
-      <div className="bg-white border border-slate-100 rounded-xl p-4 lg:p-4 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="bg-white border border-slate-100 rounded-lg p-4 lg:p-4 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <p className="text-slate-500 text-xs font-medium mb-1">Admin / User Management</p>
           <h1 className="text-xl font-black text-slate-900 leading-tight">Manage Platform Users</h1>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <button onClick={handleSync} className="bg-primary text-white px-6 py-2 rounded-xl text-xs font-bold hover:bg-primary-dark transition-all shadow-sm active:scale-95">Sync Data</button>
+          <button onClick={handleSync} className="bg-primary text-white px-6 py-2 rounded-lg text-xs font-bold hover:bg-primary-dark transition-all shadow-sm active:scale-95">Sync Data</button>
         </div>
       </div>
 
       {/* Hero Banner */}
-      <div className="bg-primary border border-primary-dark rounded-xl p-4 lg:p-5 flex flex-col lg:flex-row justify-between relative overflow-hidden shadow-sm">
+      <div className="bg-brand-blue-dark border border-brand-blue-dark rounded-lg p-4 lg:p-5 flex flex-col lg:flex-row justify-between relative overflow-hidden shadow-sm">
         <div className="absolute top-0 right-0 w-1/3 h-full bg-white/5 skew-x-12 -mr-16 pointer-events-none" />
         <div className="relative z-10 flex-1">
           <div className="inline-flex items-center bg-white/20 border border-white/20 text-white px-3 py-1 rounded-full text-xs font-semibold mb-4">
@@ -236,7 +236,7 @@ export const UserManagementPage = () => {
       <div className="flex flex-col xl:flex-row gap-4">
         {/* Left Col (Main Table) */}
         <div className="flex-1 space-y-4">
-          <div className="bg-white border border-slate-100 rounded-xl shadow-sm flex flex-col overflow-hidden">
+          <div className="bg-white border border-slate-100 rounded-lg shadow-sm flex flex-col overflow-hidden">
             {/* Table Header with Filters */}
             <div className="p-5 border-b border-slate-50 space-y-4">
               <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -248,7 +248,7 @@ export const UserManagementPage = () => {
 
               <div className="flex flex-col lg:flex-row items-center gap-3">
                 {/* Search */}
-                <div className="relative flex items-center bg-slate-50 border border-slate-100 rounded-xl px-4 py-2 w-full lg:flex-1 lg:min-w-0">
+                <div className="relative flex items-center bg-slate-50 border border-slate-100 rounded-lg px-4 py-2 w-full lg:flex-1 lg:min-w-0">
                   <Search className="size-4 text-slate-400 absolute left-4" />
                   <input 
                     type="text" 
@@ -264,7 +264,7 @@ export const UserManagementPage = () => {
                   <select 
                     value={roleFilter}
                     onChange={(e) => handleFilterChange(setRoleFilter, e.target.value)}
-                    className="bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer w-full sm:w-auto lg:min-w-[128px]"
+                    className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer w-full sm:w-auto lg:min-w-[128px]"
                   >
                     <option value="All">All Roles</option>
                     <option value="Admin">Admin</option>
@@ -275,7 +275,7 @@ export const UserManagementPage = () => {
                   <select 
                     value={statusFilter}
                     onChange={(e) => handleFilterChange(setStatusFilter, e.target.value)}
-                    className="bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer w-full sm:w-auto lg:min-w-[146px]"
+                    className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer w-full sm:w-auto lg:min-w-[146px]"
                   >
                     <option value="All">All Statuses</option>
                     <option value="ACTIVE">Active</option>
@@ -311,7 +311,7 @@ export const UserManagementPage = () => {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className={cn(
-                            "size-9 rounded-xl flex items-center justify-center text-xs font-black text-white shadow-sm",
+                            "size-9 rounded-lg flex items-center justify-center text-xs font-black text-white shadow-sm",
                             user.role === 'Admin' ? "bg-purple-500" :
                             user.role === 'Client' ? "bg-blue-500" : "bg-emerald-500"
                           )}>
@@ -391,7 +391,7 @@ export const UserManagementPage = () => {
             <div className="p-4 border-t border-slate-50 bg-slate-50/30 flex items-center justify-center gap-6">
                <button 
                  onClick={() => setCurrentPageIndex(p => Math.max(1, p - 1))} 
-                 className="size-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-primary hover:border-primary/30 transition-all shadow-sm disabled:opacity-30 disabled:pointer-events-none active:scale-95" 
+                 className="size-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-primary hover:border-primary/30 transition-all shadow-sm disabled:opacity-30 disabled:pointer-events-none active:scale-95" 
                  disabled={currentPageIndex === 1}
                >
                  <ChevronLeft className="size-5" />
@@ -399,7 +399,7 @@ export const UserManagementPage = () => {
                <span className="text-xs font-black text-slate-500 tracking-[0.2em] uppercase">Page {currentPageIndex} of {totalPages}</span>
                <button 
                  onClick={() => setCurrentPageIndex(p => Math.min(totalPages, p + 1))} 
-                 className="size-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-primary hover:border-primary/30 transition-all shadow-sm disabled:opacity-30 disabled:pointer-events-none active:scale-95" 
+                 className="size-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-primary hover:border-primary/30 transition-all shadow-sm disabled:opacity-30 disabled:pointer-events-none active:scale-95" 
                  disabled={currentPageIndex === totalPages}
                >
                  <ChevronRight className="size-5" />
@@ -411,15 +411,15 @@ export const UserManagementPage = () => {
         {/* Right Rail */}
         <div className="w-full xl:w-[340px] space-y-4">
           {/* Review Queue */}
-          <div className="bg-white border border-slate-100 rounded-xl p-6 shadow-sm">
+          <div className="bg-white border border-slate-100 rounded-lg p-6 shadow-sm">
             <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-1">User review queue</h3>
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tighter mb-6">Action required</p>
             <div className="space-y-4">
               {usersData?.reviewQueue?.map((item) => (
-                <div key={item.id} className="group cursor-pointer p-3 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50 transition-all" onClick={() => navigate(`/admin/users/${item.userId}`)}>
+                <div key={item.id} className="group cursor-pointer p-3 rounded-lg border border-transparent hover:border-slate-100 hover:bg-slate-50 transition-all" onClick={() => navigate(`/admin/users/${item.userId}`)}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="size-9 rounded-xl bg-slate-100 flex items-center justify-center text-xs font-black text-rose-600 border border-slate-200 shadow-sm">
+                      <div className="size-9 rounded-lg bg-slate-100 flex items-center justify-center text-xs font-black text-rose-600 border border-slate-200 shadow-sm">
                         {item.initials}
                       </div>
                       <div>
@@ -438,13 +438,13 @@ export const UserManagementPage = () => {
                 </div>
               ))}
               {(!usersData?.reviewQueue || usersData.reviewQueue.length === 0) && (
-                 <p className="text-xs text-slate-400 font-bold uppercase tracking-widest text-center py-6 border-2 border-dashed border-slate-50 rounded-xl">Queue is empty</p>
+                 <p className="text-xs text-slate-400 font-bold uppercase tracking-widest text-center py-6 border-2 border-dashed border-slate-50 rounded-lg">Queue is empty</p>
               )}
             </div>
           </div>
 
           {/* Recent Admin Actions */}
-          <div className="bg-white border border-slate-100 rounded-xl p-6 shadow-sm">
+          <div className="bg-white border border-slate-100 rounded-lg p-6 shadow-sm">
             <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-6">Recent activity</h3>
             <div className="space-y-6">
               {usersData?.recentActions?.map((activity, idx) => (
@@ -463,7 +463,7 @@ export const UserManagementPage = () => {
                 </div>
               ))}
               {(!usersData?.recentActions || usersData.recentActions.length === 0) && (
-                 <p className="text-xs text-slate-400 font-bold uppercase tracking-widest text-center py-6 border-2 border-dashed border-slate-50 rounded-xl">No recent activity</p>
+                 <p className="text-xs text-slate-400 font-bold uppercase tracking-widest text-center py-6 border-2 border-dashed border-slate-50 rounded-lg">No recent activity</p>
               )}
             </div>
           </div>

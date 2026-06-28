@@ -9,6 +9,49 @@ import { walletService } from '@/features/wallet/services';
 import { ProjectStatus } from '@/shared/types/enums';
 import { useAuthStore } from '@/features/auth/store';
 
+const toNumber = (value: unknown): number | null => {
+  if (typeof value === 'number' && !isNaN(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    return isNaN(parsed) ? null : parsed;
+  }
+  return null;
+};
+
+const getWalletBalance = (wallet: unknown): number => {
+  if (!wallet || typeof wallet !== 'object') return 0;
+
+  const record = wallet as Record<string, unknown>;
+  const balance = [
+    record.balance,
+    record.Balance,
+    record.availableBalance,
+    record.AvailableBalance,
+    record.walletBalance,
+    record.WalletBalance,
+    record.amount,
+    record.Amount,
+    record.coins,
+    record.Coins,
+    record.coin,
+    record.Coin,
+    record.xu,
+    record.Xu,
+  ].map(toNumber).find((value): value is number => value !== null);
+
+  if (balance !== undefined) return balance;
+
+  if (record.wallet && typeof record.wallet === 'object') {
+    return getWalletBalance(record.wallet);
+  }
+
+  if (record.Wallet && typeof record.Wallet === 'object') {
+    return getWalletBalance(record.Wallet);
+  }
+
+  return 0;
+};
+
 export const ExpertDashboardPage = () => {
   const { user } = useAuthStore();
 
@@ -18,12 +61,13 @@ export const ExpertDashboardPage = () => {
   });
 
   const { data: walletResponse, isLoading: isWalletLoading } = useQuery({
-    queryKey: ['walletMe'],
+    queryKey: ['wallet'],
     queryFn: () => walletService.getWallet(),
   });
 
   const projects = Array.isArray(projectsResponse?.data) ? projectsResponse.data : [];
   const wallet = walletResponse?.data;
+  const walletBalance = getWalletBalance(wallet);
   
   const activeProjects = projects.filter(p => p.status === ProjectStatus.IN_PROGRESS);
   const completedProjects = projects.filter(p => p.status === ProjectStatus.COMPLETED);
@@ -56,32 +100,32 @@ export const ExpertDashboardPage = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-gradient-to-br from-emerald-600 to-teal-500 rounded-3xl p-6 shadow-lg shadow-emerald-600/20 text-white relative overflow-hidden">
+        <div className="bg-brand-blue-dark rounded-2xl p-6 shadow-lg shadow-blue-900/20 text-white relative overflow-hidden">
           <div className="absolute -right-4 -top-4 size-24 bg-white/10 rounded-full blur-xl" />
           <div className="flex justify-between items-start relative z-10">
             <div>
-              <p className="text-emerald-100 font-bold text-sm uppercase tracking-wider mb-1">Available Balance</p>
-              <h3 className="text-4xl font-black">${(wallet?.balance || 0).toLocaleString()}</h3>
+              <p className="text-blue-100 font-bold text-sm uppercase tracking-wider mb-1">Available Balance</p>
+              <h3 className="text-4xl font-black">{walletBalance.toLocaleString()} Aivora Coin</h3>
             </div>
-            <div className="size-12 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
+            <div className="size-12 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
               <Wallet className="size-6 text-white" />
             </div>
           </div>
           <div className="mt-6 pt-4 border-t border-white/20 flex justify-between items-center relative z-10">
-            <span className="text-sm font-medium text-emerald-50">Ready to withdraw</span>
+            <span className="text-sm font-medium text-blue-50">Ready to withdraw</span>
             <Link to="/expert/wallet" className="text-sm font-bold text-white flex items-center gap-1 hover:underline">
               Withdraw <ChevronRight className="size-3" />
             </Link>
           </div>
         </div>
 
-        <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+        <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-slate-400 font-bold text-sm uppercase tracking-wider mb-1">Active Contracts</p>
               <h3 className="text-4xl font-black text-slate-900">{activeProjects.length}</h3>
             </div>
-            <div className="size-12 rounded-2xl bg-amber-50 flex items-center justify-center">
+            <div className="size-12 rounded-xl bg-amber-50 flex items-center justify-center">
               <Activity className="size-6 text-amber-600" />
             </div>
           </div>
@@ -93,13 +137,13 @@ export const ExpertDashboardPage = () => {
           </div>
         </div>
 
-        <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+        <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-slate-400 font-bold text-sm uppercase tracking-wider mb-1">Completed Jobs</p>
               <h3 className="text-4xl font-black text-slate-900">{completedProjects.length}</h3>
             </div>
-            <div className="size-12 rounded-2xl bg-blue-50 flex items-center justify-center">
+            <div className="size-12 rounded-xl bg-blue-50 flex items-center justify-center">
               <Target className="size-6 text-primary" />
             </div>
           </div>
@@ -120,20 +164,20 @@ export const ExpertDashboardPage = () => {
             <Link to="/expert/my-jobs" className="text-sm font-bold text-primary hover:underline">See all</Link>
           </div>
           
-          <div className="bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden">
+          <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
             {activeProjects.length > 0 ? (
               <div className="divide-y divide-slate-50">
                 {activeProjects.slice(0, 5).map((project) => (
                   <div key={project.id} className="p-6 hover:bg-slate-50/50 transition-colors flex flex-col sm:flex-row justify-between gap-4 sm:items-center">
                     <div className="flex items-start gap-4">
-                      <div className="size-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
+                      <div className="size-10 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
                         <Activity className="size-5 text-amber-600" />
                       </div>
                       <div>
                         <h4 className="font-bold text-slate-900 mb-1">{project.title}</h4>
                         <div className="flex items-center gap-3 text-xs font-medium text-slate-500">
                           <span className="flex items-center gap-1"><Clock className="size-3" /> Started {new Date(project.startDate).toLocaleDateString()}</span>
-                          <span className="flex items-center gap-1 text-emerald-600 font-bold"><DollarSign className="size-3" /> {project.totalBudget.toLocaleString()}</span>
+                          <span className="flex items-center gap-1 text-emerald-600 font-bold"><DollarSign className="size-3" /> {project.totalBudget.toLocaleString()} Aivora Coin</span>
                         </div>
                       </div>
                     </div>
@@ -162,7 +206,7 @@ export const ExpertDashboardPage = () => {
         <div className="space-y-6">
           <h2 className="text-xl font-black text-slate-900">Get Noticed</h2>
           
-          <div className="bg-slate-50 border border-slate-100 rounded-3xl p-6 relative overflow-hidden">
+          <div className="bg-slate-50 border border-slate-100 rounded-2xl p-6 relative overflow-hidden">
             <h3 className="font-bold text-slate-900 mb-2">Update Your Profile</h3>
             <p className="text-sm text-slate-500 mb-4">Experts with a complete profile and verified skills get hired 3x faster.</p>
             <Button asChild variant="outline" className="w-full rounded-full border-slate-200">
@@ -170,10 +214,10 @@ export const ExpertDashboardPage = () => {
             </Button>
           </div>
 
-          <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+          <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
             <h3 className="font-bold text-slate-900 mb-4">Quick Links</h3>
             <div className="space-y-2">
-              <Link to="/expert/proposals" className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors group">
+              <Link to="/expert/proposals" className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors group">
                 <div className="flex items-center gap-3">
                   <div className="size-8 rounded-lg bg-blue-50 flex items-center justify-center">
                     <Briefcase className="size-4 text-primary" />
@@ -182,7 +226,7 @@ export const ExpertDashboardPage = () => {
                 </div>
                 <ChevronRight className="size-4 text-slate-300 group-hover:text-primary" />
               </Link>
-              <Link to="/expert/wallet" className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors group">
+              <Link to="/expert/wallet" className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors group">
                 <div className="flex items-center gap-3">
                   <div className="size-8 rounded-lg bg-emerald-50 flex items-center justify-center">
                     <DollarSign className="size-4 text-emerald-600" />

@@ -36,7 +36,7 @@ export const MilestoneCard = ({ milestone, role, onClick }: MilestoneCardProps) 
   return (
     <div 
       onClick={() => onClick(milestone)}
-      className="group bg-white/70 backdrop-blur-md border border-slate-100 rounded-xl p-5 shadow-sm hover:shadow-xl hover:border-primary/20 transition-all duration-300 cursor-pointer relative overflow-hidden active:scale-95"
+      className="group bg-white/70 backdrop-blur-md border border-slate-100 rounded-lg p-5 shadow-sm hover:shadow-xl hover:border-primary/20 transition-all duration-300 cursor-pointer relative overflow-hidden active:scale-95"
     >
       {/* Top Row: Status & Amount */}
       <div className="flex justify-between items-start mb-4">

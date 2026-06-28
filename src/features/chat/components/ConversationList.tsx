@@ -58,7 +58,7 @@ export const ConversationList = ({
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <Input 
                 placeholder="Search conversations..." 
-                className="pl-9 bg-slate-50 border-none h-10 rounded-xl focus-visible:ring-1"
+                className="pl-9 bg-slate-50 border-none h-10 rounded-lg focus-visible:ring-1"
                 value={searchTerm}
                 onChange={(e) => onSearchChange(e.target.value)}
               />

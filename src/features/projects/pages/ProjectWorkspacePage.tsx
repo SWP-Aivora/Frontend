@@ -161,7 +161,7 @@ export const ProjectWorkspacePage = () => {
       completedDate: new Date().toLocaleDateString(),
       clientName,
       expertName,
-      amount: `$${sourceProject.totalBudget?.toLocaleString() || 0}`,
+      amount: `${sourceProject.totalBudget?.toLocaleString() || 0} Aivora Coin`,
       revieweeId: sourceProject.expertId,
     };
   };
@@ -319,7 +319,7 @@ export const ProjectWorkspacePage = () => {
 
     const amount = Number(selectedMilestone.amount ?? 0);
     if (walletBalance < amount) {
-      toast.error(`Insufficient wallet balance. Please deposit at least ${(amount - walletBalance).toLocaleString()} Xu more.`);
+      toast.error(`Insufficient wallet balance. Please deposit at least ${(amount - walletBalance).toLocaleString()} Aivora Coin more.`);
       return;
     }
 
@@ -434,7 +434,7 @@ export const ProjectWorkspacePage = () => {
   if (!project) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4 text-center">
-        <div className="size-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center">
+        <div className="size-14 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center">
           <X className="size-6 text-slate-400" />
         </div>
         <div>
@@ -513,22 +513,22 @@ export const ProjectWorkspacePage = () => {
       </div>
 
       {/* Kanban Board Container */}
-      <div className="bg-slate-50/50 border border-slate-100 rounded-xl p-6 md:p-8 relative overflow-hidden">
+      <div className="bg-slate-50/50 border border-slate-100 rounded-lg p-6 md:p-8 relative overflow-hidden">
          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-brand-accent to-blue-400" />
          
          <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-8">
                <div className="flex items-center gap-3">
-                  <div className="size-10 rounded-xl bg-white shadow-sm flex items-center justify-center">
+                  <div className="size-10 rounded-lg bg-white shadow-sm flex items-center justify-center">
                      <DollarSign className="size-5 text-emerald-600" />
                   </div>
                   <div>
-                     <p className="text-lg font-black text-slate-900 leading-none">${project.totalBudget?.toLocaleString()}</p>
+                     <p className="text-lg font-black text-slate-900 leading-none">{project.totalBudget?.toLocaleString()} Aivora Coin</p>
                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Total Contract</p>
                   </div>
                </div>
                <div className="flex items-center gap-3">
-                  <div className="size-10 rounded-xl bg-white shadow-sm flex items-center justify-center">
+                  <div className="size-10 rounded-lg bg-white shadow-sm flex items-center justify-center">
                      <Calendar className="size-5 text-blue-600" />
                   </div>
                   <div>
@@ -567,7 +567,7 @@ export const ProjectWorkspacePage = () => {
                  <div className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-black uppercase tracking-widest">
                     Milestone Details
                  </div>
-                 <button onClick={() => setSelectedMilestone(null)} className="size-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-slate-900 transition-colors">
+                 <button onClick={() => setSelectedMilestone(null)} className="size-10 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 hover:text-slate-900 transition-colors">
                     <X className="size-5" />
                  </button>
               </div>
@@ -579,12 +579,12 @@ export const ProjectWorkspacePage = () => {
                  </div>
 
                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                    <div className="bg-slate-50 rounded-lg p-4 border border-slate-100">
                        <DollarSign className="size-5 text-emerald-600 mb-2" />
-                       <p className="text-lg font-black text-slate-900">${selectedMilestone.amount?.toLocaleString()}</p>
+                       <p className="text-lg font-black text-slate-900">{selectedMilestone.amount?.toLocaleString()} Aivora Coin</p>
                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Budget Locked</p>
                     </div>
-                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                    <div className="bg-slate-50 rounded-lg p-4 border border-slate-100">
                        <Clock className="size-5 text-blue-600 mb-2" />
                        <p className="text-lg font-black text-slate-900">{selectedMilestone.dueDays || 0} Days</p>
                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Est. Duration</p>
@@ -617,15 +617,15 @@ export const ProjectWorkspacePage = () => {
                     </h3>
 
                     {isLoadingDeliverables ? (
-                      <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm font-semibold text-slate-500">
+                      <div className="rounded-lg border border-slate-100 bg-slate-50 p-4 text-sm font-semibold text-slate-500">
                         Loading deliverables...
                       </div>
                     ) : isDeliverablesError ? (
-                      <div className="rounded-xl border border-rose-100 bg-rose-50 p-4 text-sm font-semibold text-rose-600">
+                      <div className="rounded-lg border border-rose-100 bg-rose-50 p-4 text-sm font-semibold text-rose-600">
                         Failed to load deliverables.
                       </div>
                     ) : deliverables.length === 0 ? (
-                      <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 text-sm font-semibold text-slate-400">
+                      <div className="rounded-lg border border-slate-100 bg-slate-50 p-4 text-sm font-semibold text-slate-400">
                         No deliverables submitted for this milestone yet.
                       </div>
                     ) : (
@@ -638,7 +638,7 @@ export const ProjectWorkspacePage = () => {
                           ].filter((link): link is { label: string; href: string } => Boolean(link.href));
 
                           return (
-                            <div key={deliverable.id} className="rounded-xl border border-slate-100 bg-slate-50 p-4 space-y-3">
+                            <div key={deliverable.id} className="rounded-lg border border-slate-100 bg-slate-50 p-4 space-y-3">
                               <div className="flex items-start justify-between gap-3">
                                 <div>
                                   <p className="text-xs font-black uppercase tracking-widest text-primary">
@@ -732,11 +732,11 @@ export const ProjectWorkspacePage = () => {
                    </div>
                  )}
                  {selectedMilestone.status === MilestoneStatus.COMPLETED && (
-                   <div className="bg-emerald-50 text-emerald-700 p-4 rounded-xl border border-emerald-100 flex items-center gap-3">
+                   <div className="bg-emerald-50 text-emerald-700 p-4 rounded-lg border border-emerald-100 flex items-center gap-3">
                       <CheckCircle2 className="size-6 shrink-0" />
                       <div>
                          <p className="font-black text-sm uppercase">Milestone Completed</p>
-                         <p className="text-xs font-bold opacity-80">Payment of ${selectedMilestone.amount?.toLocaleString()} has been released.</p>
+                         <p className="text-xs font-bold opacity-80">Payment of {selectedMilestone.amount?.toLocaleString()} Aivora Coin has been released.</p>
                       </div>
                    </div>
                  )}
@@ -749,7 +749,7 @@ export const ProjectWorkspacePage = () => {
       {isSubmitModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsSubmitModalOpen(false)} />
-          <div className="bg-white rounded-3xl p-8 w-[90%] max-w-lg relative z-10 shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-2xl p-8 w-[90%] max-w-lg relative z-10 shadow-2xl animate-in zoom-in-95 duration-200">
             <h3 className="text-2xl font-black text-slate-900 mb-2">
               {selectedMilestone?.status === MilestoneStatus.REVISION_REQUESTED ? 'Edit Deliverables' : 'Submit Deliverables'}
             </h3>
@@ -763,7 +763,7 @@ export const ProjectWorkspacePage = () => {
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Description (Required)</label>
                 <textarea 
-                  className="w-full rounded-xl border-slate-200 p-3 text-sm focus:ring-primary focus:border-primary" 
+                  className="w-full rounded-lg border-slate-200 p-3 text-sm focus:ring-primary focus:border-primary" 
                   rows={3} 
                   placeholder="What have you completed?"
                   value={submitData.description}
@@ -774,7 +774,7 @@ export const ProjectWorkspacePage = () => {
                 <label className="block text-xs font-bold text-slate-700 mb-1">File/Drive URL</label>
                 <input 
                   type="text" 
-                  className="w-full rounded-xl border-slate-200 p-3 text-sm focus:ring-primary focus:border-primary" 
+                  className="w-full rounded-lg border-slate-200 p-3 text-sm focus:ring-primary focus:border-primary" 
                   placeholder="https://..."
                   value={submitData.fileUrl}
                   onChange={e => setSubmitData({...submitData, fileUrl: e.target.value})}
@@ -784,7 +784,7 @@ export const ProjectWorkspacePage = () => {
                 <label className="block text-xs font-bold text-slate-700 mb-1">Demo URL</label>
                 <input 
                   type="text" 
-                  className="w-full rounded-xl border-slate-200 p-3 text-sm focus:ring-primary focus:border-primary" 
+                  className="w-full rounded-lg border-slate-200 p-3 text-sm focus:ring-primary focus:border-primary" 
                   placeholder="https://..."
                   value={submitData.demoUrl}
                   onChange={e => setSubmitData({...submitData, demoUrl: e.target.value})}
@@ -794,7 +794,7 @@ export const ProjectWorkspacePage = () => {
                 <label className="block text-xs font-bold text-slate-700 mb-1">Source Code URL</label>
                 <input
                   type="text"
-                  className="w-full rounded-xl border-slate-200 p-3 text-sm focus:ring-primary focus:border-primary"
+                  className="w-full rounded-lg border-slate-200 p-3 text-sm focus:ring-primary focus:border-primary"
                   placeholder="https://..."
                   value={submitData.sourceCodeUrl}
                   onChange={e => setSubmitData({...submitData, sourceCodeUrl: e.target.value})}
@@ -803,7 +803,7 @@ export const ProjectWorkspacePage = () => {
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Note</label>
                 <textarea
-                  className="w-full rounded-xl border-slate-200 p-3 text-sm focus:ring-primary focus:border-primary"
+                  className="w-full rounded-lg border-slate-200 p-3 text-sm focus:ring-primary focus:border-primary"
                   rows={2}
                   placeholder="Anything the client should know..."
                   value={submitData.note}
@@ -834,7 +834,7 @@ export const ProjectWorkspacePage = () => {
       {isRevisionModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsRevisionModalOpen(false)} />
-          <div className="bg-white rounded-3xl p-8 w-[90%] max-w-lg relative z-10 shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-2xl p-8 w-[90%] max-w-lg relative z-10 shadow-2xl animate-in zoom-in-95 duration-200">
             <h3 className="text-2xl font-black text-slate-900 mb-2">Request Revision</h3>
             <p className="text-sm text-slate-500 mb-6">Explain what needs to be changed or improved.</p>
             
@@ -842,7 +842,7 @@ export const ProjectWorkspacePage = () => {
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Reason for Revision</label>
                 <textarea 
-                  className="w-full rounded-xl border-slate-200 p-3 text-sm focus:ring-primary focus:border-primary" 
+                  className="w-full rounded-lg border-slate-200 p-3 text-sm focus:ring-primary focus:border-primary" 
                   rows={4}
                   placeholder="Please update the following..."
                   value={revisionReason}
@@ -868,7 +868,7 @@ export const ProjectWorkspacePage = () => {
       {isFinishModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsFinishModalOpen(false)} />
-          <div className="bg-white rounded-3xl p-8 w-[90%] max-w-md relative z-10 shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-2xl p-8 w-[90%] max-w-md relative z-10 shadow-2xl animate-in zoom-in-95 duration-200">
             <h3 className="text-2xl font-black text-slate-900 mb-2">Finish this project?</h3>
             <p className="text-sm text-slate-500 mb-6 leading-relaxed">
               This will mark the project as completed and the client may be asked to review the expert.

@@ -25,7 +25,7 @@ export const Sidebar = ({ items, collapsed }: SidebarProps) => {
       style={{ width: collapsed ? 0 : '16rem' }}
       >
         {/* Navigation Menu */}
-        <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto custom-scrollbar overflow-x-hidden">
+        <nav className="flex-1 px-2 py-6 space-y-2 overflow-y-auto custom-scrollbar overflow-x-hidden">
           {items.map((item) => {
             // Dashboard items usually match exactly to avoid being active for all sub-routes
             const isDashboard = item.label.toLowerCase().includes('dashboard') || item.href.split('/').length === 2;
@@ -39,9 +39,9 @@ export const Sidebar = ({ items, collapsed }: SidebarProps) => {
                 key={item.label}
                 to={item.href}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 group relative",
+                  "flex w-full items-center gap-3 px-4 py-3.5 rounded-lg transition-all duration-200 group relative",
                   isActive 
-                    ? "bg-primary text-white shadow-lg shadow-primary/20" 
+                    ? "bg-brand-blue-dark text-white shadow-lg shadow-blue-900/20" 
                     : "text-slate-500 hover:bg-slate-50 hover:text-primary"
                 )}
               >

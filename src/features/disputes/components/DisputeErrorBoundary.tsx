@@ -11,8 +11,8 @@ export const DisputeErrorBoundary: React.FC<DisputeErrorBoundaryProps> = ({ chil
   return (
     <ErrorBoundary
       fallback={
-        <div className="flex flex-col items-center justify-center min-h-[400px] p-8 text-center bg-rose-50/30 rounded-2xl border-2 border-dashed border-rose-100 animate-in fade-in duration-500">
-          <div className="size-16 bg-white rounded-2xl shadow-xl shadow-rose-100 flex items-center justify-center mb-6">
+        <div className="flex flex-col items-center justify-center min-h-[400px] p-8 text-center bg-rose-50/30 rounded-xl border-2 border-dashed border-rose-100 animate-in fade-in duration-500">
+          <div className="size-16 bg-white rounded-xl shadow-xl shadow-rose-100 flex items-center justify-center mb-6">
             <AlertCircle className="size-8 text-rose-500" />
           </div>
           <h2 className="text-2xl font-black text-slate-900 mb-2">Something went wrong</h2>
@@ -22,7 +22,7 @@ export const DisputeErrorBoundary: React.FC<DisputeErrorBoundaryProps> = ({ chil
           </p>
           <Button
             onClick={() => window.location.reload()}
-            className="rounded-xl px-8 h-12 bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-200 flex items-center gap-2 font-bold"
+            className="rounded-lg px-8 h-12 bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-200 flex items-center gap-2 font-bold"
           >
             <RefreshCcw className="size-4" />
             Retry Connection

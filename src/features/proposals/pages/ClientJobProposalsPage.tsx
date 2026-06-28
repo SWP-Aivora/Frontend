@@ -295,7 +295,7 @@ export const ClientJobProposalsPage = () => {
            <h1 className="text-3xl font-black text-slate-900 tracking-tight">{job?.title}</h1>
            <div className="flex items-center gap-4 text-sm font-medium text-slate-500">
               <span className="flex items-center gap-1.5"><Clock className="size-4" /> {job?.timelineDays} Days</span>
-              <span className="flex items-center gap-1.5 text-emerald-600"><DollarSign className="size-4" /> ${job?.budgetMin}-${job?.budgetMax}</span>
+               <span className="flex items-center gap-1.5 text-emerald-600"><DollarSign className="size-4" /> {job?.budgetMin}-{job?.budgetMax} Aivora Coin</span>
               <span className="bg-primary/10 text-primary px-3 py-0.5 rounded-full text-xs font-black uppercase">
                 {isJobLocked ? 'In Progress' : 'Open for Bidding'}
               </span>
@@ -311,11 +311,11 @@ export const ClientJobProposalsPage = () => {
          {[
            { label: 'Total Proposals', value: proposals.length, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
            { label: 'Shortlisted', value: shortlistedCount, icon: Target, color: 'text-brand-accent', bg: 'bg-brand-accent/5' },
-           { label: 'Avg. Bid', value: averageBid ? `$${averageBid.toLocaleString()}` : '$0', icon: DollarSign, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+            { label: 'Avg. Bid', value: averageBid ? `${averageBid.toLocaleString()} Aivora Coin` : '0 Aivora Coin', icon: DollarSign, color: 'text-emerald-600', bg: 'bg-emerald-50' },
            { label: 'Refused', value: refusedCount, icon: CheckCircle2, color: 'text-amber-600', bg: 'bg-amber-50' },
          ].map((stat, i) => (
-           <div key={i} className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm flex items-center gap-4">
-              <div className={cn("size-12 rounded-xl flex items-center justify-center", stat.bg)}>
+           <div key={i} className="bg-white p-6 rounded-lg border border-slate-100 shadow-sm flex items-center gap-4">
+              <div className={cn("size-12 rounded-lg flex items-center justify-center", stat.bg)}>
                  <stat.icon className={cn("size-6", stat.color)} />
               </div>
               <div>
@@ -330,14 +330,14 @@ export const ClientJobProposalsPage = () => {
         {/* Main List */}
         <div className="lg:col-span-2 space-y-6">
            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-xl">
+              <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-lg">
                  {(['all', 'shortlisted', 'refused'] as const).map(tab => (
                    <button 
                      key={tab}
                      onClick={() => setActiveTab(tab)}
                      className={cn(
-                       "px-6 py-2 rounded-xl text-xs font-black capitalize transition-all",
-                       activeTab === tab ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                       "px-6 py-2 rounded-lg text-xs font-black capitalize transition-all",
+                       activeTab === tab ? "bg-brand-blue-dark text-white shadow-sm" : "text-slate-500 hover:text-slate-700"
                      )}
                    >
                      {tab === 'refused' ? 'Refused' : tab}
@@ -345,8 +345,8 @@ export const ClientJobProposalsPage = () => {
                  ))}
               </div>
               <div className="flex items-center gap-2">
-                 <Button variant="ghost" size="icon" className="size-10 rounded-xl text-slate-400 hover:bg-slate-100"><Filter className="size-4" /></Button>
-                 <Button variant="ghost" size="icon" className="size-10 rounded-xl text-slate-400 hover:bg-slate-100"><ArrowUpDown className="size-4" /></Button>
+                 <Button variant="ghost" size="icon" className="size-10 rounded-lg text-slate-400 hover:bg-slate-100"><Filter className="size-4" /></Button>
+                 <Button variant="ghost" size="icon" className="size-10 rounded-lg text-slate-400 hover:bg-slate-100"><ArrowUpDown className="size-4" /></Button>
               </div>
            </div>
 
@@ -388,11 +388,11 @@ export const ClientJobProposalsPage = () => {
 
         {/* Sidebar: AI Recommendation Control */}
         <div className="lg:col-span-1 space-y-6">
-           <div className="bg-brand-blue-dark rounded-xl p-8 text-white relative overflow-hidden shadow-2xl shadow-blue-900/20">
+           <div className="bg-brand-blue-dark rounded-lg p-8 text-white relative overflow-hidden shadow-2xl shadow-blue-900/20">
               <div className="absolute top-0 right-0 size-64 bg-brand-accent/20 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
               
               <div className="relative z-10 space-y-6">
-                 <div className="size-14 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center">
+                 <div className="size-14 rounded-lg bg-white/10 backdrop-blur-md flex items-center justify-center">
                     <Sparkles className={cn("size-8 text-blue-300", isGeneratingAI && "animate-pulse")} />
                  </div>
                  <div>
@@ -429,14 +429,14 @@ export const ClientJobProposalsPage = () => {
            </div>
 
            {/* Quick Search Sidebar */}
-           <div className="bg-white rounded-xl p-6 border border-slate-100 shadow-sm space-y-4">
+           <div className="bg-white rounded-lg p-6 border border-slate-100 shadow-sm space-y-4">
               <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Search Proposals</h4>
               <div className="relative">
                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-300" />
                  <input 
                    type="text" 
                    placeholder="Search by name or keyword..." 
-                   className="w-full h-10 pl-10 pr-4 rounded-xl bg-slate-50 border-none text-sm focus:ring-2 focus:ring-primary/20 transition-all"
+                   className="w-full h-10 pl-10 pr-4 rounded-lg bg-slate-50 border-none text-sm focus:ring-2 focus:ring-primary/20 transition-all"
                  />
               </div>
            </div>

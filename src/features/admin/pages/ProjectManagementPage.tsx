@@ -83,7 +83,7 @@ export const ProjectManagementPage = () => {
 
   return (
     <div className="space-y-4 pb-10">
-      <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="bg-white border border-slate-100 rounded-lg p-4 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <p className="text-slate-500 text-xs font-medium mb-1">Admin / Project Management</p>
           <h1 className="text-xl font-black text-slate-900 leading-tight">Manage Projects</h1>
@@ -91,7 +91,7 @@ export const ProjectManagementPage = () => {
         <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={() => refetch()}
-            className="bg-primary text-white px-6 py-2 rounded-xl text-xs font-bold hover:bg-primary-dark transition-all shadow-sm active:scale-95 disabled:opacity-60"
+            className="bg-primary text-white px-6 py-2 rounded-lg text-xs font-bold hover:bg-primary-dark transition-all shadow-sm active:scale-95 disabled:opacity-60"
             disabled={isFetching}
           >
             {isFetching ? 'Syncing...' : 'Sync Data'}
@@ -99,7 +99,7 @@ export const ProjectManagementPage = () => {
         </div>
       </div>
 
-      <div className="bg-primary border border-primary-dark rounded-xl p-4 lg:p-5 flex flex-col lg:flex-row justify-between relative overflow-hidden shadow-sm">
+      <div className="bg-brand-blue-dark border border-brand-blue-dark rounded-lg p-4 lg:p-5 flex flex-col lg:flex-row justify-between relative overflow-hidden shadow-sm">
         <div className="absolute top-0 right-0 w-1/3 h-full bg-white/5 skew-x-12 -mr-16 pointer-events-none" />
         <div className="relative z-10 flex-1">
           <div className="inline-flex items-center bg-white/20 border border-white/20 text-white px-3 py-1 rounded-full text-xs font-semibold mb-4">
@@ -150,7 +150,7 @@ export const ProjectManagementPage = () => {
         />
       </div>
 
-      <div className="bg-white border border-slate-100 rounded-xl shadow-sm p-5">
+      <div className="bg-white border border-slate-100 rounded-lg shadow-sm p-5">
         <AdminProjectFilters
           searchTerm={searchTerm}
           statusFilter={statusFilter}

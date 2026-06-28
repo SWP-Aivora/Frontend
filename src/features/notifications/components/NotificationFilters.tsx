@@ -26,9 +26,9 @@ export const NotificationFilters = ({
   unreadCount,
 }: NotificationFiltersProps) => {
   return (
-    <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4 flex flex-col xl:flex-row gap-4 xl:items-center">
+    <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-4 flex flex-col xl:flex-row gap-4 xl:items-center">
       {/* Search */}
-      <div className="relative flex-1 w-full bg-slate-50 border border-slate-200 rounded-xl overflow-hidden">
+      <div className="relative flex-1 w-full bg-slate-50 border border-slate-200 rounded-lg overflow-hidden">
         <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
           <Search className="size-4 text-slate-400" />
         </div>
@@ -56,7 +56,7 @@ export const NotificationFilters = ({
               onClick={() => onStatusFilterChange(option.value)}
               className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors ${
                 statusFilter === option.value
-                  ? 'bg-primary text-white shadow-sm'
+                  ? 'bg-brand-blue-dark text-white shadow-sm'
                   : 'text-slate-600 hover:text-primary'
               }`}
             >

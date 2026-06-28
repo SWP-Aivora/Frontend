@@ -80,7 +80,7 @@ export const LoginForm = () => {
               type="email" 
               placeholder="Enter your email address" 
               {...register('email')}
-              className={`pl-14 h-14 bg-slate-50 border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300 ${errors.email ? 'border-destructive' : 'hover:border-slate-300'}`}
+              className={`pl-14 h-14 bg-slate-50 border-slate-200 rounded-lg focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300 ${errors.email ? 'border-destructive' : 'hover:border-slate-300'}`}
             />
           </div>
           {errors.email && <p className="text-xs text-destructive font-medium ml-1">{errors.email.message}</p>}
@@ -99,7 +99,7 @@ export const LoginForm = () => {
               type="password" 
               placeholder="Enter your password" 
               {...register('password')}
-              className={`pl-14 h-14 bg-slate-50 border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300 ${errors.password ? 'border-destructive' : 'hover:border-slate-300'}`}
+              className={`pl-14 h-14 bg-slate-50 border-slate-200 rounded-lg focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300 ${errors.password ? 'border-destructive' : 'hover:border-slate-300'}`}
             />
           </div>
           {errors.password && <p className="text-xs text-destructive font-medium ml-1">{errors.password.message}</p>}

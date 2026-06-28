@@ -48,7 +48,7 @@ export const UserMenu = ({ className, showNotifications = true }: UserMenuProps)
             <p className="text-sm font-black text-slate-900 leading-none group-hover:text-primary transition-colors">{user.fullName || user.email || 'User'}</p>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mt-1">{user.role}</p>
           </div>
-          <div className="size-10 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/10 flex items-center justify-center group-hover:scale-105 group-hover:border-primary/20 transition-all duration-300 overflow-hidden shadow-sm">
+          <div className="size-10 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/10 flex items-center justify-center group-hover:scale-105 group-hover:border-primary/20 transition-all duration-300 overflow-hidden shadow-sm">
             {user.fullName ? (
               <span className="text-sm font-black text-primary uppercase">{user.fullName.charAt(0)}</span>
             ) : user.email ? (
@@ -70,7 +70,7 @@ export const UserMenu = ({ className, showNotifications = true }: UserMenuProps)
         {/* Logout Button */}
         <button 
           onClick={() => logout()}
-          className="p-2 rounded-xl hover:bg-destructive/5 text-slate-400 hover:text-destructive transition-all duration-300 group"
+          className="p-2 rounded-lg hover:bg-destructive/5 text-slate-400 hover:text-destructive transition-all duration-300 group"
           title="Sign Out"
         >
           <LogOut className="size-5 group-hover:scale-110 transition-transform" />

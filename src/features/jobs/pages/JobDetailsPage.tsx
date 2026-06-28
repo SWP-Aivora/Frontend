@@ -109,7 +109,7 @@ export const JobDetailsPage = () => {
 
   const budgetMin = job?.budgetMin ?? 0;
   const budgetMax = job?.budgetMax ?? 0;
-  const formattedBudgetRange = `$${budgetMin.toLocaleString()} - $${budgetMax.toLocaleString()}`;
+  const formattedBudgetRange = `${budgetMin.toLocaleString()} - ${budgetMax.toLocaleString()} Aivora Coin`;
   const skills = job?.skills ?? [];
 
   if (isLoading || isProposalLoading) {
@@ -144,7 +144,7 @@ export const JobDetailsPage = () => {
         
         {/* Main Column: Job Details + Proposal */}
         <div className="space-y-6 min-w-0">
-          <div className="bg-white rounded-xl p-6 md:p-8 border border-slate-100 shadow-sm relative overflow-hidden">
+          <div className="bg-white rounded-lg p-6 md:p-8 border border-slate-100 shadow-sm relative overflow-hidden">
              {/* Header */}
              <div className="space-y-5 mb-6">
                 <div className="flex flex-wrap items-center gap-2">
@@ -167,8 +167,8 @@ export const JobDetailsPage = () => {
 
              {/* Job Info Grid */}
              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-                <div className="flex items-center gap-3 bg-emerald-50/60 border border-emerald-100 rounded-xl p-4">
-                   <div className="size-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
+                <div className="flex items-center gap-3 bg-emerald-50/60 border border-emerald-100 rounded-lg p-4">
+                   <div className="size-10 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
                       <DollarSign className="size-5 text-emerald-600" />
                    </div>
                    <div>
@@ -176,8 +176,8 @@ export const JobDetailsPage = () => {
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Fixed Price</p>
                    </div>
                 </div>
-                <div className="flex items-center gap-3 bg-blue-50/60 border border-blue-100 rounded-xl p-4">
-                   <div className="size-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                <div className="flex items-center gap-3 bg-blue-50/60 border border-blue-100 rounded-lg p-4">
+                   <div className="size-10 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
                       <Calendar className="size-5 text-blue-600" />
                    </div>
                    <div>
@@ -185,12 +185,12 @@ export const JobDetailsPage = () => {
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Est. Timeline</p>
                    </div>
                 </div>
-                <div className="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-xl p-4">
-                   <div className="size-10 rounded-xl bg-white flex items-center justify-center shrink-0">
+                <div className="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-lg p-4">
+                   <div className="size-10 rounded-lg bg-white flex items-center justify-center shrink-0">
                       <WalletCards className="size-5 text-slate-600" />
                    </div>
                    <div>
-                      <p className="font-black text-slate-900">{job.currency || 'USD'}</p>
+                       <p className="font-black text-slate-900">Aivora Coin</p>
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Currency</p>
                    </div>
                 </div>
@@ -198,7 +198,7 @@ export const JobDetailsPage = () => {
 
              <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] gap-4">
                 {/* Description */}
-                <section className="rounded-xl border border-slate-100 bg-slate-50/60 p-5">
+                <section className="rounded-lg border border-slate-100 bg-slate-50/60 p-5">
                   <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-3">Project Description</h3>
                   <p className="text-sm text-slate-600 font-medium leading-7 whitespace-pre-wrap">
                     {job.finalDescription || job.originalDescription || 'No description was provided for this job.'}
@@ -206,7 +206,7 @@ export const JobDetailsPage = () => {
                 </section>
 
                 {/* Skills */}
-                <section className="rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
+                <section className="rounded-lg border border-slate-100 bg-white p-5 shadow-sm">
                   <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-3">Required Skills</h3>
                   <div className="flex flex-wrap gap-2">
                     {skills.length > 0 ? (
@@ -229,7 +229,7 @@ export const JobDetailsPage = () => {
           </div>
 
           {/* Proposal Form */}
-          <div className="bg-white rounded-xl border border-brand-accent/20 shadow-xl shadow-brand-accent/5 relative overflow-hidden">
+          <div className="bg-white rounded-lg border border-brand-accent/20 shadow-xl shadow-brand-accent/5 relative overflow-hidden">
             <div className="h-1.5 bg-gradient-to-r from-brand-accent via-primary to-blue-500" />
             <div className="p-6 md:p-8">
               <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
@@ -246,7 +246,7 @@ export const JobDetailsPage = () => {
                       : 'Share your bid, delivery plan, portfolio references, and a concise pitch tailored to this job.'}
                   </p>
                 </div>
-                <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3 text-sm">
+                <div className="rounded-lg bg-slate-50 border border-slate-100 px-4 py-3 text-sm">
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Client Budget</p>
                   <p className="font-black text-slate-900">{formattedBudgetRange}</p>
                 </div>
@@ -254,7 +254,7 @@ export const JobDetailsPage = () => {
 
               {hasSubmitted && !isEditMode ? (
                 <div className="space-y-4 pt-4 border-t border-slate-100">
-                  <div className="bg-emerald-50 rounded-xl p-4 flex items-center gap-3 border border-emerald-100">
+                  <div className="bg-emerald-50 rounded-lg p-4 flex items-center gap-3 border border-emerald-100">
                     <BadgeCheck className="size-6 text-emerald-600 shrink-0" />
                     <div>
                       <p className="text-sm font-bold text-emerald-900">Proposal Sent</p>
@@ -276,7 +276,7 @@ export const JobDetailsPage = () => {
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Proposed Bid</label>
                       <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-black">$</span>
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-black">Aivora Coin</span>
                         <Input
                           type="number"
                           min="1"
@@ -284,7 +284,7 @@ export const JobDetailsPage = () => {
                           {...register('proposedBudget')}
                           aria-label="Proposal bid"
                           data-testid="proposal-budget-input"
-                          className="h-12 rounded-xl bg-slate-50 pl-8 font-bold"
+                          className="h-12 rounded-lg bg-slate-50 pl-28 font-bold"
                         />
                       </div>
                       {errors.proposedBudget && <p className="text-xs text-destructive font-bold">{errors.proposedBudget.message}</p>}
@@ -298,7 +298,7 @@ export const JobDetailsPage = () => {
                           {...register('proposedTimelineDays')}
                           aria-label="Proposal delivery time"
                           data-testid="proposal-timeline-input"
-                          className="h-12 rounded-xl bg-slate-50 pr-14 font-bold"
+                          className="h-12 rounded-lg bg-slate-50 pr-14 font-bold"
                         />
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-black uppercase">Days</span>
                       </div>
@@ -314,7 +314,7 @@ export const JobDetailsPage = () => {
                       aria-label="Proposal cover letter"
                       data-testid="proposal-cover-letter"
                       placeholder="Introduce yourself, describe your solution approach, and explain why you are the right expert for this project..."
-                      className="w-full min-h-[180px] p-4 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-accent/20 text-sm leading-6 transition-colors"
+                      className="w-full min-h-[180px] p-4 rounded-lg bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-accent/20 text-sm leading-6 transition-colors"
                     />
                     {errors.coverLetter && <p className="text-xs text-destructive font-bold">{errors.coverLetter.message}</p>}
                   </div>
@@ -322,9 +322,9 @@ export const JobDetailsPage = () => {
                   {/* Attachments */}
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Attachments / Portfolio Links</label>
-                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4">
+                    <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4">
                       <div className="flex items-start gap-3">
-                        <div className="size-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center shrink-0">
+                        <div className="size-10 rounded-lg bg-white border border-slate-100 flex items-center justify-center shrink-0">
                           <LinkIcon className="size-5 text-brand-accent" />
                         </div>
                         <div className="flex-1 space-y-3">
@@ -334,7 +334,7 @@ export const JobDetailsPage = () => {
                             aria-label="Proposal portfolio links"
                             data-testid="proposal-attachments"
                             placeholder="https://github.com/yourname/project&#10;https://huggingface.co/your-model"
-                            className="w-full min-h-[86px] p-3 rounded-xl bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-accent/20 text-sm"
+                            className="w-full min-h-[86px] p-3 rounded-lg bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-accent/20 text-sm"
                           />
                         </div>
                       </div>
@@ -343,7 +343,7 @@ export const JobDetailsPage = () => {
                   </div>
 
                   {/* Milestones */}
-                  <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                  <div className="space-y-3 bg-slate-50 p-4 rounded-lg border border-slate-100">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                       <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
                         <FileText className="size-3" /> Delivery Milestones
@@ -358,7 +358,7 @@ export const JobDetailsPage = () => {
                     </div>
                    
                     {fields.map((field, index) => (
-                      <div key={field.id} className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_140px_120px_36px] gap-2 items-start bg-white p-3 rounded-xl border border-slate-200">
+                      <div key={field.id} className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_140px_120px_36px] gap-2 items-start bg-white p-3 rounded-lg border border-slate-200">
                         <div>
                           <Input
                             {...register(`milestones.${index}.title`)}
@@ -379,7 +379,7 @@ export const JobDetailsPage = () => {
                             {...register(`milestones.${index}.amount`)}
                             aria-label={`Proposal milestone ${index + 1} amount`}
                             data-testid="proposal-milestone-amount"
-                            placeholder="$ Amount"
+                            placeholder="Aivora Coin amount"
                             className="h-10 text-sm rounded-lg"
                           />
                           {errors.milestones?.[index]?.amount && (
@@ -432,7 +432,7 @@ export const JobDetailsPage = () => {
 
         {/* Right Column: Client Info & Stats */}
         <aside className="xl:sticky xl:top-24 space-y-4">
-          <div className="bg-white rounded-xl p-6 border border-slate-100 shadow-sm">
+          <div className="bg-white rounded-lg p-6 border border-slate-100 shadow-sm">
             <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-5">About the Client</h3>
             <div className="space-y-4">
               <p className="font-black text-lg text-slate-900">{job.client?.fullName || 'Anonymous Client'}</p>
@@ -451,18 +451,18 @@ export const JobDetailsPage = () => {
             </div>
           </div>
 
-          <div className="bg-slate-950 text-white rounded-xl p-6 shadow-sm">
+          <div className="bg-slate-950 text-white rounded-lg p-6 shadow-sm">
             <h3 className="text-xs font-black text-white/50 uppercase tracking-widest mb-5">Quick Stats</h3>
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl bg-white/5 border border-white/10 p-3">
+              <div className="rounded-lg bg-white/5 border border-white/10 p-3">
                 <p className="text-lg font-black">{job.timelineDays || 'TBD'}</p>
                 <p className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Days</p>
               </div>
-              <div className="rounded-xl bg-white/5 border border-white/10 p-3">
+              <div className="rounded-lg bg-white/5 border border-white/10 p-3">
                 <p className="text-lg font-black">{skills.length || 1}</p>
                 <p className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Skills</p>
               </div>
-              <div className="rounded-xl bg-white/5 border border-white/10 p-3 col-span-2">
+              <div className="rounded-lg bg-white/5 border border-white/10 p-3 col-span-2">
                 <p className="text-lg font-black">{formattedBudgetRange}</p>
                 <p className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Budget Range</p>
               </div>

@@ -14,7 +14,7 @@ interface DashboardLayoutProps {
 }
 
 export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, isAuthenticated, setUser } = useAuthStore();
   const location = useLocation();
@@ -93,7 +93,7 @@ export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
         {/* Mobile Sidebar Overlay */}
         {mobileMenuOpen && (
           <div 
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 lg:hidden animate-in fade-in duration-300"
+            className="fixed inset-0 z-50 lg:hidden animate-in fade-in duration-300"
             onClick={() => setMobileMenuOpen(false)}
           >
             <div 
@@ -124,4 +124,3 @@ export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
     </div>
   );
 };
-

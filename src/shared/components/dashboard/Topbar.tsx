@@ -2,6 +2,7 @@ import { Menu } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { UserMenu } from '../common';
 import { Role } from '@/shared/types/enums';
+import { useAppStore } from '@/app/store';
 
 interface TopbarProps {
   onMenuClick: () => void;
@@ -11,17 +12,21 @@ interface TopbarProps {
 }
 
 const ASSETS = {
-  logoCircle: "/logo.png",
+  logoLight: "/logo.png",
+  logoDark: "/logo_dark.png",
 };
 
 export const Topbar = ({ onMenuClick, onToggleSidebar, sidebarCollapsed }: TopbarProps) => {
+  const theme = useAppStore((state) => state.theme);
+  const logoSrc = theme === 'dark' ? ASSETS.logoDark : ASSETS.logoLight;
+
   return (
     <header className="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-6 lg:px-8 shrink-0 relative z-30 shadow-sm">
       <div className="flex items-center gap-4 lg:gap-6 flex-1">
         {/* Sidebar Toggle (YouTube-style Hamburger) */}
         <button 
           onClick={onToggleSidebar}
-          className="hidden lg:flex p-2.5 rounded-xl hover:bg-slate-50 text-slate-600 hover:text-primary transition-all duration-300 group"
+          className="hidden lg:flex p-2.5 rounded-lg hover:bg-slate-50 text-slate-600 hover:text-primary transition-all duration-300 group"
           title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
         >
           <Menu className="size-7 stroke-[2.5px] group-hover:scale-110 transition-transform" />
@@ -30,7 +35,7 @@ export const Topbar = ({ onMenuClick, onToggleSidebar, sidebarCollapsed }: Topba
         {/* Mobile Menu Toggle (Left side for mobile visibility) */}
         <button 
           onClick={onMenuClick}
-          className="lg:hidden p-2 rounded-xl hover:bg-slate-50 text-slate-500"
+          className="lg:hidden p-2 rounded-lg hover:bg-slate-50 text-slate-500"
         >
           <Menu className="size-6" />
         </button>
@@ -39,7 +44,7 @@ export const Topbar = ({ onMenuClick, onToggleSidebar, sidebarCollapsed }: Topba
         <Link to="/" className="flex items-center group shrink-0">
           <div className="relative w-32 h-12 overflow-hidden flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
             <img 
-              src={ASSETS.logoCircle} 
+              src={logoSrc} 
               alt="AIVORA" 
               className="w-full h-full object-contain scale-[1.8]" 
             />

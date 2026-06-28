@@ -48,7 +48,7 @@ export const ExpertMatchInsights = ({ experts }: ExpertMatchInsightsProps) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.1 }}
-            className="bg-white border border-slate-100 rounded-[32px] p-6 shadow-sm hover:shadow-xl transition-all duration-500 group relative overflow-hidden"
+            className="bg-white border border-slate-100 rounded-[28px] p-6 shadow-sm hover:shadow-xl transition-all duration-500 group relative overflow-hidden"
           >
             <div className="absolute top-0 right-0 p-4">
                <div className="bg-primary/5 text-primary text-[10px] font-black px-3 py-1 rounded-full border border-primary/10 flex items-center gap-1">
@@ -86,11 +86,11 @@ export const ExpertMatchInsights = ({ experts }: ExpertMatchInsightsProps) => {
               <div className="w-full pt-4 space-y-2">
                 <Button 
                   onClick={() => toast.success('Invitation sent! The expert will be notified.')}
-                  className="w-full rounded-2xl font-black shadow-lg shadow-primary/20"
+                  className="w-full rounded-xl font-black shadow-lg shadow-primary/20"
                 >
                   Invite to Project
                 </Button>
-                <Button variant="ghost" asChild className="w-full rounded-2xl font-bold text-slate-500 hover:text-primary">
+                <Button variant="ghost" asChild className="w-full rounded-xl font-bold text-slate-500 hover:text-primary">
                   <Link to={`/client/experts/${expert.id}`}>
                     View Profile <ChevronRight className="size-4 ml-1" />
                   </Link>

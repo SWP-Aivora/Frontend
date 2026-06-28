@@ -147,19 +147,19 @@ export const FindWorkPage = () => {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* Header & Search */}
-      <div className="bg-brand-blue-dark rounded-xl p-10 md:p-14 relative overflow-hidden text-white shadow-2xl">
+      <div className="bg-brand-blue-dark rounded-lg p-8 md:p-10 relative overflow-hidden text-white shadow-2xl">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-brand-accent/30 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
         
-        <div className="relative z-10 max-w-3xl">
-          <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-tight mb-4">
-            Find the Perfect <br />
+        <div className="relative z-10 max-w-5xl">
+          <h1 className="text-3xl md:text-4xl font-black tracking-tight leading-tight mb-3 whitespace-nowrap">
+            Find the Perfect{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-brand-accent">AI Project</span>
           </h1>
-          <p className="text-brand-blue-light/80 text-lg font-medium mb-8 max-w-xl">
-            Browse thousands of high-quality AI jobs from verified clients. Apply, deliver, and get paid securely.
+          <p className="text-brand-blue-light/80 text-base font-medium mb-6 max-w-4xl whitespace-nowrap">
+            Browse verified AI jobs, apply confidently, deliver, and get paid securely.
           </p>
 
-          <form onSubmit={handleSearch} className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-2 flex flex-col md:flex-row gap-2">
+          <form onSubmit={handleSearch} className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-2 flex flex-col md:flex-row gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-white/50" />
               <input 
@@ -171,7 +171,7 @@ export const FindWorkPage = () => {
               />
             </div>
             <div className="hidden md:block w-px h-8 bg-white/20 self-center" />
-            <Button className="h-12 px-8 rounded-xl font-bold bg-white text-brand-blue-dark hover:bg-slate-100 transition-colors w-full md:w-auto">
+            <Button className="h-12 px-8 rounded-lg font-bold bg-white text-brand-blue-dark hover:bg-slate-100 transition-colors w-full md:w-auto">
               Search Jobs
             </Button>
           </form>
@@ -187,22 +187,22 @@ export const FindWorkPage = () => {
           </div>
 
           {/* Budget Filter */}
-          <div className="bg-white rounded-xl p-6 border border-slate-100 shadow-sm space-y-4">
+          <div className="bg-white rounded-lg p-6 border border-slate-100 shadow-sm space-y-4">
             <div className="flex items-center gap-2 text-slate-900 font-bold">
-               <DollarSign className="size-4 text-brand-accent" />
+               <DollarSign className="size-4 text-brand-blue-dark" />
                Budget Type
             </div>
             <div className="space-y-3">
               {budgetTypeFilters.map(filter => (
                 <label key={filter.value} className="flex items-center gap-3 cursor-pointer group">
-                   <div className="relative size-5 rounded-md border-2 border-slate-300 bg-white group-hover:border-brand-accent transition-colors overflow-hidden">
+                   <div className="relative size-5 rounded-md border-2 border-slate-300 bg-white group-hover:border-brand-blue-dark transition-colors overflow-hidden">
                       <input
                         type="checkbox"
                         className="peer absolute inset-0 opacity-0 cursor-pointer"
                         checked={selectedBudgetTypes.includes(filter.value)}
                         onChange={() => toggleSelectedValue(filter.value, setSelectedBudgetTypes)}
                       />
-                      <div className="absolute inset-0 bg-brand-accent opacity-0 peer-checked:opacity-100 transition-opacity flex items-center justify-center">
+                      <div className="absolute inset-0 bg-brand-blue-dark opacity-0 peer-checked:opacity-100 transition-opacity flex items-center justify-center">
                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="size-3 text-white"><path d="M5 13l4 4L19 7" /></svg>
                       </div>
                    </div>
@@ -213,22 +213,22 @@ export const FindWorkPage = () => {
           </div>
 
           {/* Skill Level Filter */}
-          <div className="bg-white rounded-xl p-6 border border-slate-100 shadow-sm space-y-4">
+          <div className="bg-white rounded-lg p-6 border border-slate-100 shadow-sm space-y-4">
             <div className="flex items-center gap-2 text-slate-900 font-bold">
-               <BrainCircuit className="size-4 text-brand-accent" />
+               <BrainCircuit className="size-4 text-brand-blue-dark" />
                Skill Level
             </div>
             <div className="space-y-3">
               {skillLevelFilters.map(filter => (
                 <label key={filter.value} className="flex items-center gap-3 cursor-pointer group">
-                   <div className="relative size-5 rounded-md border-2 border-slate-300 bg-white group-hover:border-brand-accent transition-colors overflow-hidden">
+                   <div className="relative size-5 rounded-md border-2 border-slate-300 bg-white group-hover:border-brand-blue-dark transition-colors overflow-hidden">
                       <input
                         type="checkbox"
                         className="peer absolute inset-0 opacity-0 cursor-pointer"
                         checked={selectedSkillLevels.includes(filter.value)}
                         onChange={() => toggleSelectedValue(filter.value, setSelectedSkillLevels)}
                       />
-                      <div className="absolute inset-0 bg-brand-accent opacity-0 peer-checked:opacity-100 transition-opacity flex items-center justify-center">
+                      <div className="absolute inset-0 bg-brand-blue-dark opacity-0 peer-checked:opacity-100 transition-opacity flex items-center justify-center">
                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="size-3 text-white"><path d="M5 13l4 4L19 7" /></svg>
                       </div>
                    </div>
@@ -241,7 +241,7 @@ export const FindWorkPage = () => {
 
         {/* Main Job List */}
         <div className="lg:col-span-3 space-y-4">
-          <div className="flex items-center justify-between bg-white border border-slate-100 rounded-xl p-4 shadow-sm mb-6">
+          <div className="flex items-center justify-between bg-white border border-slate-100 rounded-lg p-4 shadow-sm mb-6">
              <p className="text-sm font-bold text-slate-500">
                Showing <span className="text-slate-900">{filteredJobs.length}</span> jobs
              </p>
