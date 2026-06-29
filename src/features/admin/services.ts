@@ -18,7 +18,7 @@ import type {
 import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
 import { normalizeBaseResponse, normalizePaginatedResponse } from '@/lib/api-utils';
 import type { AxiosResponse } from 'axios';
-import { isProjectDisputed } from '@/features/projects/utils';
+import { getDefaultNonDisputeProjectStatus, isProjectDisputed } from '@/features/projects/utils';
 import { parseAdminApiDate } from './utils/date';
 
 interface DashboardSummaryParams {
@@ -647,14 +647,26 @@ export const adminService = {
       .sort((a, b) => b.jobCount - a.jobCount)
       .slice(0, 5);
 
+    const activeDisputeProjectIds = new Set(
+      allDisputes
+        .filter(d => isOpenDisputeStatus(d.status ?? d.Status))
+        .map(d => getStringValue(getValue(d, 'projectId', 'ProjectId')))
+        .filter(Boolean)
+    );
+
     // 2. Process Projects (Filter ongoing only)
     const ongoingProjects = allProjectsRaw.filter(p => isOngoingStatus(p.status ?? p.Status));
 
     const mappedProjects: AdminProjectItem[] = ongoingProjects.map((project) => {
       const client = getObjectValue(project, 'client', 'Client');
       const expert = getObjectValue(project, 'expert', 'Expert');
+      const projectId = getStringValue(getValue(project, 'id', 'Id'));
+      const rawStatus = getValue(project, 'status', 'Status');
+      const displayStatus = activeDisputeProjectIds.has(projectId)
+        ? rawStatus
+        : getDefaultNonDisputeProjectStatus(rawStatus);
       return {
-        id: getStringValue(getValue(project, 'id', 'Id')),
+        id: projectId,
         title: getStringValue(getValue(project, 'title', 'Title')),
         clientName: getStringValue(
           getValue(project, 'clientName', 'ClientName')
@@ -666,7 +678,7 @@ export const adminService = {
             ?? getValue(expert, 'fullName', 'FullName'),
           'Unknown Expert'
         ),
-        status: getStatusLabel(getValue(project, 'status', 'Status')),
+        status: getStatusLabel(displayStatus),
         amount: getNumberOr(project, 0, 'totalBudget', 'TotalBudget'),
         paymentStatus: hasZeroNumericValue(getValue(project, 'remainingBudget', 'RemainingBudget')) ? 'Paid' : 'Escrow'
       };

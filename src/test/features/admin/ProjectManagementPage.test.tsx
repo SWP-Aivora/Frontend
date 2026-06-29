@@ -2,9 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ProjectManagementPage } from '../../../features/admin/pages/ProjectManagementPage';
 import type { AdminProject } from '../../../features/admin/types';
+import { DisputeStatus } from '../../../features/disputes/types';
 
 const mockUseAdminProjects = vi.fn();
 const mockUseAdminProjectDetail = vi.fn();
+const mockUseDisputes = vi.fn();
 
 vi.mock('../../../features/admin/hooks/useAdminProjects', () => ({
   useAdminProjects: (...args: unknown[]) => mockUseAdminProjects(...args),
@@ -12,6 +14,10 @@ vi.mock('../../../features/admin/hooks/useAdminProjects', () => ({
 
 vi.mock('../../../features/admin/hooks/useAdminProjectDetail', () => ({
   useAdminProjectDetail: (...args: unknown[]) => mockUseAdminProjectDetail(...args),
+}));
+
+vi.mock('../../../features/disputes/hooks/useDisputes', () => ({
+  useDisputes: (...args: unknown[]) => mockUseDisputes(...args),
 }));
 
 const mockRefetch = vi.fn();
@@ -56,6 +62,18 @@ describe('ProjectManagementPage', () => {
       isLoading: false,
       isError: false,
       error: null,
+    });
+    mockUseDisputes.mockReturnValue({
+      data: {
+        data: [
+          {
+            id: 'dispute-1',
+            projectId: 'project-2',
+            status: DisputeStatus.OPEN,
+          },
+        ],
+      },
+      isSuccess: true,
     });
   });
 
@@ -138,6 +156,9 @@ describe('ProjectManagementPage', () => {
     expect(screen.getByText('Client One')).toBeInTheDocument();
     expect(screen.getByText('Expert One')).toBeInTheDocument();
     expect(screen.getByText('Manage Projects')).toBeInTheDocument();
+    expect(screen.getAllByText('No Dispute').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Page Value')).not.toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: /milestones/i })).not.toBeInTheDocument();
   });
 
   it('only applies project name search after clicking Search', () => {

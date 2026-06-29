@@ -139,6 +139,14 @@ export interface AddEvidenceRequest {
 }
 
 /**
+ * API payload used by an admin to request more evidence from the dispute opener.
+ */
+export interface RequestEvidenceRequest {
+  /** Admin note shown in the evidence request notification. */
+  note: string;
+}
+
+/**
  * API payload used by an admin to resolve a dispute.
  *
  * Split-payment resolutions may include both release and refund amounts; full

@@ -7,6 +7,7 @@ import type {
   Evidence,
   OpenDisputeRequest, 
   AddEvidenceRequest, 
+  RequestEvidenceRequest,
   ResolveDisputeRequest,
 } from './types';
 import {
@@ -319,6 +320,30 @@ export const disputeService = {
       statusCode: normalized.statusCode,
       data: (normalized.data ?? []).map((evidence) => mapEvidence(evidence, disputeId)),
     };
+  },
+
+  /**
+   * Close an open dispute.
+   */
+  async closeDispute(disputeId: string): Promise<BaseResponse<void>> {
+    const response = await apiClient.put(API_ENDPOINTS.DISPUTES.CLOSE(disputeId));
+    return normalizeBaseResponse<void>(response);
+  },
+
+  /**
+   * Remove an existing evidence item from a dispute.
+   */
+  async deleteEvidence(disputeId: string, evidenceId: string): Promise<BaseResponse<void>> {
+    const response = await apiClient.delete(API_ENDPOINTS.DISPUTES.DELETE_EVIDENCE(disputeId, evidenceId));
+    return normalizeBaseResponse<void>(response);
+  },
+
+  /**
+   * Ask the dispute opener to provide more evidence.
+   */
+  async requestEvidence(disputeId: string, data: RequestEvidenceRequest): Promise<BaseResponse<void>> {
+    const response = await apiClient.put(API_ENDPOINTS.DISPUTES.REQUEST_EVIDENCE(disputeId), data);
+    return normalizeBaseResponse<void>(response);
   },
 
   /**

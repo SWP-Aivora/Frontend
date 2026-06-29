@@ -5,7 +5,7 @@ import type { AdminProject } from '../../types';
 import { useAdminProjectDetail } from '../../hooks/useAdminProjectDetail';
 import { AdminProjectStatusBadge } from './AdminProjectStatusBadge';
 import { ProjectDisputeStatusBadge } from '@/features/projects/components/ProjectDisputeStatusBadge';
-import { isProjectDisputed } from '@/features/projects/utils';
+import { getDefaultNonDisputeProjectStatus, isProjectDisputed } from '@/features/projects/utils';
 
 const formatMoney = (amount: number) => {
   return `${amount.toLocaleString()} Aivora Coin`;
@@ -24,7 +24,13 @@ interface AdminProjectDetailDrawerProps {
 
 export const AdminProjectDetailDrawer = ({ project, onClose }: AdminProjectDetailDrawerProps) => {
   const { data: detail, isLoading, isError, error } = useAdminProjectDetail(project?.id ?? null);
-  const visibleProject = detail ?? project;
+  const visibleProject = detail && project
+    ? {
+        ...detail,
+        hasDispute: project.hasDispute,
+        status: project.hasDispute === false ? getDefaultNonDisputeProjectStatus(detail.status) : detail.status,
+      }
+    : detail ?? project;
   const hasDispute = isProjectDisputed(visibleProject?.status, visibleProject?.hasDispute);
 
   if (!project || !visibleProject) return null;

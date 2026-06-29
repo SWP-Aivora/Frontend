@@ -81,24 +81,13 @@ export const NotificationsPage = () => {
 
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto w-full pb-8">
-      {/* Hero Section */}
-      <div className="bg-white border border-slate-200 rounded-lg p-8 relative overflow-hidden shadow-sm flex flex-col md:flex-row gap-6 md:items-center justify-between">
-        <div className="absolute top-0 left-0 w-[300px] h-full bg-blue-50/80 -z-10" />
-        
-        <div className="flex items-center gap-6 z-10">
-          <div className="size-14 bg-primary rounded-lg flex items-center justify-center shadow-md">
-            <span className="text-white font-bold text-2xl">N</span>
-          </div>
-          <div>
-            <div className="bg-blue-50 border border-primary/20 px-3 py-1 rounded-full w-fit mb-2">
-              <span className="text-xs font-bold text-primary uppercase">SHARED CENTER</span>
-            </div>
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Manage All Notifications</h1>
-            <p className="text-[13px] text-slate-500 mt-2 max-w-md">
-              Review important updates from proposals, projects, milestones, payments, disputes, reviews, messages, and account activity.
-            </p>
-          </div>
-        </div>
+      <div className="rounded-lg border border-slate-100 bg-white px-5 py-4 shadow-sm">
+        <h1 className="text-2xl font-black leading-tight tracking-tight text-slate-900">
+          Manage All Notifications
+        </h1>
+        <p className="mt-2 max-w-3xl text-sm font-medium leading-6 text-slate-500">
+          Review important updates from proposals, projects, milestones, payments, disputes, reviews, messages, and account activity.
+        </p>
       </div>
 
       {/* Filters */}
