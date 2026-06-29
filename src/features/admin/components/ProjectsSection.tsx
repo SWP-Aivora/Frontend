@@ -1,18 +1,15 @@
 import { Link } from 'react-router-dom';
 import { ChevronRight, Layout } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { MetricBadge } from '@/shared/components/admin';
 import type { AdminProjectItem } from '../types';
 
 interface ProjectsSectionProps {
   activeProjects: number;
-  newProjects: number;
   paginatedProjects: AdminProjectItem[];
 }
 
 export const ProjectsSection = ({
   activeProjects,
-  newProjects,
   paginatedProjects,
 }: ProjectsSectionProps) => (
   <div className="lg:col-span-2">
@@ -21,7 +18,6 @@ export const ProjectsSection = ({
         <div>
           <div className="flex flex-wrap items-center gap-3">
             <h3 className="text-xl font-black text-slate-900 tracking-tight">Active Projects</h3>
-            <MetricBadge count={newProjects} type="positive" />
           </div>
           <div className="flex items-center gap-4 mt-2">
             <span className="text-slate-600 text-base font-bold">

@@ -45,6 +45,7 @@ const ResolveDisputeActions = ({ disputes, projectId }: ResolveDisputeActionsPro
     dispute.status === DisputeStatus.OPEN || dispute.status === DisputeStatus.UNDER_REVIEW
   );
   const canResolve = resolvableDisputes.length > 0;
+  const requestEvidenceNote = 'Please add more evidence so the admin team can continue reviewing this dispute.';
 
   const resolveMutation = useMutation({
     mutationFn: async (resolutionType: DisputeResolutionType) => {
@@ -75,6 +76,25 @@ const ResolveDisputeActions = ({ disputes, projectId }: ResolveDisputeActionsPro
     },
   });
 
+  const requestEvidenceMutation = useMutation({
+    mutationFn: async () => {
+      await Promise.all(resolvableDisputes.map(dispute => (
+        disputeService.requestEvidence(dispute.id, { note: requestEvidenceNote })
+      )));
+    },
+    onSuccess: () => {
+      toast.success('Evidence request sent.');
+      resolvableDisputes.forEach(dispute => {
+        void queryClient.invalidateQueries({ queryKey: ['dispute', dispute.id] });
+      });
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'project-disputes', projectId] });
+      void queryClient.invalidateQueries({ queryKey: ['disputes'] });
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Failed to request more evidence.'));
+    },
+  });
+
   const resolveToClient = () => {
     resolveMutation.mutate(DisputeResolutionType.REFUND_TO_CLIENT);
   };
@@ -83,17 +103,23 @@ const ResolveDisputeActions = ({ disputes, projectId }: ResolveDisputeActionsPro
     resolveMutation.mutate(DisputeResolutionType.RELEASE_TO_EXPERT);
   };
 
+  const requestMoreEvidence = () => {
+    requestEvidenceMutation.mutate();
+  };
+
+  const isActionPending = resolveMutation.isPending || requestEvidenceMutation.isPending;
+
   return (
     <div className="rounded-lg border border-slate-100 bg-slate-50 p-4">
       <div className="mb-3 flex flex-col gap-1">
         <p className="text-xs font-black uppercase tracking-wider text-slate-400">Resolve Dispute</p>
         <p className="text-sm font-semibold text-slate-600">Resolve all open dispute records for this project.</p>
       </div>
-      <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-2 xl:grid-cols-3">
         <Button
           type="button"
           variant="outline"
-          disabled={!canResolve || resolveMutation.isPending}
+          disabled={!canResolve || isActionPending}
           onClick={resolveToClient}
           className="flex-1 rounded-lg border-emerald-200 bg-emerald-50 font-black text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800"
         >
@@ -101,7 +127,16 @@ const ResolveDisputeActions = ({ disputes, projectId }: ResolveDisputeActionsPro
         </Button>
         <Button
           type="button"
-          disabled={!canResolve || resolveMutation.isPending}
+          variant="outline"
+          disabled={!canResolve || isActionPending}
+          onClick={requestMoreEvidence}
+          className="flex-1 rounded-lg border-amber-200 bg-amber-50 font-black text-amber-700 hover:bg-amber-100 hover:text-amber-800"
+        >
+          {requestEvidenceMutation.isPending ? 'Sending...' : 'Ask for more evidence'}
+        </Button>
+        <Button
+          type="button"
+          disabled={!canResolve || isActionPending}
           onClick={resolveToExpert}
           className="flex-1 rounded-lg font-black shadow-lg shadow-primary/20"
         >

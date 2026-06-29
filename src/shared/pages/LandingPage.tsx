@@ -534,19 +534,20 @@ const Footer: React.FC = () => {
           </div>
           
           <div>
-            <h4 className="text-lg text-slate-900 font-bold mb-6">Platform</h4>
+            <h4 className="text-lg text-slate-900 font-bold mb-6">
+              <a href="#top" className="hover:text-brand-blue-dark transition-colors">Platform</a>
+            </h4>
             <ul className="space-y-4">
-              {['Home', 'Explore Experts', 'Post a Job', 'Success Stories', 'Pricing'].map(item => (
-                <li key={item}><Link to="#" className="text-slate-500 text-[15px] hover:text-brand-blue-dark transition-colors">{item}</Link></li>
-              ))}
+              <li><a href="#top" className="text-slate-500 text-[15px] hover:text-brand-blue-dark transition-colors">Home</a></li>
+              <li><a href="#explore-experts" className="text-slate-500 text-[15px] hover:text-brand-blue-dark transition-colors">Explore Experts</a></li>
+              <li><a href="#post-job" className="text-slate-500 text-[15px] hover:text-brand-blue-dark transition-colors">Post a Job</a></li>
+              <li><a href="#about" className="text-slate-500 text-[15px] hover:text-brand-blue-dark transition-colors">About</a></li>
             </ul>
           </div>
           
           <div>
             <h4 className="text-lg text-slate-900 font-bold mb-6">Company</h4>
             <ul className="space-y-4">
-              <li><a href="#about" className="text-slate-500 text-[15px] hover:text-brand-blue-dark transition-colors">About Us</a></li>
-              <li><Link to="#" className="text-slate-500 text-[15px] hover:text-brand-blue-dark transition-colors">Help Center</Link></li>
               <li>
                 <PolicyDialog type="terms">
                   <button type="button" className="text-left text-slate-500 text-[15px] hover:text-brand-blue-dark transition-colors">

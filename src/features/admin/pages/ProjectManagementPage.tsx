@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle, DollarSign, FolderKanban } from 'lucide-react';
+import { AlertTriangle, CheckCircle, FolderKanban, ShieldCheck } from 'lucide-react';
 import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
 import { AdminPageTitle } from '../components/AdminPageTitle';
 import { MetricsSummaryCard } from '../components/MetricsSummaryCard';
@@ -9,9 +9,12 @@ import { AdminProjectDetailDrawer } from '../components/project-management/Admin
 import { AdminProjectErrorState } from '../components/project-management/AdminProjectErrorState';
 import { AdminProjectFilters } from '../components/project-management/AdminProjectFilters';
 import { AdminProjectTable } from '../components/project-management/AdminProjectTable';
-import { isProjectDisputed } from '@/features/projects/utils';
+import { getDefaultNonDisputeProjectStatus, isProjectDisputed } from '@/features/projects/utils';
+import { useDisputes } from '@/features/disputes/hooks/useDisputes';
+import { DisputeStatus } from '@/features/disputes/types';
 
 const PAGE_SIZE = 10;
+const DISPUTE_PAGE_SIZE = 100;
 
 const normalizeStatusNumber = (value: string): number | undefined => {
   if (value === 'All') return undefined;
@@ -38,9 +41,31 @@ export const ProjectManagementPage = () => {
   );
 
   const { data, isLoading, isError, error, refetch } = useAdminProjects(queryParams);
+  const { data: disputesResponse, isSuccess: isDisputesLoaded } = useDisputes({
+    PageIndex: 1,
+    PageSize: DISPUTE_PAGE_SIZE,
+  });
+  const activeDisputeProjectIds = useMemo(() => new Set(
+    (disputesResponse?.data ?? [])
+      .filter(dispute => dispute.status === DisputeStatus.OPEN || dispute.status === DisputeStatus.UNDER_REVIEW)
+      .map(dispute => dispute.projectId)
+      .filter(Boolean)
+  ), [disputesResponse?.data]);
+  const normalizedProjects = useMemo(() => (
+    (data?.data ?? []).map((project) => {
+      if (!isDisputesLoaded) return project;
+
+      const hasActiveDispute = activeDisputeProjectIds.has(project.id);
+      return {
+        ...project,
+        hasDispute: hasActiveDispute,
+        status: hasActiveDispute ? project.status : getDefaultNonDisputeProjectStatus(project.status),
+      };
+    })
+  ), [activeDisputeProjectIds, data?.data, isDisputesLoaded]);
   const projects = useMemo(() => {
     const titleSearch = appliedSearchTerm.trim().toLowerCase();
-    return (data?.data ?? []).filter((project) => {
+    return normalizedProjects.filter((project) => {
       const matchesTitle = titleSearch ? project.title.toLowerCase().includes(titleSearch) : true;
       const hasOpenDispute = isProjectDisputed(project.status, project.hasDispute);
       const matchesDispute =
@@ -52,7 +77,7 @@ export const ProjectManagementPage = () => {
 
       return matchesTitle && matchesDispute;
     });
-  }, [appliedSearchTerm, data?.data, disputeFilter]);
+  }, [appliedSearchTerm, normalizedProjects, disputeFilter]);
   const metadata = data?.metadata;
   const totalPages = Math.max(1, metadata?.totalPages ?? 1);
   const totalCount = metadata?.totalCount ?? 0;
@@ -61,13 +86,16 @@ export const ProjectManagementPage = () => {
     return projects.reduce(
       (acc, project) => {
         const status = Number(project.status);
-        acc.totalBudget += project.totalBudget;
         if (status === 1) acc.active += 1;
-        if (isProjectDisputed(project.status, project.hasDispute)) acc.disputed += 1;
+        if (isProjectDisputed(project.status, project.hasDispute)) {
+          acc.disputed += 1;
+        } else {
+          acc.noDispute += 1;
+        }
         if (status === 4) acc.completed += 1;
         return acc;
       },
-      { active: 0, disputed: 0, completed: 0, totalBudget: 0 }
+      { active: 0, disputed: 0, completed: 0, noDispute: 0 }
     );
   }, [projects]);
 
@@ -133,11 +161,11 @@ export const ProjectManagementPage = () => {
           variant="red"
         />
         <MetricsSummaryCard
-          label="Page Value"
-          value={metrics.totalBudget.toLocaleString()}
-          secondaryInfo="Listed budget"
-          icon={DollarSign}
-          variant="orange"
+          label="No Dispute"
+          value={metrics.noDispute.toLocaleString()}
+          secondaryInfo="This page"
+          icon={ShieldCheck}
+          variant="green"
         />
       </div>
 

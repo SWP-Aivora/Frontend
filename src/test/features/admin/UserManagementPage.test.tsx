@@ -182,14 +182,22 @@ describe('UserManagementPage', () => {
     expect(within(table).getByText('Bob Expert')).toBeInTheDocument();
     expect(within(table).getByText('bob@expert.com')).toBeInTheDocument();
     expect(within(table).getByText('Charlie Admin')).toBeInTheDocument();
-    expect(within(table).getByText('u-1')).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: /updated/i })).toBeInTheDocument();
-    expect(screen.queryByRole('columnheader', { name: /last login/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /verification/i })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /last login/i })).toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: /user id/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: /created/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: /updated/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: /actions/i })).not.toBeInTheDocument();
+    expect(within(table).queryByText('u-1')).not.toBeInTheDocument();
+    expect(within(table).getByText('Verified')).toBeInTheDocument();
+    expect(within(table).getByText('Review')).toBeInTheDocument();
+    expect(within(table).getByText('Internal')).toBeInTheDocument();
     expect(screen.queryByText('N/A')).not.toBeInTheDocument();
 
-    // Side queues
-    expect(screen.getByText('User review queue')).toBeInTheDocument();
-    expect(screen.getByText('Verify credential certificate')).toBeInTheDocument();
+    // Removed side containers
+    expect(screen.queryByText('User review queue')).not.toBeInTheDocument();
+    expect(screen.queryByText('Verify credential certificate')).not.toBeInTheDocument();
+    expect(screen.queryByText('Recent activity')).not.toBeInTheDocument();
   });
 
   it('supports client-side searching', () => {

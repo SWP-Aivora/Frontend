@@ -48,7 +48,6 @@ export const AdminDashboardPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <ProjectsSection
           activeProjects={summary?.activeProjects || 0}
-          newProjects={summary?.newProjects7d || 0}
           paginatedProjects={paginatedProjects}
         />
 

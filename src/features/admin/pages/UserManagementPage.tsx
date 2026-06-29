@@ -12,7 +12,6 @@ import {
   Users, 
   UserCheck, 
   ShieldAlert, 
-  MoreHorizontal, 
   ChevronLeft, 
   ChevronRight,
   AlertCircle,
@@ -27,10 +26,6 @@ const isUserSuspended = (status: string) => normalizeStatus(status) === 'SUSPEND
 const formatStatusLabel = (status: string) => {
   const normalized = normalizeStatus(status);
   return normalized.charAt(0) + normalized.slice(1).toLowerCase();
-};
-const formatDate = (value?: string | null) => {
-  const date = parseAdminApiDate(value);
-  return date ? date.toLocaleDateString() : 'Not provided';
 };
 const formatDateTime = (value?: string | null) => {
   const date = parseAdminApiDate(value);
@@ -209,9 +204,9 @@ export const UserManagementPage = () => {
         />
       </div>
 
-      <div className="flex flex-col xl:flex-row gap-4">
-        {/* Left Col (Main Table) */}
-        <div className="flex-1 space-y-4">
+      <div className="space-y-4">
+        {/* Main Table */}
+        <div className="space-y-4">
           <div className="bg-white border border-slate-100 rounded-lg shadow-sm flex flex-col overflow-hidden">
             {/* Table Header with Filters */}
             <div className="p-5 border-b border-slate-50 space-y-4">
@@ -269,10 +264,8 @@ export const UserManagementPage = () => {
                     <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">User</th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">Role</th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">Status</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">User ID</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">Created</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">Updated</th>
-                    <th className="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wide">Actions</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">Verification</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">Last Login</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
@@ -318,34 +311,25 @@ export const UserManagementPage = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span className="block max-w-[120px] truncate text-[11px] font-bold text-slate-600" title={user.id}>
-                          {user.id}
+                        <span className={cn(
+                          "px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border",
+                          user.verificationState === 'Verified' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                          user.verificationState === 'Rejected' ? "bg-rose-50 text-rose-600 border-rose-100" :
+                          user.verificationState === 'Internal' ? "bg-purple-50 text-purple-600 border-purple-100" :
+                          user.verificationState === 'Review' ? "bg-orange-50 text-orange-600 border-orange-100" :
+                          "bg-slate-50 text-slate-600 border-slate-200"
+                        )}>
+                          {user.verificationState}
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-[11px] font-bold text-slate-600">
-                        {formatDate(user.createdAt)}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-[11px] font-bold text-slate-600">
-                        {formatDateTime(user.updatedAt)}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <button
-                          type="button"
-                          aria-label={`View ${user.fullName}`}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            navigate(`/admin/users/${user.id}`);
-                          }}
-                          className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-primary transition-colors"
-                        >
-                          <MoreHorizontal className="size-4" />
-                        </button>
+                        {formatDateTime(user.lastLoginAt)}
                       </td>
                     </tr>
                   ))}
                   {paginatedUsers.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="px-4 py-20 text-center">
+                      <td colSpan={5} className="px-4 py-20 text-center">
                         <div className="flex flex-col items-center justify-center text-slate-500">
                           <div className="size-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
                             <Users className="size-8 opacity-20" />
@@ -374,67 +358,6 @@ export const UserManagementPage = () => {
                >
                  <ChevronRight className="size-5" />
                </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Rail */}
-        <div className="w-full xl:w-[340px] space-y-4">
-          {/* Review Queue */}
-          <div className="bg-white border border-slate-100 rounded-lg p-6 shadow-sm">
-            <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-1">User review queue</h3>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tighter mb-6">Action required</p>
-            <div className="space-y-4">
-              {usersData?.reviewQueue?.map((item) => (
-                <div key={item.id} className="group cursor-pointer p-3 rounded-lg border border-transparent hover:border-slate-100 hover:bg-slate-50 transition-all" onClick={() => navigate(`/admin/users/${item.userId}`)}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="size-9 rounded-lg bg-slate-100 flex items-center justify-center text-xs font-black text-rose-600 border border-slate-200 shadow-sm">
-                        {item.initials}
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-slate-900 group-hover:text-primary transition-colors">{item.fullName}</p>
-                        <p className="text-[10px] font-medium text-slate-500">{item.reason}</p>
-                      </div>
-                    </div>
-                    <span className={cn(
-                      "px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider border",
-                      item.severity === 'High' ? "bg-rose-50 text-rose-600 border-rose-100" :
-                      "bg-orange-50 text-orange-600 border-orange-100"
-                    )}>
-                      {item.severity}
-                    </span>
-                  </div>
-                </div>
-              ))}
-              {(!usersData?.reviewQueue || usersData.reviewQueue.length === 0) && (
-                 <p className="text-xs text-slate-400 font-bold uppercase tracking-widest text-center py-6 border-2 border-dashed border-slate-50 rounded-lg">Queue is empty</p>
-              )}
-            </div>
-          </div>
-
-          {/* Recent Admin Actions */}
-          <div className="bg-white border border-slate-100 rounded-lg p-6 shadow-sm">
-            <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-6">Recent activity</h3>
-            <div className="space-y-6">
-              {usersData?.recentActions?.map((activity, idx) => (
-                <div key={idx} className="flex gap-4 relative">
-                  {idx !== (usersData?.recentActions?.length || 0) - 1 && (
-                    <div className="absolute left-1 top-4 w-px h-10 bg-slate-100" />
-                  )}
-                  <div className={cn(
-                    "size-2 rounded-full mt-1.5 shrink-0 z-10 shadow-sm",
-                    activity.type === 'alert' ? "bg-rose-500 ring-4 ring-rose-50" : "bg-emerald-500 ring-4 ring-emerald-50"
-                  )} />
-                  <div className="flex-1">
-                      <p className="text-[11px] font-black text-slate-900 leading-tight mb-1">{activity.title}</p>
-                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">{activity.description}</p>
-                  </div>
-                </div>
-              ))}
-              {(!usersData?.recentActions || usersData.recentActions.length === 0) && (
-                 <p className="text-xs text-slate-400 font-bold uppercase tracking-widest text-center py-6 border-2 border-dashed border-slate-50 rounded-lg">No recent activity</p>
-              )}
             </div>
           </div>
         </div>

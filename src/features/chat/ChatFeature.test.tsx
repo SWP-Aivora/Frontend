@@ -153,7 +153,7 @@ describe('Chat Feature', () => {
       expect(screen.getByRole('button', { name: /send message/i })).toBeDisabled();
     });
 
-    it('shows disabled future action menu without triggering message send', () => {
+    it('shows only API-supported upload actions in the message action menu', () => {
       const onSendMessage = vi.fn();
       render(
         <MessageInput onSendMessage={onSendMessage} disabled={false} />,
@@ -162,8 +162,11 @@ describe('Chat Feature', () => {
 
       fireEvent.click(screen.getByRole('button', { name: /open message actions/i }));
 
-      ['Add file', 'Add image', 'Add link', 'Add project file', 'Use template'].forEach((label) => {
-        expect(screen.getByRole('button', { name: new RegExp(label, 'i') })).toBeDisabled();
+      ['Add file', 'Add image'].forEach((label) => {
+        expect(screen.getByRole('button', { name: new RegExp(label, 'i') })).toBeInTheDocument();
+      });
+      ['Add link', 'Add project file', 'Use template'].forEach((label) => {
+        expect(screen.queryByRole('button', { name: new RegExp(label, 'i') })).not.toBeInTheDocument();
       });
       expect(screen.getByRole('button', { name: /send message/i })).toBeInTheDocument();
       expect(onSendMessage).not.toHaveBeenCalled();

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { useQueries, useQuery } from '@tanstack/react-query';
-import { AlertCircle, ArrowLeft, Calendar, FileText, MessageSquareWarning, Pencil, UserRound, X } from 'lucide-react';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import { AlertCircle, ArrowLeft, Calendar, FileText, MessageSquareWarning, Pencil, Trash2, UserRound, X } from 'lucide-react';
 import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
 import { Button } from '@/shared/components/ui/Button';
 import { useAuthStore } from '@/features/auth/store';
@@ -10,6 +10,7 @@ import { DisputeStatusBadge } from '../components/DisputeStatusBadge';
 import { EvidenceSubmitZone } from '../components/EvidenceSubmitZone';
 import { disputeService } from '../services';
 import type { Dispute } from '../types';
+import { DisputeStatus } from '../types';
 import { toast } from 'sonner';
 
 const DISPUTE_PAGE_SIZE = 100;
@@ -30,18 +31,46 @@ const getWorkspaceHref = (role: Role | undefined, projectId: string) => (
     : `/client/projects/${projectId}/workspace`
 );
 
-const notifyCloseDisputeUnavailable = () => {
-  toast.info('Close dispute is not available because the backend does not expose a close-dispute API yet.');
-};
-
 const getErrorMessage = (error: unknown, fallback: string): string => (
   error instanceof Error ? error.message : fallback
 );
 
+const nonManageableDisputeStatuses: DisputeStatus[] = [DisputeStatus.RESOLVED, DisputeStatus.CLOSED];
+
 export const ProjectDisputesPage = () => {
   const { id } = useParams();
   const { user } = useAuthStore();
+  const queryClient = useQueryClient();
   const [editingDisputeId, setEditingDisputeId] = useState<string | null>(null);
+
+  const closeDisputeMutation = useMutation({
+    mutationFn: (disputeId: string) => disputeService.closeDispute(disputeId),
+    onSuccess: (_response, disputeId) => {
+      toast.success('Dispute closed.');
+      setEditingDisputeId(currentId => currentId === disputeId ? null : currentId);
+      queryClient.invalidateQueries({ queryKey: ['dispute', disputeId] });
+      queryClient.invalidateQueries({ queryKey: ['project-disputes', id] });
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
+      queryClient.invalidateQueries({ queryKey: ['project', id, 'active-disputes'] });
+      queryClient.invalidateQueries({ queryKey: ['project', id, 'milestones'] });
+    },
+    onError: (mutationError) => {
+      toast.error(getErrorMessage(mutationError, 'Could not close this dispute.'));
+    },
+  });
+
+  const deleteEvidenceMutation = useMutation({
+    mutationFn: ({ disputeId, evidenceId }: { disputeId: string; evidenceId: string }) => (
+      disputeService.deleteEvidence(disputeId, evidenceId)
+    ),
+    onSuccess: (_response, variables) => {
+      toast.success('Evidence removed.');
+      queryClient.invalidateQueries({ queryKey: ['dispute', variables.disputeId] });
+    },
+    onError: (mutationError) => {
+      toast.error(getErrorMessage(mutationError, 'Could not remove this evidence.'));
+    },
+  });
 
   const { data: firstPage, isLoading: isLoadingFirstPage, isError, error } = useQuery({
     queryKey: ['project-disputes', id],
@@ -158,7 +187,9 @@ export const ProjectDisputesPage = () => {
       <div className="space-y-4">
         {disputes.map(dispute => {
           const isOpener = Boolean(user?.id && dispute.openerId === user.id);
+          const canManageDispute = isOpener && !nonManageableDisputeStatuses.includes(dispute.status);
           const isEditing = editingDisputeId === dispute.id;
+          const isClosingThisDispute = closeDisputeMutation.isPending && closeDisputeMutation.variables === dispute.id;
 
           return (
             <section key={dispute.id} className="overflow-hidden rounded-lg border border-slate-100 bg-white shadow-sm">
@@ -186,7 +217,7 @@ export const ProjectDisputesPage = () => {
                       </div>
                     </div>
                   </div>
-                  {isOpener && (
+                  {canManageDispute && (
                     <div className="flex flex-wrap gap-2">
                       <Button
                         type="button"
@@ -200,10 +231,15 @@ export const ProjectDisputesPage = () => {
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={notifyCloseDisputeUnavailable}
+                        disabled={isClosingThisDispute}
+                        onClick={() => {
+                          if (window.confirm('Close this dispute?')) {
+                            closeDisputeMutation.mutate(dispute.id);
+                          }
+                        }}
                         className="rounded-full border-rose-200 bg-rose-50 font-black text-rose-700 hover:bg-rose-100 hover:text-rose-800"
                       >
-                        Close Dispute
+                        {isClosingThisDispute ? 'Closing...' : 'Close Dispute'}
                       </Button>
                     </div>
                   )}
@@ -213,9 +249,6 @@ export const ProjectDisputesPage = () => {
               {isEditing && (
                 <div className="border-b border-slate-100 bg-slate-50 p-5">
                   <EvidenceSubmitZone disputeId={dispute.id} />
-                  <p className="mt-3 text-xs font-semibold text-slate-500">
-                    The current API supports adding evidence. Existing evidence is read-only unless update/delete endpoints are added.
-                  </p>
                 </div>
               )}
 
@@ -231,7 +264,26 @@ export const ProjectDisputesPage = () => {
                       <div key={evidence.id} className="rounded-lg border border-slate-100 bg-slate-50 p-4">
                         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                           <p className="text-xs font-black uppercase tracking-wider text-slate-500">{evidence.submitterName}</p>
-                          <p className="text-[11px] font-semibold text-slate-400">{formatDate(evidence.createdAt)}</p>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-[11px] font-semibold text-slate-400">{formatDate(evidence.createdAt)}</p>
+                            {canManageDispute && evidence.id && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                disabled={deleteEvidenceMutation.isPending && deleteEvidenceMutation.variables?.evidenceId === evidence.id}
+                                onClick={() => {
+                                  if (window.confirm('Remove this evidence?')) {
+                                    deleteEvidenceMutation.mutate({ disputeId: dispute.id, evidenceId: evidence.id });
+                                  }
+                                }}
+                                className="h-7 rounded-full px-2 text-xs font-black text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                              >
+                                <Trash2 className="mr-1 size-3.5" />
+                                Remove
+                              </Button>
+                            )}
+                          </div>
                         </div>
                         <p className="whitespace-pre-wrap text-sm font-medium leading-6 text-slate-600">{evidence.content}</p>
                         {evidence.fileUrl && (

@@ -23,11 +23,13 @@ import { useAuthStore } from '@/features/auth/store';
 import { Role, ProjectStatus, MilestoneStatus } from '@/shared/types/enums';
 import { cn } from '@/lib/utils';
 import { ProjectDisputeStatusBadge } from '../components/ProjectDisputeStatusBadge';
-import { isProjectDisputed } from '../utils';
+import { getDefaultNonDisputeProjectStatus, isProjectDisputed } from '../utils';
 import { useProjectMilestones } from '../hooks/useProjectMilestones';
 import { chatService } from '@/features/chat/services';
 import { walletService } from '@/features/wallet/services';
 import { CreateDisputeModal } from '@/features/disputes/components/CreateDisputeModal';
+import { disputeService } from '@/features/disputes/services';
+import { DisputeStatus } from '@/features/disputes/types';
 import { toast } from 'sonner';
 
 const toNumber = (value: unknown): number | null => {
@@ -85,6 +87,12 @@ const getApiErrorMessage = (error: unknown, fallback: string): string => {
   return error instanceof Error ? error.message : fallback;
 };
 
+const DISPUTE_PAGE_SIZE = 100;
+
+const isActiveDisputeStatus = (status: DisputeStatus): boolean => (
+  status === DisputeStatus.OPEN || status === DisputeStatus.UNDER_REVIEW
+);
+
 export const ProjectWorkspacePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -115,6 +123,25 @@ export const ProjectWorkspacePage = () => {
     retry: false,
   });
 
+  const { data: activeProjectDisputesResponse, isSuccess: isActiveDisputesLoaded } = useQuery({
+    queryKey: ['project', id, 'active-disputes'],
+    queryFn: async () => {
+      const firstPage = await disputeService.getDisputes({ PageIndex: 1, PageSize: DISPUTE_PAGE_SIZE });
+      const totalPages = firstPage.metadata?.totalPages ?? 1;
+      const remainingPages = await Promise.all(
+        Array.from({ length: Math.max(0, totalPages - 1) }, (_, index) => (
+          disputeService.getDisputes({ PageIndex: index + 2, PageSize: DISPUTE_PAGE_SIZE })
+        ))
+      );
+
+      return [firstPage, ...remainingPages]
+        .flatMap(page => page.data ?? [])
+        .filter(dispute => dispute.projectId === id && isActiveDisputeStatus(dispute.status));
+    },
+    enabled: Boolean(id) && (user?.role === Role.CLIENT || user?.role === Role.EXPERT),
+    retry: false,
+  });
+
   const project = projectResponse?.data ?? fallbackProjectsResponse?.data?.find((item) => item.id === id);
   const walletBalance = getWalletBalance(walletResponse?.data);
   const { data: milestonesResponse, isLoading: isLoadingMilestones } = useProjectMilestones(id || '');
@@ -123,7 +150,13 @@ export const ProjectWorkspacePage = () => {
     ? projectMilestones
     : milestonesResponse?.data ?? projectMilestones;
   const isLoading = isLoadingProject || isLoadingMilestones || (!projectResponse?.data && isLoadingFallbackProjects);
-  const hasProjectDispute = isProjectDisputed(project?.status, project?.hasDispute);
+  const activeProjectDisputes = activeProjectDisputesResponse ?? [];
+  const hasProjectDispute = isActiveDisputesLoaded
+    ? activeProjectDisputes.length > 0
+    : isProjectDisputed(project?.status, project?.hasDispute);
+  const displayProjectStatus = project && !hasProjectDispute
+    ? getDefaultNonDisputeProjectStatus(project.status)
+    : project?.status;
 
   const getPartyName = (
     responseName: string | undefined,
@@ -444,11 +477,11 @@ export const ProjectWorkspacePage = () => {
           <div className="flex flex-wrap items-center gap-4">
              <h1 className="text-3xl font-black text-slate-900 tracking-tight">{project.title}</h1>
              <div className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-black uppercase tracking-wider border border-blue-100">
-                {getStatusLabel(project.status)}
+                {getStatusLabel(displayProjectStatus ?? project.status)}
              </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <ProjectDisputeStatusBadge status={project.status} hasDispute={project.hasDispute} />
+            <ProjectDisputeStatusBadge status={displayProjectStatus} hasDispute={hasProjectDispute} />
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 text-slate-600 border border-slate-200 text-[10px] font-black uppercase tracking-wider">
               <Users className="size-3" />
               {project.clientName || project.client?.fullName || 'Client'} / {project.expertName || project.expert?.fullName || 'Expert'}

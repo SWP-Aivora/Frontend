@@ -59,7 +59,6 @@ export const AdminProjectTable = ({
               <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">Status</th>
               <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">Dispute</th>
               <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">Budget</th>
-              <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">Milestones</th>
               <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">Created</th>
               <th className="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wide">View</th>
             </tr>
@@ -90,9 +89,6 @@ export const AdminProjectTable = ({
                 <td className="px-4 py-3 whitespace-nowrap text-xs font-black text-emerald-600">
                   {formatMoney(project.totalBudget)}
                 </td>
-                <td className="px-4 py-3 whitespace-nowrap text-xs font-bold text-slate-600">
-                  {project.milestones.length}
-                </td>
                 <td className="px-4 py-3 whitespace-nowrap text-[11px] font-bold text-slate-600">
                   {formatDate(project.createdAt)}
                 </td>
@@ -113,7 +109,7 @@ export const AdminProjectTable = ({
             ))}
             {projects.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-4">
+                <td colSpan={8} className="px-4">
                   <AdminProjectEmptyState hasFilters={hasFilters} />
                 </td>
               </tr>
