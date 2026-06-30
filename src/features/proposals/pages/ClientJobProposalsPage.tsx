@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, type FormEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProposalListCard } from '../components/ProposalListCard';
 import { jobService } from '../../jobs/services';
@@ -11,11 +11,11 @@ import {
   Target, 
   Clock, 
   DollarSign, 
-  Filter, 
-  ArrowUpDown,
   Search,
   CheckCircle2,
-  RefreshCw
+  RefreshCw,
+  X,
+  Star
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { toast } from 'sonner';
@@ -75,8 +75,10 @@ export const ClientJobProposalsPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [activeTab, setActiveTab] = useState<ProposalFilter>('all');
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isRecommendationsOpen, setIsRecommendationsOpen] = useState(false);
   const [acceptedProposalId, setAcceptedProposalId] = useState<string | null>(null);
   // Lấy chi tiết Job hiện tại
   const { data: jobResponse, isLoading: isJobLoading } = useQuery({
@@ -92,8 +94,43 @@ export const ClientJobProposalsPage = () => {
     enabled: !!id,
   });
 
+  const {
+    data: recommendationsResponse,
+    refetch: refetchRecommendations,
+    isFetching: isFetchingRecommendations,
+  } = useQuery({
+    queryKey: ['jobRecommendations', id],
+    queryFn: () => jobService.getRecommendations(id!),
+    enabled: !!id,
+  });
+
   const job = jobResponse?.data;
   const proposals = useMemo(() => proposalsResponse?.data || [], [proposalsResponse?.data]);
+  const recommendations = useMemo(() => recommendationsResponse?.data || [], [recommendationsResponse?.data]);
+  const proposalByExpertId = useMemo(() => {
+    const map = new Map<string, Proposal>();
+
+    proposals.forEach((proposal) => {
+      if (proposal.expertId) {
+        map.set(proposal.expertId, proposal);
+      }
+    });
+
+    return map;
+  }, [proposals]);
+  const recommendationByExpertId = useMemo(() => {
+    const map = new Map<string, number>();
+
+    recommendations.forEach((recommendation) => {
+      const score = Number(recommendation.matchScore);
+
+      if (recommendation.id && Number.isFinite(score)) {
+        map.set(recommendation.id, Math.round(score));
+      }
+    });
+
+    return map;
+  }, [recommendations]);
   const getProposalStatus = (proposal: Proposal) => normalizeProposalStatus(proposal.status);
   const isJobLocked = normalizeJobStatus(job?.status) === 'in-progress' || normalizeJobStatus(job?.status) === 'completed';
   const acceptedProposal = proposals.find(proposal => getProposalStatus(proposal) === 'accepted');
@@ -102,6 +139,33 @@ export const ClientJobProposalsPage = () => {
     if (activeTab === 'shortlisted') return status === 'shortlisted';
     if (activeTab === 'refused') return status === 'rejected';
     return true;
+  }).filter(proposal => {
+    const normalizedSearch = searchQuery.trim().toLowerCase();
+
+    if (!normalizedSearch) {
+      return true;
+    }
+
+    const expertName = proposal.expert?.fullName || proposal.expertName || '';
+    const searchableText = [
+      expertName,
+      proposal.coverLetter,
+      proposal.jobTitle,
+      proposal.proposedBudget,
+      proposal.proposedTimelineDays,
+      ...proposal.milestones.flatMap(milestone => [
+        milestone.title,
+        milestone.description,
+        milestone.acceptanceCriteria,
+        milestone.amount,
+        milestone.dueDays,
+      ]),
+    ]
+      .filter(value => value !== null && value !== undefined)
+      .join(' ')
+      .toLowerCase();
+
+    return searchableText.includes(normalizedSearch);
   });
   const shortlistedCount = useMemo(() => proposals.filter(proposal => getProposalStatus(proposal) === 'shortlisted').length, [proposals]);
   const refusedCount = useMemo(() => proposals.filter(proposal => getProposalStatus(proposal) === 'rejected').length, [proposals]);
@@ -110,12 +174,39 @@ export const ClientJobProposalsPage = () => {
     : 0;
   const isLoading = isJobLoading || isProposalsLoading;
 
-  const handleGenerateAI = async () => {
-    setIsGeneratingAI(true);
-    toast.info('AI is analyzing expert profiles and scoring compatibility...');
-    await new Promise(resolve => setTimeout(resolve, 3000)); // Simulate AI heavy lift
-    setIsGeneratingAI(false);
-    toast.success('AI Insights updated!');
+  const generateRecommendationsMutation = useMutation({
+    mutationFn: () => {
+      if (!id) {
+        throw new Error('Job ID is missing');
+      }
+
+      return jobService.generateRecommendations(id);
+    },
+    onSuccess: async () => {
+      await refetchRecommendations();
+      setIsRecommendationsOpen(true);
+      toast.success('AI insights updated.');
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Failed to generate AI insights'));
+    },
+  });
+
+  const isGeneratingAI = generateRecommendationsMutation.isPending || isFetchingRecommendations;
+  const validMatchScores = recommendations
+    .map((recommendation) => Number(recommendation.matchScore))
+    .filter(Number.isFinite);
+  const averageMatchScore = validMatchScores.length
+    ? Math.round(validMatchScores.reduce((total, score) => total + score, 0) / validMatchScores.length)
+    : 0;
+
+  const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSearchQuery(searchInput.trim());
+  };
+
+  const handleGenerateAI = () => {
+    generateRecommendationsMutation.mutate();
   };
 
   const acceptMutation = useMutation<
@@ -354,6 +445,27 @@ export const ClientJobProposalsPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         {/* Main List */}
         <div className="lg:col-span-2 space-y-6">
+           <form onSubmit={handleSearchSubmit} className="bg-white rounded-lg p-4 border border-slate-100 shadow-sm">
+              <label htmlFor="proposal-search" className="mb-3 block text-xs font-black text-slate-400 uppercase tracking-widest">Search Proposals</label>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <div className="relative flex-1">
+                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-300" />
+                   <input
+                     id="proposal-search"
+                     type="text"
+                     value={searchInput}
+                     onChange={(event) => setSearchInput(event.target.value)}
+                     placeholder="Search by name or keyword..."
+                     className="h-11 w-full rounded-lg border border-slate-100 bg-slate-50 pl-10 pr-4 text-sm transition-all focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
+                   />
+                </div>
+                <Button type="submit" className="h-11 rounded-lg px-6 font-black">
+                  <Search className="mr-2 size-4" />
+                  Search
+                </Button>
+              </div>
+           </form>
+
            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 p-1 bg-slate-100 rounded-lg">
                  {(['all', 'shortlisted', 'refused'] as const).map(tab => (
@@ -369,17 +481,14 @@ export const ClientJobProposalsPage = () => {
                    </button>
                  ))}
               </div>
-              <div className="flex items-center gap-2">
-                 <Button variant="ghost" size="icon" className="size-10 rounded-lg text-slate-400 hover:bg-slate-100"><Filter className="size-4" /></Button>
-                 <Button variant="ghost" size="icon" className="size-10 rounded-lg text-slate-400 hover:bg-slate-100"><ArrowUpDown className="size-4" /></Button>
-              </div>
            </div>
 
             <div className="space-y-4">
-              {proposalList.map((p, i) => {
+              {proposalList.map((p) => {
                 const status = getProposalStatus(p);
                 const isAccepted = acceptedProposalId === p.id || status === 'accepted';
                 const proposalActionsLocked = isJobLocked || !!acceptedProposal || !!acceptedProposalId;
+                const aiMatchScore = recommendationByExpertId.get(p.expertId) ?? 0;
 
                 return (
                   <div 
@@ -396,7 +505,7 @@ export const ClientJobProposalsPage = () => {
                       onShortlist={onShortlist}
                       onUnshortlist={onUnshortlist}
                       detailHref={`/client/proposals/${p.id}`}
-                      aiMatchScore={i === 0 ? 94 : 78}
+                      aiMatchScore={aiMatchScore}
                       isAccepted={isAccepted}
                       isRefused={status === 'rejected'}
                       isShortlisted={status === 'shortlisted'}
@@ -408,6 +517,11 @@ export const ClientJobProposalsPage = () => {
                   </div>
                 );
               })}
+              {proposalList.length === 0 && (
+                <div className="rounded-lg border border-dashed border-slate-200 bg-white p-10 text-center">
+                  <p className="text-sm font-bold text-slate-500">No proposals match this view.</p>
+                </div>
+              )}
            </div>
         </div>
 
@@ -423,7 +537,7 @@ export const ClientJobProposalsPage = () => {
                  <div>
                     <h3 className="text-xl font-black mb-2">AI Expert Matching</h3>
                     <p className="text-sm text-blue-100/70 font-medium leading-relaxed">
-                       AIVORA AI can scan all submitted proposals and rank experts based on your project requirements and their past performance.
+                       AIVORA AI can scan submitted proposals and rank experts based on your project requirements and their past performance.
                     </p>
                  </div>
                  
@@ -440,33 +554,129 @@ export const ClientJobProposalsPage = () => {
                     {isGeneratingAI ? 'Analyzing...' : 'Generate AI Insights'}
                  </Button>
 
+                 <Button
+                    type="button"
+                    variant="outline"
+                    disabled={isGeneratingAI || recommendations.length === 0}
+                    onClick={() => setIsRecommendationsOpen(true)}
+                    className="w-full rounded-full h-11 border-white/20 bg-white/10 font-black text-white hover:bg-white/15 hover:text-white disabled:opacity-50"
+                 >
+                    View Expert Recommendations
+                 </Button>
+
                  <div className="pt-4 border-t border-white/10 space-y-4">
-                    <p className="text-xs font-bold text-blue-200/50 uppercase tracking-widest">Last analysis: 2 hours ago</p>
+                    <p className="text-xs font-bold text-blue-200/50 uppercase tracking-widest">
+                      {recommendations.length > 0 ? `${recommendations.length} AI matches loaded` : 'No AI matches loaded yet'}
+                    </p>
                     <div className="flex items-center justify-between text-xs font-bold">
-                       <span className="text-blue-100">AI Confidence</span>
-                       <span className="text-brand-accent">High</span>
+                       <span className="text-blue-100">Average Match</span>
+                       <span className="text-brand-accent">{averageMatchScore}%</span>
                     </div>
                     <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-                       <div className="h-full bg-brand-accent w-[85%]" />
+                       <div className="h-full bg-brand-accent transition-all" style={{ width: `${Math.min(averageMatchScore, 100)}%` }} />
                     </div>
                  </div>
               </div>
            </div>
-
-           {/* Quick Search Sidebar */}
-           <div className="bg-white rounded-lg p-6 border border-slate-100 shadow-sm space-y-4">
-              <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Search Proposals</h4>
-              <div className="relative">
-                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-300" />
-                 <input 
-                   type="text" 
-                   placeholder="Search by name or keyword..." 
-                   className="w-full h-10 pl-10 pr-4 rounded-lg bg-slate-50 border-none text-sm focus:ring-2 focus:ring-primary/20 transition-all"
-                 />
-              </div>
-           </div>
         </div>
       </div>
+
+      {isRecommendationsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="expert-recommendations-heading">
+          <div className="flex max-h-[86vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-100 p-6">
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-primary">AI Expert Matching</p>
+                <h2 id="expert-recommendations-heading" className="mt-1 text-2xl font-black text-slate-900">Expert Recommendations</h2>
+                <p className="mt-2 text-sm font-medium text-slate-500">
+                  Results returned from the job recommendation API for this project.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsRecommendationsOpen(false)}
+                className="size-10 shrink-0 rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                aria-label="Close expert recommendations"
+              >
+                <X className="size-5" />
+              </Button>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto p-6">
+              {recommendations.length > 0 ? (
+                <div className="space-y-4">
+                  {recommendations.map((expert) => {
+                    const matchingProposal = expert.id ? proposalByExpertId.get(expert.id) : undefined;
+                    const expertName = matchingProposal?.expert?.fullName || matchingProposal?.expertName || expert.name || '';
+                    const expertTitle = expert.title || '';
+                    const matchScore = Number(expert.matchScore);
+                    const rating = Number(expert.rating);
+                    const skills = Array.isArray(expert.skills) ? expert.skills : [];
+                    const hasExpertId = Boolean(expert.id);
+
+                    return (
+                      <div key={expert.id || `${expertName}-${matchScore}-${rating}`} className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="min-w-0">
+                            {(expertName || expertTitle) && (
+                              <div className="flex items-center gap-3">
+                                {expertName && (
+                                  <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-base font-black text-primary">
+                                    {expertName.charAt(0)}
+                                  </div>
+                                )}
+                                <div className="min-w-0">
+                                  {expertName && <h3 className="truncate text-base font-black text-slate-900">{expertName}</h3>}
+                                  {expertTitle && <p className="truncate text-xs font-bold uppercase tracking-widest text-slate-400">{expertTitle}</p>}
+                                </div>
+                              </div>
+                            )}
+
+                            {skills.length > 0 && (
+                              <div className="mt-4 flex flex-wrap gap-2">
+                                {skills.map((skill) => (
+                                  <span key={skill} className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500">
+                                    {skill}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex shrink-0 items-center gap-3 sm:flex-col sm:items-end">
+                            {Number.isFinite(matchScore) && (
+                              <div className="rounded-full bg-primary px-3 py-1.5 text-xs font-black text-white">
+                                {Math.round(matchScore)}% Match
+                              </div>
+                            )}
+                            {Number.isFinite(rating) && (
+                              <div className="flex items-center gap-1 text-xs font-bold text-slate-500">
+                                <Star className="size-3.5 fill-amber-400 text-amber-400" />
+                                {rating.toFixed(1)}
+                              </div>
+                            )}
+                            {hasExpertId && (
+                              <Button asChild variant="outline" className="h-9 rounded-full px-4 text-xs font-bold">
+                                <Link to={`/client/experts/${expert.id}`}>View Profile</Link>
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-10 text-center">
+                  <p className="text-sm font-bold text-slate-500">No expert recommendations were returned by the API yet.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -45,9 +45,9 @@ const normalizeExpertProfileResponse = (expert: ExpertProfileResponse): ExpertPr
   return {
     ...expert,
     userId: expert.userId || getString(raw.UserId),
-    fullName: expert.fullName || getString(raw.FullName, 'Unnamed Expert'),
+    fullName: expert.fullName || getString(raw.FullName),
     avatarUrl: expert.avatarUrl ?? getString(raw.AvatarUrl, ''),
-    title: expert.title ?? getString(raw.Title, 'AI Expert'),
+    title: expert.title ?? getString(raw.Title),
     bio: expert.bio ?? getString(raw.Bio, ''),
     hourlyRate: expert.hourlyRate ?? getNumber(raw.HourlyRate, 0),
     experienceYears: expert.experienceYears ?? getNumber(raw.ExperienceYears, 0),

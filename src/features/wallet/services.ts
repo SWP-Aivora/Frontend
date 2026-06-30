@@ -38,7 +38,10 @@ const normalizeTransactionType = (value: unknown): Transaction['type'] => {
   return TransactionType.PAYMENT;
 };
 
-const normalizeTransactionStatus = (value: unknown): Transaction['status'] => {
+const normalizeTransactionStatus = (
+  value: unknown,
+  item?: Record<string, unknown>
+): Transaction['status'] => {
   const numeric = toNumber(value);
   if (numeric === TransactionStatus.PENDING || numeric === TransactionStatus.COMPLETED || numeric === TransactionStatus.FAILED) {
     return numeric;
@@ -47,6 +50,35 @@ const normalizeTransactionStatus = (value: unknown): Transaction['status'] => {
   const text = toStringValue(value)?.toLowerCase();
   if (text?.includes('success') || text?.includes('complete') || text?.includes('paid')) return TransactionStatus.COMPLETED;
   if (text?.includes('fail') || text?.includes('cancel') || text?.includes('reject')) return TransactionStatus.FAILED;
+
+  if (item) {
+    const isCompleted = item.isCompleted ?? item.IsCompleted ?? item.completed ?? item.Completed;
+    const isFailed = item.isFailed ?? item.IsFailed ?? item.failed ?? item.Failed;
+
+    if (typeof isCompleted === 'boolean' && isCompleted) {
+      return TransactionStatus.COMPLETED;
+    }
+
+    if (typeof isFailed === 'boolean' && isFailed) {
+      return TransactionStatus.FAILED;
+    }
+
+    const completionDate = [
+      item.completedAt,
+      item.CompletedAt,
+      item.paidAt,
+      item.PaidAt,
+      item.releasedAt,
+      item.ReleasedAt,
+      item.processedAt,
+      item.ProcessedAt,
+    ].find(value => toStringValue(value));
+
+    if (completionDate) {
+      return TransactionStatus.COMPLETED;
+    }
+  }
+
   return TransactionStatus.PENDING;
 };
 
@@ -75,13 +107,37 @@ const mapHistoryItemToTransaction = (item: unknown, index: number): Transaction 
 
   if (amount === undefined) return null;
 
+  const description = toStringValue(item.description) ?? toStringValue(item.note) ?? toStringValue(item.content) ?? toStringValue(item.paymentMethod);
+
   return {
     id: toStringValue(item.id) ?? toStringValue(item.paymentId) ?? toStringValue(item.transactionId) ?? buildFallbackTransactionId(item, amount, index),
     walletId: toStringValue(item.walletId) ?? '',
     amount,
-    type: normalizeTransactionType(item.type ?? item.paymentType ?? item.transactionType),
-    status: normalizeTransactionStatus(item.status ?? item.paymentStatus),
-    description: toStringValue(item.description) ?? toStringValue(item.note) ?? toStringValue(item.content) ?? toStringValue(item.paymentMethod),
+    type: normalizeTransactionType(
+      item.type ??
+      item.Type ??
+      item.paymentType ??
+      item.PaymentType ??
+      item.transactionType ??
+      item.TransactionType ??
+      item.walletTransactionType ??
+      item.WalletTransactionType ??
+      description,
+    ),
+    status: normalizeTransactionStatus(
+      item.status ??
+      item.Status ??
+      item.paymentStatus ??
+      item.PaymentStatus ??
+      item.transactionStatus ??
+      item.TransactionStatus ??
+      item.walletTransactionStatus ??
+      item.WalletTransactionStatus ??
+      item.state ??
+      item.State,
+      item,
+    ),
+    description,
     referenceId: toStringValue(item.referenceId) ?? toStringValue(item.orderId) ?? toStringValue(item.milestoneId),
     createdAt: toStringValue(item.createdAt) ?? toStringValue(item.paidAt) ?? toStringValue(item.paymentDate) ?? toStringValue(item.transactionDate) ?? toStringValue(item.date) ?? new Date().toISOString(),
   };

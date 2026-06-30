@@ -5,9 +5,15 @@ import { cn } from '@/lib/utils';
 
 interface TransactionTableProps {
   transactions: Transaction[];
+  isClient: boolean;
 }
 
-export const TransactionTable = ({ transactions }: TransactionTableProps) => {
+export const TransactionTable = ({ transactions, isClient }: TransactionTableProps) => {
+  const isIncomingTransaction = (transaction: Transaction): boolean =>
+    transaction.type === TransactionType.DEPOSIT ||
+    transaction.type === TransactionType.REFUND ||
+    (!isClient && transaction.type === TransactionType.PAYMENT);
+
   const getTransactionTypeInfo = (type: TransactionType) => {
     switch (type) {
       case TransactionType.DEPOSIT: return { label: 'Deposit', icon: ArrowDownLeft, color: 'text-emerald-600', bg: 'bg-emerald-50' };
@@ -46,7 +52,8 @@ export const TransactionTable = ({ transactions }: TransactionTableProps) => {
       <tbody className="divide-y divide-slate-50">
         {transactions.map((t) => {
           const typeInfo = getTransactionTypeInfo(t.type);
-          const statusInfo = getStatusInfo(t.status);
+          const statusInfo = getStatusInfo(TransactionStatus.COMPLETED);
+          const isIncoming = isIncomingTransaction(t);
           return (
             <tr key={t.id || Math.random()} className="group hover:bg-slate-50/50 transition-colors">
               <td className="px-8 py-6">
@@ -83,9 +90,9 @@ export const TransactionTable = ({ transactions }: TransactionTableProps) => {
               <td className="px-8 py-6 text-right">
                 <span className={cn(
                   "text-base font-black",
-                  (t.type === TransactionType.DEPOSIT || t.type === TransactionType.REFUND) ? "text-emerald-600" : "text-slate-900"
+                  isIncoming ? "text-emerald-600" : "text-slate-900"
                 )}>
-                  {(t.type === TransactionType.DEPOSIT || t.type === TransactionType.REFUND) ? '+' : '-'}{t.amount?.toLocaleString() ?? '0'} Aivora Coin
+                  {isIncoming ? '+' : '-'}{t.amount?.toLocaleString() ?? '0'} Aivora Coin
                 </span>
               </td>
             </tr>

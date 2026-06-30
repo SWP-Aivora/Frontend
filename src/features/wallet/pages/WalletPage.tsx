@@ -14,6 +14,7 @@ import { SpendingChart } from '../components/SpendingChart';
 import { LinkedMethodsCard } from '../components/LinkedMethodsCard';
 import { EscrowInfoCard } from '../components/EscrowInfoCard';
 import { ErrorBoundary } from '@/shared/components/common';
+import type { Transaction } from '../types';
 
 const toNumber = (value: unknown): number | null => {
   if (typeof value === 'number' && !isNaN(value)) return value;
@@ -46,6 +47,26 @@ const getWalletBalance = (wallet: unknown): number => {
 
   return 0;
 };
+
+const getTransactionDescription = (transaction: Transaction): string =>
+  (transaction.description ?? '').toLowerCase();
+
+const isCompletedTransaction = (transaction: Transaction): boolean =>
+  transaction.status === TransactionStatus.COMPLETED;
+
+const isClientReleasedPayment = (transaction: Transaction): boolean =>
+  transaction.type === TransactionType.PAYMENT &&
+  getTransactionDescription(transaction).includes('released');
+
+const isClientSpentPayment = (transaction: Transaction): boolean =>
+  transaction.type === TransactionType.PAYMENT &&
+  (
+    isClientReleasedPayment(transaction) ||
+    !getTransactionDescription(transaction).includes('funding')
+  );
+
+const isExpertEarnedPayment = (transaction: Transaction): boolean =>
+  transaction.type === TransactionType.PAYMENT;
 
 export const WalletPage = () => {
   const { user } = useAuthStore();
@@ -87,19 +108,23 @@ export const WalletPage = () => {
 
   const totals = useMemo(() => {
     const spent = validTx
-      .filter(t => t.type === TransactionType.PAYMENT && t.status === TransactionStatus.COMPLETED)
+      .filter(t => isCompletedTransaction(t) && isClientSpentPayment(t))
       .reduce((acc, t) => acc + t.amount, 0);
     
     const earned = validTx
-      .filter(t => (t.type === TransactionType.DEPOSIT || t.type === TransactionType.REFUND) && t.status === TransactionStatus.COMPLETED)
+      .filter(t => isCompletedTransaction(t) && isExpertEarnedPayment(t))
       .reduce((acc, t) => acc + t.amount, 0);
 
-    const inEscrow = validTx
-      .filter(t => t.status === TransactionStatus.PENDING)
-      .reduce((acc, t) => acc + t.amount, 0);
+    const inEscrow = isClient
+      ? validTx
+        .filter(t => t.type === TransactionType.PAYMENT)
+        .reduce((acc, t) => acc + t.amount, 0)
+      : validTx
+        .filter(t => t.status === TransactionStatus.PENDING)
+        .reduce((acc, t) => acc + t.amount, 0);
 
     return { spent, earned, inEscrow };
-  }, [validTx]);
+  }, [isClient, validTx]);
 
   if (isLoading) {
     return (
@@ -191,7 +216,7 @@ export const WalletPage = () => {
                   Loading transactions...
                 </div>
               ) : (
-                <TransactionTable transactions={validTx} />
+                <TransactionTable transactions={validTx} isClient={isClient} />
               )}
             </ErrorBoundary>
             {isFetchingHistory && !isLoadingHistory && (

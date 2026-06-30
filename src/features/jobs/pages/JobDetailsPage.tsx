@@ -4,7 +4,6 @@ import { Button } from '@/shared/components/ui/Button';
 import {
   BadgeCheck,
   Clock,
-  MapPin,
   DollarSign,
   BrainCircuit,
   ChevronLeft,
@@ -111,6 +110,7 @@ export const JobDetailsPage = () => {
   const budgetMax = job?.budgetMax ?? 0;
   const formattedBudgetRange = `${budgetMin.toLocaleString()} - ${budgetMax.toLocaleString()} Aivora Coin`;
   const skills = job?.skills ?? [];
+  const clientDisplayName = job?.client?.fullName || '';
 
   if (isLoading || isProposalLoading) {
     return (
@@ -435,19 +435,9 @@ export const JobDetailsPage = () => {
           <div className="bg-white rounded-lg p-6 border border-slate-100 shadow-sm">
             <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-5">About the Client</h3>
             <div className="space-y-4">
-              <p className="font-black text-lg text-slate-900">{job.client?.fullName || 'Anonymous Client'}</p>
-              <div className="flex items-center gap-2">
-                <BadgeCheck className="size-5 text-brand-success" />
-                <span className="text-sm font-bold text-slate-700">Payment Verified</span>
-              </div>
-              <div className="flex items-center gap-2 text-slate-500">
-                <MapPin className="size-5" />
-                <span className="text-sm font-medium">Remote</span>
-              </div>
-              <div className="pt-4 border-t border-slate-100">
-                <p className="text-sm font-black text-slate-900">N/A</p>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Total Spent</p>
-              </div>
+              {clientDisplayName ? (
+                <p className="font-black text-lg text-slate-900">{clientDisplayName}</p>
+              ) : null}
             </div>
           </div>
 
