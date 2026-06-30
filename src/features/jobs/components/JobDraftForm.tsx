@@ -35,6 +35,7 @@ const requiredPositiveNumberField = (label: string) =>
 const jobDraftSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters'),
   description: z.string().min(20, 'Description must be at least 20 characters').max(5000, 'Description is too long'),
+  businessDomain: z.string().trim().min(1, 'Business domain is required'),
   budgetType: z.nativeEnum(BudgetType),
   budgetMin: requiredPositiveNumberField('Minimum budget'),
   budgetMax: requiredPositiveNumberField('Maximum budget'),
@@ -44,6 +45,7 @@ const jobDraftSchema = z.object({
 type JobDraftFormValues = {
   title: string;
   description: string;
+  businessDomain: string;
   budgetType: BudgetType;
   budgetMin: number | null;
   budgetMax: number | null;
@@ -78,6 +80,7 @@ export const JobDraftForm = ({
     values: {
       title: suggestion.suggestedTitle,
       description: suggestion.suggestedDescription,
+      businessDomain: suggestion.businessDomain ?? '',
       budgetType: suggestion.budgetType,
       budgetMin: suggestion.suggestedBudgetMin ?? null,
       budgetMax: suggestion.suggestedBudgetMax ?? null,
@@ -86,11 +89,13 @@ export const JobDraftForm = ({
   });
   const titleField = register('title');
   const descriptionField = register('description');
+  const businessDomainField = register('businessDomain');
   const budgetMinField = register('budgetMin', { valueAsNumber: true });
   const budgetMaxField = register('budgetMax', { valueAsNumber: true });
   const timelineDaysField = register('timelineDays', { valueAsNumber: true });
   const titleErrorId = errors.title ? 'job-draft-title-error' : undefined;
   const descriptionErrorId = errors.description ? 'job-draft-description-error' : undefined;
+  const businessDomainErrorId = errors.businessDomain ? 'job-draft-business-domain-error' : undefined;
   const budgetMinErrorId = errors.budgetMin ? 'job-draft-budget-min-error' : undefined;
   const budgetMaxErrorId = errors.budgetMax ? 'job-draft-budget-max-error' : undefined;
   const timelineErrorId = errors.timelineDays ? 'job-draft-timeline-error' : undefined;
@@ -103,6 +108,7 @@ export const JobDraftForm = ({
     onUpdate({
       suggestedTitle: data.title,
       suggestedDescription: data.description,
+      businessDomain: data.businessDomain.trim(),
       budgetType: data.budgetType,
       suggestedBudgetMin: data.budgetMin,
       suggestedBudgetMax: data.budgetMax,
@@ -217,21 +223,40 @@ export const JobDraftForm = ({
               {errors.description && <p id={descriptionErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{errors.description.message}</p>}
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="job-draft-category" className="text-xs font-bold text-slate-500 ml-1 uppercase">Category</label>
-              <select
-                id="job-draft-category"
-                value={suggestion.categoryId ?? ''}
-                onChange={(e) => onCategoryChange(e.target.value)}
-                className="h-12 w-full rounded-lg border border-slate-100 bg-slate-50 px-4 text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary/5"
-              >
-                <option value="">Select category</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <label htmlFor="job-draft-business-domain" className="text-xs font-bold text-slate-500 ml-1 uppercase">Business Domain</label>
+                <Input
+                  id="job-draft-business-domain"
+                  {...businessDomainField}
+                  onChange={(e) => {
+                    businessDomainField.onChange(e);
+                    onUpdate({ businessDomain: e.target.value });
+                  }}
+                  placeholder="e.g., E-commerce, Healthcare"
+                  aria-invalid={errors.businessDomain ? 'true' : 'false'}
+                  aria-describedby={businessDomainErrorId}
+                  className="h-12 rounded-lg bg-slate-50 border-slate-100 focus:bg-white text-sm font-medium text-slate-900"
+                />
+                {errors.businessDomain && <p id={businessDomainErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{errors.businessDomain.message}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="job-draft-category" className="text-xs font-bold text-slate-500 ml-1 uppercase">Category</label>
+                <select
+                  id="job-draft-category"
+                  value={suggestion.categoryId ?? ''}
+                  onChange={(e) => onCategoryChange(e.target.value)}
+                  className="h-12 w-full rounded-lg border border-slate-100 bg-slate-50 px-4 text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary/5"
+                >
+                  <option value="">Select category</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </section>
 

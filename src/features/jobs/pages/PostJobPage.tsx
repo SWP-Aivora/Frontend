@@ -460,7 +460,7 @@ export const PostJobPage = () => {
     return {
       title: suggestion.suggestedTitle,
       finalDescription: suggestion.suggestedDescription,
-      businessDomain: suggestion.businessDomain,
+      businessDomain: suggestion.businessDomain?.trim() || null,
       expectedOutcome: suggestion.expectedOutcome,
       categoryId: suggestion.categoryId ?? null,
       budgetType: toCreateJobBudgetType(suggestion.budgetType),
@@ -489,7 +489,7 @@ export const PostJobPage = () => {
       title: suggestion.suggestedTitle,
       originalDescription: suggestion.rawInput || suggestion.suggestedDescription,
       finalDescription: suggestion.suggestedDescription,
-      businessDomain: suggestion.businessDomain,
+      businessDomain: suggestion.businessDomain?.trim() || null,
       expectedOutcome: suggestion.expectedOutcome,
       categoryId: suggestion.categoryId,
       budgetType: toCreateJobBudgetType(suggestion.budgetType),
@@ -580,7 +580,7 @@ export const PostJobPage = () => {
     if (!suggestion) return [];
 
     const missing = [];
-    if (!suggestion.businessDomain) missing.push('Business Domain');
+    if (!suggestion.businessDomain?.trim()) missing.push('Business Domain');
     if (!suggestion.suggestedBudgetMin || !suggestion.suggestedBudgetMax) missing.push('Budget Min/Max');
     if (!suggestion.suggestedTimelineDays) missing.push('Timeline (Days)');
     if (!suggestion.categoryId) missing.push('Category');

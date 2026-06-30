@@ -9,6 +9,7 @@ import type {
   RefineAiJobSuggestionResult,
   AcceptAiJobSuggestionRequest,
   AcceptAiJobSuggestionResult,
+  UserBasicInfo,
 } from './types';
 import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
 import { normalizePaginatedResponse, normalizeBaseResponse } from '@/lib/api-utils';
@@ -52,11 +53,30 @@ const normalizeSkillLevel = (value: unknown): SkillLevel | null => {
   return null;
 };
 
-const normalizeJob = (job: Job): Job => ({
-  ...job,
-  budgetType: normalizeBudgetType(job.budgetType),
-  experienceLevel: normalizeSkillLevel(job.experienceLevel),
-});
+const normalizeJob = (job: Job): Job => {
+  const rawJob = job as Job & Record<string, unknown>;
+  const rawClient = rawJob.client ?? rawJob.Client;
+  const normalizedClient = normalizeJobClient(rawClient, job.client);
+  const rootClientName = getOptionalStringValue(
+    rawJob,
+    'clientName',
+    'ClientName',
+    'clientFullName',
+    'ClientFullName',
+    'companyName',
+    'CompanyName',
+  );
+
+  return {
+    ...job,
+    clientId: getOptionalStringValue(rawJob, 'clientId', 'ClientId') || job.clientId,
+    client: rootClientName && !normalizedClient.fullName
+      ? { ...normalizedClient, fullName: rootClientName }
+      : normalizedClient,
+    budgetType: normalizeBudgetType(job.budgetType),
+    experienceLevel: normalizeSkillLevel(job.experienceLevel),
+  };
+};
 
 const normalizeAiJobSuggestion = (suggestion: AiJobSuggestion): AiJobSuggestion => ({
   ...suggestion,
@@ -74,6 +94,77 @@ const normalizeAcceptedJobResult = (result: AcceptAiJobSuggestionResult): Accept
   job: {
     ...result.job,
   },
+});
+
+const getOptionalStringValue = (item: Record<string, unknown>, ...keys: string[]): string => {
+  for (const key of keys) {
+    const value = item[key];
+    if (typeof value === 'string' && value.trim()) {
+      return value;
+    }
+  }
+
+  return '';
+};
+
+const getOptionalNumberValue = (item: Record<string, unknown>, ...keys: string[]): number => {
+  for (const key of keys) {
+    const value = item[key];
+
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+
+    if (typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value))) {
+      return Number(value);
+    }
+  }
+
+  return 0;
+};
+
+const normalizeJobClient = (value: unknown, fallback?: UserBasicInfo | null): UserBasicInfo => {
+  const client = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+
+  return {
+    id: getOptionalStringValue(client, 'id', 'Id', 'userId', 'UserId') || fallback?.id || '',
+    fullName:
+      getOptionalStringValue(
+        client,
+        'fullName',
+        'FullName',
+        'name',
+        'Name',
+        'displayName',
+        'DisplayName',
+        'companyName',
+        'CompanyName',
+      ) ||
+      fallback?.fullName ||
+      '',
+    avatarUrl:
+      getOptionalStringValue(client, 'avatarUrl', 'AvatarUrl', 'avatar', 'Avatar', 'profilePictureUrl', 'ProfilePictureUrl') ||
+      fallback?.avatarUrl ||
+      null,
+    role: (fallback?.role ?? client.role ?? client.Role) as UserBasicInfo['role'],
+  };
+};
+
+const normalizeStringArray = (value: unknown): string[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((item): item is string => typeof item === 'string' && item.trim() !== '');
+};
+
+const normalizeExpertMatch = (item: Record<string, unknown>): ExpertMatch => ({
+  id: getOptionalStringValue(item, 'expertId', 'ExpertId', 'id', 'Id'),
+  name: getOptionalStringValue(item, 'name', 'Name', 'expertName', 'ExpertName', 'fullName', 'FullName'),
+  title: getOptionalStringValue(item, 'title', 'Title', 'expertTitle', 'ExpertTitle'),
+  rating: getOptionalNumberValue(item, 'rating', 'Rating', 'averageRating', 'AverageRating'),
+  matchScore: getOptionalNumberValue(item, 'matchScore', 'MatchScore', 'score', 'Score', 'compatibilityScore', 'CompatibilityScore'),
+  skills: normalizeStringArray(item.skills ?? item.Skills ?? item.skillNames ?? item.SkillNames),
 });
 
 export const jobService = {
@@ -190,8 +281,16 @@ export const jobService = {
   },
 
   getRecommendations: async (jobId: string): Promise<BaseResponse<ExpertMatch[]>> => {
-    const response = await apiClient.get<BaseResponse<ExpertMatch[]>>(`/jobs/${jobId}/recommendations`);
-    return normalizeBaseResponse<ExpertMatch[]>(response);
+    const response = await apiClient.get<BaseResponse<unknown>>(`/jobs/${jobId}/recommendations`);
+    const normalized = normalizeBaseResponse<unknown>(response);
+    const recommendationData = Array.isArray(normalized.data)
+      ? normalized.data
+      : [];
+
+    return {
+      ...normalized,
+      data: recommendationData.map((item) => normalizeExpertMatch(item as Record<string, unknown>)),
+    };
   },
 
 };

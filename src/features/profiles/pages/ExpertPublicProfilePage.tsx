@@ -109,9 +109,9 @@ export const ExpertPublicProfilePage = () => {
 
   const isLoading = isProfileLoading || isReviewsLoading || isProjectsLoading;
 
-  const name = profile?.fullName || 'Expert';
-  const title = profile?.title || 'Expert';
-  const bio = profile?.bio || 'No bio provided.';
+  const name = profile?.fullName || '';
+  const title = profile?.title || '';
+  const bio = profile?.bio || '';
   const location = '';
   const hourlyRate = profile?.hourlyRate || 0;
   const rating = profile?.rating ?? parseFloat(avgRating) ?? 0;
@@ -180,12 +180,16 @@ export const ExpertPublicProfilePage = () => {
                 </div>
                 
                 <div>
-                  <h1 className="text-3xl font-extrabold text-brand-dark mb-1 tracking-tight">
-                    {name}
-                  </h1>
-                  <p className="text-brand-secondary font-medium text-[15px]">
-                    {title}
-                  </p>
+                  {name && (
+                    <h1 className="text-3xl font-extrabold text-brand-dark mb-1 tracking-tight">
+                      {name}
+                    </h1>
+                  )}
+                  {title && (
+                    <p className="text-brand-secondary font-medium text-[15px]">
+                      {title}
+                    </p>
+                  )}
                 </div>
 
                 {location && (
@@ -286,10 +290,14 @@ export const ExpertPublicProfilePage = () => {
             {/* About & Overview */}
             <div id="overview" className="bg-white rounded-xl p-6 md:p-8 shadow-sm border border-slate-100/80 transition-all hover:shadow-md/50 duration-300">
               <h3 className="text-xs font-bold text-brand-primary uppercase tracking-wider mb-3">About This Expert</h3>
-              <h4 className="text-xl md:text-2xl font-bold text-slate-900 mb-4">{title}</h4>
-              <p className="text-brand-secondary leading-relaxed whitespace-pre-wrap text-sm md:text-[15px]">
-                {bio}
-              </p>
+              {title && <h4 className="text-xl md:text-2xl font-bold text-slate-900 mb-4">{title}</h4>}
+              {bio ? (
+                <p className="text-brand-secondary leading-relaxed whitespace-pre-wrap text-sm md:text-[15px]">
+                  {bio}
+                </p>
+              ) : (
+                <p className="text-sm text-slate-400">No bio returned by the API.</p>
+              )}
             </div>
 
             {/* Skills */}
@@ -445,7 +453,7 @@ export const ExpertPublicProfilePage = () => {
             <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 relative overflow-hidden transition-all hover:shadow-md duration-300">
               <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50/50 rounded-bl-full -z-10" />
               <h3 className="text-xs font-bold text-brand-primary uppercase tracking-wider mb-2">Ready to Collaborate</h3>
-              <h4 className="text-lg font-bold text-slate-900 mb-3">Invite {name.split(' ')[0]} to your project</h4>
+              <h4 className="text-lg font-bold text-slate-900 mb-3">Invite {name ? name.split(' ')[0] : 'this expert'} to your project</h4>
               <p className="text-xs text-brand-secondary mb-6 leading-relaxed">
                 Select an existing project or start a chat to align on scope, budget, and requirements.
               </p>
