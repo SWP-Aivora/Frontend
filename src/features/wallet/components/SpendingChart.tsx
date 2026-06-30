@@ -48,8 +48,9 @@ export const SpendingChart = ({ transactions, isClient }: SpendingChartProps) =>
     const max = Math.max(...totals.map(total => Math.abs(total)), 0);
     return totals.map(total => ({
       total,
+      hasActivity: total !== 0,
       height: max > 0 ? Math.max((Math.abs(total) / max) * 50, 4) : 0,
-      isIncoming: total >= 0,
+      isIncoming: total > 0,
     }));
   }, [isClient, transactions]);
 
@@ -77,7 +78,7 @@ export const SpendingChart = ({ transactions, isClient }: SpendingChartProps) =>
             className="relative h-full group cursor-help"
           >
             <div className="absolute inset-x-0 top-0 bottom-0 rounded-lg bg-slate-50" />
-            {entry.total !== 0 ? (
+            {entry.hasActivity ? (
               <div 
                 style={{ height: `${entry.height}%` }} 
                 className={`absolute left-0 right-0 ${

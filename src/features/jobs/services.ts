@@ -15,6 +15,17 @@ import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
 import { normalizePaginatedResponse, normalizeBaseResponse } from '@/lib/api-utils';
 import { BudgetType, SkillLevel } from '@/shared/types/enums';
 
+type RawJob = Job & Record<string, unknown> & {
+  Client?: unknown;
+  clientName?: unknown;
+  ClientName?: unknown;
+  clientFullName?: unknown;
+  ClientFullName?: unknown;
+  companyName?: unknown;
+  CompanyName?: unknown;
+  ClientId?: unknown;
+};
+
 const normalizeBudgetType = (value: unknown): BudgetType => {
   if (value === BudgetType.HOURLY || String(value ?? '').toUpperCase() === 'HOURLY') {
     return BudgetType.HOURLY;
@@ -54,7 +65,7 @@ const normalizeSkillLevel = (value: unknown): SkillLevel | null => {
 };
 
 const normalizeJob = (job: Job): Job => {
-  const rawJob = job as Job & Record<string, unknown>;
+  const rawJob = job as RawJob;
   const rawClient = rawJob.client ?? rawJob.Client;
   const normalizedClient = normalizeJobClient(rawClient, job.client);
   const rootClientName = getOptionalStringValue(
