@@ -57,7 +57,7 @@ export const useJobStatusUpdates = () => {
     const unsubscribe = chatService.onJobStatusUpdate(handleJobStatusUpdate);
 
     return () => {
-      unsubscribe?.();
+      unsubscribe();
     };
   }, [queryClient]);
 };

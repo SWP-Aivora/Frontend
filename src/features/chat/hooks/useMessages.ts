@@ -50,7 +50,7 @@ export const useRealTimeMessages = (conversationId: string) => {
     const unsubscribe = chatService.onMessage(handleNewMessage);
 
     return () => {
-      unsubscribe?.();
+      unsubscribe();
     };
   }, [conversationId, queryClient]);
 };
