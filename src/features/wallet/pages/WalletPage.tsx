@@ -4,9 +4,7 @@ import { Search, Filter, ArrowDownLeft } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { useAuthStore } from '@/features/auth/store';
 import { Role } from '@/shared/types/enums';
-import { MilestoneStatus } from '@/shared/types/enums';
 import { walletService } from '../services';
-import { projectService } from '@/features/projects/services';
 import { DepositModal } from '../components/DepositModal';
 import { WithdrawModal } from '../components/WithdrawModal';
 import { TransactionTable } from '../components/TransactionTable';
@@ -15,7 +13,6 @@ import { SpendingChart } from '../components/SpendingChart';
 import { LinkedMethodsCard } from '../components/LinkedMethodsCard';
 import { EscrowInfoCard } from '../components/EscrowInfoCard';
 import { ErrorBoundary } from '@/shared/components/common';
-import type { Transaction } from '../types';
 
 const toNumber = (value: unknown): number | null => {
   if (typeof value === 'number' && !isNaN(value)) return value;
@@ -49,48 +46,28 @@ const getWalletBalance = (wallet: unknown): number => {
   return 0;
 };
 
-const HELD_MILESTONE_STATUSES = new Set<number>([
-  MilestoneStatus.FUNDED,
-  MilestoneStatus.IN_PROGRESS,
-  MilestoneStatus.SUBMITTED,
-  MilestoneStatus.REVISION_REQUESTED,
-  MilestoneStatus.DISPUTED,
-]);
+const getWalletHeldBalance = (wallet: unknown): number => {
+  if (!wallet || typeof wallet !== 'object') return 0;
 
-const HELD_PROJECT_PAGE_SIZE = 100;
+  const record = wallet as Record<string, unknown>;
+  const heldBalance = [
+    record.heldBalance,
+    record.HeldBalance,
+    record.escrowBalance,
+    record.EscrowBalance,
+    record.lockedBalance,
+    record.LockedBalance,
+    record.inEscrow,
+    record.InEscrow,
+  ].map(toNumber).find((value): value is number => value !== null);
 
-const getProjectsForHeldBalance = async () => {
-  const firstPage = await projectService.getProjects({
-    PageSize: HELD_PROJECT_PAGE_SIZE,
-    PageIndex: 1,
-  });
-  const totalPages = firstPage.metadata?.totalPages ?? 1;
+  if (heldBalance !== undefined) return heldBalance;
 
-  if (totalPages <= 1) {
-    return firstPage.data ?? [];
+  if (record.wallet && typeof record.wallet === 'object') {
+    return getWalletHeldBalance(record.wallet);
   }
 
-  const remainingPages = await Promise.all(
-    Array.from({ length: totalPages - 1 }, (_, index) => projectService.getProjects({
-      PageSize: HELD_PROJECT_PAGE_SIZE,
-      PageIndex: index + 2,
-    }))
-  );
-
-  return [
-    ...(firstPage.data ?? []),
-    ...remainingPages.flatMap(page => page.data ?? []),
-  ];
-};
-
-const getHeldMilestones = async () => {
-  const projects = await getProjectsForHeldBalance();
-  const projectDetails = await Promise.all(
-    projects.map(project => projectService.getProjectById(project.id))
-  );
-
-  return projectDetails
-    .flatMap(response => response.data?.milestones ?? []);
+  return 0;
 };
 
 export const WalletPage = () => {
@@ -119,18 +96,10 @@ export const WalletPage = () => {
     queryFn: () => walletService.getPaymentHistory(),
   });
 
-  const {
-    data: heldMilestonesResponse,
-    isLoading: isLoadingProjects,
-  } = useQuery({
-    queryKey: ['wallet-held-milestones'],
-    queryFn: getHeldMilestones,
-  });
-
   const wallet = walletResponse?.data;
   const walletBalance = getWalletBalance(wallet);
+  const heldBalance = getWalletHeldBalance(wallet);
   const transactions = useMemo(() => historyResponse?.data || [], [historyResponse?.data]);
-  const heldMilestones = useMemo(() => heldMilestonesResponse || [], [heldMilestonesResponse]);
   
   // High #2: Runtime type guard for amount to prevent NaN poison
   const validTx = useMemo(() => 
@@ -138,13 +107,7 @@ export const WalletPage = () => {
     [transactions]
   );
 
-  const isLoading = isLoadingWallet || isLoadingProjects;
-
-  const heldBalance = useMemo(() => (
-    heldMilestones
-      .filter(milestone => HELD_MILESTONE_STATUSES.has(Number(milestone.status)))
-      .reduce((acc, milestone) => acc + Number(milestone.amount || 0), 0)
-  ), [heldMilestones]);
+  const isLoading = isLoadingWallet;
 
   if (isLoading) {
     return (
