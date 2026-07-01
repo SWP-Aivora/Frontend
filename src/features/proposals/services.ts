@@ -90,6 +90,22 @@ export const proposalService = {
     };
   },
 
+  updateProposal: async (proposalId: string, data: CreateProposalFormValues): Promise<BaseResponse<Proposal>> => {
+    const payload = {
+      coverLetter: data.coverLetter,
+      proposedBudget: data.proposedBudget,
+      proposedTimelineDays: data.proposedTimelineDays,
+      milestones: data.milestones,
+    };
+    const response = await apiClient.put(API_ENDPOINTS.PROPOSALS.ID(proposalId), payload);
+    const normalized = normalizeBaseResponse<ProposalApiRecord>(response);
+
+    return {
+      ...normalized,
+      data: normalized.data ? normalizeProposal(normalized.data) : null,
+    };
+  },
+
   getProposalsByJobId: async (jobId: string): Promise<PaginatedResponse<Proposal>> => {
     const response = await apiClient.get(`/jobs/${jobId}/proposals`);
     const normalized = normalizePaginatedResponse<ProposalApiRecord>(response);

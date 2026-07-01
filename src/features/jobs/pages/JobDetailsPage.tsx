@@ -20,13 +20,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { createProposalSchema, type CreateProposalFormValues } from '../../proposals/schema';
 import { Input } from '@/shared/components/ui/Input';
 import { toast } from 'sonner';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { jobService } from '../services';
 import { proposalService } from '../../proposals/services';
 
 export const JobDetailsPage = () => {
   const { id, proposalId } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const isEditMode = Boolean(proposalId);
   const [hasSubmitted, setHasSubmitted] = useState(() => localStorage.getItem(`submitted_proposal_${id}`) === 'true');
 
@@ -45,6 +46,16 @@ export const JobDetailsPage = () => {
   });
 
   const proposal = proposalResponse?.data;
+  const isProposalEditable = (() => {
+    if (!isEditMode || !proposal) return true;
+
+    const normalized = String(proposal.status).toUpperCase();
+    return proposal.status === 0
+      || proposal.status === 1
+      || normalized === 'SUBMITTED'
+      || normalized === 'SHORTLISTED'
+      || normalized === 'PENDING';
+  })();
 
   const { register, control, handleSubmit, reset, formState: { errors } } = useForm<CreateProposalFormValues>({
     resolver: zodResolver(createProposalSchema),
@@ -97,9 +108,28 @@ export const JobDetailsPage = () => {
     }
   });
 
+  const updateMutation = useMutation({
+    mutationFn: (data: CreateProposalFormValues) => proposalService.updateProposal(proposalId!, data),
+    onSuccess: async () => {
+      toast.success('Proposal updated successfully!');
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['proposal', proposalId] }),
+        queryClient.invalidateQueries({ queryKey: ['proposals'] }),
+      ]);
+    },
+    onError: () => {
+      toast.error('Failed to update proposal');
+    }
+  });
+
   const onSubmit = (data: CreateProposalFormValues) => {
     if (isEditMode) {
-      toast.error('Proposal editing is not available yet because the API does not support updating proposals.');
+      if (!isProposalEditable) {
+        toast.error('This proposal can no longer be edited.');
+        return;
+      }
+
+      updateMutation.mutate(data);
       return;
     }
 
@@ -416,13 +446,13 @@ export const JobDetailsPage = () => {
                     )}
                   </div>
 
-                  <Button type="submit" disabled={submitMutation.isPending || isEditMode} className="w-full rounded-full h-14 font-bold text-base bg-brand-accent hover:bg-brand-accent/90 shadow-lg shadow-brand-accent/20">
-                    {submitMutation.isPending ? (
+                  <Button type="submit" disabled={submitMutation.isPending || updateMutation.isPending || (isEditMode && !isProposalEditable)} className="w-full rounded-full h-14 font-bold text-base bg-brand-accent hover:bg-brand-accent/90 shadow-lg shadow-brand-accent/20">
+                    {submitMutation.isPending || updateMutation.isPending ? (
                       <span className="inline-flex items-center gap-2">
                         <Loader2 className="size-4 animate-spin" />
-                        Submitting Proposal...
+                        {isEditMode ? 'Saving Proposal...' : 'Submitting Proposal...'}
                       </span>
-                    ) : isEditMode ? 'Proposal Editing Unavailable' : 'Submit Proposal'}
+                    ) : isEditMode ? (isProposalEditable ? 'Save Proposal' : 'Proposal Cannot Be Edited') : 'Submit Proposal'}
                   </Button>
                 </form>
               )}

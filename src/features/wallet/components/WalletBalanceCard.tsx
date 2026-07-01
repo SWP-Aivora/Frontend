@@ -2,12 +2,10 @@ import { Wallet as WalletIcon } from 'lucide-react';
 
 interface WalletBalanceCardProps {
   balance: number;
-  inEscrow: number;
-  totalStats: number;
-  isClient: boolean;
+  heldBalance: number;
 }
 
-export const WalletBalanceCard = ({ balance, inEscrow, totalStats, isClient }: WalletBalanceCardProps) => {
+export const WalletBalanceCard = ({ balance, heldBalance }: WalletBalanceCardProps) => {
   return (
     <div className="relative h-64 rounded-lg bg-brand-blue-dark p-10 text-white overflow-hidden shadow-2xl">
       {/* Background Shapes */}
@@ -29,16 +27,8 @@ export const WalletBalanceCard = ({ balance, inEscrow, totalStats, isClient }: W
 
         <div className="flex items-center gap-10">
           <div>
-            <p className="text-blue-100/50 text-xs font-bold uppercase tracking-widest mb-1">In Review / Escrow</p>
-            <p className="text-xl font-black">{inEscrow.toLocaleString()} Aivora Coin</p>
-          </div>
-          <div>
-            <p className="text-blue-100/50 text-xs font-bold uppercase tracking-widest mb-1">
-              Total {isClient ? 'Spent' : 'Earned'}
-            </p>
-            <p className="text-xl font-black">
-              {totalStats.toLocaleString()} Aivora Coin
-            </p>
+            <p className="text-blue-100/50 text-xs font-bold uppercase tracking-widest mb-1">Held Balance</p>
+            <p className="text-xl font-black">{heldBalance.toLocaleString()} Aivora Coin</p>
           </div>
         </div>
       </div>
