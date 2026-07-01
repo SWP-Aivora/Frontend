@@ -1,10 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { chatService } from '../services';
-import type { SendMessagePayload } from '../types';
-import { useAuthStore } from '@/features/auth/store';
-import { chatService } from '../services';
 import type { SendMessagePayload, NewMessagePayload } from '../types';
+import type { Message } from '../types';
 import { useAuthStore } from '@/features/auth/store';
 
 export const useMessages = (conversationId: string, params?: Record<string, unknown>) => {
@@ -24,10 +22,10 @@ export const useRealTimeMessages = (conversationId: string) => {
     const handleNewMessage = (message: NewMessagePayload) => {
       if (message.conversationId === conversationId) {
         // Add new message to cache
-        queryClient.setQueryData(['messages', conversationId], (oldData: any) => {
+        queryClient.setQueryData(['messages', conversationId], (oldData: { data?: Message[] } | undefined) => {
           if (!oldData) return oldData;
 
-          const newMessage = {
+          const newMessage: Message = {
             id: message.senderId + '_' + Date.now(), // Generate unique ID
             conversationId: message.conversationId,
             senderId: message.senderId,
@@ -49,10 +47,10 @@ export const useRealTimeMessages = (conversationId: string) => {
     };
 
     // Subscribe to new messages
-    chatService.onMessage(handleNewMessage);
+    const unsubscribe = chatService.onMessage(handleNewMessage);
 
     return () => {
-      chatService.setCallbacks({}); // Cleanup listeners
+      unsubscribe?.();
     };
   }, [conversationId, queryClient]);
 };

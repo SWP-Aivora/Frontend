@@ -9,6 +9,36 @@ import { Role } from '@/shared/types/enums';
 import type { AxiosResponse } from 'axios';
 import * as signalR from '@microsoft/signalr';
 
+interface NewMessagePayload {
+  conversationId: string;
+  senderId: string;
+  senderName: string;
+  content: string;
+  createdAt: string;
+  attachmentUrl?: string;
+}
+
+interface MessageCallback {
+  callback: (message: NewMessagePayload) => void;
+  id: string;
+}
+
+interface TypingCallback {
+  callback: (data: { userId: string; isTyping: boolean }) => void;
+  id: string;
+}
+
+interface JobStatusCallback {
+  callback: (data: { jobId: string; status: string; title?: string }) => void;
+  id: string;
+}
+
+interface ChatCallbacks {
+  onMessage?: MessageCallback[];
+  onTyping?: TypingCallback[];
+  onJobStatusUpdate?: JobStatusCallback[];
+}
+
 const getSignalRErrorMessage = (error: unknown): string => {
   if (error instanceof Error) {
     return error.message;
@@ -62,6 +92,10 @@ class ChatService extends BaseService<Conversation> {
   private readonly chatConnectionPool = new Map<string, ChatConnectionPoolEntry>();
   private activeChatConnectionKey: string | null = null;
   private callbacks: ChatCallbacks = {};
+  private messageIdCounter = 0;
+  private typingIdCounter = 0;
+  private jobIdCounter = 0;
+  private listenersSetup = new Set<string>();
 
   constructor() {
     super(API_ENDPOINTS.MESSAGES.CONVERSATIONS);
@@ -78,21 +112,36 @@ class ChatService extends BaseService<Conversation> {
    * Listen to new messages
    */
   onMessage(callback: (message: NewMessagePayload) => void): void {
-    this.callbacks.onMessage = callback;
+    const id = `msg_${++this.messageIdCounter}`;
+    this.callbacks.onMessage = this.callbacks.onMessage || [];
+    this.callbacks.onMessage.push({ callback, id });
+    return () => {
+      this.callbacks.onMessage = this.callbacks.onMessage?.filter(cb => cb.id !== id);
+    };
   }
 
   /**
    * Listen to typing indicators
    */
   onTyping(callback: (data: { userId: string; isTyping: boolean }) => void): void {
-    this.callbacks.onTyping = callback;
+    const id = `typing_${++this.typingIdCounter}`;
+    this.callbacks.onTyping = this.callbacks.onTyping || [];
+    this.callbacks.onTyping.push({ callback, id });
+    return () => {
+      this.callbacks.onTyping = this.callbacks.onTyping?.filter(cb => cb.id !== id);
+    };
   }
 
   /**
    * Listen to job status updates
    */
   onJobStatusUpdate(callback: (data: { jobId: string; status: string; title?: string }) => void): void {
-    this.callbacks.onJobStatusUpdate = callback;
+    const id = `job_${++this.jobIdCounter}`;
+    this.callbacks.onJobStatusUpdate = this.callbacks.onJobStatusUpdate || [];
+    this.callbacks.onJobStatusUpdate.push({ callback, id });
+    return () => {
+      this.callbacks.onJobStatusUpdate = this.callbacks.onJobStatusUpdate?.filter(cb => cb.id !== id);
+    };
   }
 
   private getChatConnectionKey(token: string): string {
@@ -108,8 +157,12 @@ class ChatService extends BaseService<Conversation> {
       .withAutomaticReconnect()
       .build();
 
-    this.setupMessageListeners(connection);
-    this.setupJobStatusListeners(connection);
+    // Setup listeners only once per connection
+    if (!this.listenersSetup.has(connectionKey)) {
+      this.setupMessageListeners(connection);
+      this.setupJobStatusListeners(connection);
+      this.listenersSetup.add(connectionKey);
+    }
 
     connection.onclose(() => {
       const currentEntry = this.chatConnectionPool.get(connectionKey);
@@ -121,6 +174,9 @@ class ChatService extends BaseService<Conversation> {
       if (this.activeChatConnectionKey === connectionKey) {
         this.activeChatConnectionKey = null;
       }
+
+      // Clean up listeners setup tracking
+      this.listenersSetup.delete(connectionKey);
     });
 
     return {
@@ -162,13 +218,13 @@ class ChatService extends BaseService<Conversation> {
     // Listen for new messages
     connection.on('ReceiveMessage', (message: NewMessagePayload) => {
       console.log('New message received:', message);
-      this.callbacks.onMessage?.(message);
+      this.callbacks.onMessage?.forEach(callback => callback.callback(message));
     });
 
     // Listen for typing indicators
     connection.on('UserTyping', (data: { userId: string; isTyping: boolean }) => {
       console.log('User typing:', data);
-      this.callbacks.onTyping?.(data);
+      this.callbacks.onTyping?.forEach(callback => callback.callback(data));
     });
 
     connection.onreconnected(() => {
@@ -184,7 +240,7 @@ class ChatService extends BaseService<Conversation> {
     // Listen for job status updates
     connection.on('JobStatusUpdated', (data: { jobId: string; status: string; title?: string }) => {
       console.log('Job status updated:', data);
-      this.callbacks.onJobStatusUpdate?.(data);
+      this.callbacks.onJobStatusUpdate?.forEach(callback => callback.callback(data));
     });
   }
 

@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useMemo, useState } from 'react';
 import { useQueries, useQuery } from '@tanstack/react-query';
-import { useJobStatusUpdates } from '@/features/chat/hooks/useJobStatusUpdates';
+import { useJobStatusUpdates } from '../hooks/useJobStatusUpdates';
 import { projectService } from '@/features/projects/services';
 import { jobService } from '@/features/jobs/services';
 import { proposalService } from '@/features/proposals/services';

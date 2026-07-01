@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { chatService } from '../services';
+import { chatService } from '@/features/chat/services';
 
 export interface JobStatusPayload {
   jobId: string;
@@ -22,7 +22,7 @@ export const useJobStatusUpdates = () => {
       });
 
       // Update specific job in cache if needed
-      queryClient.setQueryData(['clientJobs'], (oldData: any) => {
+      queryClient.setQueryData(['clientJobs'], (oldData: { data?: any[] } | undefined) => {
         if (!oldData?.data) return oldData;
 
         return {
@@ -54,10 +54,10 @@ export const useJobStatusUpdates = () => {
     };
 
     // Subscribe to job status updates
-    chatService.onJobStatusUpdate(handleJobStatusUpdate);
+    const unsubscribe = chatService.onJobStatusUpdate(handleJobStatusUpdate);
 
     return () => {
-      chatService.setCallbacks({}); // Cleanup listeners
+      unsubscribe?.();
     };
   }, [queryClient]);
 };
