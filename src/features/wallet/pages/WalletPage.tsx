@@ -4,8 +4,9 @@ import { Search, Filter, ArrowDownLeft } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { useAuthStore } from '@/features/auth/store';
 import { Role } from '@/shared/types/enums';
+import { MilestoneStatus } from '@/shared/types/enums';
 import { walletService } from '../services';
-import { TransactionType, TransactionStatus } from '../types';
+import { projectService } from '@/features/projects/services';
 import { DepositModal } from '../components/DepositModal';
 import { WithdrawModal } from '../components/WithdrawModal';
 import { TransactionTable } from '../components/TransactionTable';
@@ -48,25 +49,49 @@ const getWalletBalance = (wallet: unknown): number => {
   return 0;
 };
 
-const getTransactionDescription = (transaction: Transaction): string =>
-  (transaction.description ?? '').toLowerCase();
+const HELD_MILESTONE_STATUSES = new Set<number>([
+  MilestoneStatus.FUNDED,
+  MilestoneStatus.IN_PROGRESS,
+  MilestoneStatus.SUBMITTED,
+  MilestoneStatus.REVISION_REQUESTED,
+  MilestoneStatus.DISPUTED,
+]);
 
-const isCompletedTransaction = (transaction: Transaction): boolean =>
-  transaction.status === TransactionStatus.COMPLETED;
+const HELD_PROJECT_PAGE_SIZE = 100;
 
-const isClientReleasedPayment = (transaction: Transaction): boolean =>
-  transaction.type === TransactionType.PAYMENT &&
-  getTransactionDescription(transaction).includes('released');
+const getProjectsForHeldBalance = async () => {
+  const firstPage = await projectService.getProjects({
+    PageSize: HELD_PROJECT_PAGE_SIZE,
+    PageIndex: 1,
+  });
+  const totalPages = firstPage.metadata?.totalPages ?? 1;
 
-const isClientSpentPayment = (transaction: Transaction): boolean =>
-  transaction.type === TransactionType.PAYMENT &&
-  (
-    isClientReleasedPayment(transaction) ||
-    !getTransactionDescription(transaction).includes('funding')
+  if (totalPages <= 1) {
+    return firstPage.data ?? [];
+  }
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, index) => projectService.getProjects({
+      PageSize: HELD_PROJECT_PAGE_SIZE,
+      PageIndex: index + 2,
+    }))
   );
 
-const isExpertEarnedPayment = (transaction: Transaction): boolean =>
-  transaction.type === TransactionType.PAYMENT;
+  return [
+    ...(firstPage.data ?? []),
+    ...remainingPages.flatMap(page => page.data ?? []),
+  ];
+};
+
+const getHeldMilestones = async () => {
+  const projects = await getProjectsForHeldBalance();
+  const projectDetails = await Promise.all(
+    projects.map(project => projectService.getProjectById(project.id))
+  );
+
+  return projectDetails
+    .flatMap(response => response.data?.milestones ?? []);
+};
 
 export const WalletPage = () => {
   const { user } = useAuthStore();
@@ -94,9 +119,18 @@ export const WalletPage = () => {
     queryFn: () => walletService.getPaymentHistory(),
   });
 
+  const {
+    data: heldMilestonesResponse,
+    isLoading: isLoadingProjects,
+  } = useQuery({
+    queryKey: ['wallet-held-milestones'],
+    queryFn: getHeldMilestones,
+  });
+
   const wallet = walletResponse?.data;
   const walletBalance = getWalletBalance(wallet);
   const transactions = useMemo(() => historyResponse?.data || [], [historyResponse?.data]);
+  const heldMilestones = useMemo(() => heldMilestonesResponse || [], [heldMilestonesResponse]);
   
   // High #2: Runtime type guard for amount to prevent NaN poison
   const validTx = useMemo(() => 
@@ -104,27 +138,13 @@ export const WalletPage = () => {
     [transactions]
   );
 
-  const isLoading = isLoadingWallet;
+  const isLoading = isLoadingWallet || isLoadingProjects;
 
-  const totals = useMemo(() => {
-    const spent = validTx
-      .filter(t => isCompletedTransaction(t) && isClientSpentPayment(t))
-      .reduce((acc, t) => acc + t.amount, 0);
-    
-    const earned = validTx
-      .filter(t => isCompletedTransaction(t) && isExpertEarnedPayment(t))
-      .reduce((acc, t) => acc + t.amount, 0);
-
-    const inEscrow = isClient
-      ? validTx
-        .filter(t => t.type === TransactionType.PAYMENT)
-        .reduce((acc, t) => acc + t.amount, 0)
-      : validTx
-        .filter(t => t.status === TransactionStatus.PENDING)
-        .reduce((acc, t) => acc + t.amount, 0);
-
-    return { spent, earned, inEscrow };
-  }, [isClient, validTx]);
+  const heldBalance = useMemo(() => (
+    heldMilestones
+      .filter(milestone => HELD_MILESTONE_STATUSES.has(Number(milestone.status)))
+      .reduce((acc, milestone) => acc + Number(milestone.amount || 0), 0)
+  ), [heldMilestones]);
 
   if (isLoading) {
     return (
@@ -172,9 +192,7 @@ export const WalletPage = () => {
         <div className="lg:col-span-2 space-y-8">
            <WalletBalanceCard 
              balance={walletBalance} 
-             inEscrow={totals.inEscrow}
-             totalStats={isClient ? totals.spent : totals.earned}
-             isClient={isClient}
+             heldBalance={heldBalance}
            />
            <SpendingChart transactions={validTx} isClient={isClient} />
         </div>
