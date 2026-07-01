@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useMemo, useState } from 'react';
 import { useQueries, useQuery } from '@tanstack/react-query';
+import { useJobStatusUpdates } from '../hooks/useJobStatusUpdates';
 import { projectService } from '@/features/projects/services';
 import { jobService } from '@/features/jobs/services';
 import { proposalService } from '@/features/proposals/services';
@@ -48,6 +49,9 @@ const getJobBudgetLabel = (job: Job) => {
 };
 
 export const MyProjectsPage = () => {
+  // Setup real-time job status updates
+  useJobStatusUpdates();
+
   const [filter, setFilter] = useState<StatusFilter>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
@@ -76,8 +80,8 @@ export const MyProjectsPage = () => {
 
   const isLoading = isLoadingProjects || isLoadingJobs;
 
-  const displayJobs = useMemo(() => (
-    jobs.map((job, index) => {
+  const displayJobs = useMemo(() => {
+    return jobs.map((job, index) => {
       const project = projects.find(item => item.jobId === job.id);
       const status = project ? normalizeProjectStatusForJobCard(project.status) : normalizeJobStatus(job.status);
       const proposalCount = proposalCountQueries[index]?.data?.data?.length ?? 0;
@@ -95,8 +99,8 @@ export const MyProjectsPage = () => {
         projectId: project?.id,
       };
     })
-    .filter(job => job.status !== 'cancelled')
-  ), [jobs, projects, proposalCountQueries]);
+    .filter(job => job.status !== 'cancelled');
+  }, [jobs, projects, proposalCountQueries]);
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const filteredJobs = useMemo(() => (
