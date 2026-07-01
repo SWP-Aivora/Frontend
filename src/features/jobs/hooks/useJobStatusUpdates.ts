@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { chatService } from '@/features/chat/services';
+import type { Job } from '../types';
 
 export interface JobStatusPayload {
   jobId: string;
@@ -22,12 +23,12 @@ export const useJobStatusUpdates = () => {
       });
 
       // Update specific job in cache if needed
-      queryClient.setQueryData(['clientJobs'], (oldData: { data?: any[] } | undefined) => {
+      queryClient.setQueryData(['clientJobs'], (oldData: { data?: Job[] } | undefined) => {
         if (!oldData?.data) return oldData;
 
         return {
           ...oldData,
-          data: oldData.data.map((job: any) =>
+          data: oldData.data.map((job: Job) =>
             job.id === data.jobId
               ? {
                   ...job,

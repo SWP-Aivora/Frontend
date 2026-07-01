@@ -6,8 +6,6 @@ import type { Message } from '../types';
 import { useAuthStore } from '@/features/auth/store';
 
 export const useMessages = (conversationId: string, params?: Record<string, unknown>) => {
-  const queryClient = useQueryClient();
-
   return useQuery({
     queryKey: ['messages', conversationId, params],
     queryFn: () => chatService.getMessages(conversationId, params),

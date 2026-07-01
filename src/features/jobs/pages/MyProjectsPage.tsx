@@ -80,8 +80,8 @@ export const MyProjectsPage = () => {
 
   const isLoading = isLoadingProjects || isLoadingJobs;
 
-  const displayJobs = useMemo(() => (
-    jobs.map((job, index) => {
+  const displayJobs = useMemo(() => {
+    return jobs.map((job, index) => {
       const project = projects.find(item => item.jobId === job.id);
       const status = project ? normalizeProjectStatusForJobCard(project.status) : normalizeJobStatus(job.status);
       const proposalCount = proposalCountQueries[index]?.data?.data?.length ?? 0;
@@ -99,8 +99,8 @@ export const MyProjectsPage = () => {
         projectId: project?.id,
       };
     })
-    .filter(job => job.status !== 'cancelled')
-  ), [jobs, projects, proposalCountQueries]);
+    .filter(job => job.status !== 'cancelled');
+  }, [jobs, projects, proposalCountQueries]);
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const filteredJobs = useMemo(() => (
