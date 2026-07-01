@@ -36,3 +36,12 @@ export interface Message {
 export interface SendMessagePayload {
   content: string;
 }
+
+export interface NewMessagePayload {
+  conversationId: string;
+  senderId: string;
+  senderName: string;
+  content: string;
+  createdAt: string;
+  attachmentUrl?: string;
+}

@@ -61,9 +61,38 @@ const mapConversationResponse = (item: Record<string, unknown>, currentUserId?: 
 class ChatService extends BaseService<Conversation> {
   private readonly chatConnectionPool = new Map<string, ChatConnectionPoolEntry>();
   private activeChatConnectionKey: string | null = null;
+  private callbacks: ChatCallbacks = {};
 
   constructor() {
     super(API_ENDPOINTS.MESSAGES.CONVERSATIONS);
+  }
+
+  /**
+   * Set callbacks for real-time events
+   */
+  setCallbacks(callbacks: ChatCallbacks): void {
+    this.callbacks = callbacks;
+  }
+
+  /**
+   * Listen to new messages
+   */
+  onMessage(callback: (message: NewMessagePayload) => void): void {
+    this.callbacks.onMessage = callback;
+  }
+
+  /**
+   * Listen to typing indicators
+   */
+  onTyping(callback: (data: { userId: string; isTyping: boolean }) => void): void {
+    this.callbacks.onTyping = callback;
+  }
+
+  /**
+   * Listen to job status updates
+   */
+  onJobStatusUpdate(callback: (data: { jobId: string; status: string; title?: string }) => void): void {
+    this.callbacks.onJobStatusUpdate = callback;
   }
 
   private getChatConnectionKey(token: string): string {
@@ -78,6 +107,9 @@ class ChatService extends BaseService<Conversation> {
       })
       .withAutomaticReconnect()
       .build();
+
+    this.setupMessageListeners(connection);
+    this.setupJobStatusListeners(connection);
 
     connection.onclose(() => {
       const currentEntry = this.chatConnectionPool.get(connectionKey);
@@ -124,6 +156,36 @@ class ChatService extends BaseService<Conversation> {
     }
 
     return connection.state;
+  }
+
+  private setupMessageListeners(connection: signalR.HubConnection): void {
+    // Listen for new messages
+    connection.on('ReceiveMessage', (message: NewMessagePayload) => {
+      console.log('New message received:', message);
+      this.callbacks.onMessage?.(message);
+    });
+
+    // Listen for typing indicators
+    connection.on('UserTyping', (data: { userId: string; isTyping: boolean }) => {
+      console.log('User typing:', data);
+      this.callbacks.onTyping?.(data);
+    });
+
+    connection.onreconnected(() => {
+      console.log('SignalR reconnected');
+    });
+
+    connection.onreconnecting(() => {
+      console.log('SignalR reconnecting');
+    });
+  }
+
+  private setupJobStatusListeners(connection: signalR.HubConnection): void {
+    // Listen for job status updates
+    connection.on('JobStatusUpdated', (data: { jobId: string; status: string; title?: string }) => {
+      console.log('Job status updated:', data);
+      this.callbacks.onJobStatusUpdate?.(data);
+    });
   }
 
   private async ensureChatConnection(token: string): Promise<signalR.HubConnection> {

@@ -4,7 +4,7 @@ import { ChatBox } from '../components/ChatBox';
 import { ChatHeader } from '../components/ChatHeader';
 import { EmptyState } from '../components/EmptyState';
 import { useConversations } from '../hooks/useConversations';
-import { useMessages, useMarkRead, useSendMessage } from '../hooks/useMessages';
+import { useMessages, useRealTimeMessages, useMarkRead, useSendMessage } from '../hooks/useMessages';
 import type { Conversation } from '../types';
 import { Info, ChevronRight, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
@@ -43,14 +43,17 @@ export const ChatWorkspacePage = () => {
     PageSize: 100
   });
   
-  const { 
-    data: messagesData, 
+  const {
+    data: messagesData,
     isLoading: isLoadingMessages,
     isError: isMessagesError,
     error: messagesError,
     refetch: refetchMessages
   } = useMessages(selectedConversationId || '');
-  
+
+  // Setup real-time message updates
+  useRealTimeMessages(selectedConversationId || '');
+
   const { mutate: markAsRead } = useMarkRead();
   const { mutateAsync: sendMessage, isPending: isSendingMessage } = useSendMessage(selectedConversationId || '');
 
