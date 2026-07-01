@@ -13,6 +13,19 @@ export const TransactionStatus = {
 } as const;
 export type TransactionStatus = (typeof TransactionStatus)[keyof typeof TransactionStatus];
 
+export const WalletTransactionType = {
+  DEPOSIT: TransactionType.DEPOSIT,
+  WITHDRAWAL: TransactionType.WITHDRAWAL,
+  PAYMENT: TransactionType.PAYMENT,
+  REFUND: TransactionType.REFUND,
+} as const satisfies Record<string, TransactionType>;
+
+export const WalletTransactionStatus = {
+  PENDING: TransactionStatus.PENDING,
+  COMPLETED: TransactionStatus.COMPLETED,
+  FAILED: TransactionStatus.FAILED,
+} as const satisfies Record<string, TransactionStatus>;
+
 export interface Wallet {
   id: string;
   userId: string;
@@ -35,4 +48,17 @@ export interface Transaction {
 
 export interface DepositRequest {
   amount: number;
+  paymentMethod?: string | null;
+  paymentToken?: string | null;
+  description?: string | null;
+}
+
+export interface VnPayDepositRequest {
+  amount: number;
+}
+
+export interface WithdrawRequest {
+  amount: number;
+  description?: string | null;
+  paymentMethod?: string | null;
 }

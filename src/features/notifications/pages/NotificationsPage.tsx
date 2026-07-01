@@ -44,11 +44,7 @@ export const NotificationsPage = () => {
   const unreadCount = unreadResponse?.data || 0;
 
   // Mutations
-  const { 
-    markAsRead, 
-    markAllAsRead, 
-    isMarkingAllAsRead 
-  } = useNotificationActions();
+  const { markAsRead } = useNotificationActions();
 
   const handleRetry = () => {
     refetchNotifications();
@@ -85,37 +81,13 @@ export const NotificationsPage = () => {
 
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto w-full pb-8">
-      {/* Hero Section */}
-      <div className="bg-white border border-slate-200 rounded-xl p-8 relative overflow-hidden shadow-sm flex flex-col md:flex-row gap-6 md:items-center justify-between">
-        <div className="absolute top-0 left-0 w-[300px] h-full bg-blue-50/80 -z-10" />
-        
-        <div className="flex items-center gap-6 z-10">
-          <div className="size-14 bg-primary rounded-xl flex items-center justify-center shadow-md">
-            <span className="text-white font-bold text-2xl">N</span>
-          </div>
-          <div>
-            <div className="bg-blue-50 border border-primary/20 px-3 py-1 rounded-full w-fit mb-2">
-              <span className="text-xs font-bold text-primary uppercase">SHARED CENTER</span>
-            </div>
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Manage All Notifications</h1>
-            <p className="text-[13px] text-slate-500 mt-2 max-w-md">
-              Review important updates from proposals, projects, milestones, payments, disputes, reviews, messages, and account activity.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-2 z-10">
-          <button 
-            onClick={() => markAllAsRead()}
-            disabled={isMarkingAllAsRead || hasError}
-            className="bg-primary text-white px-5 py-2.5 rounded-full text-xs font-semibold shadow-sm hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isMarkingAllAsRead ? 'Marking...' : 'Mark All Read'}
-          </button>
-          <button className="bg-white border border-slate-200 text-primary px-5 py-2.5 rounded-full text-xs font-semibold hover:bg-slate-50 transition-colors">
-            Settings
-          </button>
-        </div>
+      <div className="rounded-lg border border-slate-100 bg-white px-5 py-4 shadow-sm">
+        <h1 className="text-2xl font-black leading-tight tracking-tight text-slate-900">
+          Manage All Notifications
+        </h1>
+        <p className="mt-2 max-w-3xl text-sm font-medium leading-6 text-slate-500">
+          Review important updates from proposals, projects, milestones, payments, disputes, reviews, messages, and account activity.
+        </p>
       </div>
 
       {/* Filters */}
@@ -133,7 +105,7 @@ export const NotificationsPage = () => {
         {/* Main List */}
         <div className="flex-1">
           {hasError ? (
-            <div className="bg-white border border-slate-200 rounded-xl p-12 text-center flex flex-col items-center">
+            <div className="bg-white border border-slate-200 rounded-lg p-12 text-center flex flex-col items-center">
               <div className="size-16 bg-rose-50 rounded-full flex items-center justify-center mb-4">
                 <AlertCircle className="size-8 text-rose-500" />
               </div>
@@ -151,21 +123,20 @@ export const NotificationsPage = () => {
               notifications={filteredNotifications}
               isLoading={isLoading}
               onMarkAsRead={markAsRead}
-              onMarkAllAsRead={markAllAsRead}
             />
           )}
         </div>
 
         {/* Right Rail (Priority Updates) */}
         <div className="w-full xl:w-[320px] shrink-0">
-          <div className="bg-red-50 rounded-xl p-5 border border-red-100">
+          <div className="bg-red-50 rounded-lg p-5 border border-red-100">
             <div className="bg-red-100 text-red-600 px-3 py-1 rounded-full w-fit mb-3">
               <span className="text-xs font-bold uppercase">{disputeNotifications.length} ACTIVE</span>
             </div>
             <h3 className="text-sm font-semibold text-slate-900 mb-2">Priority updates</h3>
 
             {disputeNotifications.length === 0 ? (
-              <div className="rounded-xl bg-white/70 border border-red-100 p-4 mt-4">
+              <div className="rounded-lg bg-white/70 border border-red-100 p-4 mt-4">
                 <p className="text-sm font-semibold text-slate-900">No priority updates</p>
                 <p className="text-xs text-slate-600 leading-relaxed mt-1">
                   You have no dispute notifications right now.
@@ -183,7 +154,7 @@ export const NotificationsPage = () => {
                       type="button"
                       onClick={() => handlePriorityClick(notification.linkUrl)}
                       disabled={!hasLink}
-                      className="bg-white border border-red-100 rounded-xl p-4 text-left transition-colors enabled:hover:bg-red-50 disabled:cursor-default"
+                      className="bg-white border border-red-100 rounded-lg p-4 text-left transition-colors enabled:hover:bg-red-50 disabled:cursor-default"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <span className="text-xs font-semibold text-slate-900 line-clamp-1">

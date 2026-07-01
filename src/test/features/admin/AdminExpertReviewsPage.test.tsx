@@ -110,7 +110,7 @@ describe('AdminExpertReviewsPage', () => {
     );
 
     expect(screen.getByText('Expert reviews API is unavailable')).toBeInTheDocument();
-    expect(screen.getByText(/local backend does not expose GET \/api\/v1\/admin\/expert-reviews/i)).toBeInTheDocument();
+    expect(screen.getByText(/expert review data is not available from the local backend yet/i)).toBeInTheDocument();
   });
 
   it('renders list of expert reviews successfully', () => {

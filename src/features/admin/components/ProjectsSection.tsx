@@ -1,28 +1,24 @@
 import { Link } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Layout } from 'lucide-react';
+import { ChevronRight, Layout } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AdminProjectItem } from '../types';
 
 interface ProjectsSectionProps {
   activeProjects: number;
   paginatedProjects: AdminProjectItem[];
-  projectPage: number;
-  totalProjectPages: number;
-  onPageChange: (pageUpdater: (page: number) => number) => void;
 }
 
 export const ProjectsSection = ({
   activeProjects,
   paginatedProjects,
-  projectPage,
-  totalProjectPages,
-  onPageChange,
 }: ProjectsSectionProps) => (
   <div className="lg:col-span-2">
-    <div className="bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden h-fit flex flex-col">
+    <div className="bg-white border border-slate-100 rounded-lg shadow-sm overflow-hidden h-fit flex flex-col">
       <div className="p-6 border-b border-slate-50 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
-          <h3 className="text-xl font-black text-slate-900 tracking-tight">Active Projects</h3>
+          <div className="flex flex-wrap items-center gap-3">
+            <h3 className="text-xl font-black text-slate-900 tracking-tight">Active Projects</h3>
+          </div>
           <div className="flex items-center gap-4 mt-2">
             <span className="text-slate-600 text-base font-bold">
               <span className="text-primary">{activeProjects}</span> Ongoing
@@ -39,7 +35,7 @@ export const ProjectsSection = ({
         </div>
       </div>
 
-      <div className="overflow-x-auto min-h-[300px]">
+      <div className="overflow-x-auto min-h-[300px] pb-2">
         {paginatedProjects.length > 0 ? (
           <table className="w-full">
             <thead className="bg-slate-50/50">
@@ -81,7 +77,7 @@ export const ProjectsSection = ({
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <p className="text-sm font-black text-slate-900">${project.amount.toLocaleString()}</p>
+                    <p className="text-sm font-black text-slate-900">{project.amount.toLocaleString()} Aivora Coin</p>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter mt-0.5">
                       {project.paymentStatus}
                     </p>
@@ -98,27 +94,6 @@ export const ProjectsSection = ({
         )}
       </div>
 
-      <div className="p-5 border-t border-slate-50 mt-auto bg-slate-50/30 flex items-center justify-center gap-6">
-        <button
-          onClick={() => onPageChange((page) => Math.max(1, page - 1))}
-          disabled={projectPage === 1}
-          className="p-2 bg-white border border-slate-100 rounded-lg text-slate-400 hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
-        >
-          <ChevronLeft className="size-4" />
-        </button>
-
-        <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">
-          Page <span className="text-slate-900">{projectPage}</span> of {totalProjectPages}
-        </span>
-
-        <button
-          onClick={() => onPageChange((page) => Math.min(totalProjectPages, page + 1))}
-          disabled={projectPage === totalProjectPages || totalProjectPages === 0}
-          className="p-2 bg-white border border-slate-100 rounded-lg text-slate-400 hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
-        >
-          <ChevronRight className="size-4" />
-        </button>
-      </div>
     </div>
   </div>
 );

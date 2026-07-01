@@ -92,7 +92,7 @@ export const AdminUserDetailPage = () => {
 
   if (isUserError && !isPreviewMode) {
     return (
-      <div className="bg-rose-50 border border-rose-100 rounded-xl p-10 text-center max-w-2xl mx-auto my-10">
+      <div className="bg-rose-50 border border-rose-100 rounded-lg p-10 text-center max-w-2xl mx-auto my-10">
         <AlertCircle className="size-12 text-rose-500 mx-auto mb-4" />
         <h2 className="text-lg font-black text-rose-900 mb-2">Failed to load user details</h2>
         <p className="text-rose-600 font-medium">{(userError as Error)?.message || 'Something went wrong.'}</p>
@@ -120,7 +120,7 @@ export const AdminUserDetailPage = () => {
       </Link>
 
       {/* Header & Basic Profile Info */}
-      <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+      <div className="bg-white border border-slate-100 rounded-lg p-4 shadow-sm flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
         <div className="flex items-center gap-4">
           <div className={cn(
             "size-14 rounded-full flex items-center justify-center text-lg font-bold text-white shadow-inner",
@@ -162,7 +162,7 @@ export const AdminUserDetailPage = () => {
             <button 
               onClick={handleSuspend}
               className={cn(
-                "px-4 py-1.5 rounded-xl text-xs font-bold transition-colors shadow-sm",
+                "px-4 py-1.5 rounded-lg text-xs font-bold transition-colors shadow-sm",
                 user.status === 'Suspended' ? "bg-slate-100 text-slate-700 hover:bg-slate-200" : "bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-100"
               )}
             >
@@ -178,10 +178,10 @@ export const AdminUserDetailPage = () => {
           
           {/* Admin Specific Content */}
           {user.role === 'Admin' && (
-            <div className="bg-white border border-slate-100 rounded-xl p-6 shadow-sm">
+            <div className="bg-white border border-slate-100 rounded-lg p-6 shadow-sm">
               <h3 className="text-lg font-black text-slate-900 mb-4">Admin Privileges</h3>
               <p className="text-sm text-slate-500">This user has full access to the AIVORA admin dashboard, including user management, dispute resolution, and system settings.</p>
-              <div className="mt-6 flex items-center gap-3 p-4 bg-purple-50 rounded-xl border border-purple-100">
+              <div className="mt-6 flex items-center gap-3 p-4 bg-purple-50 rounded-lg border border-purple-100">
                  <ShieldAlert className="size-5 text-purple-600" />
                  <p className="text-xs font-bold text-purple-700">Internal Account</p>
               </div>
@@ -191,22 +191,22 @@ export const AdminUserDetailPage = () => {
           {/* Client Specific Content */}
           {user.role === 'Client' && (
             <>
-              <div className="bg-white border border-slate-100 rounded-xl p-6 shadow-sm">
+              <div className="bg-white border border-slate-100 rounded-lg p-6 shadow-sm">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-black text-slate-900">Job Posts & Projects</h3>
                 </div>
                 <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                  <div className="bg-slate-50 border border-slate-100 rounded-lg p-4">
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Open Jobs</p>
                     <p className="text-2xl font-black text-slate-900">3</p>
                   </div>
-                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                  <div className="bg-slate-50 border border-slate-100 rounded-lg p-4">
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Active Projects</p>
                     <p className="text-2xl font-black text-slate-900">{user.projectsCount ?? 0}</p>
                   </div>
                 </div>
                 {/* Empty State for tables since we don't have detailed arrays for specific user projects yet */}
-                <div className="text-center py-8 bg-slate-50/50 rounded-xl border border-slate-100 border-dashed">
+                <div className="text-center py-8 bg-slate-50/50 rounded-lg border border-slate-100 border-dashed">
                   <Briefcase className="size-8 text-slate-300 mx-auto mb-2" />
                   <p className="text-xs font-medium text-slate-500">Project list details are not fully populated in this preview.</p>
                 </div>
@@ -217,13 +217,13 @@ export const AdminUserDetailPage = () => {
           {/* Expert Specific Content */}
           {user.role === 'Expert' && (
             <>
-              <div className="bg-white border border-slate-100 rounded-xl p-6 shadow-sm">
+              <div className="bg-white border border-slate-100 rounded-lg p-6 shadow-sm">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-black text-slate-900">Expertise & Verification</h3>
                 </div>
                 
                 {user.verificationState === 'Review' ? (
-                  <div className="mb-6 p-4 bg-orange-50 rounded-xl border border-orange-100 flex items-start gap-3">
+                  <div className="mb-6 p-4 bg-orange-50 rounded-lg border border-orange-100 flex items-start gap-3">
                     <AlertCircle className="size-5 text-orange-500 shrink-0 mt-0.5" />
                     <div>
                       <p className="text-xs font-bold text-orange-800">Review Requested</p>
@@ -231,7 +231,7 @@ export const AdminUserDetailPage = () => {
                     </div>
                   </div>
                 ) : user.verificationState === 'Verified' ? (
-                  <div className="mb-6 p-4 bg-emerald-50 rounded-xl border border-emerald-100 flex items-start gap-3">
+                  <div className="mb-6 p-4 bg-emerald-50 rounded-lg border border-emerald-100 flex items-start gap-3">
                     <CheckCircle2 className="size-5 text-emerald-500 shrink-0 mt-0.5" />
                     <div>
                       <p className="text-xs font-bold text-emerald-800">Fully Verified</p>
@@ -239,7 +239,7 @@ export const AdminUserDetailPage = () => {
                     </div>
                   </div>
                 ) : user.verificationState === 'Rejected' ? (
-                  <div className="mb-6 p-4 bg-rose-50 rounded-xl border border-rose-100 flex items-start gap-3">
+                  <div className="mb-6 p-4 bg-rose-50 rounded-lg border border-rose-100 flex items-start gap-3">
                     <XCircle className="size-5 text-rose-500 shrink-0 mt-0.5" />
                     <div>
                       <p className="text-xs font-bold text-rose-800">Verification Rejected</p>
@@ -263,10 +263,10 @@ export const AdminUserDetailPage = () => {
 
               {/* Pending Profile Change Review Section */}
               {pendingReview && (
-                <div className="bg-white border-2 border-primary/20 rounded-xl overflow-hidden shadow-xl shadow-primary/5 animate-in slide-in-from-bottom-4 duration-500">
+                <div className="bg-white border-2 border-primary/20 rounded-lg overflow-hidden shadow-xl shadow-primary/5 animate-in slide-in-from-bottom-4 duration-500">
                   <div className="bg-primary p-4 flex justify-between items-center">
                     <div className="flex items-center gap-3 text-white">
-                      <div className="size-10 rounded-xl bg-white/20 flex items-center justify-center border border-white/30">
+                      <div className="size-10 rounded-lg bg-white/20 flex items-center justify-center border border-white/30">
                         <Clock className="size-5" />
                       </div>
                       <div>
@@ -296,8 +296,8 @@ export const AdminUserDetailPage = () => {
                            />
                            <ComparisonField 
                              label="Hourly Rate" 
-                             current={`$${currentReviewDetail.hourlyRate.current}/hr`} 
-                             requested={`$${currentReviewDetail.hourlyRate.requested}/hr`}
+                              current={`${currentReviewDetail.hourlyRate.current} Aivora Coin/hr`} 
+                              requested={`${currentReviewDetail.hourlyRate.requested} Aivora Coin/hr`}
                              isChanged={currentReviewDetail.hourlyRate.isChanged}
                            />
                            <ComparisonField 
@@ -333,7 +333,7 @@ export const AdminUserDetailPage = () => {
                            </div>
                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                               {currentReviewDetail.portfolio.map((item: { id: string; title: string; type: string; url: string; status: string }) => (
-                                <div key={item.id} className="group p-3 bg-slate-50 hover:bg-white rounded-xl border border-slate-100 hover:border-primary/20 transition-all flex items-center justify-between">
+                                <div key={item.id} className="group p-3 bg-slate-50 hover:bg-white rounded-lg border border-slate-100 hover:border-primary/20 transition-all flex items-center justify-between">
                                   <div className="flex items-center gap-3">
                                     <div className="size-10 rounded-lg bg-white flex items-center justify-center border border-slate-100 group-hover:border-primary/20">
                                       <span className="text-xs font-black text-primary">DOC</span>
@@ -364,7 +364,7 @@ export const AdminUserDetailPage = () => {
                           <button 
                             onClick={handleApprove}
                             disabled={isProcessing}
-                            className="flex-1 bg-primary text-white py-3 rounded-xl text-xs font-black hover:bg-primary-dark transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20 disabled:opacity-50"
+                            className="flex-1 bg-primary text-white py-3 rounded-lg text-xs font-black hover:bg-primary-dark transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/20 disabled:opacity-50"
                           >
                             <CheckCircle2 className="size-4" />
                             Approve All Changes
@@ -372,7 +372,7 @@ export const AdminUserDetailPage = () => {
                           <button 
                             onClick={() => setShowRejectModal(true)}
                             disabled={isProcessing}
-                            className="px-6 bg-rose-500 text-white py-3 rounded-xl text-xs font-black hover:bg-rose-600 transition-all flex items-center justify-center gap-2 shadow-lg shadow-rose-200 disabled:opacity-50"
+                            className="px-6 bg-rose-500 text-white py-3 rounded-lg text-xs font-black hover:bg-rose-600 transition-all flex items-center justify-center gap-2 shadow-lg shadow-rose-200 disabled:opacity-50"
                           >
                             <XCircle className="size-4" />
                             Reject
@@ -380,7 +380,7 @@ export const AdminUserDetailPage = () => {
                         </div>
                       </>
                     ) : (
-                      <div className="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                      <div className="text-center py-10 bg-slate-50 rounded-lg border border-dashed border-slate-200">
                         <AlertCircle className="size-8 text-slate-300 mx-auto mb-2" />
                         <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Failed to load comparison data</p>
                       </div>
@@ -391,25 +391,25 @@ export const AdminUserDetailPage = () => {
 
               {/* Empty state if no pending and user IS expert */}
               {!pendingReview && (
-                <div className="bg-slate-50/50 border border-slate-100 border-dashed rounded-xl p-6 text-center">
+                <div className="bg-slate-50/50 border border-slate-100 border-dashed rounded-lg p-6 text-center">
                    <CheckCircle2 className="size-8 text-slate-300 mx-auto mb-2" />
                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">No pending profile changes for this expert</p>
                 </div>
               )}
 
-              <div className="bg-white border border-slate-100 rounded-xl p-6 shadow-sm">
+              <div className="bg-white border border-slate-100 rounded-lg p-6 shadow-sm">
                 <h3 className="text-lg font-black text-slate-900 mb-4">Work History</h3>
                 <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                  <div className="bg-slate-50 border border-slate-100 rounded-lg p-4">
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Active Projects</p>
                     <p className="text-2xl font-black text-slate-900">{user.projectsCount ?? 0}</p>
                   </div>
-                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                  <div className="bg-slate-50 border border-slate-100 rounded-lg p-4">
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Proposals Submitted</p>
                     <p className="text-2xl font-black text-slate-900">{user.proposalsCount ?? 0}</p>
                   </div>
                 </div>
-                <div className="text-center py-8 bg-slate-50/50 rounded-xl border border-slate-100 border-dashed">
+                <div className="text-center py-8 bg-slate-50/50 rounded-lg border border-slate-100 border-dashed">
                   <FileText className="size-8 text-slate-300 mx-auto mb-2" />
                   <p className="text-xs font-medium text-slate-500">Proposal list details are not fully populated in this preview.</p>
                 </div>
@@ -421,7 +421,7 @@ export const AdminUserDetailPage = () => {
 
         {/* Right Column - Stats & Meta */}
         <div className="lg:w-[320px] space-y-6">
-          <div className="bg-white border border-slate-100 rounded-xl p-6 shadow-sm">
+          <div className="bg-white border border-slate-100 rounded-lg p-6 shadow-sm">
             <h3 className="text-sm font-bold text-slate-900 mb-4">Account Metadata</h3>
             <div className="space-y-4">
               <div className="flex justify-between items-center py-2 border-b border-slate-50">
@@ -461,15 +461,15 @@ export const AdminUserDetailPage = () => {
       {/* Rejection Modal */}
       {showRejectModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-           <div className="bg-white rounded-xl p-8 max-w-md w-full animate-in zoom-in-95 duration-200 shadow-2xl">
-              <div className="size-16 rounded-xl bg-rose-50 flex items-center justify-center mb-6">
+           <div className="bg-white rounded-lg p-8 max-w-md w-full animate-in zoom-in-95 duration-200 shadow-2xl">
+              <div className="size-16 rounded-lg bg-rose-50 flex items-center justify-center mb-6">
                  <AlertCircle className="size-8 text-rose-500" />
               </div>
               <h3 className="text-xl font-black text-slate-900 mb-2">Reject profile changes?</h3>
               <p className="text-slate-500 text-sm font-medium mb-6 leading-relaxed">Please provide a reason for rejection. This will be sent to the expert to help them improve their profile.</p>
               
               <textarea 
-                className="w-full h-32 bg-slate-50 border border-slate-100 rounded-xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-slate-400 placeholder:font-medium mb-6"
+                className="w-full h-32 bg-slate-50 border border-slate-100 rounded-lg p-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-slate-400 placeholder:font-medium mb-6"
                 placeholder="e.g. Portfolio links are broken, experience detail is too vague..."
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
@@ -478,7 +478,7 @@ export const AdminUserDetailPage = () => {
               <div className="flex gap-3">
                 <button 
                   onClick={() => setShowRejectModal(false)}
-                  className="flex-1 bg-slate-50 text-slate-600 py-3 rounded-xl text-xs font-black hover:bg-slate-100 transition-colors"
+                  className="flex-1 bg-slate-50 text-slate-600 py-3 rounded-lg text-xs font-black hover:bg-slate-100 transition-colors"
                 >
                   Cancel
                 </button>
@@ -486,7 +486,7 @@ export const AdminUserDetailPage = () => {
                   disabled={!rejectionReason || isProcessing}
                   onClick={handleReject}
                   className={cn(
-                    "flex-1 py-3 rounded-xl text-xs font-black transition-all",
+                    "flex-1 py-3 rounded-lg text-xs font-black transition-all",
                     !rejectionReason ? "bg-slate-200 text-slate-400" : "bg-rose-500 text-white hover:bg-rose-600 shadow-lg shadow-rose-200"
                   )}
                 >
@@ -516,11 +516,11 @@ const ComparisonField = ({ label, current, requested, isChanged }: ComparisonFie
       )}
     </div>
     <div className="grid grid-cols-1 gap-2">
-      <div className="bg-slate-50 p-2.5 rounded-xl border border-dashed border-slate-200 relative group overflow-hidden">
+      <div className="bg-slate-50 p-2.5 rounded-lg border border-dashed border-slate-200 relative group overflow-hidden">
         <span className="absolute top-1 right-2 text-[8px] font-bold text-slate-300 group-hover:text-slate-400 transition-colors uppercase">Current</span>
         <p className="text-xs font-medium text-slate-400 line-through decoration-slate-300">{current}</p>
       </div>
-      <div className="bg-emerald-50/30 p-2.5 rounded-xl border border-emerald-100 relative group overflow-hidden">
+      <div className="bg-emerald-50/30 p-2.5 rounded-lg border border-emerald-100 relative group overflow-hidden">
         <span className="absolute top-1 right-2 text-[8px] font-bold text-emerald-400/60 uppercase">Requested</span>
         <p className="text-xs font-bold text-slate-700 leading-relaxed">{requested}</p>
       </div>

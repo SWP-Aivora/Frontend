@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate, useParams } from 'react-router-dom';
 import { LoginPage } from '../features/auth/pages/LoginPage';
 import { RegisterPage } from '../features/auth/pages/RegisterPage';
 import { ProfilePage } from '../features/profiles/pages/ProfilePage';
@@ -8,7 +8,9 @@ import { ClientJobProposalsPage } from '../features/proposals/pages/ClientJobPro
 import { ProposalDetailsPage } from '../features/proposals/pages/ProposalDetailsPage';
 import { FindWorkPage } from '../features/jobs/pages/FindWorkPage';
 import { ProjectWorkspacePage } from '../features/projects/pages/ProjectWorkspacePage';
+import { ProjectDisputesPage } from '../features/disputes/pages/ProjectDisputesPage';
 import { WalletPage } from '../features/wallet/pages/WalletPage';
+import { PaymentResultPage } from '../features/wallet/pages/PaymentResultPage';
 import { JobDetailsPage } from '../features/jobs/pages/JobDetailsPage';
 import { ExpertMyProposalsPage } from '../features/proposals/pages/ExpertMyProposalsPage';
 import { ChatWorkspacePage } from '../features/chat/pages/ChatWorkspacePage';
@@ -17,6 +19,7 @@ import { UserManagementPage } from '../features/admin/pages/UserManagementPage';
 import { AdminUserDetailPage } from '../features/admin/pages/AdminUserDetailPage';
 import { AdminExpertReviewsPage } from '../features/admin/pages/AdminExpertReviewsPage';
 import { ProjectManagementPage } from '../features/admin/pages/ProjectManagementPage';
+import { AdminProjectDisputesPage } from '../features/admin/pages/AdminProjectDisputesPage';
 import { NotificationsPage } from '../features/notifications';
 import { LandingPage } from '../shared/pages/LandingPage';
 import ReviewPage from '../features/reviews/pages/ReviewPage';
@@ -34,6 +37,11 @@ import { Role } from '../shared/types/enums';
 /**
  * Global Router Configuration
  */
+const ProposalCreateRouteRedirect = () => {
+  const { jobId } = useParams();
+  return <Navigate to={`/expert/jobs/${jobId ?? ''}`} replace />;
+};
+
 export const router = createBrowserRouter([
   {
     path: '/',
@@ -55,6 +63,18 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
+  {
+    path: '/payment-result',
+    element: (
+      <ProtectedRoute allowedRoles={[Role.CLIENT]}>
+        <PaymentResultPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/jobs/:jobId/proposals/new',
+    element: <ProposalCreateRouteRedirect />,
+  },
   
   // Client Routes
   {
@@ -71,12 +91,14 @@ export const router = createBrowserRouter([
       { path: 'projects/:id/proposals', element: <ClientJobProposalsPage /> },
       { path: 'proposals/:proposalId', element: <ProposalDetailsPage /> },
       { path: 'projects/:id/workspace', element: <ProjectWorkspacePage /> },
+      { path: 'projects/:id/disputes', element: <ProjectDisputesPage /> },
       { path: 'experts', element: <SearchExpertsPage /> },
       { path: 'experts/:id', element: <ExpertPublicProfilePage /> },
       { path: 'post-job', element: <PostJobPage /> },
       { path: 'messages', element: <ChatWorkspacePage /> },
       { path: 'notifications', element: <NotificationsPage /> },
       { path: 'wallet', element: <WalletPage /> },
+      { path: 'payment-result', element: <PaymentResultPage /> },
       { path: 'settings', element: <SettingsPage /> },
     ],
   },
@@ -98,6 +120,7 @@ export const router = createBrowserRouter([
       { path: 'proposals', element: <ExpertMyProposalsPage /> },
       { path: 'proposals/:proposalId', element: <ProposalDetailsPage /> },
       { path: 'projects/:id/workspace', element: <ProjectWorkspacePage /> },
+      { path: 'projects/:id/disputes', element: <ProjectDisputesPage /> },
       { path: 'my-jobs', element: <ExpertMyJobsPage /> },
       { path: 'messages', element: <ChatWorkspacePage /> },
       { path: 'notifications', element: <NotificationsPage /> },
@@ -119,6 +142,7 @@ export const router = createBrowserRouter([
       { path: 'users', element: <UserManagementPage /> },
       { path: 'users/:id', element: <AdminUserDetailPage /> },
       { path: 'projects', element: <ProjectManagementPage /> },
+      { path: 'projects/:projectId/disputes', element: <AdminProjectDisputesPage /> },
       { path: 'expert-reviews', element: <AdminExpertReviewsPage /> },
       { path: 'messages', element: <ChatWorkspacePage /> },
       { path: 'notifications', element: <NotificationsPage /> },

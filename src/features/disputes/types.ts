@@ -88,6 +88,8 @@ export interface Dispute {
   expertName: string;
   /** Backend-provided display name for the user who opened the dispute. */
   openerName?: string;
+  /** Backend-provided identifier for the user who opened the dispute. */
+  openerId?: string;
   /** Backend-provided display name for the party the dispute was opened against. */
   againstUserName?: string;
   /** Short reason selected or entered by the opener. */
@@ -134,6 +136,14 @@ export interface AddEvidenceRequest {
   content: string;
   /** Optional uploaded file URL supporting the evidence. */
   fileUrl?: string | null;
+}
+
+/**
+ * API payload used by an admin to request more evidence from the dispute opener.
+ */
+export interface RequestEvidenceRequest {
+  /** Admin note shown in the evidence request notification. */
+  note: string;
 }
 
 /**

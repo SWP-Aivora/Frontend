@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
 import { DashboardHeader } from '../components/DashboardHeader';
 import { ProjectsSection } from '../components/ProjectsSection';
@@ -9,9 +8,8 @@ import { useAdminDashboard, useAdminRecentActivity } from '../hooks/useAdminDash
 const PROJECTS_PER_PAGE = 10;
 
 export const AdminDashboardPage = () => {
-  const [projectPage, setProjectPage] = useState(1);
   const { data: summary, isLoading, isError, refetch } = useAdminDashboard({
-    projectPage,
+    projectPage: 1,
     projectLimit: PROJECTS_PER_PAGE,
   });
   const {
@@ -27,7 +25,6 @@ export const AdminDashboardPage = () => {
   const isPartialData = !isError && summary?.healthAlerts?.some((alert) => alert.title.includes('API Unavailable'));
 
   const paginatedProjects = summary?.activeProjectsList || [];
-  const totalProjectPages = summary?.activeProjectsPagination?.totalPages || 1;
 
   if (isLoading) {
     return (
@@ -52,9 +49,6 @@ export const AdminDashboardPage = () => {
         <ProjectsSection
           activeProjects={summary?.activeProjects || 0}
           paginatedProjects={paginatedProjects}
-          projectPage={projectPage}
-          totalProjectPages={totalProjectPages}
-          onPageChange={setProjectPage}
         />
 
         <RecentActivitySection

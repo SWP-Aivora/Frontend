@@ -8,6 +8,7 @@ import type { ExpertProfileResponse } from '../types';
 
 type ExperienceFilter = 'all' | '1-2' | '3-5' | '5+';
 type RateFilter = 'all' | '10-30' | '30-60' | '60+';
+type SortOption = 'mostRating' | 'leastRating';
 
 const experienceOptions: { value: ExperienceFilter; label: string }[] = [
   { value: 'all', label: 'Any experience' },
@@ -18,9 +19,9 @@ const experienceOptions: { value: ExperienceFilter; label: string }[] = [
 
 const rateOptions: { value: RateFilter; label: string }[] = [
   { value: 'all', label: 'Any hourly rate' },
-  { value: '10-30', label: '$10 - $30 / hr' },
-  { value: '30-60', label: '$30 - $60 / hr' },
-  { value: '60+', label: '$60+ / hr' },
+  { value: '10-30', label: '10 - 30 Aivora Coin / hr' },
+  { value: '30-60', label: '30 - 60 Aivora Coin / hr' },
+  { value: '60+', label: '60+ Aivora Coin / hr' },
 ];
 
 const getExpertSkills = (expert: ExpertProfileResponse): string[] => (
@@ -47,6 +48,7 @@ export const SearchExpertsPage = () => {
   const [submittedSearch, setSubmittedSearch] = useState('');
   const [experienceFilter, setExperienceFilter] = useState<ExperienceFilter>('all');
   const [rateFilter, setRateFilter] = useState<RateFilter>('all');
+  const [sortOption, setSortOption] = useState<SortOption>('mostRating');
 
   const { data: response, isLoading, isError } = useQuery({
     queryKey: ['experts', 'search', submittedSearch],
@@ -54,10 +56,17 @@ export const SearchExpertsPage = () => {
   });
 
   const experts = response?.data || [];
-  const filteredExperts = experts.filter((expert) => (
-    matchesExperience(expert.experienceYears ?? 0, experienceFilter)
-      && matchesRate(expert.hourlyRate, rateFilter)
-  ));
+  const filteredExperts = experts
+    .filter((expert) => (
+      matchesExperience(expert.experienceYears ?? 0, experienceFilter)
+        && matchesRate(expert.hourlyRate, rateFilter)
+    ))
+    .sort((a, b) => {
+      const ratingDelta = (b.rating ?? 0) - (a.rating ?? 0);
+      const reviewDelta = (b.totalReviews ?? 0) - (a.totalReviews ?? 0);
+      const result = ratingDelta || reviewDelta;
+      return sortOption === 'mostRating' ? result : -result;
+    });
 
   const handleSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -69,43 +78,28 @@ export const SearchExpertsPage = () => {
     setSubmittedSearch('');
     setExperienceFilter('all');
     setRateFilter('all');
+    setSortOption('mostRating');
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-20">
-      <div className="bg-gradient-to-r from-blue-900 to-slate-900 rounded-[32px] p-8 md:p-12 text-white relative overflow-hidden shadow-xl">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-20">
+      <div className="bg-brand-blue-dark rounded-[20px] px-8 py-7 text-white relative overflow-hidden shadow-xl">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/20 blur-[100px] rounded-full mix-blend-screen pointer-events-none" />
         <div className="absolute bottom-0 left-10 w-[300px] h-[300px] bg-emerald-500/20 blur-[80px] rounded-full mix-blend-screen pointer-events-none" />
 
-        <div className="relative z-10 max-w-3xl">
-          <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4">
+        <div className="relative z-10">
+          <h1 className="text-2xl lg:text-[34px] 2xl:text-4xl font-black tracking-tight mb-3 lg:whitespace-nowrap">
             Find the right AI Expert for your project.
           </h1>
-          <p className="text-blue-100 text-lg mb-8 max-w-2xl">
+          <p className="text-blue-100 text-base max-w-3xl">
             Browse our vetted directory of top-tier AI developers, data scientists, and automation specialists.
           </p>
-
-          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-slate-400" />
-              <input
-                type="text"
-                value={searchInput}
-                onChange={(event) => setSearchInput(event.target.value)}
-                placeholder="Search by keyword, skill, or name..."
-                className="w-full h-14 pl-12 pr-4 rounded-2xl bg-white/10 border border-white/20 text-white placeholder:text-slate-400 focus:bg-white focus:text-slate-900 focus:outline-none focus:ring-4 focus:ring-blue-500/30 transition-all text-lg"
-              />
-            </div>
-            <Button type="submit" className="h-14 px-8 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg shrink-0">
-              Search
-            </Button>
-          </form>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
         <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
+          <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-bold text-slate-900 flex items-center gap-2">
                 <SlidersHorizontal className="size-4" /> Filters
@@ -127,7 +121,7 @@ export const SearchExpertsPage = () => {
                           checked={experienceFilter === option.value}
                           onChange={() => setExperienceFilter(option.value)}
                         />
-                        <div className="w-5 h-5 rounded-md border-2 border-slate-200 peer-checked:border-primary peer-checked:bg-primary transition-colors flex items-center justify-center">
+                        <div className="w-5 h-5 rounded-md border-2 border-slate-200 peer-checked:border-brand-blue-dark peer-checked:bg-brand-blue-dark transition-colors flex items-center justify-center">
                           <CheckCircle2 className="size-3 text-white opacity-0 peer-checked:opacity-100" />
                         </div>
                       </div>
@@ -152,7 +146,7 @@ export const SearchExpertsPage = () => {
                           checked={rateFilter === option.value}
                           onChange={() => setRateFilter(option.value)}
                         />
-                        <div className="w-5 h-5 rounded-md border-2 border-slate-200 peer-checked:border-primary peer-checked:bg-primary transition-colors flex items-center justify-center">
+                        <div className="w-5 h-5 rounded-md border-2 border-slate-200 peer-checked:border-brand-blue-dark peer-checked:bg-brand-blue-dark transition-colors flex items-center justify-center">
                           <CheckCircle2 className="size-3 text-white opacity-0 peer-checked:opacity-100" />
                         </div>
                       </div>
@@ -168,15 +162,43 @@ export const SearchExpertsPage = () => {
         </div>
 
         <div className="lg:col-span-3 space-y-4">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-lg font-bold text-slate-900">{filteredExperts.length} Experts found</h2>
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-slate-500 font-medium">Sort by:</span>
-              <select className="bg-transparent border-none font-bold text-slate-900 focus:ring-0 cursor-pointer">
-                <option>Best Match</option>
-                <option>Highest Rated</option>
-                <option>Lowest Hourly Rate</option>
-              </select>
+          <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm space-y-3">
+            <div className="flex flex-col xl:flex-row gap-3 xl:items-center">
+              <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3 flex-1">
+                <div className="relative flex-1">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchInput}
+                    onChange={(event) => setSearchInput(event.target.value)}
+                    placeholder="Search by keyword, skill, or name..."
+                    className="w-full h-11 pl-12 pr-4 rounded-xl bg-slate-50 border border-slate-100 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 transition-all text-sm font-medium"
+                  />
+                </div>
+                <Button type="submit" className="h-11 px-6 rounded-xl bg-brand-blue-dark hover:bg-brand-blue-dark/90 text-white font-bold shrink-0">
+                  Search
+                </Button>
+              </form>
+
+              <div className="flex items-center gap-2 text-sm xl:shrink-0">
+                <span className="text-slate-500 font-medium">Sort by rating:</span>
+                <select
+                  value={sortOption}
+                  onChange={(event) => setSortOption(event.target.value as SortOption)}
+                  className="h-11 rounded-xl border border-slate-100 bg-slate-50 px-3 font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 cursor-pointer"
+                >
+                  <option value="mostRating">Most stars</option>
+                  <option value="leastRating">Least stars</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex items-center justify-between border-t border-slate-50 pt-3">
+              <h2 className="text-sm font-black text-slate-900">{filteredExperts.length} experts found</h2>
+              {submittedSearch && (
+                <span className="text-xs font-bold text-slate-400">
+                  Search: {submittedSearch}
+                </span>
+              )}
             </div>
           </div>
 
@@ -205,7 +227,7 @@ export const SearchExpertsPage = () => {
                 return (
                   <div
                     key={profileId}
-                    className="bg-white border border-slate-100 hover:border-blue-200 rounded-[24px] p-6 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group"
+                    className="bg-white border border-slate-100 hover:border-blue-200 rounded-[20px] p-6 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group"
                   >
                     <div className="flex flex-col md:flex-row gap-6">
                       <div className="flex gap-4 md:w-1/3 shrink-0">
@@ -254,15 +276,15 @@ export const SearchExpertsPage = () => {
                       <div className="flex flex-col items-start md:items-end justify-between md:border-l border-slate-100 md:pl-6 shrink-0 md:w-40">
                         <div className="flex flex-row md:flex-col items-center md:items-end w-full justify-between md:justify-start gap-2 md:gap-0 mb-4 md:mb-0">
                           <div className="text-left md:text-right">
-                            <span className="text-xl font-black text-slate-900">${expert.hourlyRate || 0}</span>
-                            <span className="text-xs font-medium text-slate-500">/hr</span>
+                            <span className="text-xl font-black text-slate-900">{expert.hourlyRate || 0}</span>
+                            <span className="text-xs font-medium text-slate-500"> Aivora Coin/hr</span>
                           </div>
                           <div className="flex items-center gap-1 text-xs font-medium text-slate-500">
                             <MapPin className="size-3" /> {location}
                           </div>
                         </div>
 
-                        <Button asChild className="w-full md:w-auto rounded-full font-bold shadow-md shadow-primary/20">
+                        <Button asChild className="w-full md:w-auto rounded-full bg-brand-blue-dark hover:bg-brand-blue-dark/90 font-bold shadow-md shadow-blue-900/20">
                           <Link to={`/client/experts/${profileId}`}>View Profile</Link>
                         </Button>
                       </div>
@@ -273,7 +295,7 @@ export const SearchExpertsPage = () => {
             )}
 
             {!isLoading && !isError && filteredExperts.length === 0 && (
-              <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[32px] p-16 flex flex-col items-center justify-center text-center">
+              <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[28px] p-16 flex flex-col items-center justify-center text-center">
                 <Search className="size-12 text-slate-300 mb-4" />
                 <h3 className="text-xl font-black text-slate-900 mb-2">No experts found</h3>
                 <p className="text-slate-500 font-medium">Try adjusting your filters or search terms.</p>

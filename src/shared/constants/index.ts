@@ -29,8 +29,11 @@ export const API_ENDPOINTS = {
   },
   WALLET: {
     ME: 'wallet/me',
-    HISTORY: 'payments/history',
-    DEPOSIT_DEMO: 'wallet/deposit-demo',
+    TRANSACTIONS: 'wallet/transactions',
+    PAYMENT_HISTORY: 'payments/history',
+    DEPOSIT: 'wallet/deposit',
+    VNPAY_DEPOSIT: 'wallet/vnpay/deposit',
+    WITHDRAW: 'wallet/withdraw',
   },
   PROFILES: {
     CLIENT: 'profiles/client',
@@ -50,6 +53,9 @@ export const API_ENDPOINTS = {
     BASE: 'disputes',
     ID: (id: string | number) => `disputes/${id}`,
     EVIDENCE: (id: string | number) => `disputes/${id}/evidence`,
+    DELETE_EVIDENCE: (disputeId: string | number, evidenceId: string | number) => `disputes/${disputeId}/evidence/${evidenceId}`,
+    CLOSE: (id: string | number) => `disputes/${id}/close`,
+    REQUEST_EVIDENCE: (id: string | number) => `disputes/${id}/request-evidence`,
     RESOLVE: (id: string | number) => `disputes/${id}/resolve`,
   },
   MESSAGES: {
@@ -64,6 +70,7 @@ export const API_ENDPOINTS = {
     ACCEPT: (id: string) => `proposals/${id}/accept`,
     REJECT: (id: string) => `proposals/${id}/reject`,
     SHORTLIST: (id: string) => `proposals/${id}/shortlist`,
+    UNSHORTLIST: (id: string) => `proposals/${id}/unshortlist`,
     WITHDRAW: (id: string) => `proposals/${id}/withdraw`,
     ME: 'proposals/me',
   },

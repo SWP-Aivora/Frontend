@@ -1,8 +1,8 @@
-import { Search, Filter, Briefcase, ChevronRight, Clock, Clock3, CheckCircle2 } from 'lucide-react';
+import { Search, Briefcase, ChevronRight, Clock, Clock3, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { projectService } from '@/features/projects/services';
 import { ProjectStatus } from '@/shared/types/enums';
@@ -10,9 +10,12 @@ import { isActiveProjectStatus } from '@/features/projects/utils';
 
 
 type StatusFilter = 'all' | 'in-progress' | 'completed';
+type SortOrder = 'newest' | 'oldest';
 
 export const ExpertMyJobsPage = () => {
   const [filter, setFilter] = useState<StatusFilter>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
 
   const { data: projectsResponse, isLoading } = useQuery({
     queryKey: ['expertProjects'],
@@ -24,20 +27,36 @@ export const ExpertMyJobsPage = () => {
     status === ProjectStatus.COMPLETED ? 'completed' : 'in-progress'
   );
 
-  const apiProjects = (projectsResponse?.data || [])
-    .filter(p => p.status === ProjectStatus.COMPLETED || isActiveProjectStatus(p.status))
-    .map(p => ({
-      id: p.id,
-      title: p.title,
-      status: mapStatusToUI(p.status),
-      createdAt: new Date(p.createdAt).toLocaleDateString(),
-      budget: `$${p.totalBudget.toLocaleString()}`,
-      domain: 'General',
-    }));
+  const displayProjects = useMemo(() => (
+    (projectsResponse?.data || [])
+      .filter(p => p.status === ProjectStatus.COMPLETED || isActiveProjectStatus(p.status))
+      .map(p => ({
+        id: p.id,
+        title: p.title,
+        status: mapStatusToUI(p.status),
+        createdAt: new Date(p.createdAt).toLocaleDateString(),
+        createdAtRaw: p.createdAt,
+        expertName: p.expertName || p.expert?.fullName || '',
+        budget: `${p.totalBudget.toLocaleString()} Aivora Coin`,
+        domain: 'General',
+      }))
+  ), [projectsResponse?.data]);
 
-  const displayProjects = apiProjects;
+  const filteredProjects = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
 
-  const filteredProjects = displayProjects.filter(p => filter === 'all' || p.status === filter);
+    return displayProjects
+      .filter(project => filter === 'all' || project.status === filter)
+      .filter(project => (
+        normalizedSearch.length === 0 ||
+        [project.title, project.expertName].some(value => value.toLowerCase().includes(normalizedSearch))
+      ))
+      .sort((a, b) => {
+        const aTime = new Date(a.createdAtRaw).getTime();
+        const bTime = new Date(b.createdAtRaw).getTime();
+        return sortOrder === 'newest' ? bTime - aTime : aTime - bTime;
+      });
+  }, [displayProjects, filter, searchTerm, sortOrder]);
 
   const getStatusConfig = (status: string) => {
     switch (status) {
@@ -69,16 +88,16 @@ export const ExpertMyJobsPage = () => {
       </div>
 
       {/* Toolbar */}
-      <div className="bg-white border border-slate-100 rounded-[24px] p-2 flex flex-col md:flex-row gap-4 justify-between items-center shadow-sm relative z-10">
+      <div className="bg-white border border-slate-100 rounded-[20px] p-2 flex flex-col md:flex-row gap-4 justify-between items-center shadow-sm relative z-10">
         <div className="flex items-center gap-2 p-1 overflow-x-auto w-full md:w-auto scrollbar-hide">
           {(['all', 'in-progress', 'completed'] as StatusFilter[]).map((status) => (
             <button
               key={status}
               onClick={() => setFilter(status)}
               className={cn(
-                "px-5 py-2.5 rounded-[16px] text-sm font-bold capitalize whitespace-nowrap transition-all duration-300",
+                "px-5 py-2.5 rounded-[12px] text-sm font-bold capitalize whitespace-nowrap transition-all duration-300",
                 filter === status 
-                  ? "bg-slate-900 text-white shadow-md" 
+                  ? "bg-brand-blue-dark text-white shadow-md" 
                   : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
               )}
             >
@@ -91,13 +110,20 @@ export const ExpertMyJobsPage = () => {
              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
              <input 
                type="text" 
-               placeholder="Search active jobs..." 
-               className="w-full h-10 pl-9 pr-4 rounded-xl bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm transition-all"
+               placeholder="Search by project or expert..." 
+               value={searchTerm}
+               onChange={(event) => setSearchTerm(event.target.value)}
+               className="w-full h-10 pl-9 pr-4 rounded-lg bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm transition-all"
              />
           </div>
-          <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-slate-200 shrink-0">
-             <Filter className="size-4 text-slate-500" />
-          </Button>
+          <select
+            value={sortOrder}
+            onChange={(event) => setSortOrder(event.target.value as SortOrder)}
+            className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/20"
+          >
+            <option value="newest">Newest Created</option>
+            <option value="oldest">Oldest Created</option>
+          </select>
         </div>
       </div>
 
@@ -110,7 +136,7 @@ export const ExpertMyJobsPage = () => {
           return (
             <div 
               key={project.id} 
-              className="group bg-white border border-slate-100 hover:border-primary/30 rounded-[28px] p-6 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 relative overflow-hidden"
+              className="group bg-white border border-slate-100 hover:border-primary/30 rounded-[24px] p-6 shadow-sm hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 relative overflow-hidden"
             >
               <div className="flex flex-col md:flex-row justify-between gap-6">
                 <div className="space-y-4 flex-1">
@@ -158,8 +184,8 @@ export const ExpertMyJobsPage = () => {
         })}
 
         {filteredProjects.length === 0 && (
-          <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[32px] p-20 flex flex-col items-center justify-center text-center">
-            <div className="size-16 rounded-2xl bg-white flex items-center justify-center shadow-sm mb-4">
+          <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-[28px] p-20 flex flex-col items-center justify-center text-center">
+            <div className="size-16 rounded-xl bg-white flex items-center justify-center shadow-sm mb-4">
                <Briefcase className="size-8 text-slate-300" />
             </div>
             <h3 className="text-xl font-black text-slate-900 mb-2">No active jobs found</h3>

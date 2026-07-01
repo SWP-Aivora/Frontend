@@ -4,7 +4,6 @@ import { Button } from '@/shared/components/ui/Button';
 import {
   BadgeCheck,
   Clock,
-  MapPin,
   DollarSign,
   BrainCircuit,
   ChevronLeft,
@@ -21,13 +20,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { createProposalSchema, type CreateProposalFormValues } from '../../proposals/schema';
 import { Input } from '@/shared/components/ui/Input';
 import { toast } from 'sonner';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { jobService } from '../services';
 import { proposalService } from '../../proposals/services';
 
 export const JobDetailsPage = () => {
   const { id, proposalId } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const isEditMode = Boolean(proposalId);
   const [hasSubmitted, setHasSubmitted] = useState(() => localStorage.getItem(`submitted_proposal_${id}`) === 'true');
 
@@ -46,6 +46,16 @@ export const JobDetailsPage = () => {
   });
 
   const proposal = proposalResponse?.data;
+  const isProposalEditable = (() => {
+    if (!isEditMode || !proposal) return true;
+
+    const normalized = String(proposal.status).toUpperCase();
+    return proposal.status === 0
+      || proposal.status === 1
+      || normalized === 'SUBMITTED'
+      || normalized === 'SHORTLISTED'
+      || normalized === 'PENDING';
+  })();
 
   const { register, control, handleSubmit, reset, formState: { errors } } = useForm<CreateProposalFormValues>({
     resolver: zodResolver(createProposalSchema),
@@ -98,9 +108,28 @@ export const JobDetailsPage = () => {
     }
   });
 
+  const updateMutation = useMutation({
+    mutationFn: (data: CreateProposalFormValues) => proposalService.updateProposal(proposalId!, data),
+    onSuccess: async () => {
+      toast.success('Proposal updated successfully!');
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['proposal', proposalId] }),
+        queryClient.invalidateQueries({ queryKey: ['proposals'] }),
+      ]);
+    },
+    onError: () => {
+      toast.error('Failed to update proposal');
+    }
+  });
+
   const onSubmit = (data: CreateProposalFormValues) => {
     if (isEditMode) {
-      toast.error('Proposal editing is not available yet because the API does not support updating proposals.');
+      if (!isProposalEditable) {
+        toast.error('This proposal can no longer be edited.');
+        return;
+      }
+
+      updateMutation.mutate(data);
       return;
     }
 
@@ -109,8 +138,9 @@ export const JobDetailsPage = () => {
 
   const budgetMin = job?.budgetMin ?? 0;
   const budgetMax = job?.budgetMax ?? 0;
-  const formattedBudgetRange = `$${budgetMin.toLocaleString()} - $${budgetMax.toLocaleString()}`;
+  const formattedBudgetRange = `${budgetMin.toLocaleString()} - ${budgetMax.toLocaleString()} Aivora Coin`;
   const skills = job?.skills ?? [];
+  const clientDisplayName = job?.client?.fullName || '';
 
   if (isLoading || isProposalLoading) {
     return (
@@ -144,7 +174,7 @@ export const JobDetailsPage = () => {
         
         {/* Main Column: Job Details + Proposal */}
         <div className="space-y-6 min-w-0">
-          <div className="bg-white rounded-xl p-6 md:p-8 border border-slate-100 shadow-sm relative overflow-hidden">
+          <div className="bg-white rounded-lg p-6 md:p-8 border border-slate-100 shadow-sm relative overflow-hidden">
              {/* Header */}
              <div className="space-y-5 mb-6">
                 <div className="flex flex-wrap items-center gap-2">
@@ -167,8 +197,8 @@ export const JobDetailsPage = () => {
 
              {/* Job Info Grid */}
              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-                <div className="flex items-center gap-3 bg-emerald-50/60 border border-emerald-100 rounded-xl p-4">
-                   <div className="size-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
+                <div className="flex items-center gap-3 bg-emerald-50/60 border border-emerald-100 rounded-lg p-4">
+                   <div className="size-10 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
                       <DollarSign className="size-5 text-emerald-600" />
                    </div>
                    <div>
@@ -176,8 +206,8 @@ export const JobDetailsPage = () => {
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Fixed Price</p>
                    </div>
                 </div>
-                <div className="flex items-center gap-3 bg-blue-50/60 border border-blue-100 rounded-xl p-4">
-                   <div className="size-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                <div className="flex items-center gap-3 bg-blue-50/60 border border-blue-100 rounded-lg p-4">
+                   <div className="size-10 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
                       <Calendar className="size-5 text-blue-600" />
                    </div>
                    <div>
@@ -185,12 +215,12 @@ export const JobDetailsPage = () => {
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Est. Timeline</p>
                    </div>
                 </div>
-                <div className="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-xl p-4">
-                   <div className="size-10 rounded-xl bg-white flex items-center justify-center shrink-0">
+                <div className="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-lg p-4">
+                   <div className="size-10 rounded-lg bg-white flex items-center justify-center shrink-0">
                       <WalletCards className="size-5 text-slate-600" />
                    </div>
                    <div>
-                      <p className="font-black text-slate-900">{job.currency || 'USD'}</p>
+                       <p className="font-black text-slate-900">Aivora Coin</p>
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Currency</p>
                    </div>
                 </div>
@@ -198,7 +228,7 @@ export const JobDetailsPage = () => {
 
              <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] gap-4">
                 {/* Description */}
-                <section className="rounded-xl border border-slate-100 bg-slate-50/60 p-5">
+                <section className="rounded-lg border border-slate-100 bg-slate-50/60 p-5">
                   <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-3">Project Description</h3>
                   <p className="text-sm text-slate-600 font-medium leading-7 whitespace-pre-wrap">
                     {job.finalDescription || job.originalDescription || 'No description was provided for this job.'}
@@ -206,7 +236,7 @@ export const JobDetailsPage = () => {
                 </section>
 
                 {/* Skills */}
-                <section className="rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
+                <section className="rounded-lg border border-slate-100 bg-white p-5 shadow-sm">
                   <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-3">Required Skills</h3>
                   <div className="flex flex-wrap gap-2">
                     {skills.length > 0 ? (
@@ -229,7 +259,7 @@ export const JobDetailsPage = () => {
           </div>
 
           {/* Proposal Form */}
-          <div className="bg-white rounded-xl border border-brand-accent/20 shadow-xl shadow-brand-accent/5 relative overflow-hidden">
+          <div className="bg-white rounded-lg border border-brand-accent/20 shadow-xl shadow-brand-accent/5 relative overflow-hidden">
             <div className="h-1.5 bg-gradient-to-r from-brand-accent via-primary to-blue-500" />
             <div className="p-6 md:p-8">
               <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
@@ -246,7 +276,7 @@ export const JobDetailsPage = () => {
                       : 'Share your bid, delivery plan, portfolio references, and a concise pitch tailored to this job.'}
                   </p>
                 </div>
-                <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3 text-sm">
+                <div className="rounded-lg bg-slate-50 border border-slate-100 px-4 py-3 text-sm">
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Client Budget</p>
                   <p className="font-black text-slate-900">{formattedBudgetRange}</p>
                 </div>
@@ -254,7 +284,7 @@ export const JobDetailsPage = () => {
 
               {hasSubmitted && !isEditMode ? (
                 <div className="space-y-4 pt-4 border-t border-slate-100">
-                  <div className="bg-emerald-50 rounded-xl p-4 flex items-center gap-3 border border-emerald-100">
+                  <div className="bg-emerald-50 rounded-lg p-4 flex items-center gap-3 border border-emerald-100">
                     <BadgeCheck className="size-6 text-emerald-600 shrink-0" />
                     <div>
                       <p className="text-sm font-bold text-emerald-900">Proposal Sent</p>
@@ -270,19 +300,21 @@ export const JobDetailsPage = () => {
                   </Button>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" data-testid="proposal-form">
                   {/* Budget & Timeline */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Proposed Bid</label>
                       <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-black">$</span>
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-black">Aivora Coin</span>
                         <Input
                           type="number"
                           min="1"
                           step="0.01"
                           {...register('proposedBudget')}
-                          className="h-12 rounded-xl bg-slate-50 pl-8 font-bold"
+                          aria-label="Proposal bid"
+                          data-testid="proposal-budget-input"
+                          className="h-12 rounded-lg bg-slate-50 pl-28 font-bold"
                         />
                       </div>
                       {errors.proposedBudget && <p className="text-xs text-destructive font-bold">{errors.proposedBudget.message}</p>}
@@ -294,7 +326,9 @@ export const JobDetailsPage = () => {
                           type="number"
                           min="1"
                           {...register('proposedTimelineDays')}
-                          className="h-12 rounded-xl bg-slate-50 pr-14 font-bold"
+                          aria-label="Proposal delivery time"
+                          data-testid="proposal-timeline-input"
+                          className="h-12 rounded-lg bg-slate-50 pr-14 font-bold"
                         />
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-black uppercase">Days</span>
                       </div>
@@ -307,8 +341,10 @@ export const JobDetailsPage = () => {
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Cover Letter / Pitch</label>
                     <textarea
                       {...register('coverLetter')}
+                      aria-label="Proposal cover letter"
+                      data-testid="proposal-cover-letter"
                       placeholder="Introduce yourself, describe your solution approach, and explain why you are the right expert for this project..."
-                      className="w-full min-h-[180px] p-4 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-accent/20 text-sm leading-6 transition-colors"
+                      className="w-full min-h-[180px] p-4 rounded-lg bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-accent/20 text-sm leading-6 transition-colors"
                     />
                     {errors.coverLetter && <p className="text-xs text-destructive font-bold">{errors.coverLetter.message}</p>}
                   </div>
@@ -316,17 +352,19 @@ export const JobDetailsPage = () => {
                   {/* Attachments */}
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Attachments / Portfolio Links</label>
-                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4">
+                    <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4">
                       <div className="flex items-start gap-3">
-                        <div className="size-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center shrink-0">
+                        <div className="size-10 rounded-lg bg-white border border-slate-100 flex items-center justify-center shrink-0">
                           <LinkIcon className="size-5 text-brand-accent" />
                         </div>
                         <div className="flex-1 space-y-3">
                           <p className="text-sm font-bold text-slate-700">Paste portfolio, GitHub, HuggingFace, demo, or case-study links.</p>
                           <textarea
                             {...register('attachments')}
+                            aria-label="Proposal portfolio links"
+                            data-testid="proposal-attachments"
                             placeholder="https://github.com/yourname/project&#10;https://huggingface.co/your-model"
-                            className="w-full min-h-[86px] p-3 rounded-xl bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-accent/20 text-sm"
+                            className="w-full min-h-[86px] p-3 rounded-lg bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-accent/20 text-sm"
                           />
                         </div>
                       </div>
@@ -335,7 +373,7 @@ export const JobDetailsPage = () => {
                   </div>
 
                   {/* Milestones */}
-                  <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                  <div className="space-y-3 bg-slate-50 p-4 rounded-lg border border-slate-100">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                       <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
                         <FileText className="size-3" /> Delivery Milestones
@@ -350,21 +388,44 @@ export const JobDetailsPage = () => {
                     </div>
                    
                     {fields.map((field, index) => (
-                      <div key={field.id} className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_140px_120px_36px] gap-2 items-start bg-white p-3 rounded-xl border border-slate-200">
+                      <div key={field.id} className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_140px_120px_36px] gap-2 items-start bg-white p-3 rounded-lg border border-slate-200">
                         <div>
-                          <Input {...register(`milestones.${index}.title`)} placeholder="Milestone title" className="h-10 text-sm rounded-lg" />
+                          <Input
+                            {...register(`milestones.${index}.title`)}
+                            aria-label={`Proposal milestone ${index + 1} title`}
+                            data-testid="proposal-milestone-title"
+                            placeholder="Milestone title"
+                            className="h-10 text-sm rounded-lg"
+                          />
                           {errors.milestones?.[index]?.title && (
                             <p className="text-[11px] text-destructive font-bold mt-1">{errors.milestones[index]?.title?.message}</p>
                           )}
                         </div>
                         <div>
-                          <Input type="number" min="1" step="0.01" {...register(`milestones.${index}.amount`)} placeholder="$ Amount" className="h-10 text-sm rounded-lg" />
+                          <Input
+                            type="number"
+                            min="1"
+                            step="0.01"
+                            {...register(`milestones.${index}.amount`)}
+                            aria-label={`Proposal milestone ${index + 1} amount`}
+                            data-testid="proposal-milestone-amount"
+                            placeholder="Aivora Coin amount"
+                            className="h-10 text-sm rounded-lg"
+                          />
                           {errors.milestones?.[index]?.amount && (
                             <p className="text-[11px] text-destructive font-bold mt-1">{errors.milestones[index]?.amount?.message}</p>
                           )}
                         </div>
                         <div>
-                          <Input type="number" min="1" {...register(`milestones.${index}.dueDays`)} placeholder="Days" className="h-10 text-sm rounded-lg" />
+                          <Input
+                            type="number"
+                            min="1"
+                            {...register(`milestones.${index}.dueDays`)}
+                            aria-label={`Proposal milestone ${index + 1} due days`}
+                            data-testid="proposal-milestone-days"
+                            placeholder="Days"
+                            className="h-10 text-sm rounded-lg"
+                          />
                           {errors.milestones?.[index]?.dueDays && (
                             <p className="text-[11px] text-destructive font-bold mt-1">{errors.milestones[index]?.dueDays?.message}</p>
                           )}
@@ -385,13 +446,13 @@ export const JobDetailsPage = () => {
                     )}
                   </div>
 
-                  <Button type="submit" disabled={submitMutation.isPending || isEditMode} className="w-full rounded-full h-14 font-bold text-base bg-brand-accent hover:bg-brand-accent/90 shadow-lg shadow-brand-accent/20">
-                    {submitMutation.isPending ? (
+                  <Button type="submit" disabled={submitMutation.isPending || updateMutation.isPending || (isEditMode && !isProposalEditable)} className="w-full rounded-full h-14 font-bold text-base bg-brand-accent hover:bg-brand-accent/90 shadow-lg shadow-brand-accent/20">
+                    {submitMutation.isPending || updateMutation.isPending ? (
                       <span className="inline-flex items-center gap-2">
                         <Loader2 className="size-4 animate-spin" />
-                        Submitting Proposal...
+                        {isEditMode ? 'Saving Proposal...' : 'Submitting Proposal...'}
                       </span>
-                    ) : isEditMode ? 'Proposal Editing Unavailable' : 'Submit Proposal'}
+                    ) : isEditMode ? (isProposalEditable ? 'Save Proposal' : 'Proposal Cannot Be Edited') : 'Submit Proposal'}
                   </Button>
                 </form>
               )}
@@ -401,37 +462,27 @@ export const JobDetailsPage = () => {
 
         {/* Right Column: Client Info & Stats */}
         <aside className="xl:sticky xl:top-24 space-y-4">
-          <div className="bg-white rounded-xl p-6 border border-slate-100 shadow-sm">
+          <div className="bg-white rounded-lg p-6 border border-slate-100 shadow-sm">
             <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-5">About the Client</h3>
             <div className="space-y-4">
-              <p className="font-black text-lg text-slate-900">{job.client?.fullName || 'Anonymous Client'}</p>
-              <div className="flex items-center gap-2">
-                <BadgeCheck className="size-5 text-brand-success" />
-                <span className="text-sm font-bold text-slate-700">Payment Verified</span>
-              </div>
-              <div className="flex items-center gap-2 text-slate-500">
-                <MapPin className="size-5" />
-                <span className="text-sm font-medium">Remote</span>
-              </div>
-              <div className="pt-4 border-t border-slate-100">
-                <p className="text-sm font-black text-slate-900">N/A</p>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Total Spent</p>
-              </div>
+              {clientDisplayName ? (
+                <p className="font-black text-lg text-slate-900">{clientDisplayName}</p>
+              ) : null}
             </div>
           </div>
 
-          <div className="bg-slate-950 text-white rounded-xl p-6 shadow-sm">
+          <div className="bg-slate-950 text-white rounded-lg p-6 shadow-sm">
             <h3 className="text-xs font-black text-white/50 uppercase tracking-widest mb-5">Quick Stats</h3>
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl bg-white/5 border border-white/10 p-3">
+              <div className="rounded-lg bg-white/5 border border-white/10 p-3">
                 <p className="text-lg font-black">{job.timelineDays || 'TBD'}</p>
                 <p className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Days</p>
               </div>
-              <div className="rounded-xl bg-white/5 border border-white/10 p-3">
+              <div className="rounded-lg bg-white/5 border border-white/10 p-3">
                 <p className="text-lg font-black">{skills.length || 1}</p>
                 <p className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Skills</p>
               </div>
-              <div className="rounded-xl bg-white/5 border border-white/10 p-3 col-span-2">
+              <div className="rounded-lg bg-white/5 border border-white/10 p-3 col-span-2">
                 <p className="text-lg font-black">{formattedBudgetRange}</p>
                 <p className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Budget Range</p>
               </div>

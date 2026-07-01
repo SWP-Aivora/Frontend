@@ -14,7 +14,7 @@ const getIconConfig = (type: string | NotificationType) => {
     case NotificationType.NEW_PROPOSAL_RECEIVED:
       return { bg: 'bg-blue-400', text: 'PR' };
     case NotificationType.PAYMENT_RELEASED:
-      return { bg: 'bg-emerald-600', text: '$' };
+      return { bg: 'bg-emerald-600', text: 'AC' };
     default:
       return { bg: 'bg-slate-400', text: '!' };
   }
@@ -73,7 +73,7 @@ export const NotificationItem = ({ notification, onMarkAsRead }: NotificationIte
   return (
     <div 
       onClick={viewUrl ? handleView : undefined}
-      className={`relative bg-white border border-slate-200 h-24 overflow-hidden rounded-xl shadow-sm flex items-center transition-colors ${viewUrl ? 'cursor-pointer hover:bg-slate-50' : 'hover:bg-slate-50'}`}
+      className={`relative bg-white border border-slate-200 h-24 overflow-hidden rounded-lg shadow-sm flex items-center transition-colors ${viewUrl ? 'cursor-pointer hover:bg-slate-50' : 'hover:bg-slate-50'}`}
     >
       {/* Unread Stripe */}
       {isUnread && (
@@ -81,7 +81,7 @@ export const NotificationItem = ({ notification, onMarkAsRead }: NotificationIte
       )}
 
       {/* Icon */}
-      <div className={`ml-5 size-10 rounded-xl flex items-center justify-center ${iconConfig.bg}`}>
+      <div className={`ml-5 size-10 rounded-lg flex items-center justify-center ${iconConfig.bg}`}>
         <span className="text-white font-bold text-sm">{iconConfig.text}</span>
       </div>
 

@@ -84,7 +84,7 @@ export const ResolutionForm: React.FC<ResolutionFormProps> = ({ disputeId, total
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Amount to Expert ($)
+                Amount to Expert (Aivora Coin)
               </label>
               <Input
                 type="number"
@@ -94,7 +94,7 @@ export const ResolutionForm: React.FC<ResolutionFormProps> = ({ disputeId, total
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Amount to Client ($)
+                Amount to Client (Aivora Coin)
               </label>
               <Input
                 type="number"

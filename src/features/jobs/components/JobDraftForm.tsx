@@ -35,6 +35,7 @@ const requiredPositiveNumberField = (label: string) =>
 const jobDraftSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters'),
   description: z.string().min(20, 'Description must be at least 20 characters').max(5000, 'Description is too long'),
+  businessDomain: z.string().trim().min(1, 'Business domain is required'),
   budgetType: z.nativeEnum(BudgetType),
   budgetMin: requiredPositiveNumberField('Minimum budget'),
   budgetMax: requiredPositiveNumberField('Maximum budget'),
@@ -44,6 +45,7 @@ const jobDraftSchema = z.object({
 type JobDraftFormValues = {
   title: string;
   description: string;
+  businessDomain: string;
   budgetType: BudgetType;
   budgetMin: number | null;
   budgetMax: number | null;
@@ -78,6 +80,7 @@ export const JobDraftForm = ({
     values: {
       title: suggestion.suggestedTitle,
       description: suggestion.suggestedDescription,
+      businessDomain: suggestion.businessDomain ?? '',
       budgetType: suggestion.budgetType,
       budgetMin: suggestion.suggestedBudgetMin ?? null,
       budgetMax: suggestion.suggestedBudgetMax ?? null,
@@ -86,11 +89,13 @@ export const JobDraftForm = ({
   });
   const titleField = register('title');
   const descriptionField = register('description');
+  const businessDomainField = register('businessDomain');
   const budgetMinField = register('budgetMin', { valueAsNumber: true });
   const budgetMaxField = register('budgetMax', { valueAsNumber: true });
   const timelineDaysField = register('timelineDays', { valueAsNumber: true });
   const titleErrorId = errors.title ? 'job-draft-title-error' : undefined;
   const descriptionErrorId = errors.description ? 'job-draft-description-error' : undefined;
+  const businessDomainErrorId = errors.businessDomain ? 'job-draft-business-domain-error' : undefined;
   const budgetMinErrorId = errors.budgetMin ? 'job-draft-budget-min-error' : undefined;
   const budgetMaxErrorId = errors.budgetMax ? 'job-draft-budget-max-error' : undefined;
   const timelineErrorId = errors.timelineDays ? 'job-draft-timeline-error' : undefined;
@@ -103,6 +108,7 @@ export const JobDraftForm = ({
     onUpdate({
       suggestedTitle: data.title,
       suggestedDescription: data.description,
+      businessDomain: data.businessDomain.trim(),
       budgetType: data.budgetType,
       suggestedBudgetMin: data.budgetMin,
       suggestedBudgetMax: data.budgetMax,
@@ -144,14 +150,14 @@ export const JobDraftForm = ({
     <section
       aria-labelledby="job-draft-heading"
       className={cn(
-        "flex h-full min-h-0 flex-col bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden transition-all duration-300",
+        "flex h-full min-h-0 flex-col bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden transition-all duration-300",
         isGenerating && "opacity-50 pointer-events-none"
       )}
     >
       {/* Header */}
       <div className="p-6 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="size-10 rounded-xl bg-blue-100 flex items-center justify-center border border-blue-200">
+          <div className="size-10 rounded-lg bg-blue-100 flex items-center justify-center border border-blue-200">
             <FileText className="size-5 text-primary" />
           </div>
           <div>
@@ -195,7 +201,7 @@ export const JobDraftForm = ({
                 placeholder="Job Title"
                 aria-invalid={errors.title ? 'true' : 'false'}
                 aria-describedby={titleErrorId}
-                className="h-12 rounded-xl bg-slate-50 border-slate-100 focus:bg-white text-base font-bold text-slate-900" 
+                className="h-12 rounded-lg bg-slate-50 border-slate-100 focus:bg-white text-base font-bold text-slate-900" 
               />
               {errors.title && <p id={titleErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{errors.title.message}</p>}
             </div>
@@ -212,26 +218,45 @@ export const JobDraftForm = ({
                 rows={6}
                 aria-invalid={errors.description ? 'true' : 'false'}
                 aria-describedby={descriptionErrorId}
-                className="w-full p-4 rounded-xl bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all text-sm leading-relaxed text-slate-700"
+                className="w-full p-4 rounded-lg bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all text-sm leading-relaxed text-slate-700"
               />
               {errors.description && <p id={descriptionErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{errors.description.message}</p>}
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="job-draft-category" className="text-xs font-bold text-slate-500 ml-1 uppercase">Category</label>
-              <select
-                id="job-draft-category"
-                value={suggestion.categoryId ?? ''}
-                onChange={(e) => onCategoryChange(e.target.value)}
-                className="h-12 w-full rounded-xl border border-slate-100 bg-slate-50 px-4 text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary/5"
-              >
-                <option value="">Select category</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <label htmlFor="job-draft-business-domain" className="text-xs font-bold text-slate-500 ml-1 uppercase">Business Domain</label>
+                <Input
+                  id="job-draft-business-domain"
+                  {...businessDomainField}
+                  onChange={(e) => {
+                    businessDomainField.onChange(e);
+                    onUpdate({ businessDomain: e.target.value });
+                  }}
+                  placeholder="e.g., E-commerce, Healthcare"
+                  aria-invalid={errors.businessDomain ? 'true' : 'false'}
+                  aria-describedby={businessDomainErrorId}
+                  className="h-12 rounded-lg bg-slate-50 border-slate-100 focus:bg-white text-sm font-medium text-slate-900"
+                />
+                {errors.businessDomain && <p id={businessDomainErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{errors.businessDomain.message}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="job-draft-category" className="text-xs font-bold text-slate-500 ml-1 uppercase">Category</label>
+                <select
+                  id="job-draft-category"
+                  value={suggestion.categoryId ?? ''}
+                  onChange={(e) => onCategoryChange(e.target.value)}
+                  className="h-12 w-full rounded-lg border border-slate-100 bg-slate-50 px-4 text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary/5"
+                >
+                  <option value="">Select category</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </section>
 
@@ -245,7 +270,7 @@ export const JobDraftForm = ({
               <div className="space-y-4">
                   <div className="flex gap-4">
                      <div className="flex-1 space-y-2">
-                        <label htmlFor="job-draft-budget-min" className="text-[10px] font-bold text-slate-400 uppercase ml-1">Min ({suggestion.currency || 'Xu'})</label>
+                        <label htmlFor="job-draft-budget-min" className="text-[10px] font-bold text-slate-400 uppercase ml-1">Min (Aivora Coin)</label>
                         <Input
                           id="job-draft-budget-min"
                           type="number"
@@ -258,12 +283,12 @@ export const JobDraftForm = ({
                           }}
                           aria-invalid={errors.budgetMin ? 'true' : 'false'}
                           aria-describedby={budgetMinErrorId}
-                          className="h-11 rounded-xl bg-slate-50"
+                          className="h-11 rounded-lg bg-slate-50"
                         />
                         {errors.budgetMin && <p id={budgetMinErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{errors.budgetMin.message}</p>}
                      </div>
                      <div className="flex-1 space-y-2">
-                        <label htmlFor="job-draft-budget-max" className="text-[10px] font-bold text-slate-400 uppercase ml-1">Max ({suggestion.currency || 'Xu'})</label>
+                        <label htmlFor="job-draft-budget-max" className="text-[10px] font-bold text-slate-400 uppercase ml-1">Max (Aivora Coin)</label>
                         <Input
                           id="job-draft-budget-max"
                           type="number"
@@ -276,12 +301,12 @@ export const JobDraftForm = ({
                           }}
                           aria-invalid={errors.budgetMax ? 'true' : 'false'}
                           aria-describedby={budgetMaxErrorId}
-                          className="h-11 rounded-xl bg-slate-50"
+                          className="h-11 rounded-lg bg-slate-50"
                         />
                         {errors.budgetMax && <p id={budgetMaxErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{errors.budgetMax.message}</p>}
                      </div>
                   </div>
-                  <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100" role="group" aria-label="Budget type">
+                  <div className="flex bg-slate-50 p-1 rounded-lg border border-slate-100" role="group" aria-label="Budget type">
                      <button 
                        type="button"
                        aria-pressed={suggestion.budgetType === BudgetType.FIXED}
@@ -329,7 +354,7 @@ export const JobDraftForm = ({
                   }}
                   aria-invalid={errors.timelineDays ? 'true' : 'false'}
                   aria-describedby={timelineErrorId}
-                  className="h-11 rounded-xl bg-slate-50"
+                  className="h-11 rounded-lg bg-slate-50"
                 />
                 {errors.timelineDays && <p id={timelineErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{errors.timelineDays.message}</p>}
               </div>
@@ -350,7 +375,7 @@ export const JobDraftForm = ({
 
             <div className="space-y-3">
               {suggestion.suggestedMilestones.map((ms, idx) => (
-                <div key={ms.id || `milestone-${idx}`} className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col gap-4 group">
+                <div key={ms.id || `milestone-${idx}`} className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-4 group">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-4 flex-1">
                       <div className="size-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 font-black text-xs text-slate-400">
@@ -365,7 +390,7 @@ export const JobDraftForm = ({
                             id={`milestone-title-${idx}`}
                             value={ms.title}
                             onChange={(e) => handleMilestoneChange(idx, 'title', e.target.value)}
-                            className="h-10 rounded-xl bg-white border-slate-200 text-sm font-bold text-slate-900"
+                            className="h-10 rounded-lg bg-white border-slate-200 text-sm font-bold text-slate-900"
                           />
                         </div>
                         <div className="space-y-2">
@@ -377,7 +402,7 @@ export const JobDraftForm = ({
                             type="number"
                             value={ms.amount ?? 0}
                             onChange={(e) => handleMilestoneChange(idx, 'amount', Number(e.target.value))}
-                            className="h-10 rounded-xl bg-white border-slate-200 text-sm font-bold text-slate-900"
+                            className="h-10 rounded-lg bg-white border-slate-200 text-sm font-bold text-slate-900"
                           />
                         </div>
                         <div className="space-y-2">
@@ -389,7 +414,7 @@ export const JobDraftForm = ({
                             type="number"
                             value={ms.dueDays ?? 0}
                             onChange={(e) => handleMilestoneChange(idx, 'dueDays', Number(e.target.value))}
-                            className="h-10 rounded-xl bg-white border-slate-200 text-sm font-bold text-slate-900"
+                            className="h-10 rounded-lg bg-white border-slate-200 text-sm font-bold text-slate-900"
                           />
                         </div>
                       </div>
@@ -412,7 +437,7 @@ export const JobDraftForm = ({
                       value={ms.description ?? ''}
                       onChange={(e) => handleMilestoneChange(idx, 'description', e.target.value)}
                       rows={2}
-                      className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm leading-relaxed text-slate-700 focus:outline-none focus:ring-4 focus:ring-primary/5"
+                      className="w-full rounded-lg border border-slate-200 bg-white p-3 text-sm leading-relaxed text-slate-700 focus:outline-none focus:ring-4 focus:ring-primary/5"
                     />
                   </div>
                 </div>

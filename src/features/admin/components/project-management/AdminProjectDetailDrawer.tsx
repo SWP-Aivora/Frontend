@@ -1,16 +1,14 @@
-import { AlertCircle, Calendar, DollarSign, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { AlertCircle, Calendar, DollarSign, MessageSquareWarning, X } from 'lucide-react';
 import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
 import type { AdminProject } from '../../types';
 import { useAdminProjectDetail } from '../../hooks/useAdminProjectDetail';
 import { AdminProjectStatusBadge } from './AdminProjectStatusBadge';
 import { ProjectDisputeStatusBadge } from '@/features/projects/components/ProjectDisputeStatusBadge';
+import { getDefaultNonDisputeProjectStatus, isProjectDisputed } from '@/features/projects/utils';
 
-const formatMoney = (amount: number, currency: string) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency || 'VND',
-    maximumFractionDigits: currency === 'VND' ? 0 : 2,
-  }).format(amount);
+const formatMoney = (amount: number) => {
+  return `${amount.toLocaleString()} Aivora Coin`;
 };
 
 const formatDate = (value?: string | null) => {
@@ -26,7 +24,14 @@ interface AdminProjectDetailDrawerProps {
 
 export const AdminProjectDetailDrawer = ({ project, onClose }: AdminProjectDetailDrawerProps) => {
   const { data: detail, isLoading, isError, error } = useAdminProjectDetail(project?.id ?? null);
-  const visibleProject = detail ?? project;
+  const visibleProject = detail && project
+    ? {
+        ...detail,
+        hasDispute: project.hasDispute,
+        status: project.hasDispute === false ? getDefaultNonDisputeProjectStatus(detail.status) : detail.status,
+      }
+    : detail ?? project;
+  const hasDispute = isProjectDisputed(visibleProject?.status, visibleProject?.hasDispute);
 
   if (!project || !visibleProject) return null;
 
@@ -47,7 +52,7 @@ export const AdminProjectDetailDrawer = ({ project, onClose }: AdminProjectDetai
           </div>
           <button
             onClick={onClose}
-            className="size-9 rounded-xl border border-slate-100 text-slate-400 hover:text-slate-900 hover:bg-slate-50 flex items-center justify-center transition-colors"
+            className="size-9 rounded-lg border border-slate-100 text-slate-400 hover:text-slate-900 hover:bg-slate-50 flex items-center justify-center transition-colors"
           >
             <X className="size-4" />
           </button>
@@ -61,7 +66,7 @@ export const AdminProjectDetailDrawer = ({ project, onClose }: AdminProjectDetai
           )}
 
           {isError && (
-            <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 flex gap-3">
+            <div className="bg-orange-50 border border-orange-100 rounded-lg p-4 flex gap-3">
               <AlertCircle className="size-5 text-orange-600 shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-black text-orange-900">Detail endpoint did not return this project</p>
@@ -76,24 +81,41 @@ export const AdminProjectDetailDrawer = ({ project, onClose }: AdminProjectDetai
             <AdminProjectStatusBadge status={visibleProject.status} />
             <ProjectDisputeStatusBadge status={visibleProject.status} hasDispute={visibleProject.hasDispute} />
             <span className="bg-slate-50 text-slate-600 border border-slate-200 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider">
-              {visibleProject.currency}
+              Aivora Coin
             </span>
           </div>
 
+          {hasDispute && (
+            <Link
+              to={`/admin/projects/${visibleProject.id}/disputes`}
+              onClick={onClose}
+              className="flex items-center justify-between gap-4 rounded-lg border border-rose-100 bg-rose-50 p-4 text-rose-700 transition-colors hover:bg-rose-100"
+            >
+              <span className="flex items-center gap-3">
+                <MessageSquareWarning className="size-5 shrink-0" />
+                <span>
+                  <span className="block text-sm font-black">View dispute details</span>
+                  <span className="block text-xs font-semibold text-rose-600/80">Open all dispute records returned for this project.</span>
+                </span>
+              </span>
+              <span className="text-xs font-black uppercase tracking-widest">Open</span>
+            </Link>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+            <div className="bg-slate-50 border border-slate-100 rounded-lg p-4">
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Client</p>
               <p className="text-sm font-black text-slate-900">{visibleProject.clientName}</p>
               <p className="text-[10px] text-slate-500 font-medium truncate">{visibleProject.clientId || 'N/A'}</p>
             </div>
-            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+            <div className="bg-slate-50 border border-slate-100 rounded-lg p-4">
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Expert</p>
               <p className="text-sm font-black text-slate-900">{visibleProject.expertName}</p>
               <p className="text-[10px] text-slate-500 font-medium truncate">{visibleProject.expertId || 'N/A'}</p>
             </div>
           </div>
 
-          <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm">
+          <div className="bg-white border border-slate-100 rounded-lg p-4 shadow-sm">
             <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">Description</p>
             <p className="text-sm text-slate-600 font-medium leading-6">
               {visibleProject.description || 'No description returned by the API.'}
@@ -101,24 +123,24 @@ export const AdminProjectDetailDrawer = ({ project, onClose }: AdminProjectDetai
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm">
+            <div className="bg-white border border-slate-100 rounded-lg p-4 shadow-sm">
               <DollarSign className="size-4 text-emerald-600 mb-2" />
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Budget</p>
-              <p className="text-sm font-black text-slate-900">{formatMoney(visibleProject.totalBudget, visibleProject.currency)}</p>
+              <p className="text-sm font-black text-slate-900">{formatMoney(visibleProject.totalBudget)}</p>
             </div>
-            <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm">
+            <div className="bg-white border border-slate-100 rounded-lg p-4 shadow-sm">
               <Calendar className="size-4 text-blue-600 mb-2" />
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Started</p>
               <p className="text-sm font-black text-slate-900">{formatDate(visibleProject.startDate)}</p>
             </div>
-            <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm">
+            <div className="bg-white border border-slate-100 rounded-lg p-4 shadow-sm">
               <Calendar className="size-4 text-slate-500 mb-2" />
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Created</p>
               <p className="text-sm font-black text-slate-900">{formatDate(visibleProject.createdAt)}</p>
             </div>
           </div>
 
-          <div className="bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-white border border-slate-100 rounded-lg shadow-sm overflow-hidden">
             <div className="p-4 border-b border-slate-50 flex items-center justify-between">
               <h3 className="text-sm font-black text-slate-900">Milestones</h3>
               <span className="text-xs font-bold text-slate-400">{visibleProject.milestones.length} total</span>
@@ -132,7 +154,7 @@ export const AdminProjectDetailDrawer = ({ project, onClose }: AdminProjectDetai
                       <p className="text-xs text-slate-500 font-medium mt-1">{milestone.description || 'No description'}</p>
                     </div>
                     <p className="text-xs font-black text-emerald-600 whitespace-nowrap">
-                      {formatMoney(milestone.amount, milestone.currency)}
+                      {formatMoney(milestone.amount)}
                     </p>
                   </div>
                   <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-2">
@@ -148,7 +170,7 @@ export const AdminProjectDetailDrawer = ({ project, onClose }: AdminProjectDetai
             </div>
           </div>
 
-          <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+          <div className="bg-slate-50 border border-slate-100 rounded-lg p-4">
             <p className="text-xs font-bold text-slate-500">
               Admin project actions are hidden because the current API exposes no admin status update, hold, complete, or cancel endpoint.
             </p>

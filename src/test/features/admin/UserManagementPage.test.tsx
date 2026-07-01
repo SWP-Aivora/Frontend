@@ -53,6 +53,7 @@ const mockUsersData: AdminUserManagementData = {
       status: 'Active',
       verificationState: 'Verified',
       createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-06-22T09:00:00.000Z',
       lastLoginAt: '2026-06-20T12:00:00.000Z',
       initials: 'AC',
       projectsCount: 2,
@@ -65,6 +66,7 @@ const mockUsersData: AdminUserManagementData = {
       status: 'Suspended',
       verificationState: 'Review',
       createdAt: '2026-02-01T00:00:00.000Z',
+      updatedAt: '2026-06-23T09:00:00.000Z',
       lastLoginAt: '2026-06-21T10:00:00.000Z',
       initials: 'BE',
       proposalsCount: 5,
@@ -79,6 +81,7 @@ const mockUsersData: AdminUserManagementData = {
       status: 'Active',
       verificationState: 'Internal',
       createdAt: '2026-03-01T00:00:00.000Z',
+      updatedAt: '2026-06-24T09:00:00.000Z',
       lastLoginAt: '2026-06-21T15:00:00.000Z',
       initials: 'CA',
     }
@@ -168,9 +171,9 @@ describe('UserManagementPage', () => {
       </MemoryRouter>
     );
 
-    // Header & Hero
+    // Header
     expect(screen.getByText('Manage Platform Users')).toBeInTheDocument();
-    expect(screen.getByText('3 total users')).toBeInTheDocument();
+    expect(screen.getByText(/Search, filter, suspend, activate, and audit clients/i)).toBeInTheDocument();
 
     // Table entries (scoping to table)
     const table = container.querySelector('table')!;
@@ -179,10 +182,22 @@ describe('UserManagementPage', () => {
     expect(within(table).getByText('Bob Expert')).toBeInTheDocument();
     expect(within(table).getByText('bob@expert.com')).toBeInTheDocument();
     expect(within(table).getByText('Charlie Admin')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /verification/i })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /last login/i })).toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: /user id/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: /created/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: /updated/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: /actions/i })).not.toBeInTheDocument();
+    expect(within(table).queryByText('u-1')).not.toBeInTheDocument();
+    expect(within(table).getByText('Verified')).toBeInTheDocument();
+    expect(within(table).getByText('Review')).toBeInTheDocument();
+    expect(within(table).getByText('Internal')).toBeInTheDocument();
+    expect(screen.queryByText('N/A')).not.toBeInTheDocument();
 
-    // Side queues
-    expect(screen.getByText('User review queue')).toBeInTheDocument();
-    expect(screen.getByText('Verify credential certificate')).toBeInTheDocument();
+    // Removed side containers
+    expect(screen.queryByText('User review queue')).not.toBeInTheDocument();
+    expect(screen.queryByText('Verify credential certificate')).not.toBeInTheDocument();
+    expect(screen.queryByText('Recent activity')).not.toBeInTheDocument();
   });
 
   it('supports client-side searching', () => {
@@ -288,6 +303,7 @@ describe('UserManagementPage', () => {
           status: 'Active' as const,
           verificationState: 'Verified' as const,
           createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-06-20T12:00:00.000Z',
           lastLoginAt: '2026-06-20T12:00:00.000Z',
           initials: 'U',
         }))

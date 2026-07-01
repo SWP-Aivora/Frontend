@@ -33,7 +33,7 @@ export const NotificationStats = ({ unreadCount, totalCount }: NotificationStats
         subtext="Milestones and files" 
       />
       <StatCard 
-        icon={<CreditCard className="size-5 text-indigo-500" />} 
+        icon={<CreditCard className="size-5 text-primary" />} 
         value="--" 
         label="Payment Updates" 
         subtext="Escrow and releases" 
@@ -43,8 +43,8 @@ export const NotificationStats = ({ unreadCount, totalCount }: NotificationStats
 };
 
 const StatCard = ({ icon, value, label, subtext }: { icon: React.ReactNode, value: string, label: string, subtext: string }) => (
-  <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col justify-center h-24 relative overflow-hidden">
-    <div className="absolute right-4 top-4 bg-slate-50 p-2 rounded-xl">
+  <div className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm flex flex-col justify-center h-24 relative overflow-hidden">
+    <div className="absolute right-4 top-4 bg-slate-50 p-2 rounded-lg">
       {icon}
     </div>
     <p className="text-xl font-bold text-slate-900 leading-none">{value}</p>

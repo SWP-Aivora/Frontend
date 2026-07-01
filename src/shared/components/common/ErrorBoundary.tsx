@@ -29,7 +29,7 @@ export class ErrorBoundary extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return this.props.fallback || (
-        <div className="p-4 border border-rose-200 bg-rose-50 rounded-xl text-rose-600 text-sm text-center font-medium">
+        <div className="p-4 border border-rose-200 bg-rose-50 rounded-lg text-rose-600 text-sm text-center font-medium">
           An error occurred while loading this section.
         </div>
       );

@@ -7,14 +7,43 @@ import { AiChatPanel } from '../components/AiChatPanel';
 import { JobDraftForm } from '../components/JobDraftForm';
 import { ExpertMatchInsights } from '../components/ExpertMatchInsights';
 import { jobService } from '../services';
-import { AiJobAssistantStatus, type ChatMessage, type AiJobSuggestion, type PatchAiJobSuggestionRequest, type AcceptAiJobSuggestionRequest, type AcceptedJobResponse, type Job } from '../types';
+import { AiJobAssistantStatus, type ChatMessage, type AiJobSuggestion, type PatchAiJobSuggestionRequest, type AcceptAiJobSuggestionRequest, type AcceptedJobResponse, type CreateJobRequest, type Job } from '../types';
 import { categoryService } from '@/shared/services/categoryService';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useDebouncedCallback } from '@/shared/hooks/useDebounce';
-import { BudgetType, SkillLevel } from '@/shared/types/enums';
+import { BudgetType, JobVisibility, SkillLevel } from '@/shared/types/enums';
 
 type FlowStep = 'PLANNING' | 'DRAFTING' | 'REVIEWING' | 'MATCHING';
+
+const getDateAfterDays = (days: number | null | undefined): string | null => {
+  if (!days || days < 1) {
+    return null;
+  }
+
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+};
+
+const toCreateJobBudgetType = (value: AiJobSuggestion['budgetType']): CreateJobRequest['budgetType'] => (
+  value === BudgetType.HOURLY ? 'HOURLY' : 'FIXED'
+);
+
+const toCreateJobSkillLevel = (value: AiJobSuggestion['experienceLevel']): CreateJobRequest['experienceLevel'] => {
+  switch (value) {
+    case SkillLevel.BEGINNER:
+      return 'BEGINNER';
+    case SkillLevel.INTERMEDIATE:
+      return 'INTERMEDIATE';
+    case SkillLevel.EXPERIENCED:
+      return 'ADVANCED';
+    case SkillLevel.EXPERT:
+      return 'EXPERT';
+    default:
+      return null;
+  }
+};
 
 export const PostJobPage = () => {
   // Quản lý các bước tạo Job: PLANNING (Chat với AI) -> DRAFTING (Xem bản nháp) -> REVIEWING (Sửa thủ công) -> MATCHING (Tìm chuyên gia)
@@ -206,21 +235,38 @@ export const PostJobPage = () => {
     }
   });
 
+  const createDraftJobMutation = useMutation({
+    mutationFn: (data: CreateJobRequest) => jobService.createJob(data),
+    onSuccess: (response) => {
+      if (!response.data?.id) {
+        toast.error('Failed to create draft job');
+        return;
+      }
+
+      setJobId(response.data.id);
+      setIsDraftSaved(true);
+    },
+    onError: (error: unknown) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to save draft');
+    }
+  });
+
   const updateDraftJobMutation = useMutation({
-    mutationFn: (payload: {
-      jobId: string;
+    mutationFn: (payload: { 
+      jobId: string; 
       data: {
         title: string;
         finalDescription: string;
         businessDomain: string | null;
         expectedOutcome: string | null;
         categoryId: string | null;
-        budgetType: AiJobSuggestion['budgetType'];
+        budgetType: CreateJobRequest['budgetType'];
         budgetMin: number | null;
         budgetMax: number | null;
         currency: string;
         timelineDays: number | null;
-        experienceLevel: AiJobSuggestion['experienceLevel'];
+        experienceLevel: CreateJobRequest['experienceLevel'];
+        visibility?: JobVisibility;
       };
     }) => jobService.updateJob(payload.jobId, payload.data),
     onSuccess: () => {
@@ -237,12 +283,14 @@ export const PostJobPage = () => {
       initMutation.isPending ||
       refineMutation.isPending ||
       acceptMutation.isPending ||
+      createDraftJobMutation.isPending ||
       patchMutation.isPending ||
       updateDraftJobMutation.isPending;
   }, [
     initMutation.isPending,
     refineMutation.isPending,
     acceptMutation.isPending,
+    createDraftJobMutation.isPending,
     patchMutation.isPending,
     updateDraftJobMutation.isPending,
   ]);
@@ -404,7 +452,7 @@ export const PostJobPage = () => {
     }
   };
 
-  const buildDraftJobUpdateData = () => {
+  const buildDraftJobUpdateData = (visibility?: JobVisibility) => {
     if (!suggestion) {
       return null;
     }
@@ -412,15 +460,55 @@ export const PostJobPage = () => {
     return {
       title: suggestion.suggestedTitle,
       finalDescription: suggestion.suggestedDescription,
-      businessDomain: suggestion.businessDomain,
+      businessDomain: suggestion.businessDomain?.trim() || null,
       expectedOutcome: suggestion.expectedOutcome,
       categoryId: suggestion.categoryId ?? null,
-      budgetType: suggestion.budgetType,
+      budgetType: toCreateJobBudgetType(suggestion.budgetType),
       budgetMin: suggestion.suggestedBudgetMin,
       budgetMax: suggestion.suggestedBudgetMax,
       currency: suggestion.currency,
       timelineDays: suggestion.suggestedTimelineDays,
-      experienceLevel: suggestion.experienceLevel,
+      experienceLevel: toCreateJobSkillLevel(suggestion.experienceLevel),
+      ...(visibility !== undefined ? { visibility } : {}),
+    };
+  };
+
+  const buildCreateJobRequest = (): CreateJobRequest | null => {
+    if (!suggestion) {
+      return null;
+    }
+
+    if (!suggestion.categoryId) {
+      toast.error('Please select a category before saving the draft.');
+      return null;
+    }
+
+    const currency = suggestion.currency || 'Xu';
+
+    return {
+      title: suggestion.suggestedTitle,
+      originalDescription: suggestion.rawInput || suggestion.suggestedDescription,
+      finalDescription: suggestion.suggestedDescription,
+      businessDomain: suggestion.businessDomain?.trim() || null,
+      expectedOutcome: suggestion.expectedOutcome,
+      categoryId: suggestion.categoryId,
+      budgetType: toCreateJobBudgetType(suggestion.budgetType),
+      budgetMin: suggestion.suggestedBudgetMin,
+      budgetMax: suggestion.suggestedBudgetMax,
+      currency,
+      timelineDays: suggestion.suggestedTimelineDays,
+      deadline: getDateAfterDays(suggestion.suggestedTimelineDays),
+      experienceLevel: toCreateJobSkillLevel(suggestion.experienceLevel),
+      visibility: JobVisibility.PRIVATE,
+      skillIds: [],
+      milestones: suggestion.suggestedMilestones.map((milestone, index) => ({
+        title: milestone.title,
+        description: milestone.description,
+        acceptanceCriteria: milestone.acceptanceCriteria,
+        amount: milestone.amount ?? 0,
+        dueDays: milestone.dueDays ?? 0,
+        orderIndex: milestone.orderIndex ?? index,
+      })),
     };
   };
 
@@ -452,18 +540,36 @@ export const PostJobPage = () => {
         return;
       }
 
-      await updateDraftJobMutation.mutateAsync({
-        jobId: createdJobId,
-        data: updateData,
-      });
+      try {
+        await updateDraftJobMutation.mutateAsync({
+          jobId: createdJobId,
+          data: updateData,
+        });
+      } catch {
+        return;
+      }
+
       toast.success('Draft saved successfully!');
       return;
     }
 
-    const job = await ensureDraftJob();
-    if (job) {
-      toast.success('Draft saved successfully!');
+    const createData = buildCreateJobRequest();
+    if (!createData) {
+      return;
     }
+
+    let response;
+    try {
+      response = await createDraftJobMutation.mutateAsync(createData);
+    } catch {
+      return;
+    }
+
+    if (!response.data?.id) {
+      return;
+    }
+
+    toast.success('Draft saved successfully!');
   };
 
   const handleAccept = () => {
@@ -474,7 +580,7 @@ export const PostJobPage = () => {
     if (!suggestion) return [];
 
     const missing = [];
-    if (!suggestion.businessDomain) missing.push('Business Domain');
+    if (!suggestion.businessDomain?.trim()) missing.push('Business Domain');
     if (!suggestion.suggestedBudgetMin || !suggestion.suggestedBudgetMax) missing.push('Budget Min/Max');
     if (!suggestion.suggestedTimelineDays) missing.push('Timeline (Days)');
     if (!suggestion.categoryId) missing.push('Category');
@@ -512,7 +618,7 @@ export const PostJobPage = () => {
       }
 
       if (jobId) {
-        const updateData = buildDraftJobUpdateData();
+        const updateData = buildDraftJobUpdateData(JobVisibility.PUBLIC);
         if (!updateData) {
           return;
         }
@@ -562,8 +668,8 @@ export const PostJobPage = () => {
   if (isExistingJobError && !suggestion) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16">
-        <div className="rounded-3xl border border-rose-100 bg-white p-8 text-center shadow-sm">
-          <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-rose-50">
+        <div className="rounded-2xl border border-rose-100 bg-white p-8 text-center shadow-sm">
+          <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-xl bg-rose-50">
             <AlertCircle className="size-7 text-rose-500" />
           </div>
           <h2 className="text-xl font-black text-slate-900">Unable to open this job post</h2>
@@ -588,7 +694,7 @@ export const PostJobPage = () => {
           </div>
         ) : isMatchError ? (
           <div className="py-20 flex flex-col items-center justify-center space-y-6">
-            <div className="size-16 rounded-2xl bg-rose-50 flex items-center justify-center">
+            <div className="size-16 rounded-xl bg-rose-50 flex items-center justify-center">
               <AlertCircle className="size-8 text-rose-500" />
             </div>
             <div className="text-center space-y-2">
@@ -615,9 +721,9 @@ export const PostJobPage = () => {
 
     return (
       <div className="mx-auto max-w-6xl px-4 py-2 animate-in fade-in duration-500">
-        <div className="flex h-[calc(100vh-132px)] min-h-[560px] flex-col overflow-hidden rounded-3xl border border-slate-100 bg-white p-4 shadow-sm lg:p-5">
+        <div className="flex h-[calc(100vh-132px)] min-h-[560px] flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white p-4 shadow-sm lg:p-5">
           <div className="mb-3 flex items-start gap-3 border-b border-slate-100 pb-3">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-2xl bg-brand-accent/10 text-brand-accent">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand-accent/10 text-brand-accent">
               <Sparkles className="size-4" />
             </div>
             <div className="min-w-0">
@@ -629,7 +735,7 @@ export const PostJobPage = () => {
           </div>
 
           {missingRequiredFields.length > 0 && (
-            <div className="mb-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2.5">
+            <div className="mb-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5">
               <p className="text-[84%] font-semibold text-rose-700 lg:text-[13px]">
                 Missing required fields before publish: {missingRequiredFields.join(', ')}
               </p>
@@ -655,7 +761,7 @@ export const PostJobPage = () => {
               </div>
 
               <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-                <div className="flex min-h-[88px] flex-col justify-between rounded-2xl border border-slate-100 bg-slate-50/80 p-3">
+                <div className="flex min-h-[88px] flex-col justify-between rounded-xl border border-slate-100 bg-slate-50/80 p-3">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-[76%] font-semibold text-slate-400 lg:text-[12px]">Budget</p>
                     <span
@@ -669,37 +775,37 @@ export const PostJobPage = () => {
                       {formatBudgetTypeLabel(suggestion.budgetType)}
                     </span>
                   </div>
-                  <p className="text-[84%] font-bold leading-snug text-slate-900 sm:text-[88%] lg:text-[16px]">${suggestion.suggestedBudgetMin} - ${suggestion.suggestedBudgetMax}</p>
+                  <p className="text-[84%] font-bold leading-snug text-slate-900 sm:text-[88%] lg:text-[16px]">{suggestion.suggestedBudgetMin} - {suggestion.suggestedBudgetMax} Aivora Coin</p>
                 </div>
-                <div className="flex min-h-[88px] flex-col justify-between rounded-2xl border border-slate-100 bg-slate-50/80 p-3">
+                <div className="flex min-h-[88px] flex-col justify-between rounded-xl border border-slate-100 bg-slate-50/80 p-3">
                   <p className="text-[76%] font-semibold text-slate-400 lg:text-[12px]">Timeline</p>
                   <p className="text-[84%] font-bold leading-snug text-slate-900 sm:text-[88%] lg:text-[16px]">{suggestion.suggestedTimelineDays} Days</p>
                 </div>
-                <div className="flex min-h-[88px] flex-col justify-between rounded-2xl border border-slate-100 bg-slate-50/80 p-3">
+                <div className="flex min-h-[88px] flex-col justify-between rounded-xl border border-slate-100 bg-slate-50/80 p-3">
                   <p className="text-[76%] font-semibold text-slate-400 lg:text-[12px]">Experience</p>
                   <p className="text-[84%] font-bold leading-snug text-slate-900 sm:text-[88%] lg:text-[16px]">
                     {formatExperienceLabel(suggestion.experienceLevel)}
                   </p>
                 </div>
-                <div className="flex min-h-[88px] flex-col justify-between rounded-2xl border border-slate-100 bg-slate-50/80 p-3">
+                <div className="flex min-h-[88px] flex-col justify-between rounded-xl border border-slate-100 bg-slate-50/80 p-3">
                   <p className="text-[76%] font-semibold text-slate-400 lg:text-[12px]">Domain</p>
                   <p className="text-[84%] font-bold leading-snug text-slate-900 sm:text-[88%] lg:text-[16px]">{suggestion.businessDomain || 'General'}</p>
                 </div>
-                <div className="flex min-h-[88px] flex-col justify-between rounded-2xl border border-slate-100 bg-slate-50/80 p-3 lg:col-span-2">
+                <div className="flex min-h-[88px] flex-col justify-between rounded-xl border border-slate-100 bg-slate-50/80 p-3 lg:col-span-2">
                   <p className="text-[76%] font-semibold text-slate-400 lg:text-[12px]">Category</p>
                   <p className="text-[84%] font-bold leading-snug text-slate-900 sm:text-[88%] lg:text-[16px]">{suggestion.categoryName || 'Not selected'}</p>
                 </div>
               </div>
             </div>
 
-            <div className="flex min-h-0 flex-col rounded-3xl border border-slate-100 bg-slate-50/50 p-3.5 lg:p-4">
+            <div className="flex min-h-0 flex-col rounded-2xl border border-slate-100 bg-slate-50/50 p-3.5 lg:p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <h3 className="text-[76%] font-semibold text-slate-400 lg:text-[12px]">Milestones</h3>
                 <span className="text-[78%] font-semibold text-slate-400 lg:text-[12px]">{suggestion.suggestedMilestones.length} total</span>
               </div>
               <div className="flex-1 space-y-3 overflow-y-auto pr-1">
                 {suggestion.suggestedMilestones.map((milestone, index) => (
-                  <div key={milestone.id || `review-milestone-${index}`} className="rounded-2xl border border-slate-100 bg-white p-3.5 shadow-sm">
+                  <div key={milestone.id || `review-milestone-${index}`} className="rounded-xl border border-slate-100 bg-white p-3.5 shadow-sm">
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0 flex-1 space-y-2">
                         <div className="flex items-center gap-2">
@@ -768,9 +874,9 @@ export const PostJobPage = () => {
       aria-labelledby="post-job-page-heading"
     >
       {/* Header Info */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between shrink-0 bg-white border border-slate-100 p-4 rounded-2xl shadow-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between shrink-0 bg-white border border-slate-100 p-4 rounded-xl shadow-sm">
         <div className="flex items-center gap-4">
-           <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
+           <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
               <Sparkles className="size-5 text-primary" />
            </div>
            <div>

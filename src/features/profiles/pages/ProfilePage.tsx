@@ -22,7 +22,7 @@ export const ProfilePage = () => {
   return (
     <div className="space-y-8">
       {/* Hero Overview - Compact Version */}
-      <div className="bg-white border border-slate-100 rounded-xl p-6 shadow-xl relative overflow-hidden">
+      <div className="bg-white border border-slate-100 rounded-lg p-6 shadow-xl relative overflow-hidden">
         <div className="absolute -left-20 -top-20 size-64 pointer-events-none opacity-30">
            <img src={ASSETS.heroGlow} alt="" className="size-full" />
         </div>
@@ -30,7 +30,7 @@ export const ProfilePage = () => {
         <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
           {/* Avatar Section */}
           <div className="relative group">
-            <div className="size-24 rounded-xl bg-gradient-to-br from-primary to-brand-blue-dark flex items-center justify-center shadow-lg shadow-primary/20 relative z-10 overflow-hidden">
+            <div className="size-24 rounded-lg bg-brand-blue-dark flex items-center justify-center shadow-lg shadow-blue-900/20 relative z-10 overflow-hidden">
                {user?.fullName ? (
                  <span className="text-3xl font-black text-white uppercase">{user.fullName.charAt(0)}</span>
                ) : user?.email ? (
@@ -39,39 +39,30 @@ export const ProfilePage = () => {
                  <User className="size-12 text-white" />
                )}
             </div>
-            <div className="absolute -inset-2 bg-primary/10 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity" />
-            <button className="absolute -bottom-1 -right-1 bg-white size-8 rounded-lg shadow-md border border-slate-100 flex items-center justify-center text-slate-500 hover:text-primary transition-colors z-20">
+            <div className="absolute -inset-2 bg-brand-blue-dark/10 rounded-lg blur-lg opacity-0 group-hover:opacity-100 transition-opacity" />
+            <button className="absolute -bottom-1 -right-1 bg-white size-8 rounded-lg shadow-md border border-slate-100 flex items-center justify-center text-slate-500 hover:text-brand-blue-dark transition-colors z-20">
               <Settings className="size-4" />
             </button>
           </div>
 
           {/* Info Section */}
           <div className="flex-1 text-center md:text-left space-y-2">
-             <div className="inline-flex items-center px-2.5 py-0.5 bg-primary/5 rounded-full border border-primary/10">
-                <span className="text-[10px] font-bold text-primary tracking-widest uppercase">Active Member</span>
+             <div className="inline-flex items-center px-2.5 py-0.5 bg-brand-blue-light rounded-full border border-brand-blue-dark/10">
+                <span className="text-[10px] font-bold text-brand-blue-dark tracking-widest uppercase">Active Member</span>
              </div>
              <h1 className="text-3xl font-black text-slate-900 tracking-tight">
-               Welcome, <span className="text-primary">{(user?.fullName || user?.email || 'User').split(' ')[0]}</span>!
+               Welcome, <span className="text-brand-blue-dark">{(user?.fullName || user?.email || 'User').split(' ')[0]}</span>!
              </h1>
              <p className="text-base text-slate-500 font-medium max-w-xl leading-snug">
                Manage your account details and security preferences. 
                Your status is <span className="text-emerald-600 font-bold">Verified</span>.
              </p>
           </div>
-
-          {/* Completion Status */}
-          <div className="bg-slate-50/50 border border-slate-100 rounded-xl p-4 text-center min-w-[150px]">
-             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Profile Strength</p>
-             <p className="text-3xl font-black text-primary mb-1">86%</p>
-             <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
-                <div className="h-full bg-primary rounded-full w-[86%] shadow-[0_0_8px_rgba(37,99,235,0.4)]" />
-             </div>
-          </div>
         </div>
       </div>
 
       {/* Tabs Navigation */}
-      <div className="bg-white border border-slate-100 rounded-xl p-1.5 shadow-sm flex flex-wrap gap-1.5 overflow-x-auto scrollbar-hide">
+      <div className="bg-white border border-slate-100 rounded-lg p-1.5 shadow-sm flex flex-wrap gap-1.5 overflow-x-auto scrollbar-hide">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -80,10 +71,10 @@ export const ProfilePage = () => {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex items-center gap-2.5 px-5 py-2.5 rounded-xl font-bold text-xs transition-all duration-300 whitespace-nowrap",
+                "flex items-center gap-2.5 px-5 py-2.5 rounded-lg font-bold text-xs transition-all duration-300 whitespace-nowrap",
                 isActive 
-                  ? "bg-primary text-white shadow-md shadow-primary/20" 
-                  : "text-slate-500 hover:bg-slate-50 hover:text-primary"
+                  ? "bg-brand-blue-dark text-white shadow-md shadow-blue-900/20" 
+                  : "text-slate-500 hover:bg-slate-50 hover:text-brand-blue-dark"
               )}
             >
               <Icon className="size-3.5" />
@@ -97,7 +88,7 @@ export const ProfilePage = () => {
       <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
         {activeTab === 'account' && <AccountInfoForm />}
         {activeTab === 'security' && (
-          <div className="bg-white rounded-xl p-10 border border-slate-100 shadow-sm text-center">
+          <div className="bg-white rounded-lg p-10 border border-slate-100 shadow-sm text-center">
              <Shield className="size-12 text-slate-200 mx-auto mb-4" />
              <h3 className="text-xl font-black text-slate-900 mb-1">Security Settings</h3>
              <p className="text-slate-500 text-sm font-medium mb-6">Password management and 2FA coming soon.</p>

@@ -123,6 +123,7 @@ export interface AdminUserItem {
   status: 'Active' | 'Suspended' | 'Pending';
   verificationState: 'Verified' | 'N/A' | 'Rejected' | 'Pending' | 'Review' | 'Internal';
   createdAt: string;
+  updatedAt?: string | null;
   lastLoginAt: string | null;
   avatarUrl?: string | null;
   initials?: string;

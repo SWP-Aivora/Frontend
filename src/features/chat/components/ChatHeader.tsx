@@ -94,7 +94,7 @@ export const ChatHeader = ({
             variant="outline" 
             size="sm" 
             onClick={handleViewProject}
-            className="hidden sm:flex h-9 gap-2 text-xs font-bold text-blue-600 border-blue-100 hover:bg-blue-50 rounded-xl"
+            className="hidden sm:flex h-9 gap-2 text-xs font-bold text-blue-600 border-blue-100 hover:bg-blue-50 rounded-lg"
           >
             View Project
             <ExternalLink className="w-3.5 h-3.5" />
@@ -107,7 +107,7 @@ export const ChatHeader = ({
             size="icon" 
             onClick={onToggleRightPanel}
             className={cn(
-              "rounded-xl transition-all",
+              "rounded-lg transition-all",
               isRightPanelCollapsed ? "text-slate-400 hover:text-slate-600 hover:bg-slate-100" : "text-blue-600 bg-blue-50 hover:bg-blue-100 hover:text-blue-700"
             )}
             title={isRightPanelCollapsed ? "Show Details" : "Hide Details"}
@@ -116,10 +116,10 @@ export const ChatHeader = ({
           </Button>
         )}
 
-        <Button variant="ghost" size="icon" className="text-slate-400 hover:text-slate-600 rounded-xl">
+        <Button variant="ghost" size="icon" className="text-slate-400 hover:text-slate-600 rounded-lg">
           <Archive className="size-5" />
         </Button>
-        <Button variant="ghost" size="icon" className="text-slate-400 hover:text-slate-600 rounded-xl">
+        <Button variant="ghost" size="icon" className="text-slate-400 hover:text-slate-600 rounded-lg">
           <MoreHorizontal className="size-5" />
         </Button>
       </div>

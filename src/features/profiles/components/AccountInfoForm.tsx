@@ -262,14 +262,14 @@ export const AccountInfoForm = () => {
 
   if (loadError) {
       return (
-        <div className="bg-rose-50 border border-rose-100 rounded-xl p-10 text-center max-w-2xl mx-auto my-10">
+        <div className="bg-rose-50 border border-rose-100 rounded-lg p-10 text-center max-w-2xl mx-auto my-10">
           <AlertCircle className="size-12 text-rose-500 mx-auto mb-4" />
           <h2 className="text-lg font-black text-rose-900 mb-2">Failed to load profile</h2>
           <p className="text-rose-600 font-medium">{loadError}</p>
           <div className="flex justify-center gap-4 mt-6">
             <Button 
               onClick={() => window.location.reload()}
-              className="px-6 bg-rose-600 text-white rounded-xl font-bold hover:bg-rose-700 transition-colors h-11"
+              className="px-6 bg-rose-600 text-white rounded-lg font-bold hover:bg-rose-700 transition-colors h-11"
             >
               Retry Loading
             </Button>
@@ -281,7 +281,7 @@ export const AccountInfoForm = () => {
   return (
     <div className="space-y-8">
       {/* ACCOUNT INFORMATION (READ-ONLY) */}
-      <div className="bg-white rounded-xl p-8 border border-slate-100 shadow-sm relative overflow-hidden">
+      <div className="bg-white rounded-lg p-8 border border-slate-100 shadow-sm relative overflow-hidden">
         <div className="flex items-center gap-4 mb-6">
           <div className="size-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
              <ShieldCheck className="size-5" />
@@ -319,7 +319,7 @@ export const AccountInfoForm = () => {
       </div>
 
       {/* IDENTITY SETTINGS */}
-      <div className="bg-white rounded-xl p-8 border border-slate-100 shadow-sm relative overflow-hidden">
+      <div className="bg-white rounded-lg p-8 border border-slate-100 shadow-sm relative overflow-hidden">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h3 className="text-xl font-black text-slate-900 tracking-tight">Personal Identity</h3>
@@ -340,7 +340,7 @@ export const AccountInfoForm = () => {
             </div>
           </div>
           <div className="flex justify-end pt-2">
-            <Button type="submit" disabled={isUserLoading || isInitialLoading || !!loadError} variant="outline" className="rounded-xl px-6 h-10 font-bold border-slate-200 hover:border-primary hover:text-primary transition-all text-xs">
+            <Button type="submit" disabled={isUserLoading || isInitialLoading || !!loadError} variant="outline" className="rounded-lg px-6 h-10 font-bold border-slate-200 hover:border-primary hover:text-primary transition-all text-xs">
               {isUserLoading ? 'Saving...' : 'Update Identity'}
             </Button>
           </div>
@@ -349,7 +349,7 @@ export const AccountInfoForm = () => {
 
       {/* ROLE SPECIFIC SETTINGS */}
       {activeProfileRole === Role.CLIENT && (
-        <div className="bg-white rounded-xl p-8 border border-slate-100 shadow-sm relative overflow-hidden">
+        <div className="bg-white rounded-lg p-8 border border-slate-100 shadow-sm relative overflow-hidden">
           <div className="flex items-center gap-4 mb-8">
             <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
                <Building2 className="size-5" />
@@ -402,7 +402,7 @@ export const AccountInfoForm = () => {
             </div>
 
             <div className="flex justify-end pt-4 border-t border-slate-50">
-              <Button type="submit" disabled={isProfileLoading || isUserLoading || !!loadError} className="rounded-xl px-8 h-11 font-bold shadow-lg shadow-blue-100 uppercase tracking-wider text-xs">
+              <Button type="submit" disabled={isProfileLoading || isUserLoading || !!loadError} className="rounded-lg px-8 h-11 font-bold shadow-lg shadow-blue-100 uppercase tracking-wider text-xs">
                 {isProfileLoading ? 'Saving...' : 'Update Business Profile'}
               </Button>
             </div>
@@ -411,9 +411,9 @@ export const AccountInfoForm = () => {
       )}
 
       {activeProfileRole === Role.EXPERT && (
-        <div className="bg-white rounded-xl p-8 border border-slate-100 shadow-sm relative overflow-hidden">
+        <div className="bg-white rounded-lg p-8 border border-slate-100 shadow-sm relative overflow-hidden">
           <div className="flex items-center gap-4 mb-8">
-            <div className="size-10 rounded-lg bg-brand-accent/10 flex items-center justify-center text-brand-accent">
+            <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
                <Code2 className="size-5" />
             </div>
             <div>
@@ -430,7 +430,7 @@ export const AccountInfoForm = () => {
               </div>
               
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">Hourly Rate ($)</label>
+                <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">Hourly Rate (Aivora Coin)</label>
                 <Input type="number" {...registerExpert('hourlyRate')} placeholder="0.00" className="h-11 rounded-lg bg-slate-50 border-slate-100 focus:bg-white transition-all font-medium" disabled={!!loadError} />
                 {expertErrors.hourlyRate && <p className="text-[10px] text-destructive font-bold ml-1">{expertErrors.hourlyRate.message}</p>}
               </div>
@@ -446,13 +446,13 @@ export const AccountInfoForm = () => {
                <textarea 
                   {...registerExpert('bio')}
                   placeholder="Detail your experience with LLMs, Computer Vision, etc..."
-                  className="w-full min-h-[120px] p-4 rounded-lg bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-accent/20 text-sm font-medium"
+                  className="w-full min-h-[120px] p-4 rounded-lg bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm font-medium"
                   disabled={!!loadError}
                />
             </div>
 
             <div className="flex justify-end pt-4 border-t border-slate-50">
-              <Button type="submit" disabled={isProfileLoading || !!loadError} className="rounded-xl px-8 h-11 font-bold bg-brand-accent hover:bg-brand-accent/90 shadow-lg shadow-brand-accent/20 uppercase tracking-wider text-xs">
+              <Button type="submit" disabled={isProfileLoading || !!loadError} className="rounded-lg px-8 h-11 font-bold bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 uppercase tracking-wider text-xs">
                 {isProfileLoading ? 'Saving...' : 'Update Expert Credentials'}
               </Button>
             </div>

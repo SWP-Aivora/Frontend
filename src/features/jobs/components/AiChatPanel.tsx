@@ -53,11 +53,11 @@ export const AiChatPanel = ({
   };
 
   return (
-    <div className="flex h-[min(70vh,720px)] min-h-[520px] flex-col overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm lg:h-full lg:min-h-0">
+    <div className="flex h-[min(70vh,720px)] min-h-[520px] flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm lg:h-full lg:min-h-0">
       {/* Header */}
       <div className="p-4 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="size-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
+          <div className="size-10 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
             <Bot className="size-5 text-white" />
           </div>
           <div>
@@ -107,7 +107,7 @@ export const AiChatPanel = ({
                 {isAi ? <Bot className="size-4 text-primary" /> : <User className="size-4 text-white" />}
               </div>
               <div className={cn(
-                "p-3 rounded-2xl text-sm leading-relaxed",
+                "p-3 rounded-xl text-sm leading-relaxed",
                 isAi 
                   ? "bg-white border border-slate-100 text-slate-700 rounded-tl-none shadow-sm" 
                   : "bg-primary text-white rounded-tr-none shadow-md shadow-primary/10"
@@ -123,7 +123,7 @@ export const AiChatPanel = ({
             <div className="size-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center shadow-sm">
               <Bot className="size-4 text-primary" />
             </div>
-            <div className="bg-white border border-slate-100 text-slate-400 p-3 rounded-2xl rounded-tl-none shadow-sm italic flex items-center gap-2">
+            <div className="bg-white border border-slate-100 text-slate-400 p-3 rounded-xl rounded-tl-none shadow-sm italic flex items-center gap-2">
               <Loader2 className="size-4 animate-spin" />
               Thinking...
             </div>
@@ -146,12 +146,12 @@ export const AiChatPanel = ({
                   ? "Ask AI to change title, budget, or milestones..."
                   : "Describe your project idea..."
             }
-            className="w-full h-12 pl-5 pr-12 rounded-2xl bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all text-sm font-medium disabled:opacity-50"
+            className="w-full h-12 pl-5 pr-12 rounded-xl bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all text-sm font-medium disabled:opacity-50"
           />
           <button 
             type="submit"
             disabled={!inputValue.trim() || isGenerating || inputDisabled}
-            className="absolute right-1.5 top-1.5 size-9 rounded-xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
+            className="absolute right-1.5 top-1.5 size-9 rounded-lg bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
           >
             <Send className="size-4" />
           </button>

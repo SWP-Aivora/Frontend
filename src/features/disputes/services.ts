@@ -4,8 +4,10 @@ import { API_ENDPOINTS } from '@/shared/constants';
 import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
 import type { 
   Dispute, 
+  Evidence,
   OpenDisputeRequest, 
   AddEvidenceRequest, 
+  RequestEvidenceRequest,
   ResolveDisputeRequest,
 } from './types';
 import {
@@ -15,12 +17,24 @@ import {
 import { normalizePaginatedResponse, normalizeBaseResponse } from '@/lib/api-utils';
 
 interface BEDisputeEvidenceResponse {
-  id: string;
-  submittedBy: string;
-  submittedByName: string;
-  content: string;
+  id?: string;
+  Id?: string;
+  disputeId?: string;
+  DisputeId?: string;
+  submittedBy?: string;
+  SubmittedBy?: string;
+  submitterId?: string;
+  SubmitterId?: string;
+  submittedByName?: string;
+  SubmittedByName?: string;
+  submitterName?: string;
+  SubmitterName?: string;
+  content?: string;
+  Content?: string;
   fileUrl?: string | null;
-  createdAt: string;
+  FileUrl?: string | null;
+  createdAt?: string;
+  CreatedAt?: string;
 }
 
 interface BEDisputeResponse {
@@ -88,6 +102,51 @@ export const normalizeDisputeResolutionType = (type: unknown): DisputeResolution
   return null;
 };
 
+const getNumberValue = (...values: unknown[]): number | undefined => {
+  for (const value of values) {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string' && value.trim() !== '') {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+
+  return undefined;
+};
+
+const getStringValue = (...values: unknown[]): string => {
+  for (const value of values) {
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number') return String(value);
+  }
+
+  return '';
+};
+
+const getNullableStringValue = (...values: unknown[]): string | null => {
+  for (const value of values) {
+    if (typeof value === 'string') return value;
+  }
+
+  return null;
+};
+
+const mapEvidence = (evidence: BEDisputeEvidenceResponse, disputeId: string): Evidence => ({
+  id: getStringValue(evidence.id, evidence.Id),
+  disputeId: getStringValue(evidence.disputeId, evidence.DisputeId, disputeId),
+  submitterId: getStringValue(evidence.submittedBy, evidence.SubmittedBy, evidence.submitterId, evidence.SubmitterId),
+  submitterName: getStringValue(
+    evidence.submittedByName,
+    evidence.SubmittedByName,
+    evidence.submitterName,
+    evidence.SubmitterName,
+    'Unknown'
+  ),
+  content: getStringValue(evidence.content, evidence.Content),
+  fileUrl: getNullableStringValue(evidence.fileUrl, evidence.FileUrl),
+  createdAt: getStringValue(evidence.createdAt, evidence.CreatedAt),
+});
+
 /**
  * Dispute Services
  */
@@ -122,6 +181,9 @@ export const disputeService = {
         clientName: beData.openerName || 'Unknown',
         expertId: beData.againstUserId || '',
         expertName: beData.againstUserName || 'Unknown',
+        openerId: beData.openedBy || '',
+        openerName: beData.openerName,
+        againstUserName: beData.againstUserName,
         evidences: [], // List view doesn't need evidence
       } as Dispute));
 
@@ -162,19 +224,29 @@ export const disputeService = {
           }
 
           if (projectData) {
-            const milestone = (projectData.milestones as Record<string, unknown>[])?.find((m) => m.id === beData.milestoneId);
+            const rawMilestones = projectData.milestones ?? projectData.Milestones;
+            const milestone = Array.isArray(rawMilestones)
+              ? (rawMilestones as Record<string, unknown>[]).find((m) => (m.id ?? m.Id) === beData.milestoneId)
+              : undefined;
+            const milestoneAmount = getNumberValue(
+              milestone?.amount,
+              milestone?.Amount,
+              milestone?.totalAmount,
+              milestone?.TotalAmount
+            );
             
             const mappedData: Dispute = {
               id: beData.id,
               projectId: beData.projectId,
               projectTitle: (beData.projectTitle || projectData.title || 'Unknown Project') as string,
               milestoneId: beData.milestoneId,
-              milestoneTitle: (beData.milestoneTitle || milestone?.title || 'General Milestone') as string,
-              milestoneAmount: (milestone?.amount as number) || beData.releaseAmount || beData.refundAmount || 0,
+              milestoneTitle: (beData.milestoneTitle || milestone?.title || milestone?.Title || 'General Milestone') as string,
+              milestoneAmount: milestoneAmount ?? 0,
               clientId: (projectData.clientId || beData.openedBy || '') as string,
               clientName: (projectData.clientName || beData.openerName || 'Unknown Client') as string,
               expertId: (projectData.expertId || beData.againstUserId || '') as string,
               expertName: (projectData.expertName || beData.againstUserName || 'Unknown Expert') as string,
+              openerId: beData.openedBy,
               openerName: beData.openerName,
               againstUserName: beData.againstUserName,
               reason: beData.reason,
@@ -182,15 +254,7 @@ export const disputeService = {
               status: normalizeDisputeStatus(beData.status),
               resolutionType: normalizeDisputeResolutionType(beData.resolutionType),
               resolutionNote: beData.resolutionNote,
-              evidences: (beData.evidence || []).map((e) => ({
-                id: e.id,
-                disputeId: beData.id,
-                submitterId: e.submittedBy,
-                submitterName: e.submittedByName,
-                content: e.content,
-                fileUrl: e.fileUrl,
-                createdAt: e.createdAt,
-              })),
+              evidences: (beData.evidence || []).map((e) => mapEvidence(e, beData.id)),
               createdAt: beData.createdAt,
               updatedAt: beData.createdAt,
               resolvedAt: beData.resolvedAt,
@@ -244,6 +308,45 @@ export const disputeService = {
   },
 
   /**
+   * Get evidence for an existing dispute.
+   */
+  async getEvidence(disputeId: string): Promise<BaseResponse<Evidence[]>> {
+    const response = await apiClient.get(API_ENDPOINTS.DISPUTES.EVIDENCE(disputeId));
+    const normalized = normalizePaginatedResponse<BEDisputeEvidenceResponse>(response);
+
+    return {
+      success: normalized.success,
+      message: normalized.message,
+      statusCode: normalized.statusCode,
+      data: (normalized.data ?? []).map((evidence) => mapEvidence(evidence, disputeId)),
+    };
+  },
+
+  /**
+   * Close an open dispute.
+   */
+  async closeDispute(disputeId: string): Promise<BaseResponse<void>> {
+    const response = await apiClient.put(API_ENDPOINTS.DISPUTES.CLOSE(disputeId));
+    return normalizeBaseResponse<void>(response);
+  },
+
+  /**
+   * Remove an existing evidence item from a dispute.
+   */
+  async deleteEvidence(disputeId: string, evidenceId: string): Promise<BaseResponse<void>> {
+    const response = await apiClient.delete(API_ENDPOINTS.DISPUTES.DELETE_EVIDENCE(disputeId, evidenceId));
+    return normalizeBaseResponse<void>(response);
+  },
+
+  /**
+   * Ask the dispute opener to provide more evidence.
+   */
+  async requestEvidence(disputeId: string, data: RequestEvidenceRequest): Promise<BaseResponse<void>> {
+    const response = await apiClient.put(API_ENDPOINTS.DISPUTES.REQUEST_EVIDENCE(disputeId), data);
+    return normalizeBaseResponse<void>(response);
+  },
+
+  /**
    * Resolve a dispute (Admin only)
    */
   async resolveDispute(disputeId: string, data: ResolveDisputeRequest): Promise<BaseResponse<void>> {
@@ -251,4 +354,3 @@ export const disputeService = {
     return normalizeBaseResponse<void>(response);
   },
 };
-

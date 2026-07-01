@@ -21,7 +21,14 @@ export const sanitizeDisputeError = (error: unknown, defaultMessage = 'Unable to
     /milestone is required/i,
     /already has a dispute/i,
     /invalid milestone/i,
-    /not authorized/i
+    /not authorized/i,
+    /completed milestone/i,
+    /milestone.*completed/i,
+    /complete.*milestone/i,
+    /cannot.*dispute/i,
+    /can not.*dispute/i,
+    /cannot.*open/i,
+    /can not.*open/i,
   ];
 
   // If the message matches a known safe pattern, return it

@@ -4,12 +4,8 @@ import { AdminProjectEmptyState } from './AdminProjectEmptyState';
 import { AdminProjectStatusBadge } from './AdminProjectStatusBadge';
 import { ProjectDisputeStatusBadge } from '@/features/projects/components/ProjectDisputeStatusBadge';
 
-const formatMoney = (amount: number, currency: string) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency || 'VND',
-    maximumFractionDigits: currency === 'VND' ? 0 : 2,
-  }).format(amount);
+const formatMoney = (amount: number) => {
+  return `${amount.toLocaleString()} Aivora Coin`;
 };
 
 const formatDate = (value?: string | null) => {
@@ -40,7 +36,7 @@ export const AdminProjectTable = ({
   onSelectProject,
 }: AdminProjectTableProps) => {
   return (
-    <div className="bg-white border border-slate-100 rounded-xl shadow-sm flex flex-col overflow-hidden">
+    <div className="bg-white border border-slate-100 rounded-lg shadow-sm flex flex-col overflow-hidden">
       <div className="p-5 border-b border-slate-50 flex flex-col sm:flex-row justify-between items-center gap-4">
         <h3 className="text-[16px] font-bold text-slate-900">All projects</h3>
         <div className="flex items-center gap-3">
@@ -63,7 +59,6 @@ export const AdminProjectTable = ({
               <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">Status</th>
               <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">Dispute</th>
               <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">Budget</th>
-              <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">Milestones</th>
               <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">Created</th>
               <th className="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wide">View</th>
             </tr>
@@ -92,10 +87,7 @@ export const AdminProjectTable = ({
                   <ProjectDisputeStatusBadge status={project.status} hasDispute={project.hasDispute} />
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-xs font-black text-emerald-600">
-                  {formatMoney(project.totalBudget, project.currency)}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-xs font-bold text-slate-600">
-                  {project.milestones.length}
+                  {formatMoney(project.totalBudget)}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-[11px] font-bold text-slate-600">
                   {formatDate(project.createdAt)}
@@ -117,7 +109,7 @@ export const AdminProjectTable = ({
             ))}
             {projects.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-4">
+                <td colSpan={8} className="px-4">
                   <AdminProjectEmptyState hasFilters={hasFilters} />
                 </td>
               </tr>
@@ -129,7 +121,7 @@ export const AdminProjectTable = ({
       <div className="p-4 border-t border-slate-50 bg-slate-50/30 flex items-center justify-center gap-6">
         <button
           onClick={() => onPageChange(Math.max(1, pageIndex - 1))}
-          className="size-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-primary hover:border-primary/30 transition-all shadow-sm disabled:opacity-30 disabled:pointer-events-none active:scale-95"
+          className="size-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-primary hover:border-primary/30 transition-all shadow-sm disabled:opacity-30 disabled:pointer-events-none active:scale-95"
           disabled={pageIndex <= 1}
         >
           <ChevronLeft className="size-5" />
@@ -139,7 +131,7 @@ export const AdminProjectTable = ({
         </span>
         <button
           onClick={() => onPageChange(Math.min(totalPages, pageIndex + 1))}
-          className="size-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-primary hover:border-primary/30 transition-all shadow-sm disabled:opacity-30 disabled:pointer-events-none active:scale-95"
+          className="size-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-primary hover:border-primary/30 transition-all shadow-sm disabled:opacity-30 disabled:pointer-events-none active:scale-95"
           disabled={pageIndex >= totalPages}
         >
           <ChevronRight className="size-5" />

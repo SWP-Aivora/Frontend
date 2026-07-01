@@ -11,10 +11,10 @@ export const JobBoardCard = ({ job }: JobBoardCardProps) => {
   const formatBudget = () => {
     if (!job.budgetMin && !job.budgetMax) return 'Negotiable';
     if (job.budgetType === 1) { // Hourly
-      return `$${job.budgetMin || 0} - $${job.budgetMax || 0} / hr`;
+      return `${job.budgetMin || 0} - ${job.budgetMax || 0} Aivora Coin / hr`;
     }
     // Fixed
-    return `$${job.budgetMin || 0} - $${job.budgetMax || 0}`;
+    return `${job.budgetMin || 0} - ${job.budgetMax || 0} Aivora Coin`;
   };
 
   const getExperienceLevel = () => {
@@ -28,7 +28,7 @@ export const JobBoardCard = ({ job }: JobBoardCardProps) => {
   };
 
   return (
-    <div className="group bg-white border border-slate-100 rounded-xl p-8 shadow-sm hover:shadow-2xl hover:shadow-brand-accent/10 hover:border-brand-accent/30 transition-all duration-300 relative overflow-hidden flex flex-col h-full">
+    <div className="group bg-white border border-slate-100 rounded-lg p-8 shadow-sm hover:shadow-2xl hover:shadow-brand-accent/10 hover:border-brand-accent/30 transition-all duration-300 relative overflow-hidden flex flex-col h-full">
       {/* Background Accent Glow on Hover */}
       <div className="absolute -right-20 -top-20 size-64 bg-brand-accent/5 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
 
