@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { mediaService } from '../services/mediaService';
 import type { AxiosError } from 'axios';
 
@@ -8,7 +8,11 @@ export const useUpload = () => {
   const uploadFile = async (file: File, folder?: string) => {
     setIsUploading(true);
     try {
-      const response = await mediaService.uploadFile(file, folder);
+      const isImage = file.type.startsWith('image/') || 
+                      /\.(jpg|jpeg|png|webp)$/i.test(file.name);
+      const response = isImage 
+        ? await mediaService.uploadImage(file, folder)
+        : await mediaService.uploadFile(file, folder);
       if (!response.data?.url) throw new Error('Upload failed: Invalid response');
       return { url: response.data.url };
     } catch (error) {
