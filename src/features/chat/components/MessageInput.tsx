@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { FileImage, FilePlus, Loader2, Plus, Send } from 'lucide-react';
+import { FileImage, FilePlus, Loader2, Plus, Send, X, FileIcon } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { mediaService } from '@/shared/services/mediaService';
 
 interface MessageInputProps {
-  onSendMessage: (content: string) => Promise<void>;
+  onSendMessage: (content: string, attachmentUrl?: string) => Promise<void>;
   disabled?: boolean;
   disabledReason?: string;
 }
@@ -16,6 +16,8 @@ export const MessageInput = ({ onSendMessage, disabled, disabledReason = 'Please
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null);
+  const [attachmentName, setAttachmentName] = useState<string | null>(null);
   const actionMenuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -33,24 +35,24 @@ export const MessageInput = ({ onSendMessage, disabled, disabledReason = 'Please
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (content.trim() && !disabled && !isSending) {
+    const trimmedContent = content.trim();
+    if ((trimmedContent || attachmentUrl) && !disabled && !isSending) {
       setIsSending(true);
       try {
-        await onSendMessage(content.trim());
+        if (attachmentUrl) {
+          await onSendMessage(trimmedContent, attachmentUrl);
+        } else {
+          await onSendMessage(trimmedContent);
+        }
         setContent('');
+        setAttachmentUrl(null);
+        setAttachmentName(null);
       } catch {
         // Do not clear content on error so user can retry
       } finally {
         setIsSending(false);
       }
     }
-  };
-
-  const appendUploadedUrl = (label: string, url: string) => {
-    setContent((current) => {
-      const prefix = current.trim() ? `${current.trim()}\n` : '';
-      return `${prefix}${label}: ${url}`;
-    });
   };
 
   const handleUpload = async (file: File | undefined, kind: 'file' | 'image') => {
@@ -70,7 +72,8 @@ export const MessageInput = ({ onSendMessage, disabled, disabledReason = 'Please
         throw new Error(response.message || 'Upload failed');
       }
 
-      appendUploadedUrl(kind === 'image' ? 'Image' : 'File', url);
+      setAttachmentUrl(url);
+      setAttachmentName(file.name);
     } catch {
       setUploadError('Upload failed. Please try again.');
     } finally {
@@ -120,6 +123,27 @@ export const MessageInput = ({ onSendMessage, disabled, disabledReason = 'Please
           {uploadError}
         </p>
       )}
+
+      {attachmentUrl && (
+        <div className="flex items-center gap-2 mb-2 p-2 bg-slate-50 border border-slate-100 rounded-lg max-w-max">
+          <FileIcon className="w-4 h-4 text-blue-500 shrink-0" />
+          <span className="text-xs text-slate-700 font-medium truncate max-w-[200px]">
+            {attachmentName || 'Attached File'}
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setAttachmentUrl(null);
+              setAttachmentName(null);
+            }}
+            className="text-slate-400 hover:text-rose-500 transition-colors ml-2"
+            aria-label="Remove attachment"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="relative flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-300 transition-all">
         <div className="relative shrink-0" ref={actionMenuRef}>
           <button
@@ -128,7 +152,7 @@ export const MessageInput = ({ onSendMessage, disabled, disabledReason = 'Please
             className="h-8 w-8 rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm hover:bg-slate-50 hover:text-blue-600 transition-colors flex items-center justify-center disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Open message actions"
             aria-expanded={isActionMenuOpen}
-            disabled={disabled || isSending || isUploading}
+            disabled={disabled || isSending || isUploading || !!attachmentUrl}
           >
             {isUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
           </button>
@@ -189,7 +213,7 @@ export const MessageInput = ({ onSendMessage, disabled, disabledReason = 'Please
           size="sm" 
           aria-label="Send message"
           className="h-8 w-8 p-0 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm disabled:opacity-50 disabled:bg-slate-300 shrink-0"
-          disabled={!content.trim() || disabled || isSending || isUploading}
+          disabled={(!content.trim() && !attachmentUrl) || disabled || isSending || isUploading}
         >
           <Send className="w-3.5 h-3.5" />
         </Button>

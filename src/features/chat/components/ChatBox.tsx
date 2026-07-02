@@ -8,7 +8,7 @@ interface ChatBoxProps {
   messages: Message[];
   isLoading: boolean;
   isSending?: boolean;
-  onSendMessage?: (content: string) => Promise<void>;
+  onSendMessage?: (content: string, attachmentUrl?: string) => Promise<void>;
 }
 
 export const ChatBox = ({ messages, isLoading, isSending = false, onSendMessage }: ChatBoxProps) => {
