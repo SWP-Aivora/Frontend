@@ -1,4 +1,4 @@
-import type { Role } from '@/shared/types/enums';
+import type { AvailabilityStatus, Role } from '@/shared/types/enums';
 
 export interface UserProfile {
   id: string;
@@ -27,7 +27,7 @@ export interface ExpertProfile {
   bio: string | null;
   hourlyRate: number | null;
   experienceYears: number | null;
-  availabilityStatus: number | null;
+  availabilityStatus: AvailabilityStatus | null;
   user: UserProfile;
 }
 
@@ -39,7 +39,7 @@ export interface ExpertProfileResponse {
   bio: string | null;
   hourlyRate: number | null;
   experienceYears: number;
-  availabilityStatus: number;
+  availabilityStatus: AvailabilityStatus;
   rating: number;
   totalReviews: number;
   completedProjects: number;

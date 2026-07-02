@@ -15,6 +15,7 @@ import {
   ChevronRight,
   ListFilter
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import type { ExpertReviewStatus, ExpertReviewItem } from '../types';
 import type { AxiosError } from 'axios';
 
@@ -52,7 +53,7 @@ export const AdminExpertReviewsPage = () => {
     status: ExpertReviewStatus | 'All';
     label: string;
     secondaryInfo: string;
-    icon: typeof ListFilter;
+    icon: LucideIcon;
     variant: 'blue' | 'green' | 'orange' | 'red';
   }>;
   const handleSearch = () => {

@@ -6,6 +6,7 @@ import type { UserUpdateFormValues, ClientProfileFormValues, ExpertProfileFormVa
 import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
 import { normalizeBaseResponse, normalizePaginatedResponse } from '@/lib/api-utils';
 import { API_ENDPOINTS } from '@/shared/constants';
+import { AvailabilityStatus } from '@/shared/types/enums';
 
 type SearchExpertsParams = {
   keyword?: string;
@@ -27,6 +28,13 @@ type ExpertSearchEnvelope = {
 };
 
 type ExpertRecord = ExpertProfileResponse & Record<string, unknown>;
+type UpdateExpertProfileRequest = {
+  title: string | null;
+  bio: string | null;
+  hourlyRate: number | null;
+  experienceYears: number;
+  availabilityStatus: number;
+};
 
 const getString = (value: unknown, fallback = ''): string => (
   typeof value === 'string' ? value : fallback
@@ -35,6 +43,35 @@ const getString = (value: unknown, fallback = ''): string => (
 const getNumber = (value: unknown, fallback = 0): number => (
   typeof value === 'number' ? value : fallback
 );
+
+const normalizeAvailabilityStatus = (value: unknown): AvailabilityStatus => (
+  Number.isInteger(value) ? value as AvailabilityStatus : AvailabilityStatus.AVAILABLE
+);
+
+const toNullableTrimmedString = (value: string | null | undefined): string | null => {
+  const trimmed = value?.trim() ?? '';
+  return trimmed ? trimmed : null;
+};
+
+const toFiniteNumberOrNull = (value: number | null | undefined): number | null => (
+  typeof value === 'number' && Number.isFinite(value) ? value : null
+);
+
+const toNonNegativeInteger = (value: number | null | undefined): number => (
+  typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : 0
+);
+
+const toAvailabilityStatus = (value: number | null | undefined): number => (
+  typeof value === 'number' && Number.isInteger(value) ? value : AvailabilityStatus.AVAILABLE
+);
+
+export const buildUpdateExpertProfileRequest = (data: ExpertProfileFormValues): UpdateExpertProfileRequest => ({
+  title: toNullableTrimmedString(data.title),
+  bio: toNullableTrimmedString(data.bio),
+  hourlyRate: toFiniteNumberOrNull(data.hourlyRate),
+  experienceYears: toNonNegativeInteger(data.experienceYears),
+  availabilityStatus: toAvailabilityStatus(data.availabilityStatus),
+});
 
 const normalizeExpertProfileResponse = (expert: ExpertProfileResponse): ExpertProfileResponse => {
   const raw = expert as ExpertRecord;
@@ -51,7 +88,7 @@ const normalizeExpertProfileResponse = (expert: ExpertProfileResponse): ExpertPr
     bio: expert.bio ?? getString(raw.Bio, ''),
     hourlyRate: expert.hourlyRate ?? getNumber(raw.HourlyRate, 0),
     experienceYears: expert.experienceYears ?? getNumber(raw.ExperienceYears, 0),
-    availabilityStatus: expert.availabilityStatus ?? getNumber(raw.AvailabilityStatus, 0),
+    availabilityStatus: normalizeAvailabilityStatus(expert.availabilityStatus ?? raw.AvailabilityStatus),
     rating: expert.rating ?? getNumber(raw.Rating, 0),
     totalReviews: expert.totalReviews ?? getNumber(raw.TotalReviews, 0),
     completedProjects: expert.completedProjects ?? getNumber(raw.CompletedProjects, 0),
@@ -152,7 +189,7 @@ export const profileService = {
 
   updateExpertProfile: async (data: ExpertProfileFormValues): Promise<BaseResponse<ExpertProfile>> => {
     try {
-      const response = await apiClient.put(API_ENDPOINTS.PROFILES.EXPERT, data);
+      const response = await apiClient.put(API_ENDPOINTS.PROFILES.EXPERT, buildUpdateExpertProfileRequest(data));
       return normalizeBaseResponse<ExpertProfile>(response);
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 404) {

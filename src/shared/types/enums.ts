@@ -77,6 +77,16 @@ export const SkillLevel = {
 export type SkillLevel = (typeof SkillLevel)[keyof typeof SkillLevel];
 
 /**
+ * Expert availability status based on backend schema
+ */
+export const AvailabilityStatus = {
+  UNAVAILABLE: 0,
+  AVAILABLE: 1,
+  BUSY: 2,
+} as const;
+export type AvailabilityStatus = number;
+
+/**
  * Budget Type
  */
 export const BudgetType = {

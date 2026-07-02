@@ -6,6 +6,7 @@ import type { Conversation } from './types';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { mediaService } from '@/shared/services/mediaService';
 
 // Mock hooks
 vi.mock('./hooks/useConversations', () => ({
@@ -25,7 +26,15 @@ vi.mock('./hooks/useMessages', () => ({
   })),
   useMarkRead: vi.fn(() => ({
     mutate: vi.fn()
-  }))
+  })),
+  useRealTimeMessages: vi.fn()
+}));
+
+vi.mock('@/shared/services/mediaService', () => ({
+  mediaService: {
+    uploadFile: vi.fn(),
+    uploadImage: vi.fn()
+  }
 }));
 
 vi.mock('@/features/projects/services', () => ({
@@ -170,6 +179,26 @@ describe('Chat Feature', () => {
       });
       expect(screen.getByRole('button', { name: /send message/i })).toBeInTheDocument();
       expect(onSendMessage).not.toHaveBeenCalled();
+    });
+
+    it('shows the API-based file upload notice before continuing', () => {
+      const { container } = render(
+        <MessageInput onSendMessage={vi.fn()} disabled={false} />,
+        { wrapper }
+      );
+      const fileInput = container.querySelector('input[type="file"]:not([accept="image/*"])') as HTMLInputElement;
+
+      fireEvent.change(fileInput, {
+        target: {
+          files: [new File(['image'], 'preview.png', { type: 'image/png' })]
+        }
+      });
+
+      expect(screen.getByRole('dialog', { name: /file upload notice/i })).toBeInTheDocument();
+      expect(screen.getByText(/api accepts a multipart file upload/i)).toBeInTheDocument();
+      expect(screen.getByText(/does not document a file-extension allow-list/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /continue/i })).toBeEnabled();
+      expect(mediaService.uploadFile).not.toHaveBeenCalled();
     });
   });
 
