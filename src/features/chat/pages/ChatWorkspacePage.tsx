@@ -55,10 +55,8 @@ export const ChatWorkspacePage = () => {
   const { mutate: markAsRead } = useMarkRead();
   const { mutateAsync: sendMessage, isPending: isSendingMessage } = useSendMessage(selectedConversationId || '');
 
-  // Enable real-time updates only when we have a valid conversation ID
-  if (selectedConversationId) {
-    useRealTimeMessages(selectedConversationId);
-  }
+  // Enable real-time updates - hook handles conditional logic internally
+  useRealTimeMessages(selectedConversationId);
 
   // Strictly use API data
   const conversations = useMemo(() => {

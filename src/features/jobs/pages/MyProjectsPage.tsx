@@ -100,7 +100,7 @@ export const MyProjectsPage = () => {
       };
     })
     .filter(job => job.status !== 'cancelled');
-  }, [jobs, projects, proposalCountQueries]);
+  }, [jobsResponse?.data, projectsResponse?.data, proposalCountQueries]);
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const filteredJobs = useMemo(() => (
