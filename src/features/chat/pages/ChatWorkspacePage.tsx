@@ -51,11 +51,12 @@ export const ChatWorkspacePage = () => {
     refetch: refetchMessages
   } = useMessages(selectedConversationId || '');
 
-  // Setup real-time message updates
-  useRealTimeMessages(selectedConversationId || '');
-
+  // Setup real-time message updates only when conversationId is available
   const { mutate: markAsRead } = useMarkRead();
   const { mutateAsync: sendMessage, isPending: isSendingMessage } = useSendMessage(selectedConversationId || '');
+
+  // Enable real-time updates - hook handles conditional logic internally
+  useRealTimeMessages(selectedConversationId);
 
   // Strictly use API data
   const conversations = useMemo(() => {
