@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { Role } from '@/shared/types/enums';
 
 export const loginSchema = z.object({
   email: z.string().min(1, 'Please enter your email').email('Invalid email address'),
@@ -18,7 +17,7 @@ export const registerSchema = z.object({
   email: z.string().min(1, 'Please enter your email').email('Invalid email address'),
   password: passwordRules,
   confirmPassword: z.string().min(1, 'Please confirm your password'),
-  role: z.enum([Role.CLIENT, Role.EXPERT], {
+  role: z.enum(['CLIENT', 'EXPERT'], {
     required_error: 'Please select a role',
   }),
 }).refine((data) => data.password === data.confirmPassword, {
