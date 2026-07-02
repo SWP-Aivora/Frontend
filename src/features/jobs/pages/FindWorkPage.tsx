@@ -77,6 +77,7 @@ export const FindWorkPage = () => {
   const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
   const [selectedBudgetTypes, setSelectedBudgetTypes] = useState<string[]>([]);
   const [selectedSkillLevels, setSelectedSkillLevels] = useState<string[]>([]);
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const pageSize = 20;
 
   const { data, isLoading, isFetching, fetchNextPage, hasNextPage, error } = useInfiniteQuery({
@@ -117,8 +118,15 @@ export const FindWorkPage = () => {
         ].some(value => value?.toLowerCase().includes(normalizedSearch));
 
       return matchesBudgetType && matchesSkillLevel && matchesSearch;
+    }).sort((firstJob, secondJob) => {
+      const firstCreatedAt = new Date(firstJob.createdAt).getTime();
+      const secondCreatedAt = new Date(secondJob.createdAt).getTime();
+
+      return sortOrder === 'newest'
+        ? secondCreatedAt - firstCreatedAt
+        : firstCreatedAt - secondCreatedAt;
     });
-  }, [loadedJobs, appliedSearchTerm, selectedBudgetTypes, selectedSkillLevels]);
+  }, [loadedJobs, appliedSearchTerm, selectedBudgetTypes, selectedSkillLevels, sortOrder]);
 
   const toggleSelectedValue = (
     value: string,
@@ -159,22 +167,6 @@ export const FindWorkPage = () => {
             Browse verified AI jobs, apply confidently, deliver, and get paid securely.
           </p>
 
-          <form onSubmit={handleSearch} className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-2 flex flex-col md:flex-row gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-white/50" />
-              <input 
-                type="text" 
-                placeholder="Search by title, description, or client..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full h-12 pl-12 pr-4 bg-transparent border-none text-white placeholder:text-white/50 focus:outline-none focus:ring-0 text-base"
-              />
-            </div>
-            <div className="hidden md:block w-px h-8 bg-white/20 self-center" />
-            <Button className="h-12 px-8 rounded-lg font-bold bg-white text-brand-blue-dark hover:bg-slate-100 transition-colors w-full md:w-auto">
-              Search Jobs
-            </Button>
-          </form>
         </div>
       </div>
 
@@ -241,16 +233,36 @@ export const FindWorkPage = () => {
 
         {/* Main Job List */}
         <div className="lg:col-span-3 space-y-4">
-          <div className="flex items-center justify-between bg-white border border-slate-100 rounded-lg p-4 shadow-sm mb-6">
-             <p className="text-sm font-bold text-slate-500">
-               Showing <span className="text-slate-900">{filteredJobs.length}</span> jobs
-             </p>
-             <div className="flex items-center gap-2">
+          <div className="flex flex-col xl:flex-row xl:items-start gap-4 bg-white border border-slate-100 rounded-lg p-4 shadow-sm mb-6">
+             <div className="flex-1 min-w-0">
+               <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2">
+                 <div className="relative flex-1 min-w-0">
+                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-slate-400" />
+                   <input
+                     type="text"
+                     placeholder="Search by title, description, or client..."
+                     value={searchTerm}
+                     onChange={(e) => setSearchTerm(e.target.value)}
+                     className="w-full h-12 pl-12 pr-4 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-brand-accent focus:ring-2 focus:ring-brand-accent/15 text-sm"
+                   />
+                 </div>
+                 <Button className="h-12 px-8 rounded-lg font-bold bg-brand-blue-dark text-white hover:bg-brand-blue-dark/90 transition-colors w-full sm:w-auto">
+                   Search Jobs
+                 </Button>
+               </form>
+               <p className="mt-2 text-sm font-bold text-slate-500">
+                 Showing <span className="text-slate-900">{filteredJobs.length}</span> jobs
+               </p>
+             </div>
+             <div className="flex items-center gap-2 whitespace-nowrap xl:pt-1">
                 <span className="text-xs font-medium text-slate-400">Sort by:</span>
-                <select className="bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold text-slate-700 px-3 py-1.5 focus:outline-none focus:border-brand-accent cursor-pointer">
-                  <option>Newest First</option>
-                  <option>Highest Budget</option>
-                  <option>Relevance</option>
+                <select
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
+                  className="bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold text-slate-700 px-3 py-1.5 focus:outline-none focus:border-brand-accent cursor-pointer"
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
                 </select>
              </div>
           </div>
