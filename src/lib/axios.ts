@@ -6,6 +6,7 @@ import { useAuthStore } from '@/features/auth/store';
 // Axios Instance Configuration
 const axiosInstance = axios.create({
   baseURL: env.API_URL,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -17,26 +18,23 @@ const buildApiUrl = (endpoint: string): string => (
 
 // Refresh Token Logic Variables
 let isRefreshing = false;
-let failedQueue: { resolve: (token: string | null) => void; reject: (error: AxiosError | null) => void }[] = [];
+let failedQueue: { resolve: (value?: unknown) => void; reject: (error: AxiosError | null) => void }[] = [];
 
-const processQueue = (error: AxiosError | null, token: string | null = null) => {
+const processQueue = (error: AxiosError | null) => {
   failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error);
     } else {
-      prom.resolve(token);
+      prom.resolve();
     }
   });
   failedQueue = [];
 };
 
-// Request Interceptor: Attach Bearer Token
+// Request Interceptor: Attach Bearer Token (Now handled by cookies)
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = useAuthStore.getState().accessToken;
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    // Tokens are now stored in HttpOnly cookies, so we don't need to manually attach them here.
     return config;
   },
   (error) => Promise.reject(error)
@@ -53,10 +51,7 @@ axiosInstance.interceptors.response.use(
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
-          .then((token) => {
-            if (originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${token}`;
-            }
+          .then(() => {
             return axiosInstance(originalRequest);
           })
           .catch((err) => Promise.reject(err));
@@ -65,40 +60,16 @@ axiosInstance.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const refreshToken = useAuthStore.getState().refreshToken;
-
-      if (!refreshToken) {
-        useAuthStore.getState().logout();
-        return Promise.reject(error);
-      }
-
       return new Promise((resolve, reject) => {
+        // The backend reads refreshToken from cookies
         axios
-          .post(buildApiUrl(API_ENDPOINTS.AUTH.REFRESH_TOKEN), { refreshToken })
-          .then(({ data }) => {
-            const accessToken = data?.data?.accessToken;
-            const newRefreshToken = data?.data?.refreshToken;
-
-            if (!accessToken || !newRefreshToken) {
-              throw new Error('Invalid refresh token response');
-            }
-
-            // Update store
-            const user = useAuthStore.getState().user;
-            if (user) {
-              useAuthStore.getState().setAuth(user, accessToken, newRefreshToken);
-            }
-            
-            axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-            if (originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-            }
-            
-            processQueue(null, accessToken);
+          .post(buildApiUrl(API_ENDPOINTS.AUTH.REFRESH_TOKEN), {}, { withCredentials: true })
+          .then(() => {
+            processQueue(null);
             resolve(axiosInstance(originalRequest));
           })
           .catch((err) => {
-            processQueue(err, null);
+            processQueue(err);
             useAuthStore.getState().logout();
             reject(err);
           })

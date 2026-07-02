@@ -43,9 +43,8 @@ export const useAuthStore = create<AuthState>()(
       setError: (error) => set({ error }),
       setLoading: (isLoading) => set({ isLoading }),
       logout: () => {
-        // Clear legacy tokens if they exist
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
+        // Tokens are stored in HttpOnly cookies, so we don't need to manually clear them from localStorage here
+        // The backend /logout endpoint handles clearing the cookies
         set({ 
           user: null, 
           accessToken: null, 
@@ -59,8 +58,6 @@ export const useAuthStore = create<AuthState>()(
       name: 'aivora-auth-store',
       partialize: (state) => ({ 
         user: state.user, 
-        accessToken: state.accessToken, 
-        refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated 
       }),
       onRehydrateStorage: () => (state) => {

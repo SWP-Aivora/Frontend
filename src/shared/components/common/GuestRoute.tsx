@@ -1,15 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 
-// Giả lập hook lấy Auth State
-const useAuth = () => {
-  const token = localStorage.getItem('accessToken');
-  const role = localStorage.getItem('userRole');
-  return {
-    isAuthenticated: !!token,
-    role,
-  };
-};
+import { useAuthStore } from '../../../features/auth/store';
 
 interface GuestRouteProps {
   children: React.ReactNode;
@@ -20,12 +12,15 @@ interface GuestRouteProps {
  * Nếu đã đăng nhập sẽ tự động redirect về trang chủ tương ứng role.
  */
 export const GuestRoute: React.FC<GuestRouteProps> = ({ children }) => {
-  const { isAuthenticated, role } = useAuth();
+  const { isAuthenticated, user, isHydrated } = useAuthStore();
 
-  if (isAuthenticated) {
+  // Wait for hydration before deciding to redirect
+  if (!isHydrated) return null;
+
+  if (isAuthenticated && user?.role) {
     // Điều hướng dựa vào Role
-    if (role === 'Admin') return <Navigate to="/admin" replace />;
-    if (role === 'Expert') return <Navigate to="/expert" replace />;
+    if (user.role === 'ADMIN') return <Navigate to="/admin" replace />;
+    if (user.role === 'EXPERT') return <Navigate to="/expert" replace />;
     return <Navigate to="/client" replace />;
   }
 
