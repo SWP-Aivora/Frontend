@@ -101,24 +101,6 @@ export const LoginForm = () => {
         </div>
       </div>
 
-      {/* Remember & Forgot Row */}
-      <div className="flex items-center justify-between px-1">
-        <label className="flex items-center gap-2 cursor-pointer group">
-          <div className="relative size-5 rounded-md border-2 border-slate-300 bg-white group-hover:border-primary transition-colors overflow-hidden">
-             <input type="checkbox" className="peer absolute inset-0 opacity-0 cursor-pointer" />
-             <div className="absolute inset-0 bg-primary opacity-0 peer-checked:opacity-100 transition-opacity flex items-center justify-center">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="size-3 text-white">
-                  <path d="M5 13l4 4L19 7" />
-                </svg>
-             </div>
-          </div>
-          <span className="text-sm font-medium text-slate-600">Remember me</span>
-        </label>
-        <a href="#" className="text-sm font-bold text-primary hover:underline underline-offset-4">
-          Forgot your password?
-        </a>
-      </div>
-
       <Button 
         type="submit" 
         size="lg" 

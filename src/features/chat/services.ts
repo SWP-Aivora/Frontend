@@ -262,6 +262,14 @@ private messageIdCounter = 0;
     return connection;
   }
 
+  async connect(token?: string): Promise<void> {
+    if (!token) {
+      throw new Error('You must be logged in to receive messages');
+    }
+
+    await this.ensureChatConnection(token);
+  }
+
   async resetChatConnection(): Promise<void> {
     const entries = [...this.chatConnectionPool.values()];
 

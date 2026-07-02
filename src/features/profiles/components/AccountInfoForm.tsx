@@ -14,7 +14,7 @@ import { profileService } from '../services';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/features/auth/store';
-import { Role } from '@/shared/types/enums';
+import { AvailabilityStatus, Role } from '@/shared/types/enums';
 import { Building2, Code2, ShieldCheck, Mail, UserCircle2, Loader2, AlertCircle } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
@@ -77,7 +77,7 @@ export const AccountInfoForm = ({ mode = 'account' }: AccountInfoFormProps) => {
       bio: '',
       hourlyRate: 0,
       experienceYears: 0,
-      availabilityStatus: 1,
+      availabilityStatus: AvailabilityStatus.AVAILABLE,
     }
   });
 
@@ -143,7 +143,7 @@ export const AccountInfoForm = ({ mode = 'account' }: AccountInfoFormProps) => {
               bio: expertRes.data.bio || '',
               hourlyRate: expertRes.data.hourlyRate || 0,
               experienceYears: expertRes.data.experienceYears || 0,
-              availabilityStatus: expertRes.data.availabilityStatus || 1,
+              availabilityStatus: expertRes.data.availabilityStatus ?? AvailabilityStatus.AVAILABLE,
             });
           } else if (expertRes.success && expertRes.statusCode === 404) {
             setIsExpertProfileMissing(true);
@@ -152,7 +152,7 @@ export const AccountInfoForm = ({ mode = 'account' }: AccountInfoFormProps) => {
               bio: '',
               hourlyRate: 0,
               experienceYears: 0,
-              availabilityStatus: 1,
+              availabilityStatus: AvailabilityStatus.AVAILABLE,
             });
           } else {
              throw new Error(expertRes.message || 'Failed to load expert profile');
@@ -426,9 +426,6 @@ export const AccountInfoForm = ({ mode = 'account' }: AccountInfoFormProps) => {
                 <p className="text-xs text-slate-500 font-medium mt-0.5">These fields are sent to admin verification for your expert profile.</p>
               </div>
             </div>
-            <div className="rounded-lg border border-amber-100 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-700">
-              Submit only accurate, review-ready expertise details.
-            </div>
           </div>
 
           <form onSubmit={handleExpertSubmit(onExpertSubmit)} className="space-y-6">
@@ -455,9 +452,9 @@ export const AccountInfoForm = ({ mode = 'account' }: AccountInfoFormProps) => {
                   className="w-full h-11 px-4 rounded-lg bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm appearance-none font-medium"
                   disabled={!!loadError}
                 >
-                  <option value={0}>Unavailable</option>
-                  <option value={1}>Available</option>
-                  <option value={2}>Busy</option>
+                  <option value={AvailabilityStatus.UNAVAILABLE}>Unavailable</option>
+                  <option value={AvailabilityStatus.AVAILABLE}>Available</option>
+                  <option value={AvailabilityStatus.BUSY}>Busy</option>
                 </select>
               </div>
             </div>

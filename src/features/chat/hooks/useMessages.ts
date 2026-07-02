@@ -15,32 +15,51 @@ export const useMessages = (conversationId: string, params?: Record<string, unkn
 
 export const useRealTimeMessages = (conversationId: string) => {
   const queryClient = useQueryClient();
+  const token = useAuthStore((state) => state.accessToken);
 
   useEffect(() => {
+    if (!conversationId || !token) return;
+
+    let isSubscribed = true;
+
+    chatService.connect(token).catch((error) => {
+      if (isSubscribed) {
+        console.warn('[chat] Unable to connect to real-time messages', error);
+      }
+    });
+
     const handleNewMessage = (message: NewMessagePayload) => {
       if (message.conversationId === conversationId) {
-        // Add new message to cache
-        queryClient.setQueryData(['messages', conversationId], (oldData: { data?: Message[] } | undefined) => {
+        const newMessage: Message = {
+          id: message.senderId + '_' + Date.now(), // Generate unique ID
+          conversationId: message.conversationId,
+          senderId: message.senderId,
+          senderName: message.senderName,
+          content: message.content,
+          createdAt: message.createdAt,
+          isRead: false,
+          type: message.attachmentUrl ? 'FILE' : 'TEXT',
+          fileUrl: message.attachmentUrl,
+          fileName: message.attachmentUrl ? (message.attachmentUrl as string).split('/').pop() : undefined
+        };
+
+        queryClient.setQueriesData(
+          { queryKey: ['messages', conversationId] },
+          (oldData: { data?: Message[] } | undefined) => {
           if (!oldData) return oldData;
 
-          const newMessage: Message = {
-            id: message.senderId + '_' + Date.now(), // Generate unique ID
-            conversationId: message.conversationId,
-            senderId: message.senderId,
-            senderName: message.senderName,
-            content: message.content,
-            createdAt: message.createdAt,
-            isRead: false,
-            type: message.attachmentUrl ? 'FILE' : 'TEXT',
-            fileUrl: message.attachmentUrl,
-            fileName: message.attachmentUrl ? (message.attachmentUrl as string).split('/').pop() : undefined
-          };
+          if (oldData.data?.some((existingMessage) => existingMessage.id === newMessage.id)) {
+            return oldData;
+          }
 
           return {
             ...oldData,
             data: [...(oldData.data || []), newMessage]
           };
-        });
+          }
+        );
+
+        queryClient.invalidateQueries({ queryKey: ['conversations'] });
       }
     };
 
@@ -48,9 +67,10 @@ export const useRealTimeMessages = (conversationId: string) => {
     const unsubscribe = chatService.onMessage(handleNewMessage);
 
     return () => {
+      isSubscribed = false;
       unsubscribe();
     };
-  }, [conversationId, queryClient]);
+  }, [conversationId, queryClient, token]);
 };
 
 export const useMarkRead = () => {

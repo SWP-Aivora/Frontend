@@ -10,7 +10,6 @@ import { WithdrawModal } from '../components/WithdrawModal';
 import { TransactionTable } from '../components/TransactionTable';
 import { WalletBalanceCard } from '../components/WalletBalanceCard';
 import { SpendingChart } from '../components/SpendingChart';
-import { LinkedMethodsCard } from '../components/LinkedMethodsCard';
 import { EscrowInfoCard } from '../components/EscrowInfoCard';
 import { ErrorBoundary } from '@/shared/components/common';
 
@@ -145,7 +144,6 @@ export const WalletPage = () => {
            <p className="text-slate-500 font-medium mt-1">Manage your funds and view transaction history.</p>
         </div>
         <div className="flex items-center gap-3">
-           <Button variant="outline" className="rounded-full border-slate-200">Export PDF</Button>
            {isClient && <DepositModal />}
            {isExpert && <WithdrawModal maxBalance={walletBalance} />}
         </div>
@@ -162,7 +160,6 @@ export const WalletPage = () => {
 
         <div className="space-y-6">
            <EscrowInfoCard />
-           <LinkedMethodsCard />
         </div>
       </div>
 

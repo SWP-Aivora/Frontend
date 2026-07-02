@@ -7,6 +7,8 @@ import { NotificationFilters, type ReadStatusFilter } from '../components/Notifi
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/shared/components/ui';
 import { NotificationStatus, type Notification } from '../types';
+import { useAuthStore } from '@/features/auth/store';
+import { resolveNotificationPath } from '../utils/notificationRoutes';
 
 const isDisputeNotification = (notification: Notification) => {
   const searchableFields = [
@@ -21,6 +23,7 @@ const isDisputeNotification = (notification: Notification) => {
 
 export const NotificationsPage = () => {
   const navigate = useNavigate();
+  const role = useAuthStore((state) => state.user?.role);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<ReadStatusFilter>('all');
   
@@ -68,7 +71,7 @@ export const NotificationsPage = () => {
   const hasError = !!listError || !!unreadError;
 
   const handlePriorityClick = (linkUrl?: string | null) => {
-    const targetUrl = linkUrl?.trim();
+    const targetUrl = linkUrl ? resolveNotificationPath(linkUrl, role) : null;
     if (!targetUrl) return;
 
     if (/^https?:\/\//i.test(targetUrl)) {

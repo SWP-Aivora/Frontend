@@ -15,6 +15,7 @@ export const MessageInput = ({ onSendMessage, disabled, disabledReason = 'Please
   const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const actionMenuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -79,6 +80,27 @@ export const MessageInput = ({ onSendMessage, disabled, disabledReason = 'Please
     }
   };
 
+  const handleFileSelection = (file: File | undefined) => {
+    if (!file || disabled || isSending || isUploading) return;
+
+    setUploadError(null);
+    setIsActionMenuOpen(false);
+    setPendingFile(file);
+  };
+
+  const closeFileNotice = () => {
+    setPendingFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const continueFileUpload = async () => {
+    if (!pendingFile) return;
+
+    const file = pendingFile;
+    setPendingFile(null);
+    await handleUpload(file, 'file');
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -115,7 +137,7 @@ export const MessageInput = ({ onSendMessage, disabled, disabledReason = 'Please
             ref={fileInputRef}
             type="file"
             className="hidden"
-            onChange={(event) => handleUpload(event.target.files?.[0], 'file')}
+            onChange={(event) => handleFileSelection(event.target.files?.[0])}
           />
           <input
             ref={imageInputRef}
@@ -172,6 +194,31 @@ export const MessageInput = ({ onSendMessage, disabled, disabledReason = 'Please
           <Send className="w-3.5 h-3.5" />
         </Button>
       </form>
+      {pendingFile && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="file-upload-notice-title">
+          <div className="w-full max-w-sm rounded-lg border border-slate-200 bg-white p-6 shadow-2xl">
+            <h3 id="file-upload-notice-title" className="text-lg font-black text-slate-900">
+              File upload notice
+            </h3>
+            <p className="mt-3 text-sm font-medium leading-6 text-slate-600">
+              Ready to upload {pendingFile.name}. The API accepts a multipart file upload and does not document a file-extension allow-list. Use Add image for image-only uploads.
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <Button type="button" variant="outline" className="rounded-lg" onClick={closeFileNotice}>
+                Close
+              </Button>
+              <Button
+                type="button"
+                className="rounded-lg"
+                onClick={continueFileUpload}
+                disabled={isUploading}
+              >
+                Continue
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -11,7 +11,7 @@ import { profileService } from '../services';
 import { reviewService } from '@/features/reviews/services';
 import { projectService } from '@/features/projects/services';
 import { chatService } from '@/features/chat/services';
-import { ProjectStatus } from '@/shared/types/enums';
+import { AvailabilityStatus, ProjectStatus } from '@/shared/types/enums';
 import { useAuthStore } from '@/features/auth/store';
 
 export const ExpertPublicProfilePage = () => {
@@ -122,10 +122,10 @@ export const ExpertPublicProfilePage = () => {
   const completedProjectCount = profile?.completedProjects ?? displayProjects.length;
   const totalReviewCount = profile?.totalReviews ?? displayReviews.length;
   const successRate = profile?.successRate ?? 0;
-  const availabilityStatus = String(profile?.availabilityStatus ?? '').toUpperCase();
-  const availabilityLabel = availabilityStatus === 'BUSY'
+  const availabilityStatus = profile?.availabilityStatus;
+  const availabilityLabel = availabilityStatus === AvailabilityStatus.BUSY
     ? 'Busy'
-    : availabilityStatus === 'UNAVAILABLE'
+    : availabilityStatus === AvailabilityStatus.UNAVAILABLE
       ? 'Unavailable'
       : 'Available for Projects';
 

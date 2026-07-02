@@ -26,6 +26,8 @@ interface DashboardSummaryParams {
   projectLimit?: number;
 }
 
+const DEFAULT_DASHBOARD_PROJECT_LIMIT = 5;
+
 interface BackendStats {
   totalUsers: number;
   totalClients: number;
@@ -666,7 +668,8 @@ export const adminService = {
         const bDate = parseAdminApiDate(getDateInput(b, 'createdAt') ?? getDateInput(b, 'CreatedAt'))?.getTime() ?? 0;
         return bDate - aDate;
       });
-    const ongoingProjects = latestOngoingProjects.slice(0, 5);
+    const dashboardProjectLimit = params.projectLimit ?? DEFAULT_DASHBOARD_PROJECT_LIMIT;
+    const ongoingProjects = latestOngoingProjects.slice(0, dashboardProjectLimit);
 
     const mappedProjects: AdminProjectItem[] = ongoingProjects.map((project) => {
       const client = getObjectValue(project, 'client', 'Client');
