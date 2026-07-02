@@ -71,6 +71,7 @@ axiosInstance.interceptors.response.use(
           .catch((err) => {
             processQueue(err);
             useAuthStore.getState().logout();
+            window.location.href = '/login';
             reject(err);
           })
           .finally(() => {
