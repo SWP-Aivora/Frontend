@@ -60,7 +60,9 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* Full Name Field */}
         <div className="space-y-2">
-          <label htmlFor="fullName" className="text-sm font-bold text-slate-700 ml-1">Full Name</label>
+          <label htmlFor="fullName" className="ml-1 text-sm font-bold text-slate-700">
+            Full Name <span className="text-red-500">*</span>
+          </label>
           <div className="relative group">
             <User className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
             <Input 
@@ -78,7 +80,10 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
 
         {/* Email Field */}
         <div className="space-y-2">
-          <label htmlFor="email" className="text-sm font-bold text-slate-700 ml-1">Email Address</label>
+          <label htmlFor="email" className="ml-1 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm font-bold text-slate-700">
+            <span>Email Address <span className="text-red-500">*</span></span>
+            <span className="text-[10px] font-medium italic text-slate-400">Use a valid email</span>
+          </label>
           <div className="relative group">
             <Mail className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
             <Input 
@@ -99,7 +104,10 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* Password Field */}
         <div className="space-y-2">
-          <label htmlFor="password" className="text-sm font-bold text-slate-700 ml-1">Password</label>
+          <label htmlFor="password" className="ml-1 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm font-bold text-slate-700">
+            <span>Password <span className="text-red-500">*</span></span>
+            <span className="text-[10px] font-medium italic text-slate-400">At least 6 characters</span>
+          </label>
           <div className="relative group">
             <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
             <Input 
@@ -118,7 +126,10 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
 
         {/* Confirm Password Field */}
         <div className="space-y-2">
-          <label htmlFor="confirmPassword" className="text-sm font-bold text-slate-700 ml-1">Confirm Password</label>
+          <label htmlFor="confirmPassword" className="ml-1 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm font-bold text-slate-700">
+            <span>Confirm Password <span className="text-red-500">*</span></span>
+            <span className="text-[10px] font-medium italic text-slate-400">Match password</span>
+          </label>
           <div className="relative group">
             <ShieldCheck className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
             <Input 
@@ -150,7 +161,7 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
         </label>
         <div className="space-y-0.5">
            <p className="text-[13px] font-bold text-slate-700">
-             I agree to the{' '}
+             I agree to the <span className="text-red-500">*</span>{' '}
              <PolicyDialog type="terms">
                <button type="button" className="text-primary underline underline-offset-4 transition-colors hover:text-primary/80">
                  Terms of Service

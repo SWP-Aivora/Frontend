@@ -1,14 +1,15 @@
 import { AccountInfoForm } from '../components/AccountInfoForm';
 import { useAuthStore } from '@/features/auth/store';
-import { User, Shield, Settings } from 'lucide-react';
+import { Code2, User, Shield, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
+import { Role } from '@/shared/types/enums';
 
 const ASSETS = {
   heroGlow: "https://www.figma.com/api/mcp/asset/07fcdf20-e40b-4098-b7e5-350569312fbe",
 };
 
-type TabId = 'account' | 'security';
+type TabId = 'account' | 'expertise' | 'security';
 
 export const ProfilePage = () => {
   const { user } = useAuthStore();
@@ -16,6 +17,7 @@ export const ProfilePage = () => {
 
   const tabs = [
     { id: 'account', label: 'Account', icon: User },
+    ...(user?.role === Role.EXPERT ? [{ id: 'expertise' as const, label: 'Expertise Review', icon: Code2 }] : []),
     { id: 'security', label: 'Security', icon: Shield },
   ] as const;
 
@@ -87,6 +89,7 @@ export const ProfilePage = () => {
       {/* Active Tab Content */}
       <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
         {activeTab === 'account' && <AccountInfoForm />}
+        {activeTab === 'expertise' && <AccountInfoForm mode="expertise" />}
         {activeTab === 'security' && (
           <div className="bg-white rounded-lg p-10 border border-slate-100 shadow-sm text-center">
              <Shield className="size-12 text-slate-200 mx-auto mb-4" />

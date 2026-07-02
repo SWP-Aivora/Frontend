@@ -515,6 +515,10 @@ const normalizeExpertReviewsData = (raw: unknown): AdminExpertReviewsData => {
     totalPending: getNumberOr(data, reviews.filter((review) => review.status === 'Pending').length, 'totalPending', 'TotalPending'),
     totalRevisions: getNumberOr(data, reviews.filter((review) => review.status === 'Revision').length, 'totalRevisions', 'TotalRevisions'),
     totalRejected: getNumberOr(data, reviews.filter((review) => review.status === 'Rejected').length, 'totalRejected', 'TotalRejected'),
+    pageIndex: getNumberValue(data, 'pageIndex', 'PageIndex') ?? 1,
+    pageSize: getNumberValue(data, 'pageSize', 'PageSize') ?? reviews.length,
+    totalItems: getNumberValue(data, 'totalItems', 'TotalItems') ?? reviews.length,
+    totalPages: getNumberValue(data, 'totalPages', 'TotalPages') ?? 1,
     newToday: getNumberOr(
       data,
       reviews.filter((review) => {
@@ -654,8 +658,15 @@ export const adminService = {
         .filter(Boolean)
     );
 
-    // 2. Process Projects (Filter ongoing only)
-    const ongoingProjects = allProjectsRaw.filter(p => isOngoingStatus(p.status ?? p.Status));
+    // 2. Process Projects (latest ongoing projects by API creation date)
+    const latestOngoingProjects = allProjectsRaw
+      .filter(p => isOngoingStatus(p.status ?? p.Status))
+      .sort((a, b) => {
+        const aDate = parseAdminApiDate(getDateInput(a, 'createdAt') ?? getDateInput(a, 'CreatedAt'))?.getTime() ?? 0;
+        const bDate = parseAdminApiDate(getDateInput(b, 'createdAt') ?? getDateInput(b, 'CreatedAt'))?.getTime() ?? 0;
+        return bDate - aDate;
+      });
+    const ongoingProjects = latestOngoingProjects.slice(0, 5);
 
     const mappedProjects: AdminProjectItem[] = ongoingProjects.map((project) => {
       const client = getObjectValue(project, 'client', 'Client');
@@ -749,7 +760,7 @@ export const adminService = {
     const mappedData: DashboardSummary = {
       totalUsers,
       openJobs: openJobsCount,
-      activeProjects: getNumberValue(projectsPayload, 'totalItems', 'TotalItems') ?? mappedProjects.length,
+      activeProjects: latestOngoingProjects.length,
       openDisputes: openDisputesCount,
       totalTransactionsValue: getNumberValue(backendStats, 'totalEscrowAmount') ?? 0,
       pendingReviews: pendingReviewsCount,

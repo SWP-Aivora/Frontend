@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import type { Notification } from '../types';
 import { NotificationType, NotificationStatus, NotificationPriority } from '../types';
+import { useAuthStore } from '@/features/auth/store';
+import { Role } from '@/shared/types/enums';
 
 interface NotificationItemProps {
   notification: Notification;
@@ -43,11 +45,84 @@ const getPriorityBadge = (priority: string | NotificationPriority) => {
   }
 };
 
+const getRoleBasePath = (role?: string) => {
+  if (role === Role.ADMIN) return '/admin';
+  if (role === Role.EXPERT) return '/expert';
+  return '/client';
+};
+
+const resolveNotificationPath = (linkUrl: string, role?: string) => {
+  const trimmedUrl = linkUrl.trim();
+  if (!trimmedUrl) return null;
+  if (/^https?:\/\//i.test(trimmedUrl)) return trimmedUrl;
+
+  const roleBasePath = getRoleBasePath(role);
+  const pathOnly = trimmedUrl
+    .replace(/^#/, '')
+    .replace(/^\/?api\/v\d+\//i, '')
+    .split('?')[0]
+    .split('#')[0];
+  const searchAndHash = trimmedUrl.replace(pathOnly, '').replace(/^\/?api\/v\d+\//i, '');
+  const normalizedPath = pathOnly.startsWith('/') ? pathOnly : `/${pathOnly}`;
+
+  if (/^\/(admin|client|expert)(\/|$)/i.test(normalizedPath)) {
+    return `${normalizedPath}${searchAndHash}`;
+  }
+
+  const segments = normalizedPath.split('/').filter(Boolean);
+  const [resource, id, child] = segments;
+  const normalizedResource = resource?.toLowerCase();
+  const normalizedChild = child?.toLowerCase();
+
+  if (normalizedResource === 'projects' && id) {
+    if (normalizedChild === 'disputes') {
+      return role === Role.ADMIN
+        ? `/admin/projects/${id}/disputes${searchAndHash}`
+        : `${roleBasePath}/projects/${id}/disputes${searchAndHash}`;
+    }
+
+    return role === Role.ADMIN
+      ? `/admin/projects${searchAndHash}`
+      : `${roleBasePath}/projects/${id}/workspace${searchAndHash}`;
+  }
+
+  if (normalizedResource === 'profile') {
+    return `${roleBasePath}/profile${searchAndHash}`;
+  }
+
+  if ((normalizedResource === 'experts' || normalizedResource === 'expert-profiles') && id) {
+    return role === Role.ADMIN
+      ? `/admin/users/${id}${searchAndHash}`
+      : `/client/experts/${id}${searchAndHash}`;
+  }
+
+  if (normalizedResource === 'users' && id) {
+    return role === Role.ADMIN
+      ? `/admin/users/${id}${searchAndHash}`
+      : `${roleBasePath}/profile${searchAndHash}`;
+  }
+
+  if (normalizedResource === 'proposals' && id && role !== Role.ADMIN) {
+    return `${roleBasePath}/proposals/${id}${searchAndHash}`;
+  }
+
+  if (normalizedResource === 'messages') {
+    return `${roleBasePath}/messages${searchAndHash}`;
+  }
+
+  if (normalizedResource === 'notifications') {
+    return `${roleBasePath}/notifications${searchAndHash}`;
+  }
+
+  return `${normalizedPath}${searchAndHash}`;
+};
+
 export const NotificationItem = ({ notification, onMarkAsRead }: NotificationItemProps) => {
   const navigate = useNavigate();
+  const role = useAuthStore((state) => state.user?.role);
   const iconConfig = getIconConfig(notification.type);
   const isUnread = notification.status === NotificationStatus.UNREAD || !notification.isRead;
-  const viewUrl = notification.linkUrl?.trim();
+  const viewUrl = notification.linkUrl ? resolveNotificationPath(notification.linkUrl, role) : null;
 
   const handleView = () => {
     if (!viewUrl) return;

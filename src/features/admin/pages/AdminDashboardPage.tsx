@@ -45,7 +45,7 @@ export const AdminDashboardPage = () => {
 
       <SummaryCardsRow summary={summary ?? undefined} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
         <ProjectsSection
           activeProjects={summary?.activeProjects || 0}
           paginatedProjects={paginatedProjects}

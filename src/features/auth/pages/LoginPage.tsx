@@ -129,19 +129,6 @@ export const LoginPage = () => {
               
               <div className="h-px w-full bg-slate-100" />
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                 {[
-                   { label: 'Client', role: 'Client Dashboard', color: 'bg-primary' },
-                   { label: 'Expert', role: 'Expert Dashboard', color: 'bg-brand-accent' },
-                   { label: 'Admin', role: 'Admin Dashboard', color: 'bg-brand-success' },
-                 ].map((pill, i) => (
-                   <div key={i} className="flex items-center gap-2.5 p-3 rounded-lg bg-slate-50 border border-slate-100">
-                      <div className={`size-2 rounded-full ${pill.color}`} />
-                      <span className="text-xs font-bold text-slate-600 truncate">{pill.label} → {pill.role}</span>
-                   </div>
-                 ))}
-              </div>
-
               <div className="flex justify-center pt-2">
                 <p className="text-sm text-muted-foreground font-medium">
                   Do not have an account?{' '}

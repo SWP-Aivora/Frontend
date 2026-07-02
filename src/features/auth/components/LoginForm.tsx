@@ -66,7 +66,9 @@ export const LoginForm = () => {
       <div className="space-y-5">
         {/* Email Field */}
         <div className="space-y-2">
-          <label htmlFor="email" className="text-sm font-bold text-slate-700 ml-1">Email Address</label>
+          <label htmlFor="email" className="text-sm font-bold text-slate-700 ml-1">
+            Email Address <span className="text-red-500">*</span>
+          </label>
           <div className="relative group">
             <Mail className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
             <Input 
@@ -82,7 +84,9 @@ export const LoginForm = () => {
 
         {/* Password Field */}
         <div className="space-y-2">
-          <label htmlFor="password" className="text-sm font-bold text-slate-700 ml-1">Password</label>
+          <label htmlFor="password" className="text-sm font-bold text-slate-700 ml-1">
+            Password <span className="text-red-500">*</span>
+          </label>
           <div className="relative group">
             <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
             <Input 
