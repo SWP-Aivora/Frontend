@@ -161,10 +161,11 @@ export const authService = {
   },
 
   logout: async (): Promise<void> => {
-    /**
-     * NOTE: Backend does not currently provide a logout endpoint in the API contract.
-     * Tokens are stateless (JWT). Logout is handled by clearing the local auth store.
-     */
+    try {
+      await apiClient.post(API_ENDPOINTS.AUTH.LOGOUT || '/api/v1/auth/logout');
+    } catch (error) {
+      console.error('[authService] Error calling backend logout endpoint:', error);
+    }
   },
 };
 
