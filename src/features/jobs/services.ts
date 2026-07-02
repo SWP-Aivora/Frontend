@@ -97,7 +97,7 @@ const normalizeAiJobSuggestion = (suggestion: AiJobSuggestion): AiJobSuggestion 
 
 const normalizeRefineResult = (result: RefineAiJobSuggestionResult): RefineAiJobSuggestionResult => ({
   ...result,
-  suggestion: normalizeAiJobSuggestion(result.suggestion),
+  suggestion: result.suggestion ? normalizeAiJobSuggestion(result.suggestion) : undefined,
 });
 
 const normalizeAcceptedJobResult = (result: AcceptAiJobSuggestionResult): AcceptAiJobSuggestionResult => ({
@@ -260,6 +260,15 @@ export const jobService = {
 
   refineAiJobSuggestion: async (id: string, prompt: string): Promise<BaseResponse<RefineAiJobSuggestionResult>> => {
     const response = await apiClient.post<BaseResponse<RefineAiJobSuggestionResult>>(`/ai/job-assistant/${id}/refine`, { message: prompt });
+    const normalized = normalizeBaseResponse<RefineAiJobSuggestionResult>(response);
+    return {
+      ...normalized,
+      data: normalized.data ? normalizeRefineResult(normalized.data) : null,
+    };
+  },
+
+  refineExistingJob: async (jobId: string, prompt: string): Promise<BaseResponse<RefineAiJobSuggestionResult>> => {
+    const response = await apiClient.post<BaseResponse<RefineAiJobSuggestionResult>>(`/ai/jobs/${jobId}/refine`, { message: prompt });
     const normalized = normalizeBaseResponse<RefineAiJobSuggestionResult>(response);
     return {
       ...normalized,

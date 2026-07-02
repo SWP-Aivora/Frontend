@@ -45,6 +45,43 @@ const toCreateJobSkillLevel = (value: AiJobSuggestion['experienceLevel']): Creat
   }
 };
 
+const isDraftJobStatus = (status: unknown) => {
+  if (status === 0) return true;
+
+  return String(status ?? '').toUpperCase().replace(/\s+|_/g, '') === 'DRAFT';
+};
+
+const buildSuggestionFromJob = (job: Job): AiJobSuggestion => ({
+  id: '',
+  jobId: job.id,
+  clientId: job.clientId,
+  rawInput: job.originalDescription || job.finalDescription || job.title,
+  suggestedTitle: job.title,
+  suggestedDescription: job.finalDescription ?? job.originalDescription ?? '',
+  businessDomain: job.businessDomain,
+  expectedOutcome: job.expectedOutcome,
+  categoryId: job.categoryId ?? null,
+  categoryName: job.categoryName ?? null,
+  budgetType: job.budgetType,
+  suggestedBudgetMin: job.budgetMin,
+  suggestedBudgetMax: job.budgetMax,
+  currency: job.currency ?? 'Xu',
+  suggestedTimelineDays: job.timelineDays,
+  experienceLevel: job.experienceLevel,
+  suggestedSkills: job.skills.map((skill) => skill.name),
+  suggestedMilestones: (job.milestones ?? []).map((milestone) => ({
+    id: milestone.id,
+    title: milestone.title,
+    description: milestone.description,
+    amount: milestone.amount,
+    dueDays: milestone.dueDays,
+    acceptanceCriteria: milestone.acceptanceCriteria,
+    orderIndex: milestone.orderIndex,
+  })),
+  status: AiJobAssistantStatus.ACCEPTED,
+  createdAt: job.createdAt,
+});
+
 export const PostJobPage = () => {
   const queryClient = useQueryClient();
   // Quản lý các bước tạo Job: PLANNING (Chat với AI) -> DRAFTING (Xem bản nháp) -> REVIEWING (Sửa thủ công) -> MATCHING (Tìm chuyên gia)
@@ -67,6 +104,7 @@ export const PostJobPage = () => {
   // --- Refs for stale closure guards ---
   const isBusyRef = useRef(false);
   const prevSuggestionRef = useRef<AiJobSuggestion | null>(null);
+  const hydratedEditJobIdRef = useRef<string | null>(null);
 
   // --- Queries ---
   // Tự động gọi API để tìm kiếm chuyên gia (Expert Match) khi đến bước MATCHING và đã có Job ID
@@ -103,6 +141,9 @@ export const PostJobPage = () => {
   });
 
   const categories = categoriesResponse?.data ?? [];
+  const isPublishedExistingJob = isEditingExistingJob && existingJobResponse?.data
+    ? !isDraftJobStatus(existingJobResponse.data.status)
+    : false;
 
   // --- Mutations ---
 
@@ -139,6 +180,10 @@ export const PostJobPage = () => {
       }
 
       const data = response.data;
+      if (!data.suggestion) {
+        toast.error('Failed to update draft');
+        return;
+      }
 
       setSuggestion(data.suggestion);
       setMessages(prev => [
@@ -146,7 +191,55 @@ export const PostJobPage = () => {
         {
           id: Date.now().toString(),
           role: 'assistant',
-          content: data.aiResponse,
+          content: data.aiResponse ?? 'No AI response returned.',
+          createdAt: new Date().toISOString()
+        }
+      ]);
+    },
+    onError: (error: unknown) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to update draft');
+    }
+  });
+
+  const refineExistingJobMutation = useMutation({
+    mutationFn: ({ jobId, prompt }: { jobId: string; prompt: string }) => jobService.refineExistingJob(jobId, prompt),
+    onSuccess: async (response) => {
+      if (!response.data) {
+        toast.error('Failed to update draft');
+        return;
+      }
+
+      const data = response.data;
+      const targetJobId = data.suggestion?.jobId ?? createdJobId ?? editJobId;
+
+      if (data.suggestion) {
+        setSuggestion(prev => ({
+          ...(prev ?? data.suggestion!),
+          ...data.suggestion,
+          jobId: data.suggestion?.jobId ?? targetJobId,
+        }));
+      } else if (targetJobId) {
+        try {
+          const latestJobResponse = await queryClient.fetchQuery({
+            queryKey: ['editJobPost', targetJobId],
+            queryFn: () => jobService.getJobById(targetJobId),
+            staleTime: 0,
+          });
+
+          if (latestJobResponse.data) {
+            setSuggestion(buildSuggestionFromJob(latestJobResponse.data));
+          }
+        } catch {
+          toast.error('AI responded, but the latest job details could not be refreshed.');
+        }
+      }
+      setIsDraftSaved(false);
+      setMessages(prev => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: data.aiResponse ?? response.message ?? 'No AI response returned.',
           createdAt: new Date().toISOString()
         }
       ]);
@@ -248,7 +341,7 @@ export const PostJobPage = () => {
       setIsDraftSaved(true);
     },
     onError: (error: unknown) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to save draft');
+      toast.error(error instanceof Error ? error.message : 'Failed to save');
     }
   });
 
@@ -277,7 +370,7 @@ export const PostJobPage = () => {
       queryClient.invalidateQueries({ queryKey: ['clientJobs'] });
     },
     onError: (error: unknown) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to save draft');
+      toast.error(error instanceof Error ? error.message : 'Failed to save');
     }
   });
 
@@ -286,6 +379,7 @@ export const PostJobPage = () => {
     isBusyRef.current =
       initMutation.isPending ||
       refineMutation.isPending ||
+      refineExistingJobMutation.isPending ||
       acceptMutation.isPending ||
       createDraftJobMutation.isPending ||
       patchMutation.isPending ||
@@ -293,6 +387,7 @@ export const PostJobPage = () => {
   }, [
     initMutation.isPending,
     refineMutation.isPending,
+    refineExistingJobMutation.isPending,
     acceptMutation.isPending,
     createDraftJobMutation.isPending,
     patchMutation.isPending,
@@ -316,49 +411,26 @@ export const PostJobPage = () => {
       return;
     }
 
-    const job: Job = existingJobResponse.data;
+    const job = existingJobResponse.data;
+    const shouldResetEditChat = hydratedEditJobIdRef.current !== job.id;
 
-    setSuggestion({
-      id: '',
-      jobId: job.id,
-      clientId: job.clientId,
-      rawInput: job.originalDescription || job.finalDescription || job.title,
-      suggestedTitle: job.title,
-      suggestedDescription: job.finalDescription ?? job.originalDescription ?? '',
-      businessDomain: job.businessDomain,
-      expectedOutcome: job.expectedOutcome,
-      categoryId: job.categoryId ?? null,
-      categoryName: job.categoryName ?? null,
-      budgetType: job.budgetType,
-      suggestedBudgetMin: job.budgetMin,
-      suggestedBudgetMax: job.budgetMax,
-      currency: job.currency ?? 'Xu',
-      suggestedTimelineDays: job.timelineDays,
-      experienceLevel: job.experienceLevel,
-      suggestedSkills: job.skills.map((skill) => skill.name),
-      suggestedMilestones: (job.milestones ?? []).map((milestone) => ({
-        id: milestone.id,
-        title: milestone.title,
-        description: milestone.description,
-        amount: milestone.amount,
-        dueDays: milestone.dueDays,
-        acceptanceCriteria: milestone.acceptanceCriteria,
-        orderIndex: milestone.orderIndex,
-      })),
-      status: AiJobAssistantStatus.ACCEPTED,
-      createdAt: job.createdAt,
-    });
+    setSuggestion(buildSuggestionFromJob(job));
     setJobId(job.id);
     setIsDraftSaved(true);
     setStep('DRAFTING');
-    setMessages([
-      {
-        id: 'edit-existing-job',
-        role: 'assistant',
-        content: "You're editing an existing job post. Update the draft on the right, then save or continue to review when you're ready.",
-        createdAt: new Date().toISOString(),
-      },
-    ]);
+    if (shouldResetEditChat) {
+      hydratedEditJobIdRef.current = job.id;
+      setMessages([
+        {
+          id: 'edit-existing-job',
+          role: 'assistant',
+          content: isDraftJobStatus(job.status)
+            ? "You're editing an existing job post. Update the post on the right, then save or continue to review when you're ready."
+            : "You're editing a published job post. Update the post on the right, then save when you're ready.",
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+    }
   }, [editJobId, existingJobResponse]);
 
   // --- Handlers ---
@@ -372,9 +444,8 @@ export const PostJobPage = () => {
     setMessages(prev => [...prev, { id: `user-${crypto.randomUUID()}`, role: 'user', content: text, createdAt: new Date().toISOString() }]);
 
     if (isEditingExistingJob) {
-      // Khi edit, cho phép refinement nhưng với context job hiện tại
-      // TODO: Backend cần hỗ trợ contextJobId parameter
-      return refineMutation.mutateAsync(`Refine based on existing job: ${text}`);
+      if (!createdJobId) throw new Error('Job ID is missing');
+      return refineExistingJobMutation.mutateAsync({ jobId: createdJobId, prompt: text });
     }
 
     return refineMutation.mutateAsync(text);
@@ -480,7 +551,6 @@ export const PostJobPage = () => {
       currency: suggestion.currency,
       timelineDays: suggestion.suggestedTimelineDays,
       experienceLevel: toCreateJobSkillLevel(suggestion.experienceLevel),
-      visibility: visibility ?? JobVisibility.PRIVATE,
       milestones: suggestion.suggestedMilestones.map((milestone, index) => ({
         title: milestone.title,
         description: milestone.description || null,
@@ -489,6 +559,7 @@ export const PostJobPage = () => {
         dueDays: milestone.dueDays ?? 0,
         orderIndex: milestone.orderIndex ?? index,
       })),
+      ...(visibility !== undefined ? { visibility } : {}),
     };
   };
 
@@ -549,7 +620,7 @@ export const PostJobPage = () => {
     try {
       await flushPendingSuggestionChanges();
     } catch {
-      toast.error('Failed to save the latest draft changes');
+      toast.error('Failed to save the latest changes');
       return;
     }
 
@@ -568,7 +639,7 @@ export const PostJobPage = () => {
         return;
       }
 
-      toast.success('Draft saved successfully!');
+      toast.success('Saved successfully!');
       return;
     }
 
@@ -588,7 +659,7 @@ export const PostJobPage = () => {
       return;
     }
 
-    toast.success('Draft saved successfully!');
+    toast.success('Saved successfully!');
   };
 
   const handleAccept = () => {
@@ -638,7 +709,7 @@ export const PostJobPage = () => {
       try {
         await flushPendingSuggestionChanges();
       } catch {
-        toast.error('Failed to save the latest draft changes');
+        toast.error('Failed to save the latest changes');
         return;
       }
 
@@ -952,13 +1023,9 @@ export const PostJobPage = () => {
             messages={messages}
             onSendMessage={handleInitialSend}
             onRefine={handleRefine}
-            isGenerating={initMutation.isPending || refineMutation.isPending}
-            hasSuggestion={!!suggestion && !isEditingExistingJob}
-            inputDisabled={isEditingExistingJob}
-            disabledPlaceholder={isEditingExistingJob ?
-              "AI refinement available - refinements will be based on your existing job post" :
-              undefined
-            }
+            isGenerating={initMutation.isPending || refineMutation.isPending || refineExistingJobMutation.isPending}
+            hasSuggestion={!!suggestion}
+            inputDisabled={false}
             modeLabel={isEditingExistingJob ? 'Edit Mode' : undefined}
           />
           <div className="shrink-0 flex items-center justify-center gap-2 px-2">
@@ -981,7 +1048,8 @@ export const PostJobPage = () => {
                onSaveDraft={handleSaveDraft}
                isAccepting={acceptMutation.isPending}
                isDraftSaved={isDraftSaved}
-              isGenerating={initMutation.isPending || refineMutation.isPending || patchMutation.isPending}
+               canContinueToReview={!isPublishedExistingJob}
+              isGenerating={initMutation.isPending || refineMutation.isPending || refineExistingJobMutation.isPending || patchMutation.isPending}
             />
           </div>
         )}

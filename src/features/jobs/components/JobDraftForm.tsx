@@ -62,6 +62,7 @@ interface JobDraftFormProps {
   isAccepting: boolean;
   isDraftSaved?: boolean;
   isGenerating?: boolean;
+  canContinueToReview?: boolean;
 }
 
 export const JobDraftForm = ({ 
@@ -73,7 +74,8 @@ export const JobDraftForm = ({
   onSaveDraft,
   isAccepting,
   isDraftSaved = false,
-  isGenerating = false
+  isGenerating = false,
+  canContinueToReview = true
 }: JobDraftFormProps) => {
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<JobDraftFormValues>({
     resolver: zodResolver(jobDraftSchema),
@@ -170,7 +172,7 @@ export const JobDraftForm = ({
             <div className="flex items-center gap-1 px-3 py-1 bg-emerald-50 rounded-full border border-emerald-100">
               <CheckCircle2 className="size-3 text-emerald-600" />
               <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">
-                Draft Saved
+                Saved
               </span>
             </div>
           </div>
@@ -450,8 +452,12 @@ export const JobDraftForm = ({
       {/* Footer Actions */}
       <div className="p-6 bg-white border-t border-slate-100 flex items-center justify-between gap-4">
          <div className="hidden sm:block">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Final Step</p>
-            <p className="text-xs font-black text-slate-900 mt-1">Review & Publish</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+              {canContinueToReview ? 'Final Step' : 'Update Post'}
+            </p>
+            <p className="text-xs font-black text-slate-900 mt-1">
+              {canContinueToReview ? 'Review & Publish' : 'Save changes'}
+            </p>
          </div>
          <div className="flex items-center gap-3 w-full sm:w-auto">
             <Button 
@@ -459,15 +465,17 @@ export const JobDraftForm = ({
               className="flex-1 sm:flex-none rounded-full font-bold border-slate-200"
               onClick={onSaveDraft}
             >
-              Save Draft
+              Save
             </Button>
-            <Button 
-              onClick={onAccept}
-              disabled={isAccepting}
-              className="flex-[2] sm:flex-none rounded-full px-10 font-black shadow-xl shadow-primary/20 bg-primary hover:scale-[1.02] active:scale-95 transition-all"
-            >
-              Continue to Review
-            </Button>
+            {canContinueToReview && (
+              <Button 
+                onClick={onAccept}
+                disabled={isAccepting}
+                className="flex-[2] sm:flex-none rounded-full px-10 font-black shadow-xl shadow-primary/20 bg-primary hover:scale-[1.02] active:scale-95 transition-all"
+              >
+                Continue to Review
+              </Button>
+            )}
          </div>
       </div>
     </section>

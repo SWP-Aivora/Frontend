@@ -115,9 +115,9 @@ export interface AiJobSuggestion {
 }
 
 export interface RefineAiJobSuggestionResult {
-  suggestion: AiJobSuggestion;
-  aiResponse: string;
-  changedFields: string[];
+  suggestion?: AiJobSuggestion;
+  aiResponse?: string;
+  changedFields?: string[];
 }
 
 export interface AcceptAiJobSuggestionRequest {
