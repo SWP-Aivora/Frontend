@@ -40,24 +40,29 @@ export const MessageItem = ({ message, isCurrentUser }: MessageItemProps) => {
         )}
         
         {message.type === 'FILE' ? (
-          <a 
-            href={message.fileUrl || '#'} 
-            target={message.fileUrl ? "_blank" : undefined}
-            rel="noopener noreferrer"
-            className={cn(
-              "flex items-center gap-2 hover:underline",
-              !message.fileUrl && "cursor-not-allowed pointer-events-none opacity-50"
+          <div className="flex flex-col gap-2">
+            <a 
+              href={message.fileUrl || '#'} 
+              target={message.fileUrl ? "_blank" : undefined}
+              rel="noopener noreferrer"
+              className={cn(
+                "flex items-center gap-2 hover:underline",
+                !message.fileUrl && "cursor-not-allowed pointer-events-none opacity-50"
+              )}
+              onClick={(e) => !message.fileUrl && e.preventDefault()}
+            >
+              <div className={cn(
+                "p-2 rounded-lg",
+                isCurrentUser ? "bg-blue-500" : "bg-slate-100"
+              )}>
+                <FileIcon className="w-4 h-4" />
+              </div>
+              <span className="truncate max-w-[150px]">{message.fileName || (message.fileUrl ? 'Attached File' : 'File Unavailable')}</span>
+            </a>
+            {message.content && (
+              <p className="leading-relaxed whitespace-pre-wrap">{message.content}</p>
             )}
-            onClick={(e) => !message.fileUrl && e.preventDefault()}
-          >
-            <div className={cn(
-              "p-2 rounded-lg",
-              isCurrentUser ? "bg-blue-500" : "bg-slate-100"
-            )}>
-              <FileIcon className="w-4 h-4" />
-            </div>
-            <span className="truncate max-w-[150px]">{message.fileName || (message.fileUrl ? 'Attached File' : 'File Unavailable')}</span>
-          </a>
+          </div>
         ) : (
           <p className="leading-relaxed whitespace-pre-wrap">{message.content}</p>
         )}
