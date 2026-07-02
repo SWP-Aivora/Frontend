@@ -1,8 +1,5 @@
-import { useNavigate } from 'react-router-dom';
 import type { Notification } from '../types';
 import { NotificationType, NotificationStatus, NotificationPriority } from '../types';
-import { useAuthStore } from '@/features/auth/store';
-import { resolveNotificationPath } from '../utils/notificationRoutes';
 
 interface NotificationItemProps {
   notification: Notification;
@@ -46,22 +43,8 @@ const getPriorityBadge = (priority: string | NotificationPriority) => {
 };
 
 export const NotificationItem = ({ notification, onMarkAsRead }: NotificationItemProps) => {
-  const navigate = useNavigate();
-  const role = useAuthStore((state) => state.user?.role);
   const iconConfig = getIconConfig(notification.type);
   const isUnread = notification.status === NotificationStatus.UNREAD || !notification.isRead;
-  const viewUrl = notification.linkUrl ? resolveNotificationPath(notification.linkUrl, role) : null;
-
-  const handleView = () => {
-    if (!viewUrl) return;
-
-    if (/^https?:\/\//i.test(viewUrl)) {
-      window.location.assign(viewUrl);
-      return;
-    }
-
-    navigate(viewUrl.startsWith('/') ? viewUrl : `/${viewUrl}`);
-  };
 
   // Function to format date safely
   const formatTime = (dateString: string) => {
@@ -75,8 +58,7 @@ export const NotificationItem = ({ notification, onMarkAsRead }: NotificationIte
 
   return (
     <div 
-      onClick={viewUrl ? handleView : undefined}
-      className={`relative bg-white border border-slate-200 h-24 overflow-hidden rounded-lg shadow-sm flex items-center transition-colors ${viewUrl ? 'cursor-pointer hover:bg-slate-50' : 'hover:bg-slate-50'}`}
+      className="relative bg-white border border-slate-200 h-24 overflow-hidden rounded-lg shadow-sm flex items-center transition-colors hover:bg-slate-50"
     >
       {/* Unread Stripe */}
       {isUnread && (
@@ -124,13 +106,7 @@ export const NotificationItem = ({ notification, onMarkAsRead }: NotificationIte
               Mark Read
             </button>
           )}
-          {viewUrl && (
-            <span
-              className="px-4 py-1.5 bg-primary rounded-full text-xs font-semibold text-white shadow-sm transition-colors"
-            >
-              View
-            </span>
-          )}
+
         </div>
       </div>
     </div>
