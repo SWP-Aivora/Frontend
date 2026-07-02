@@ -51,11 +51,12 @@ export const ChatWorkspacePage = () => {
     refetch: refetchMessages
   } = useMessages(selectedConversationId || '');
 
-  // Setup real-time message updates
-  useRealTimeMessages(selectedConversationId || '');
-
+  // Setup real-time message updates only when conversationId is available
   const { mutate: markAsRead } = useMarkRead();
   const { mutateAsync: sendMessage, isPending: isSendingMessage } = useSendMessage(selectedConversationId || '');
+
+  // Enable real-time updates - hook handles conditional logic internally
+  useRealTimeMessages(selectedConversationId);
 
   // Strictly use API data
   const conversations = useMemo(() => {
@@ -142,11 +143,11 @@ export const ChatWorkspacePage = () => {
   const milestones = Array.isArray(project?.milestones) ? project.milestones : [];
   const currentMilestone = milestones.find(m => m.status === 1 || m.status === 2) || milestones[0];
 
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (content: string, attachmentUrl?: string) => {
     if (!selectedConversationId) return;
 
     try {
-      await sendMessage({ content });
+      await sendMessage({ content, attachmentUrl });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to send message. Please try again.');
       throw error;

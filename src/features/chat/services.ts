@@ -341,7 +341,7 @@ private messageIdCounter = 0;
    */
   async sendMessage(conversationId: string, payload: SendMessagePayload, token?: string): Promise<void> {
     const content = payload.content.trim();
-    if (!content) {
+    if (!content && !payload.attachmentUrl) {
       throw new Error('Message cannot be empty');
     }
 
@@ -356,6 +356,7 @@ private messageIdCounter = 0;
         await connection.invoke('SendMessage', {
           conversationId,
           content,
+          attachmentUrl: payload.attachmentUrl,
         });
       } catch (invokeError: unknown) {
         throw createSignalRError('Unable to send chat message', invokeError);

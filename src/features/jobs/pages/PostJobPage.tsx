@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Sparkles, Rocket, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
@@ -46,6 +46,7 @@ const toCreateJobSkillLevel = (value: AiJobSuggestion['experienceLevel']): Creat
 };
 
 export const PostJobPage = () => {
+  const queryClient = useQueryClient();
   // Quản lý các bước tạo Job: PLANNING (Chat với AI) -> DRAFTING (Xem bản nháp) -> REVIEWING (Sửa thủ công) -> MATCHING (Tìm chuyên gia)
   const [searchParams] = useSearchParams();
   const editJobId = searchParams.get('editJobId');
@@ -252,8 +253,8 @@ export const PostJobPage = () => {
   });
 
   const updateDraftJobMutation = useMutation({
-    mutationFn: (payload: { 
-      jobId: string; 
+    mutationFn: (payload: {
+      jobId: string;
       data: {
         title: string;
         finalDescription: string;
@@ -272,6 +273,8 @@ export const PostJobPage = () => {
     }) => jobService.updateJob(payload.jobId, payload.data),
     onSuccess: () => {
       setIsDraftSaved(true);
+      // Invalidate cache to refresh jobs list immediately
+      queryClient.invalidateQueries({ queryKey: ['clientJobs'] });
     },
     onError: (error: unknown) => {
       toast.error(error instanceof Error ? error.message : 'Failed to save draft');
@@ -367,6 +370,13 @@ export const PostJobPage = () => {
 
   const handleRefine = async (text: string) => {
     setMessages(prev => [...prev, { id: `user-${crypto.randomUUID()}`, role: 'user', content: text, createdAt: new Date().toISOString() }]);
+
+    if (isEditingExistingJob) {
+      // Khi edit, cho phép refinement nhưng với context job hiện tại
+      // TODO: Backend cần hỗ trợ contextJobId parameter
+      return refineMutation.mutateAsync(`Refine based on existing job: ${text}`);
+    }
+
     return refineMutation.mutateAsync(text);
   };
 
@@ -470,15 +480,15 @@ export const PostJobPage = () => {
       currency: suggestion.currency,
       timelineDays: suggestion.suggestedTimelineDays,
       experienceLevel: toCreateJobSkillLevel(suggestion.experienceLevel),
+      visibility: visibility ?? JobVisibility.PRIVATE,
       milestones: suggestion.suggestedMilestones.map((milestone, index) => ({
         title: milestone.title,
-        description: milestone.description,
-        acceptanceCriteria: milestone.acceptanceCriteria,
+        description: milestone.description || null,
+        acceptanceCriteria: milestone.acceptanceCriteria || null,
         amount: milestone.amount ?? 0,
         dueDays: milestone.dueDays ?? 0,
         orderIndex: milestone.orderIndex ?? index,
       })),
-      ...(visibility !== undefined ? { visibility } : {}),
     };
   };
 
@@ -583,6 +593,19 @@ export const PostJobPage = () => {
 
   const handleAccept = () => {
     setStep('REVIEWING');
+  };
+
+  const getStatusMessage = () => {
+    if (!isEditingExistingJob && !isDraftSaved) {
+      return "Your project is being drafted. Review and save when ready.";
+    }
+    if (isEditingExistingJob) {
+      return "You're editing an existing job post. Review your changes before publishing.";
+    }
+    if (step === 'REVIEWING') {
+      return "Your project is ready for review. Final details before publishing to the marketplace.";
+    }
+    return "Your project is saved as a Draft. Review carefully before publishing to the marketplace.";
   };
 
   const getMissingRequiredFields = () => {
@@ -738,7 +761,7 @@ export const PostJobPage = () => {
             <div className="min-w-0">
               <h2 className="text-[92%] font-black leading-tight text-slate-900 sm:text-[95%] lg:text-[24px]">Review Project Details</h2>
               <p className="mt-1 text-[82%] leading-relaxed text-slate-500 sm:text-[86%] lg:text-[14px]">
-                Your project is saved as a Draft. Review carefully before publishing to the marketplace.
+                {getStatusMessage()}
               </p>
             </div>
           </div>
@@ -925,14 +948,17 @@ export const PostJobPage = () => {
           "transition-all duration-500 flex min-h-0 flex-col gap-3",
           step === 'PLANNING' ? "lg:col-span-12 max-w-3xl mx-auto w-full" : "lg:col-span-5"
         )}>
-          <AiChatPanel 
+          <AiChatPanel
             messages={messages}
             onSendMessage={handleInitialSend}
             onRefine={handleRefine}
             isGenerating={initMutation.isPending || refineMutation.isPending}
             hasSuggestion={!!suggestion && !isEditingExistingJob}
             inputDisabled={isEditingExistingJob}
-            disabledPlaceholder="AI refinement is unavailable while editing an existing job post."
+            disabledPlaceholder={isEditingExistingJob ?
+              "AI refinement available - refinements will be based on your existing job post" :
+              undefined
+            }
             modeLabel={isEditingExistingJob ? 'Edit Mode' : undefined}
           />
           <div className="shrink-0 flex items-center justify-center gap-2 px-2">

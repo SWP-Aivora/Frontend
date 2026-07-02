@@ -13,11 +13,12 @@ export const useMessages = (conversationId: string, params?: Record<string, unkn
   });
 };
 
-export const useRealTimeMessages = (conversationId: string) => {
+export const useRealTimeMessages = (conversationId?: string) => {
   const queryClient = useQueryClient();
   const token = useAuthStore((state) => state.accessToken);
 
   useEffect(() => {
+    // Skip effect if no conversation ID or no token
     if (!conversationId || !token) return;
 
     let isSubscribed = true;
