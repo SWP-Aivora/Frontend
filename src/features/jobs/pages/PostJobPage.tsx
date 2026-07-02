@@ -268,6 +268,7 @@ export const PostJobPage = () => {
         timelineDays: number | null;
         experienceLevel: CreateJobRequest['experienceLevel'];
         visibility?: JobVisibility;
+        milestones: CreateJobRequest['milestones'];
       };
     }) => jobService.updateJob(payload.jobId, payload.data),
     onSuccess: () => {
@@ -480,15 +481,14 @@ export const PostJobPage = () => {
       timelineDays: suggestion.suggestedTimelineDays,
       experienceLevel: toCreateJobSkillLevel(suggestion.experienceLevel),
       visibility: visibility ?? JobVisibility.PRIVATE,
-      // Add milestones to payload
       milestones: suggestion.suggestedMilestones.map((milestone, index) => ({
         title: milestone.title,
         description: milestone.description || null,
-        amount: milestone.amount || 0,
         acceptanceCriteria: milestone.acceptanceCriteria || null,
-        orderIndex: index,
+        amount: milestone.amount ?? 0,
+        dueDays: milestone.dueDays ?? 0,
+        orderIndex: milestone.orderIndex ?? index,
       })),
-      ...(visibility !== undefined ? { visibility } : {}),
     };
   };
 

@@ -1,10 +1,9 @@
-import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { 
   Star, MapPin, ShieldCheck, 
-  Briefcase, Globe, Clock, ChevronLeft
+  Briefcase, Clock, ChevronLeft
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { profileService } from '../services';
@@ -19,22 +18,6 @@ export const ExpertPublicProfilePage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const currentUserId = useAuthStore((state) => state.user?.id);
-
-  const [activeTab, setActiveTab] = useState('overview');
-
-  const scrollToSection = (id: string) => {
-    const element = document.getElementById(id);
-    if (element) {
-      const yOffset = -100;
-      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
-      window.scrollTo({ top: y, behavior: 'smooth' });
-    }
-  };
-
-  const handleTabClick = (tabId: string, sectionId: string) => {
-    setActiveTab(tabId);
-    scrollToSection(sectionId);
-  };
 
   const expertId = id || '';
 
@@ -62,17 +45,22 @@ export const ExpertPublicProfilePage = () => {
   // 3. Fetch Expert Projects
   const { data: projectsResponse, isLoading: isProjectsLoading } = useQuery({
     queryKey: ['expertProjects'],
-    queryFn: () => projectService.getProjects(),
+    queryFn: () => projectService.getProjects({ PageSize: 100, PageIndex: 1 }),
   });
-  // Filter for this expert's completed projects
-  const completedProjects = (projectsResponse?.data || []).filter(
-    p => p.expertId === profile?.userId && p.status === ProjectStatus.COMPLETED
+  // Project completion rate is based on all projects returned by the Project API for this expert.
+  const expertProjects = (projectsResponse?.data || []).filter(
+    p => p.expertId === profile?.userId
+  );
+  const completedProjects = expertProjects.filter(
+    p => p.status === ProjectStatus.COMPLETED
   );
 
   const mappedProjects = completedProjects.map(p => ({
     title: p.title,
     description: p.description || '',
-    rating: profile?.rating || 0
+    totalBudget: p.totalBudget,
+    currency: p.currency,
+    endDate: p.endDate,
   }));
 
   // 4. Initialize Chat Mutation
@@ -121,7 +109,9 @@ export const ExpertPublicProfilePage = () => {
   const displayProjects = mappedProjects;
   const completedProjectCount = profile?.completedProjects ?? displayProjects.length;
   const totalReviewCount = profile?.totalReviews ?? displayReviews.length;
-  const successRate = profile?.successRate ?? 0;
+  const projectCompletionRate = expertProjects.length > 0
+    ? Math.round((completedProjects.length / expertProjects.length) * 100)
+    : 0;
   const availabilityStatus = profile?.availabilityStatus;
   const availabilityLabel = availabilityStatus === AvailabilityStatus.BUSY
     ? 'Busy'
@@ -231,54 +221,10 @@ export const ExpertPublicProfilePage = () => {
               <div className="text-xs font-medium text-brand-muted uppercase tracking-wider">Reviews</div>
             </div>
             <div className="p-4 md:p-6 text-center">
-              <div className="text-2xl font-bold text-brand-dark mb-1">{successRate}%</div>
-              <div className="text-xs font-medium text-brand-muted uppercase tracking-wider">On-Time Delivery</div>
+              <div className="text-2xl font-bold text-brand-dark mb-1">{projectCompletionRate}%</div>
+              <div className="text-xs font-medium text-brand-muted uppercase tracking-wider">Project Completion</div>
             </div>
           </div>
-        </div>
-
-        {/* Navigation Tabs */}
-        <div className="bg-white/85 backdrop-blur-md rounded-xl p-1.5 shadow-sm border border-blue-100/30 flex items-center gap-1.5 overflow-x-auto sticky top-4 z-30">
-          <button 
-            onClick={() => handleTabClick('overview', 'overview')}
-            className={`px-5 py-2 text-xs md:text-sm font-bold rounded-full transition-all duration-300 ${
-              activeTab === 'overview' 
-                ? 'bg-brand-primary text-white shadow-sm shadow-brand-primary/10' 
-                : 'text-brand-secondary hover:bg-slate-50 hover:text-brand-dark'
-            }`}
-          >
-            Overview
-          </button>
-          <button 
-            onClick={() => handleTabClick('portfolio', 'portfolio')}
-            className={`px-5 py-2 text-xs md:text-sm font-bold rounded-full transition-all duration-300 ${
-              activeTab === 'portfolio' 
-                ? 'bg-brand-primary text-white shadow-sm shadow-brand-primary/10' 
-                : 'text-brand-secondary hover:bg-slate-50 hover:text-brand-dark'
-            }`}
-          >
-            Portfolio
-          </button>
-          <button 
-            onClick={() => handleTabClick('projects', 'projects')}
-            className={`px-5 py-2 text-xs md:text-sm font-bold rounded-full transition-all duration-300 ${
-              activeTab === 'projects' 
-                ? 'bg-brand-primary text-white shadow-sm shadow-brand-primary/10' 
-                : 'text-brand-secondary hover:bg-slate-50 hover:text-brand-dark'
-            }`}
-          >
-            Completed Projects
-          </button>
-          <button 
-            onClick={() => handleTabClick('reviews', 'reviews')}
-            className={`px-5 py-2 text-xs md:text-sm font-bold rounded-full transition-all duration-300 ${
-              activeTab === 'reviews' 
-                ? 'bg-brand-primary text-white shadow-sm shadow-brand-primary/10' 
-                : 'text-brand-secondary hover:bg-slate-50 hover:text-brand-dark'
-            }`}
-          >
-            Reviews
-          </button>
         </div>
 
         {/* Main Content Grid */}
@@ -288,7 +234,7 @@ export const ExpertPublicProfilePage = () => {
           <div className="lg:col-span-2 space-y-6">
             
             {/* About & Overview */}
-            <div id="overview" className="bg-white rounded-xl p-6 md:p-8 shadow-sm border border-slate-100/80 transition-all hover:shadow-md/50 duration-300">
+            <div id="overview" className="bg-white rounded-xl p-6 md:p-8 shadow-sm border border-slate-100/80">
               <h3 className="text-xs font-bold text-brand-primary uppercase tracking-wider mb-3">About This Expert</h3>
               {title && <h4 className="text-xl md:text-2xl font-bold text-slate-900 mb-4">{title}</h4>}
               {bio ? (
@@ -296,12 +242,12 @@ export const ExpertPublicProfilePage = () => {
                   {bio}
                 </p>
               ) : (
-                <p className="text-sm text-slate-400">No bio returned by the API.</p>
+                <p className="text-sm text-slate-400">No information yet.</p>
               )}
             </div>
 
             {/* Skills */}
-            <div className="bg-white rounded-xl p-6 md:p-8 shadow-sm border border-slate-100/80 transition-all hover:shadow-md/50 duration-300">
+            <div className="bg-white rounded-xl p-6 md:p-8 shadow-sm border border-slate-100/80">
               <h3 className="text-xs font-bold text-brand-primary uppercase tracking-wider mb-4">Skills & Expertise</h3>
               <div className="flex flex-wrap gap-2.5">
                 {skills.map((skill, idx) => (
@@ -313,23 +259,8 @@ export const ExpertPublicProfilePage = () => {
               </div>
             </div>
 
-            {/* Portfolio Links */}
-            <div id="portfolio" className="bg-white rounded-xl p-6 md:p-8 shadow-sm border border-slate-100/80 transition-all hover:shadow-md/50 duration-300">
-              <h3 className="text-xs font-bold text-brand-primary uppercase tracking-wider mb-2">Portfolio Links</h3>
-              <p className="text-xs text-slate-400 mb-4">View selected work samples, demos, profiles, case studies.</p>
-              <div className="flex flex-col items-center justify-center py-8 px-4 text-center border border-dashed border-slate-200 rounded-lg bg-slate-50/30">
-                <div className="w-10 h-10 rounded-full bg-blue-50/70 flex items-center justify-center mb-3">
-                  <Globe className="w-5 h-5 text-brand-primary/70" />
-                </div>
-                <h5 className="text-sm font-bold text-slate-700 mb-0.5">No Portfolio Links</h5>
-                <p className="text-xs text-slate-400 max-w-sm">
-                  This expert hasn't linked external websites or custom case studies yet.
-                </p>
-              </div>
-            </div>
-
             {/* Completed Projects */}
-            <div id="projects" className="bg-white rounded-xl p-6 md:p-8 shadow-sm border border-slate-100/80 transition-all hover:shadow-md/50 duration-300">
+            <div id="projects" className="bg-white rounded-xl p-6 md:p-8 shadow-sm border border-slate-100/80">
               <div className="flex justify-between items-end mb-6">
                 <div>
                   <h3 className="text-xs font-bold text-brand-primary uppercase tracking-wider mb-1">Completed Projects</h3>
@@ -339,16 +270,23 @@ export const ExpertPublicProfilePage = () => {
               
               {displayProjects.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {displayProjects.map((project: { title: string; description: string; rating: number }, i) => (
-                    <div key={i} className="border border-blue-100/30 bg-slate-50/20 hover:bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer border-l-4 border-l-brand-primary">
+                  {displayProjects.map((project: { title: string; description: string; totalBudget?: number; currency?: string; endDate?: string | null }, i) => (
+                    <div key={i} className="border border-blue-100/30 bg-slate-50/20 hover:bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-300 border-l-4 border-l-brand-primary">
                       <div className="flex justify-between items-start mb-3">
                         <span className="bg-blue-50/70 text-brand-primary text-xs font-bold px-2.5 py-1 rounded-lg">AI/ML Project</span>
-                        <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                          <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" /> {project.rating.toFixed(1)}
-                        </span>
+                        {project.endDate && (
+                          <span className="text-xs font-bold text-slate-500">
+                            {new Date(project.endDate).toLocaleDateString()}
+                          </span>
+                        )}
                       </div>
                       <h4 className="text-sm font-bold text-slate-900 mb-2 line-clamp-1 hover:text-brand-primary transition-colors">{project.title}</h4>
                       <p className="text-xs text-brand-secondary leading-relaxed line-clamp-2">{project.description}</p>
+                      {typeof project.totalBudget === 'number' && project.totalBudget > 0 && (
+                        <p className="mt-3 text-xs font-bold text-slate-700">
+                          Budget: {project.totalBudget} {project.currency || ''}
+                        </p>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -366,11 +304,11 @@ export const ExpertPublicProfilePage = () => {
             </div>
 
             {/* Combined Rating Summary & Reviews Section */}
-            <div id="reviews" className="bg-white rounded-xl p-6 md:p-8 shadow-sm border border-slate-100/80 transition-all hover:shadow-md/50 duration-300">
+            <div id="reviews" className="bg-white rounded-xl p-6 md:p-8 shadow-sm border border-slate-100/80">
               <h3 className="text-xs font-bold text-brand-primary uppercase tracking-wider mb-6">Client Reviews & Rating Summary</h3>
               
               {/* Rating Overview Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-6 border-b border-slate-100 mb-6">
+              <div className={`grid grid-cols-1 md:grid-cols-3 gap-6 ${displayReviews.length > 0 ? 'pb-6 border-b border-slate-100 mb-6' : ''}`}>
                 <div className="flex flex-col items-center md:items-start justify-center p-5 bg-slate-50/50 rounded-xl border border-slate-100/60 shrink-0">
                   <div className="flex items-baseline gap-1.5 mb-1">
                     <span className="text-4xl font-extrabold text-slate-900">{rating.toFixed(1)}</span>
@@ -393,24 +331,24 @@ export const ExpertPublicProfilePage = () => {
                 <div className="col-span-2 flex flex-col justify-center space-y-4">
                   <div>
                     <div className="flex justify-between items-center mb-1.5">
-                      <span className="text-xs font-bold text-slate-700">Project Success Rate</span>
-                      <span className="text-xs font-bold text-brand-primary">{successRate}%</span>
+                      <span className="text-xs font-bold text-slate-700">Project Completion Rate</span>
+                      <span className="text-xs font-bold text-brand-primary">{projectCompletionRate}%</span>
                     </div>
                     <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
                       <div 
                         className="h-full bg-brand-primary rounded-full transition-all duration-500" 
-                        style={{ width: `${Math.max(0, Math.min(100, successRate))}%` }} 
+                        style={{ width: `${Math.max(0, Math.min(100, projectCompletionRate))}%` }} 
                       />
                     </div>
                   </div>
                   <p className="text-xs text-brand-secondary leading-relaxed">
-                    The success rate represents the proportion of milestones successfully completed, approved on time, and meeting client quality requirements.
+                    The completion rate represents completed projects divided by all projects returned for this expert, including active, in-review, disputed, completed, and cancelled projects.
                   </p>
                 </div>
               </div>
 
               {/* Reviews List */}
-              {displayReviews.length > 0 ? (
+              {displayReviews.length > 0 && (
                 <div className="space-y-6">
                   {displayReviews.map((review: { reviewerName?: string; rating: number; comment: string }, i: number) => (
                     <div key={i} className={`flex gap-4 ${i > 0 ? "pt-6 border-t border-slate-100" : ""}`}>
@@ -436,10 +374,6 @@ export const ExpertPublicProfilePage = () => {
                       </div>
                     </div>
                   ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-6 text-slate-400 text-sm">
-                  No reviews submitted yet.
                 </div>
               )}
             </div>
