@@ -18,6 +18,10 @@ import { Role } from '@/shared/types/enums';
 import { Building2, Code2, ShieldCheck, Mail, UserCircle2, Loader2, AlertCircle } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
+interface AccountInfoFormProps {
+  mode?: 'account' | 'expertise';
+}
+
 const getRouteRole = (pathname: string): Role | null => {
   if (pathname.startsWith('/client/')) return Role.CLIENT;
   if (pathname.startsWith('/expert/')) return Role.EXPERT;
@@ -32,7 +36,7 @@ const normalizeRole = (role: unknown): Role | null => {
   return Object.values(Role).find((value) => value === normalized) || null;
 };
 
-export const AccountInfoForm = () => {
+export const AccountInfoForm = ({ mode = 'account' }: AccountInfoFormProps) => {
   const [isUserLoading, setIsUserLoading] = useState(false);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -240,7 +244,7 @@ export const AccountInfoForm = () => {
       const response = await profileService.updateExpertProfile(data);
       if (response.success) {
         setIsExpertProfileMissing(false);
-        toast.success('Expert profile updated');
+        toast.success('Expertise profile submitted for admin review');
       }
       else toast.error(response.message || 'Failed to update profile');
     } catch (error) {
@@ -281,7 +285,7 @@ export const AccountInfoForm = () => {
   return (
     <div className="space-y-8">
       {/* ACCOUNT INFORMATION (READ-ONLY) */}
-      <div className="bg-white rounded-lg p-8 border border-slate-100 shadow-sm relative overflow-hidden">
+      {mode === 'account' && <div className="bg-white rounded-lg p-8 border border-slate-100 shadow-sm relative overflow-hidden">
         <div className="flex items-center gap-4 mb-6">
           <div className="size-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
              <ShieldCheck className="size-5" />
@@ -316,10 +320,10 @@ export const AccountInfoForm = () => {
             </p>
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* IDENTITY SETTINGS */}
-      <div className="bg-white rounded-lg p-8 border border-slate-100 shadow-sm relative overflow-hidden">
+      {mode === 'account' && <div className="bg-white rounded-lg p-8 border border-slate-100 shadow-sm relative overflow-hidden">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h3 className="text-xl font-black text-slate-900 tracking-tight">Personal Identity</h3>
@@ -345,10 +349,10 @@ export const AccountInfoForm = () => {
             </Button>
           </div>
         </form>
-      </div>
+      </div>}
 
       {/* ROLE SPECIFIC SETTINGS */}
-      {activeProfileRole === Role.CLIENT && (
+      {mode === 'account' && activeProfileRole === Role.CLIENT && (
         <div className="bg-white rounded-lg p-8 border border-slate-100 shadow-sm relative overflow-hidden">
           <div className="flex items-center gap-4 mb-8">
             <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
@@ -410,15 +414,20 @@ export const AccountInfoForm = () => {
         </div>
       )}
 
-      {activeProfileRole === Role.EXPERT && (
+      {mode === 'expertise' && activeProfileRole === Role.EXPERT && (
         <div className="bg-white rounded-lg p-8 border border-slate-100 shadow-sm relative overflow-hidden">
-          <div className="flex items-center gap-4 mb-8">
-            <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-               <Code2 className="size-5" />
+          <div className="flex flex-col gap-4 mb-8 md:flex-row md:items-start md:justify-between">
+            <div className="flex items-center gap-4">
+              <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                <Code2 className="size-5" />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-slate-900 tracking-tight">Expertise Profile Review</h3>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">These fields are sent to admin verification for your expert profile.</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-xl font-black text-slate-900 tracking-tight">Expert Credentials</h3>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">Professional visibility for client matching.</p>
+            <div className="rounded-lg border border-amber-100 bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-700">
+              Submit only accurate, review-ready expertise details.
             </div>
           </div>
 
@@ -439,6 +448,18 @@ export const AccountInfoForm = () => {
                 <Input type="number" {...registerExpert('experienceYears')} placeholder="0" className="h-11 rounded-lg bg-slate-50 border-slate-100 focus:bg-white transition-all font-medium" disabled={!!loadError} />
                 {expertErrors.experienceYears && <p className="text-[10px] text-destructive font-bold ml-1">{expertErrors.experienceYears.message}</p>}
               </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">Availability Status</label>
+                <select
+                  {...registerExpert('availabilityStatus')}
+                  className="w-full h-11 px-4 rounded-lg bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm appearance-none font-medium"
+                  disabled={!!loadError}
+                >
+                  <option value={0}>Unavailable</option>
+                  <option value={1}>Available</option>
+                  <option value={2}>Busy</option>
+                </select>
+              </div>
             </div>
             
             <div className="space-y-1.5">
@@ -453,7 +474,7 @@ export const AccountInfoForm = () => {
 
             <div className="flex justify-end pt-4 border-t border-slate-50">
               <Button type="submit" disabled={isProfileLoading || !!loadError} className="rounded-lg px-8 h-11 font-bold bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 uppercase tracking-wider text-xs">
-                {isProfileLoading ? 'Saving...' : 'Update Expert Credentials'}
+                {isProfileLoading ? 'Submitting...' : 'Submit Profile for Review'}
               </Button>
             </div>
           </form>

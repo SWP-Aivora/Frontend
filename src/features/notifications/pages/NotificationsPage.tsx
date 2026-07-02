@@ -44,7 +44,7 @@ export const NotificationsPage = () => {
   const unreadCount = unreadResponse?.data || 0;
 
   // Mutations
-  const { markAsRead } = useNotificationActions();
+  const { markAsRead, markAllAsRead, isMarkingAllAsRead } = useNotificationActions();
 
   const handleRetry = () => {
     refetchNotifications();
@@ -123,6 +123,8 @@ export const NotificationsPage = () => {
               notifications={filteredNotifications}
               isLoading={isLoading}
               onMarkAsRead={markAsRead}
+              onMarkAllAsRead={markAllAsRead}
+              isMarkingAllAsRead={isMarkingAllAsRead}
             />
           )}
         </div>

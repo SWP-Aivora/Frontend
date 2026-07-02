@@ -195,7 +195,7 @@ const Categories: React.FC = () => {
       try {
         const response = await categoryService.getCategories();
         if (response.success && response.data) {
-          setCategories(response.data.slice(0, 7));
+          setCategories(response.data.slice(0, 5));
         }
       } catch (error) {
         console.error('Failed to fetch categories:', error);
@@ -216,15 +216,15 @@ const Categories: React.FC = () => {
         />
         
         <div className="relative">
-          <div className="flex flex-nowrap gap-6 overflow-x-auto pb-8 custom-scrollbar scroll-smooth -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
             {isLoading ? (
                // Loading skeletons
                Array.from({ length: 5 }).map((_, i) => (
-                 <div key={i} className="shrink-0 w-[260px] h-[160px] bg-slate-50 border border-slate-100 rounded-lg animate-pulse" />
+                 <div key={i} className="aspect-square bg-slate-50 border border-slate-100 rounded-lg animate-pulse" />
                ))
             ) : categories.length > 0 ? (
               categories.map((cat) => (
-                <div key={cat.id} className="shrink-0 w-[260px] p-6 rounded-lg border border-slate-100 bg-white shadow-sm hover:shadow-aivora hover:border-blue-100 transition-all duration-300 hover:-translate-y-1">
+                <div key={cat.id} className="aspect-square p-6 rounded-lg border border-slate-100 bg-white shadow-sm hover:shadow-aivora hover:border-blue-100 transition-all duration-300 hover:-translate-y-1 overflow-hidden">
                   <div className="w-10 h-10 bg-brand-blue-light text-brand-blue-dark rounded-lg flex items-center justify-center font-bold text-[13px] mb-4">
                     {cat.name.substring(0, 2).toUpperCase()}
                   </div>
@@ -493,14 +493,6 @@ const FooterCTA: React.FC = () => {
           <p className="text-blue-200 text-[15px] font-bold tracking-widest uppercase mb-4">Start building with AI experts today</p>
           <h2 className="text-4xl md:text-[42px] font-bold mb-6 leading-tight">From idea to verified expert shortlist.</h2>
           <p className="text-blue-100 text-lg md:text-xl mb-10 leading-relaxed">Whether you need an AI solution or want to offer your expertise, AIVORA gives you a clear, trusted way to collaborate.</p>
-          <div className="flex-wrap flex gap-4">
-            <Button size="lg" className="bg-white text-brand-blue-dark hover:bg-blue-50 border-none px-10 rounded-lg font-bold">
-              Sign Up as Client
-            </Button>
-            <Button size="lg" className="bg-white text-brand-blue-dark hover:bg-blue-50 border-none px-10 rounded-lg font-bold">
-              Explore Experts
-            </Button>
-          </div>
         </div>
       </div>
     </section>

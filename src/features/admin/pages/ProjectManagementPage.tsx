@@ -9,7 +9,7 @@ import { AdminProjectDetailDrawer } from '../components/project-management/Admin
 import { AdminProjectErrorState } from '../components/project-management/AdminProjectErrorState';
 import { AdminProjectFilters } from '../components/project-management/AdminProjectFilters';
 import { AdminProjectTable } from '../components/project-management/AdminProjectTable';
-import { getDefaultNonDisputeProjectStatus, isProjectDisputed } from '@/features/projects/utils';
+import { isProjectDisputed } from '@/features/projects/utils';
 import { useDisputes } from '@/features/disputes/hooks/useDisputes';
 import { DisputeStatus } from '@/features/disputes/types';
 
@@ -59,7 +59,6 @@ export const ProjectManagementPage = () => {
       return {
         ...project,
         hasDispute: hasActiveDispute,
-        status: hasActiveDispute ? project.status : getDefaultNonDisputeProjectStatus(project.status),
       };
     })
   ), [activeDisputeProjectIds, data?.data, isDisputesLoaded]);

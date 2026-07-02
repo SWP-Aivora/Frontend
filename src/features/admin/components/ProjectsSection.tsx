@@ -12,8 +12,8 @@ export const ProjectsSection = ({
   activeProjects,
   paginatedProjects,
 }: ProjectsSectionProps) => (
-  <div className="lg:col-span-2">
-    <div className="bg-white border border-slate-100 rounded-lg shadow-sm overflow-hidden h-fit flex flex-col">
+  <div className="lg:col-span-2 h-full">
+    <div className="bg-white border border-slate-100 rounded-lg shadow-sm overflow-hidden h-full flex flex-col">
       <div className="p-6 border-b border-slate-50 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-3">
@@ -35,7 +35,7 @@ export const ProjectsSection = ({
         </div>
       </div>
 
-      <div className="overflow-x-auto min-h-[300px] pb-2">
+      <div className="overflow-x-auto flex-1 pb-2">
         {paginatedProjects.length > 0 ? (
           <table className="w-full">
             <thead className="bg-slate-50/50">
@@ -87,7 +87,7 @@ export const ProjectsSection = ({
             </tbody>
           </table>
         ) : (
-          <div className="h-full flex flex-col items-center justify-center text-slate-400 py-20">
+          <div className="flex flex-col items-center justify-center text-slate-400 py-20">
             <Layout className="size-10 text-slate-100 mb-4" />
             <p className="text-xs font-bold italic">No active projects yet.</p>
           </div>

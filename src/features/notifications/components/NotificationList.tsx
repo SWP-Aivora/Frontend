@@ -5,23 +5,35 @@ interface NotificationListProps {
   notifications: Notification[];
   isLoading: boolean;
   onMarkAsRead: (id: string) => void;
+  onMarkAllAsRead: () => void;
+  isMarkingAllAsRead?: boolean;
 }
 
 export const NotificationList = ({ 
   notifications, 
   isLoading, 
   onMarkAsRead, 
+  onMarkAllAsRead,
+  isMarkingAllAsRead = false,
 }: NotificationListProps) => {
 
   return (
     <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-6 flex-1 min-h-[400px]">
-      <div className="flex justify-between items-start mb-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-6">
         <div>
           <h2 className="text-lg font-bold text-slate-900">Notification History</h2>
           <p className="text-xs text-slate-500 mt-1">
             Bulk actions are available after selecting notifications.
           </p>
         </div>
+        <button
+          type="button"
+          onClick={onMarkAllAsRead}
+          disabled={isMarkingAllAsRead}
+          className="shrink-0 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isMarkingAllAsRead ? 'Marking...' : 'Mark All Read'}
+        </button>
       </div>
 
       <div className="h-px bg-slate-200 w-full mb-6" />

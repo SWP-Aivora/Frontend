@@ -212,4 +212,8 @@ export interface AdminExpertReviewsData {
   totalRevisions: number;
   newToday: number;
   totalRejected: number;
+  pageIndex?: number;
+  pageSize?: number;
+  totalItems?: number;
+  totalPages?: number;
 }
