@@ -748,7 +748,7 @@ export const PostJobPage = () => {
   }
 
   if (step === 'REVIEWING' && suggestion) {
-    const isPublishing = acceptMutation.isPending || publishMutation.isPending;
+    const isPublishing = acceptMutation.isPending || publishMutation.isPending || updateDraftJobMutation.isPending;
     const missingRequiredFields = getMissingRequiredFields();
 
     return (
