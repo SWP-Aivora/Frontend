@@ -72,7 +72,17 @@ export const authService = {
       }
 
       const roleStr = roleRaw.toUpperCase();
-      const mappedRole = Object.values(Role).find(r => r === roleStr) || Role.CLIENT;
+      const mappedRole = Object.values(Role).find(r => r === roleStr);
+
+      if (!mappedRole) {
+        console.error('[authService] Unknown or missing role from backend:', roleStr);
+        return {
+          success: false,
+          message: 'Invalid user role returned from server',
+          statusCode: 403,
+          data: null
+        };
+      }
 
       const user: User = {
         id,
@@ -137,7 +147,17 @@ export const authService = {
     const backendData = normalized.data;
     if (backendData) {
       const roleStr = (backendData.role || backendData.Role || '').toUpperCase();
-      const mappedRole = Object.values(Role).find(r => r === roleStr) || Role.CLIENT;
+      const mappedRole = Object.values(Role).find(r => r === roleStr);
+
+      if (!mappedRole) {
+        console.error('[authService] Unknown or missing role from backend during getMe:', roleStr);
+        return {
+          success: false,
+          message: 'Invalid user role returned from server',
+          statusCode: 403,
+          data: null
+        };
+      }
 
       const user: User = {
         id: backendData.id || backendData.Id || backendData.userId || backendData.UserId || '',
