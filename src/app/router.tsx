@@ -31,6 +31,7 @@ import { ClientDashboardPage } from '../features/dashboard/pages/ClientDashboard
 import { ExpertDashboardPage } from '../features/dashboard/pages/ExpertDashboardPage';
 // import { ProtectedRoute } from '../shared/components/common/ProtectedRoute';
 import { ProtectedRoute } from '../shared/components/common/ProtectedRoute';
+import { GuestRoute } from '../shared/components/common/GuestRoute';
 import { ClientLayout, ExpertLayout, AdminLayout } from '../shared/layouts';
 import { Role } from '../shared/types/enums';
 
@@ -49,11 +50,19 @@ export const router = createBrowserRouter([
   },
   {
     path: '/login',
-    element: <LoginPage />,
+    element: (
+      <GuestRoute>
+        <LoginPage />
+      </GuestRoute>
+    ),
   },
   {
     path: '/register',
-    element: <RegisterPage />,
+    element: (
+      <GuestRoute>
+        <RegisterPage />
+      </GuestRoute>
+    ),
   },
   {
     path: '/reviews',

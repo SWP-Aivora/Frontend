@@ -80,5 +80,9 @@ export const resolveNotificationPath = (linkUrl: string, role?: string) => {
     return `${roleBasePath}/notifications${suffix}`;
   }
 
+  if (normalizedResource === 'wallet') {
+    return `${roleBasePath}/wallet${suffix}`;
+  }
+
   return `${normalizedPath}${suffix}`;
 };
