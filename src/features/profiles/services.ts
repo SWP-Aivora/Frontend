@@ -62,7 +62,7 @@ const toNonNegativeInteger = (value: number | null | undefined): number => (
 );
 
 const toAvailabilityStatus = (value: number | null | undefined): number => (
-  Number.isInteger(value) ? value : AvailabilityStatus.AVAILABLE
+  typeof value === 'number' && Number.isInteger(value) ? value : AvailabilityStatus.AVAILABLE
 );
 
 export const buildUpdateExpertProfileRequest = (data: ExpertProfileFormValues): UpdateExpertProfileRequest => ({
