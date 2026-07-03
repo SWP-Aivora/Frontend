@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { JobDetailsPage } from '../../../../features/jobs/pages/JobDetailsPage';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -99,4 +99,73 @@ describe('JobDetailsPage', () => {
       })
     );
   });
+
+  describe('Proposal form visibility by job status', () => {
+    const mockJobWithStatus = (status: unknown) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (vi.mocked(reactQuery.useQuery)).mockImplementation((options: any) => {
+        if (options?.queryKey?.[0] === 'job') {
+          return {
+            isLoading: false,
+            data: {
+              data: {
+                id: 'job-123',
+                title: 'Test Job',
+                status,
+                createdAt: new Date().toISOString(),
+                budgetMin: 100,
+                budgetMax: 500,
+                skills: [],
+                client: { fullName: 'Client' },
+              },
+            },
+          } as any;
+        }
+        return { isLoading: false, data: { data: null } } as any;
+      });
+    };
+
+    it('should_render_proposal_form_when_job_status_is_published', () => {
+      mockJobWithStatus('Published');
+      renderComponent();
+      expect(screen.queryByTestId('proposal-form')).toBeInTheDocument();
+      expect(screen.queryByText('This job is no longer accepting proposals')).toBeNull();
+    });
+
+    it('should_render_proposal_form_when_job_status_is_numeric_1', () => {
+      mockJobWithStatus(1); // 1 = Published / Open
+      renderComponent();
+      expect(screen.queryByTestId('proposal-form')).toBeInTheDocument();
+      expect(screen.queryByText('This job is no longer accepting proposals')).toBeNull();
+    });
+
+    it('should_hide_proposal_form_when_job_status_is_in_progress', () => {
+      mockJobWithStatus('InProgress');
+      renderComponent();
+      expect(screen.queryByTestId('proposal-form')).toBeNull();
+      expect(screen.getByText('This job is no longer accepting proposals')).toBeInTheDocument();
+    });
+
+    it('should_hide_proposal_form_when_job_status_is_numeric_2', () => {
+      mockJobWithStatus(2); // 2 = InProgress
+      renderComponent();
+      expect(screen.queryByTestId('proposal-form')).toBeNull();
+      expect(screen.getByText('This job is no longer accepting proposals')).toBeInTheDocument();
+    });
+
+    it('should_hide_proposal_form_when_job_status_is_completed', () => {
+      mockJobWithStatus('Completed');
+      renderComponent();
+      expect(screen.queryByTestId('proposal-form')).toBeNull();
+      expect(screen.getByText('This job is no longer accepting proposals')).toBeInTheDocument();
+    });
+
+    it('should_hide_proposal_form_when_job_status_is_cancelled', () => {
+      mockJobWithStatus('Cancelled');
+      renderComponent();
+      expect(screen.queryByTestId('proposal-form')).toBeNull();
+      expect(screen.getByText('This job is no longer accepting proposals')).toBeInTheDocument();
+    });
+  });
 });
+
