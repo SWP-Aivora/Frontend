@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { chatService } from '@/features/chat/services';
 import type { User } from './types';
 
 interface AuthState {
@@ -45,12 +46,13 @@ export const useAuthStore = create<AuthState>()(
       logout: () => {
         // Tokens are stored in HttpOnly cookies, so we don't need to manually clear them from localStorage here
         // The backend /logout endpoint handles clearing the cookies
-        set({ 
-          user: null, 
-          accessToken: null, 
-          refreshToken: null, 
-          isAuthenticated: false, 
-          error: null 
+        void chatService.resetChatConnection();
+        set({
+          user: null,
+          accessToken: null,
+          refreshToken: null,
+          isAuthenticated: false,
+          error: null
         });
       },
     }),
