@@ -102,9 +102,9 @@ describe('JobDetailsPage', () => {
 
   describe('Proposal form visibility by job status', () => {
     const mockJobWithStatus = (status: unknown) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (vi.mocked(reactQuery.useQuery)).mockImplementation((options: any) => {
-        if (options?.queryKey?.[0] === 'job') {
+      (vi.mocked(reactQuery.useQuery)).mockImplementation((options: unknown) => {
+        const queryOptions = options as { queryKey?: unknown[] };
+        if (queryOptions?.queryKey?.[0] === 'job') {
           return {
             isLoading: false,
             data: {
@@ -119,9 +119,9 @@ describe('JobDetailsPage', () => {
                 client: { fullName: 'Client' },
               },
             },
-          } as any;
+          } as unknown as reactQuery.UseQueryResult;
         }
-        return { isLoading: false, data: { data: null } } as any;
+        return { isLoading: false, data: { data: null } } as unknown as reactQuery.UseQueryResult;
       });
     };
 
