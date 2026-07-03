@@ -23,6 +23,8 @@ export const ExpertMyProposalsPage = () => {
   const { data: response, isLoading, isError } = useQuery({
     queryKey: ['myProposals'],
     queryFn: proposalService.getMyProposals,
+    refetchInterval: 10000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: projectsResponse, isLoading: isProjectsLoading } = useQuery({

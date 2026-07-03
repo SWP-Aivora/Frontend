@@ -55,4 +55,21 @@ describe('ExpertMyProposalsPage', () => {
     renderComponent();
     expect(screen.getByText('My Proposals')).toBeInTheDocument();
   });
+
+  it('configures refetchInterval: 10000 and refetchOnWindowFocus: true for the myProposals query', () => {
+    (vi.mocked(reactQuery.useQuery)).mockReturnValue({
+      data: { data: [] },
+      isLoading: false,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
+    renderComponent();
+    expect(reactQuery.useQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        queryKey: ['myProposals'],
+        refetchInterval: 10000,
+        refetchOnWindowFocus: true,
+      })
+    );
+  });
 });
+
