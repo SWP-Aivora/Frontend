@@ -271,6 +271,8 @@ export const PostJobPage = () => {
     onSuccess: () => {
       setStep('MATCHING');
       setIsDraftSaved(true);
+      queryClient.invalidateQueries({ queryKey: ['clientJobs'] });
+      queryClient.invalidateQueries({ queryKey: ['clientProjects'] });
       toast.success('Project published successfully!');
     },
     onError: (error: unknown) => {
@@ -294,6 +296,8 @@ export const PostJobPage = () => {
       if (data.job.id) {
         setJobId(data.job.id);
         setIsDraftSaved(true);
+        queryClient.invalidateQueries({ queryKey: ['clientJobs'] });
+        queryClient.invalidateQueries({ queryKey: ['clientProjects'] });
         setSuggestion(prev => {
           if (!prev) return prev;
 
@@ -339,6 +343,8 @@ export const PostJobPage = () => {
 
       setJobId(response.data.id);
       setIsDraftSaved(true);
+      queryClient.invalidateQueries({ queryKey: ['clientJobs'] });
+      queryClient.invalidateQueries({ queryKey: ['clientProjects'] });
     },
     onError: (error: unknown) => {
       toast.error(error instanceof Error ? error.message : 'Failed to save');
@@ -368,6 +374,7 @@ export const PostJobPage = () => {
       setIsDraftSaved(true);
       // Invalidate cache to refresh jobs list immediately
       queryClient.invalidateQueries({ queryKey: ['clientJobs'] });
+      queryClient.invalidateQueries({ queryKey: ['clientProjects'] });
     },
     onError: (error: unknown) => {
       toast.error(error instanceof Error ? error.message : 'Failed to save');
