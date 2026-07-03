@@ -7,6 +7,7 @@ import { Role } from '@/shared/types/enums';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/features/auth/store';
 import { authService } from '@/features/auth/services';
+import { useGlobalRealtimeSync } from '@/shared/hooks/useGlobalRealtimeSync';
 import { toast } from 'sonner';
 
 interface DashboardLayoutProps {
@@ -19,6 +20,9 @@ export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
   const { user, isAuthenticated, setUser } = useAuthStore();
   const location = useLocation();
   const items = NAV_ITEMS[role] || [];
+
+  // Global real-time sync: maintains SignalR connection and listens for backend events
+  useGlobalRealtimeSync();
 
   const isMessagePage = location.pathname.endsWith('/messages');
   const isHydrating = useRef(false);
