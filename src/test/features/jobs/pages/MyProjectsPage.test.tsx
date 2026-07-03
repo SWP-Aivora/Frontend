@@ -68,7 +68,7 @@ describe('MyProjectsPage', () => {
       { id: 'job-1', title: 'Job 1', status: 1, createdAt: new Date().toISOString() },
     ];
 
-    (vi.mocked(reactQuery.useQuery)).mockImplementation((options: reactQuery.UseQueryOptions) => {
+    (vi.mocked(reactQuery.useQuery)).mockImplementation((options: { queryKey?: readonly unknown[] }) => {
       const queryKey = options.queryKey as unknown[];
       if (queryKey?.[0] === 'clientJobs') {
         return { data: { data: mockJobs }, isLoading: false } as unknown as UseQueryResult;

@@ -55,7 +55,7 @@ describe('ClientJobProposalsPage', () => {
   });
 
   it('renders proposals list correctly', () => {
-    (vi.mocked(reactQuery.useQuery)).mockImplementation((options: reactQuery.UseQueryOptions) => {
+    (vi.mocked(reactQuery.useQuery)).mockImplementation((options: { queryKey?: readonly unknown[] }) => {
       const queryKey = options.queryKey as unknown[];
       if (queryKey?.[0] === 'job') {
         return {
