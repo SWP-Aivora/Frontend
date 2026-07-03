@@ -231,9 +231,9 @@
 }
 
 @keyframes float {
-  0% { transform: translateY(0px) rotate(5deg); }
-  50% { transform: translateY(-10px) rotate(5deg); }
-  100% { transform: translateY(0px) rotate(5deg); }
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+  100% { transform: translateY(0px); }
 }
 
 .animate-fade-in {
@@ -249,5 +249,5 @@
 }
 
 .animate-float {
-  animation: float 6s ease-in-out infinite;
+  animation: float 5s ease-in-out infinite;
 }
