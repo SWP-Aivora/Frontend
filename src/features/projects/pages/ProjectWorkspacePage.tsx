@@ -226,17 +226,17 @@ export const ProjectWorkspacePage = () => {
 
   // API Nộp sản phẩm (Expert bấm Submit)
   const submitMutation = useMutation({
-    mutationFn: (data: { description: string; fileUrl: string; demoUrl: string; sourceCodeUrl: string; note: string }) => projectService.submitDeliverable(selectedMilestone!.id, data),
-    onSuccess: () => {
+    mutationFn: ({ milestoneId, data }: { milestoneId: string; data: { description: string; fileUrl: string; demoUrl: string; sourceCodeUrl: string; note: string } }) => projectService.submitDeliverable(milestoneId, data),
+    onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['project', id, 'milestones'] });
-      queryClient.invalidateQueries({ queryKey: ['milestone', selectedMilestone?.id, 'deliverables'] });
+      queryClient.invalidateQueries({ queryKey: ['milestone', variables.milestoneId, 'deliverables'] });
       setIsSubmitModalOpen(false);
       setSelectedMilestone(null);
     }
   });
 
   const approveMutation = useMutation({
-    mutationFn: () => projectService.approveMilestone(selectedMilestone!.id),
+    mutationFn: (milestoneId: string) => projectService.approveMilestone(milestoneId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project', id, 'milestones'] });
       setSelectedMilestone(null);
@@ -244,7 +244,7 @@ export const ProjectWorkspacePage = () => {
   });
 
   const fundMutation = useMutation({
-    mutationFn: () => projectService.fundMilestone(selectedMilestone!.id),
+    mutationFn: (milestoneId: string) => projectService.fundMilestone(milestoneId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project', id] });
       queryClient.invalidateQueries({ queryKey: ['project', id, 'milestones'] });
@@ -257,7 +257,7 @@ export const ProjectWorkspacePage = () => {
   });
 
   const revisionMutation = useMutation({
-    mutationFn: (reason: string) => projectService.requestRevision(selectedMilestone!.id, reason),
+    mutationFn: ({ milestoneId, reason }: { milestoneId: string; reason: string }) => projectService.requestRevision(milestoneId, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project', id, 'milestones'] });
       setIsRevisionModalOpen(false);
@@ -361,7 +361,7 @@ export const ProjectWorkspacePage = () => {
       return;
     }
 
-    fundMutation.mutate();
+    fundMutation.mutate(selectedMilestone.id);
   };
 
   const getStatusLabel = (status: ProjectStatus) => {
@@ -752,7 +752,7 @@ export const ProjectWorkspacePage = () => {
                         Revision
                       </Button>
                       <Button 
-                        onClick={() => approveMutation.mutate()}
+                        onClick={() => approveMutation.mutate(selectedMilestone!.id)}
                         disabled={approveMutation.isPending}
                         className="flex-[2] h-14 rounded-full font-black shadow-xl shadow-primary/20"
                       >
@@ -844,7 +844,7 @@ export const ProjectWorkspacePage = () => {
             <div className="flex justify-end gap-3">
               <Button variant="outline" onClick={() => setIsSubmitModalOpen(false)} className="rounded-full font-bold">Cancel</Button>
               <Button 
-                onClick={() => submitMutation.mutate(submitData)} 
+                onClick={() => submitMutation.mutate({ milestoneId: selectedMilestone!.id, data: submitData })} 
                 disabled={submitMutation.isPending || !submitData.description.trim()}
                 className="rounded-full shadow-lg shadow-primary/20 font-black"
               >
@@ -883,7 +883,7 @@ export const ProjectWorkspacePage = () => {
             <div className="flex justify-end gap-3">
               <Button variant="outline" onClick={() => setIsRevisionModalOpen(false)} className="rounded-full font-bold">Cancel</Button>
               <Button 
-                onClick={() => revisionMutation.mutate(revisionReason)} 
+                onClick={() => revisionMutation.mutate({ milestoneId: selectedMilestone!.id, reason: revisionReason })} 
                 disabled={revisionMutation.isPending || !revisionReason.trim()}
                 className="rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-600/20 font-black border-none"
               >
