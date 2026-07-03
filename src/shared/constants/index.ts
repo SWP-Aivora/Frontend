@@ -93,3 +93,17 @@ export const API_ENDPOINTS = {
     PROCESS_EXPERT_REVIEW: (id: string) => `admin/expert-reviews/${id}/process`,
   },
 } as const;
+
+export const QUERY_KEYS = {
+  JOBS: {
+    DETAIL: (id: string) => ['job', id] as const,
+    PROPOSALS: (id: string) => ['proposals', id] as const,
+    PROPOSAL_COUNT: (id: string) => ['proposals', id, 'count'] as const,
+  },
+} as const;
+
+export const REFETCH_INTERVALS = {
+  REALTIME_FAST: 5000,
+  REALTIME_SLOW: 10000,
+  BACKGROUND_SUMMARY: 60000,
+} as const;
