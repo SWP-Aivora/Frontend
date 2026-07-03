@@ -35,6 +35,8 @@ export const JobDetailsPage = () => {
     queryKey: ['job', id],
     queryFn: () => jobService.getJobById(id!),
     enabled: !!id,
+    refetchInterval: 10000,
+    refetchOnWindowFocus: true,
   });
   
   const job = jobResponse?.data;

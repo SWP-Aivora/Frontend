@@ -49,6 +49,8 @@ export const ProposalDetailsPage = () => {
     queryKey: ['proposal', proposalId],
     queryFn: () => proposalService.getProposalById(proposalId!),
     enabled: !!proposalId,
+    refetchInterval: 10000,
+    refetchOnWindowFocus: true,
   });
 
   const proposal = proposalResponse?.data;
