@@ -35,7 +35,7 @@ describe('LoginForm Component', () => {
     
     fireEvent.click(screen.getByRole('button', { name: /log in/i }));
 
-    expect(await screen.findByText(/invalid email address/i)).toBeInTheDocument();
-    expect(await screen.findByText(/password must be at least 6 characters/i)).toBeInTheDocument();
+    expect(await screen.findByText(/please enter your email/i)).toBeInTheDocument();
+    expect(await screen.findByText(/please enter your password/i)).toBeInTheDocument();
   });
 });

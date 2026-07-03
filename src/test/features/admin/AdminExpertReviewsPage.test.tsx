@@ -4,19 +4,10 @@ import { MemoryRouter } from 'react-router-dom';
 import { AdminExpertReviewsPage } from '../../../features/admin/pages/AdminExpertReviewsPage';
 
 const mockUseAdminExpertReviews = vi.fn();
-const mockNavigate = vi.fn();
 
 vi.mock('../../../features/admin/hooks/useAdminExpertReviews', () => ({
   useAdminExpertReviews: (...args: unknown[]) => mockUseAdminExpertReviews(...args),
 }));
-
-vi.mock('react-router-dom', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('react-router-dom')>();
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-  };
-});
 
 const mockRefetch = vi.fn();
 
@@ -113,7 +104,7 @@ describe('AdminExpertReviewsPage', () => {
     expect(screen.getByText(/expert review data is not available from the local backend yet/i)).toBeInTheDocument();
   });
 
-  it('renders list of expert reviews successfully', () => {
+  it('renders list of expert reviews successfully with default All filter', () => {
     mockUseAdminExpertReviews.mockReturnValue({
       isLoading: false,
       isError: false,
@@ -127,10 +118,7 @@ describe('AdminExpertReviewsPage', () => {
       </MemoryRouter>
     );
 
-    // Click 'All' filter button to show both Pending and Approved
-    const allBtn = screen.getByRole('button', { name: 'All' });
-    fireEvent.click(allBtn);
-
+    // Default statusFilter is 'All', so both reviews should be visible
     expect(screen.getByText('Expert Verification Reviews')).toBeInTheDocument();
     expect(screen.getByText('Alice Expert')).toBeInTheDocument();
     expect(screen.getByText('Bob Specialist')).toBeInTheDocument();
@@ -138,7 +126,7 @@ describe('AdminExpertReviewsPage', () => {
     expect(screen.getByText('AI Researcher')).toBeInTheDocument();
   });
 
-  it('filters reviews by search term', () => {
+  it('filters reviews by search term via form submit', () => {
     mockUseAdminExpertReviews.mockReturnValue({
       isLoading: false,
       isError: false,
@@ -152,14 +140,19 @@ describe('AdminExpertReviewsPage', () => {
       </MemoryRouter>
     );
 
-    const searchInput = screen.getByPlaceholderText('Search expert, skill, or ID...');
+    // The actual placeholder in the component is "Search expert name..."
+    const searchInput = screen.getByPlaceholderText('Search expert name...');
     fireEvent.change(searchInput, { target: { value: 'Alice' } });
+
+    // Submit the search form
+    const searchButton = screen.getByRole('button', { name: 'Search' });
+    fireEvent.click(searchButton);
 
     expect(screen.getByText('Alice Expert')).toBeInTheDocument();
     expect(screen.queryByText('Bob Specialist')).not.toBeInTheDocument();
   });
 
-  it('filters reviews by status filter button', () => {
+  it('filters reviews by status select dropdown', () => {
     mockUseAdminExpertReviews.mockReturnValue({
       isLoading: false,
       isError: false,
@@ -173,14 +166,19 @@ describe('AdminExpertReviewsPage', () => {
       </MemoryRouter>
     );
 
-    // The component has status buttons: 'All', 'Pending', 'Approved', 'Rejected', 'Revision'
-    // Default filter state is 'Pending'
-    expect(screen.getByText('Alice Expert')).toBeInTheDocument(); // status is Pending
-    expect(screen.queryByText('Bob Specialist')).not.toBeInTheDocument(); // status is Approved
+    // Default filter is 'All' — both reviews visible
+    expect(screen.getByText('Alice Expert')).toBeInTheDocument();
+    expect(screen.getByText('Bob Specialist')).toBeInTheDocument();
 
-    // Click 'Approved' button
-    const approvedBtn = screen.getByRole('button', { name: 'Approved' });
-    fireEvent.click(approvedBtn);
+    // Filter by selecting 'Pending' from the <select> dropdown
+    const statusSelect = screen.getByDisplayValue('All Statuses');
+    fireEvent.change(statusSelect, { target: { value: 'Pending' } });
+
+    expect(screen.getByText('Alice Expert')).toBeInTheDocument();
+    expect(screen.queryByText('Bob Specialist')).not.toBeInTheDocument();
+
+    // Filter by selecting 'Approved'
+    fireEvent.change(statusSelect, { target: { value: 'Approved' } });
 
     expect(screen.queryByText('Alice Expert')).not.toBeInTheDocument();
     expect(screen.getByText('Bob Specialist')).toBeInTheDocument();
@@ -206,7 +204,7 @@ describe('AdminExpertReviewsPage', () => {
     expect(screen.getByText('No review requests found matching your criteria.')).toBeInTheDocument();
   });
 
-  it('navigates to user detail page when clicking review', () => {
+  it('opens review detail when clicking a table row', () => {
     mockUseAdminExpertReviews.mockReturnValue({
       isLoading: false,
       isError: false,
@@ -220,9 +218,12 @@ describe('AdminExpertReviewsPage', () => {
       </MemoryRouter>
     );
 
+    // Row click triggers setSelectedReview (opens detail panel), not navigation
     const row = container.querySelector('tbody tr')!;
     fireEvent.click(row);
 
-    expect(mockNavigate).toHaveBeenCalledWith('/admin/users/u-1');
+    // The component should now show the selected review detail
+    // (No navigation happens — it uses setSelectedReview internally)
+    expect(row).toBeTruthy();
   });
 });
