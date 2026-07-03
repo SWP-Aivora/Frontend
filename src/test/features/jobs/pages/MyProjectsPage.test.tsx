@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { QueryClient, QueryClientProvider, type UseQueryResult, type UseQueriesOptions } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, type UseQueryResult } from '@tanstack/react-query';
 import * as reactQuery from '@tanstack/react-query';
 import { MyProjectsPage } from '../../../../features/jobs/pages/MyProjectsPage';
 import { QUERY_KEYS, REFETCH_INTERVALS } from '@/shared/constants';
