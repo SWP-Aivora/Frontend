@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 import { AxiosError } from 'axios';
 import type { Proposal } from '../types';
 import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
+import { QUERY_KEYS, REFETCH_INTERVALS } from '@/shared/constants';
 
 type ProposalFilter = 'all' | 'shortlisted' | 'refused';
 type NormalizedProposalStatus = 'submitted' | 'shortlisted' | 'accepted' | 'rejected' | 'withdrawn';
@@ -82,16 +83,18 @@ export const ClientJobProposalsPage = () => {
   const [acceptedProposalId, setAcceptedProposalId] = useState<string | null>(null);
   // Lấy chi tiết Job hiện tại
   const { data: jobResponse, isLoading: isJobLoading } = useQuery({
-    queryKey: ['job', id],
+    queryKey: QUERY_KEYS.JOBS.DETAIL(id!),
     queryFn: () => jobService.getJobById(id!),
     enabled: !!id,
+    refetchInterval: REFETCH_INTERVALS.REALTIME_SLOW,
   });
 
   // Lấy danh sách toàn bộ Proposal (Đơn báo giá) của Job này
   const { data: proposalsResponse, isLoading: isProposalsLoading } = useQuery({
-    queryKey: ['proposals', id],
+    queryKey: QUERY_KEYS.JOBS.PROPOSALS(id!),
     queryFn: () => proposalService.getProposalsByJobId(id!),
     enabled: !!id,
+    refetchInterval: REFETCH_INTERVALS.REALTIME_FAST,
   });
 
   const {
@@ -217,11 +220,11 @@ export const ClientJobProposalsPage = () => {
   >({
     mutationFn: (pid: string) => proposalService.acceptProposal(pid),
     onMutate: async (pid) => {
-      await queryClient.cancelQueries({ queryKey: ['proposals', id] });
-      const previousProposals = queryClient.getQueryData<PaginatedResponse<Proposal>>(['proposals', id]);
+      await queryClient.cancelQueries({ queryKey: QUERY_KEYS.JOBS.PROPOSALS(id!) });
+      const previousProposals = queryClient.getQueryData<PaginatedResponse<Proposal>>(QUERY_KEYS.JOBS.PROPOSALS(id!));
 
       if (previousProposals) {
-        queryClient.setQueryData<PaginatedResponse<Proposal>>(['proposals', id], {
+        queryClient.setQueryData<PaginatedResponse<Proposal>>(QUERY_KEYS.JOBS.PROPOSALS(id!), {
           ...previousProposals,
           data: (previousProposals.data ?? []).map(proposal =>
             proposal.id === pid
@@ -239,8 +242,8 @@ export const ClientJobProposalsPage = () => {
       setAcceptedProposalId(pid);
 
       void Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['job', id] }),
-        queryClient.invalidateQueries({ queryKey: ['proposals', id] }),
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.JOBS.DETAIL(id!) }),
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.JOBS.PROPOSALS(id!) }),
         queryClient.invalidateQueries({ queryKey: ['clientJobs'] }),
         queryClient.invalidateQueries({ queryKey: ['clientProjects'] }),
       ]);
@@ -254,7 +257,7 @@ export const ClientJobProposalsPage = () => {
     },
     onError: (error, _pid, context) => {
       if (context?.previousProposals) {
-        queryClient.setQueryData(['proposals', id], context.previousProposals);
+        queryClient.setQueryData(QUERY_KEYS.JOBS.PROPOSALS(id!), context.previousProposals);
       }
       toast.error(getErrorMessage(error, 'Failed to accept proposal'));
     },
@@ -268,11 +271,11 @@ export const ClientJobProposalsPage = () => {
   >({
     mutationFn: (pid: string) => proposalService.rejectProposal(pid),
     onMutate: async (pid) => {
-      await queryClient.cancelQueries({ queryKey: ['proposals', id] });
-      const previousProposals = queryClient.getQueryData<PaginatedResponse<Proposal>>(['proposals', id]);
+      await queryClient.cancelQueries({ queryKey: QUERY_KEYS.JOBS.PROPOSALS(id!) });
+      const previousProposals = queryClient.getQueryData<PaginatedResponse<Proposal>>(QUERY_KEYS.JOBS.PROPOSALS(id!));
 
       if (previousProposals) {
-        queryClient.setQueryData<PaginatedResponse<Proposal>>(['proposals', id], {
+        queryClient.setQueryData<PaginatedResponse<Proposal>>(QUERY_KEYS.JOBS.PROPOSALS(id!), {
           ...previousProposals,
           data: (previousProposals.data ?? []).map(proposal =>
             proposal.id === pid ? { ...proposal, status: 3 } : proposal // 3 is REJECTED
@@ -284,7 +287,7 @@ export const ClientJobProposalsPage = () => {
     },
     onError: (_err, _pid, context) => {
       if (context?.previousProposals) {
-        queryClient.setQueryData(['proposals', id], context.previousProposals);
+        queryClient.setQueryData(QUERY_KEYS.JOBS.PROPOSALS(id!), context.previousProposals);
       }
       toast.error('Failed to decline proposal');
     },
@@ -292,7 +295,7 @@ export const ClientJobProposalsPage = () => {
       toast.success('Proposal refused.');
     },
     onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: ['proposals', id] });
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.JOBS.PROPOSALS(id!) });
     },
   });
 
@@ -304,11 +307,11 @@ export const ClientJobProposalsPage = () => {
   >({
     mutationFn: (pid: string) => proposalService.shortlistProposal(pid),
     onMutate: async (pid) => {
-      await queryClient.cancelQueries({ queryKey: ['proposals', id] });
-      const previousProposals = queryClient.getQueryData<PaginatedResponse<Proposal>>(['proposals', id]);
+      await queryClient.cancelQueries({ queryKey: QUERY_KEYS.JOBS.PROPOSALS(id!) });
+      const previousProposals = queryClient.getQueryData<PaginatedResponse<Proposal>>(QUERY_KEYS.JOBS.PROPOSALS(id!));
 
       if (previousProposals) {
-        queryClient.setQueryData<PaginatedResponse<Proposal>>(['proposals', id], {
+        queryClient.setQueryData<PaginatedResponse<Proposal>>(QUERY_KEYS.JOBS.PROPOSALS(id!), {
           ...previousProposals,
           data: (previousProposals.data ?? []).map(proposal =>
             proposal.id === pid ? { ...proposal, status: 1 } : proposal // 1 is SHORTLISTED
@@ -320,7 +323,7 @@ export const ClientJobProposalsPage = () => {
     },
     onError: (_err, _pid, context) => {
       if (context?.previousProposals) {
-        queryClient.setQueryData(['proposals', id], context.previousProposals);
+        queryClient.setQueryData(QUERY_KEYS.JOBS.PROPOSALS(id!), context.previousProposals);
       }
       toast.error('Failed to shortlist proposal');
     },
@@ -328,7 +331,7 @@ export const ClientJobProposalsPage = () => {
       toast.success('Proposal shortlisted.');
     },
     onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: ['proposals', id] });
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.JOBS.PROPOSALS(id!) });
     },
   });
 
@@ -339,11 +342,11 @@ export const ClientJobProposalsPage = () => {
   >({
     mutationFn: (pid: string) => proposalService.unshortlistProposal(pid),
     onMutate: async (pid) => {
-      await queryClient.cancelQueries({ queryKey: ['proposals', id] });
-      const previousProposals = queryClient.getQueryData<PaginatedResponse<Proposal>>(['proposals', id]);
+      await queryClient.cancelQueries({ queryKey: QUERY_KEYS.JOBS.PROPOSALS(id!) });
+      const previousProposals = queryClient.getQueryData<PaginatedResponse<Proposal>>(QUERY_KEYS.JOBS.PROPOSALS(id!));
 
       if (previousProposals) {
-        queryClient.setQueryData<PaginatedResponse<Proposal>>(['proposals', id], {
+        queryClient.setQueryData<PaginatedResponse<Proposal>>(QUERY_KEYS.JOBS.PROPOSALS(id!), {
           ...previousProposals,
           data: (previousProposals.data ?? []).map(proposal =>
             proposal.id === pid ? { ...proposal, status: 0 } : proposal // 0 is SUBMITTED
@@ -358,7 +361,7 @@ export const ClientJobProposalsPage = () => {
       toast.success('Proposal returned to submitted status.');
     },
     onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: ['proposals', id] });
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.JOBS.PROPOSALS(id!) });
     },
   });
 
