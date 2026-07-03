@@ -10,6 +10,7 @@ import { jobService } from '@/features/jobs/services';
 import { proposalService } from '@/features/proposals/services';
 import type { Job } from '@/features/jobs/types';
 import { ProjectStatus } from '@/shared/types/enums';
+import { QUERY_KEYS, REFETCH_INTERVALS } from '@/shared/constants';
 
 type StatusFilter = 'all' | 'draft' | 'open' | 'in-progress' | 'completed';
 type SortOrder = 'newest' | 'oldest';
@@ -66,15 +67,16 @@ export const MyProjectsPage = () => {
     queryFn: () => jobService.getMyJobs({ PageSize: 100 }),
   });
 
-  const jobs = jobsResponse?.data || [];
-  const projects = projectsResponse?.data || [];
+  const jobs = useMemo(() => jobsResponse?.data || [], [jobsResponse?.data]);
+  const projects = useMemo(() => projectsResponse?.data || [], [projectsResponse?.data]);
 
   const proposalCountQueries = useQueries({
     queries: jobs.map(job => ({
-      queryKey: ['proposals', job.id, 'count'],
+      queryKey: QUERY_KEYS.JOBS.PROPOSAL_COUNT(job.id),
       queryFn: () => proposalService.getProposalsByJobId(job.id),
       enabled: !!job.id,
       retry: false,
+      refetchInterval: REFETCH_INTERVALS.BACKGROUND_SUMMARY,
     })),
   });
 
@@ -100,7 +102,7 @@ export const MyProjectsPage = () => {
       };
     })
     .filter(job => job.status !== 'cancelled');
-  }, [jobsResponse?.data, projectsResponse?.data, proposalCountQueries]);
+  }, [jobs, projects, proposalCountQueries]);
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const filteredJobs = useMemo(() => (
