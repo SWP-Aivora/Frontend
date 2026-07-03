@@ -58,11 +58,15 @@ export const ClientDashboardPage = () => {
   const { data: projectsResponse, isLoading: isProjectsLoading } = useQuery({
     queryKey: ['clientProjects'],
     queryFn: () => projectService.getProjects(),
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: walletResponse, isLoading: isWalletLoading } = useQuery({
     queryKey: ['wallet'],
     queryFn: () => walletService.getWallet(),
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true,
   });
 
   const projects = Array.isArray(projectsResponse?.data) ? projectsResponse.data : [];
