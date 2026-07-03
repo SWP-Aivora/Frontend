@@ -107,6 +107,8 @@ export const ProjectWorkspacePage = () => {
     queryFn: () => projectService.getProjectById(id!),
     retry: false,
     enabled: !!id,
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: fallbackProjectsResponse, isLoading: isLoadingFallbackProjects } = useQuery({
@@ -140,6 +142,8 @@ export const ProjectWorkspacePage = () => {
     },
     enabled: Boolean(id) && (user?.role === Role.CLIENT || user?.role === Role.EXPERT),
     retry: false,
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
   });
 
   const project = projectResponse?.data ?? fallbackProjectsResponse?.data?.find((item) => item.id === id);
