@@ -80,6 +80,8 @@ private messageIdCounter = 0;
   private messageCallbacks = new Map<string, (message: NewMessagePayload) => void>();
   private typingCallbacks = new Map<string, (data: { userId: string; isTyping: boolean }) => void>();
   private jobStatusCallbacks = new Map<string, (data: { jobId: string; status: string; title?: string }) => void>();
+  private readCallbacks = new Map<string, (data: { conversationId: string; userId: string }) => void>();
+  private readIdCounter = 0;
 
   constructor() {
     super(API_ENDPOINTS.MESSAGES.CONVERSATIONS);
@@ -107,6 +109,18 @@ private messageIdCounter = 0;
 
     return () => {
       this.typingCallbacks.delete(id);
+    };
+  }
+
+  /**
+   * Listen to read confirmations
+   */
+  onReadConfirmation(callback: (data: { conversationId: string; userId: string }) => void): () => void {
+    const id = `read_${++this.readIdCounter}`;
+    this.readCallbacks.set(id, callback);
+
+    return () => {
+      this.readCallbacks.delete(id);
     };
   }
 
@@ -205,6 +219,12 @@ private messageIdCounter = 0;
       this.typingCallbacks.forEach(callback => callback(data));
     });
 
+    // Listen for read confirmations
+    connection.on('ReadConfirmation', (data: { conversationId: string; userId: string }) => {
+      console.log('Read confirmation:', data);
+      this.readCallbacks.forEach(callback => callback(data));
+    });
+
     connection.onreconnected(() => {
       console.log('SignalR reconnected');
     });
@@ -268,6 +288,36 @@ private messageIdCounter = 0;
     }
 
     await this.ensureChatConnection(token);
+  }
+
+  /**
+   * Join the SignalR group for a conversation. Required for ReceiveMessage/
+   * UserTyping/ReadConfirmation broadcasts (Clients.Group / OthersInGroup on
+   * the backend) to reach this connection.
+   */
+  async joinConversation(conversationId: string, token?: string): Promise<void> {
+    if (!token) {
+      throw new Error('You must be logged in to receive messages');
+    }
+
+    const connection = await this.ensureChatConnection(token);
+    await connection.invoke('JoinConversation', conversationId);
+  }
+
+  async leaveConversation(conversationId: string): Promise<void> {
+    const entry = this.activeChatConnectionKey
+      ? this.chatConnectionPool.get(this.activeChatConnectionKey)
+      : undefined;
+
+    if (entry?.connection.state !== signalR.HubConnectionState.Connected) {
+      return;
+    }
+
+    try {
+      await entry.connection.invoke('LeaveConversation', conversationId);
+    } catch (leaveError: unknown) {
+      console.warn('Failed to leave chat conversation group', leaveError);
+    }
   }
 
   async resetChatConnection(): Promise<void> {

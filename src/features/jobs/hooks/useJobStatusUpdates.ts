@@ -10,6 +10,9 @@ export interface JobStatusPayload {
   title?: string;
 }
 
+// ponytail: backend has no JobStatusUpdated hub event yet (verified against
+// Aivora-Backend), so this only listens — it never opens a connection itself.
+// Add chatService.connect(token) here once the backend emits the event.
 export const useJobStatusUpdates = () => {
   const queryClient = useQueryClient();
 

@@ -23,11 +23,13 @@ export const useRealTimeMessages = (conversationId?: string) => {
 
     let isSubscribed = true;
 
-    chatService.connect(token).catch((error) => {
-      if (isSubscribed) {
-        console.warn('[chat] Unable to connect to real-time messages', error);
-      }
-    });
+    chatService.connect(token)
+      .then(() => chatService.joinConversation(conversationId, token))
+      .catch((error) => {
+        if (isSubscribed) {
+          console.warn('[chat] Unable to connect to real-time messages', error);
+        }
+      });
 
     const handleNewMessage = (message: NewMessagePayload) => {
       if (message.conversationId === conversationId) {
@@ -65,11 +67,30 @@ export const useRealTimeMessages = (conversationId?: string) => {
     };
 
     // Subscribe to new messages
-    const unsubscribe = chatService.onMessage(handleNewMessage);
+    const unsubscribeMessage = chatService.onMessage(handleNewMessage);
+
+    // Subscribe to read confirmations
+    const unsubscribeRead = chatService.onReadConfirmation((data) => {
+      if (data.conversationId !== conversationId) return;
+
+      queryClient.setQueriesData(
+        { queryKey: ['messages', conversationId] },
+        (oldData: { data?: Message[] } | undefined) => {
+          if (!oldData?.data) return oldData;
+
+          return {
+            ...oldData,
+            data: oldData.data.map((existingMessage) => ({ ...existingMessage, isRead: true }))
+          };
+        }
+      );
+    });
 
     return () => {
       isSubscribed = false;
-      unsubscribe();
+      unsubscribeMessage();
+      unsubscribeRead();
+      chatService.leaveConversation(conversationId);
     };
   }, [conversationId, queryClient, token]);
 };
