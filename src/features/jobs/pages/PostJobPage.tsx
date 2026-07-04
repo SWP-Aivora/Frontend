@@ -936,7 +936,7 @@ export const PostJobPage = () => {
                         )}
                       </div>
                       <div className="shrink-0 text-right">
-                        <p className="text-[88%] font-black leading-none text-slate-800 sm:text-[92%] lg:text-[18px]">{milestone.amount ?? 0}%</p>
+                        <p className="text-[88%] font-black leading-none text-slate-800 sm:text-[92%] lg:text-[18px]">{Number(milestone.amount ?? 0).toLocaleString()} Aivora Coin</p>
                         <p className="mt-2 text-[72%] font-semibold text-slate-500 lg:text-[11px]">{milestone.dueDays ?? 0} days</p>
                       </div>
                     </div>
