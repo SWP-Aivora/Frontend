@@ -3,7 +3,8 @@ import { Button } from '@/shared/components/ui/Button';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useMemo, useState } from 'react';
-import { useQueries, useQuery } from '@tanstack/react-query';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { useJobStatusUpdates } from '../hooks/useJobStatusUpdates';
 import { projectService } from '@/features/projects/services';
 import { jobService } from '@/features/jobs/services';
@@ -56,6 +57,37 @@ export const MyProjectsPage = () => {
   const [filter, setFilter] = useState<StatusFilter>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
+  const queryClient = useQueryClient();
+
+  const deleteJobMutation = useMutation({
+    mutationFn: (id: string) => jobService.deleteJob(id),
+    onSuccess: () => {
+      toast.success('Job post deleted.');
+      queryClient.invalidateQueries({ queryKey: ['clientJobs'] });
+    },
+    onError: () => toast.error('Failed to delete job post.'),
+  });
+
+  const cancelJobMutation = useMutation({
+    mutationFn: (id: string) => jobService.cancelJob(id),
+    onSuccess: () => {
+      toast.success('Job post cancelled.');
+      queryClient.invalidateQueries({ queryKey: ['clientJobs'] });
+    },
+    onError: () => toast.error('Failed to cancel job post.'),
+  });
+
+  const handleDeleteJob = (id: string) => {
+    if (window.confirm('Delete this draft job post? This cannot be undone.')) {
+      deleteJobMutation.mutate(id);
+    }
+  };
+
+  const handleCancelJob = (id: string) => {
+    if (window.confirm('Cancel this job post? Experts will no longer be able to apply.')) {
+      cancelJobMutation.mutate(id);
+    }
+  };
 
   const { data: projectsResponse, isLoading: isLoadingProjects } = useQuery({
     queryKey: ['clientProjects'],
@@ -273,6 +305,26 @@ export const MyProjectsPage = () => {
                         ) : (
                           <span>Workspace Pending</span>
                         )}
+                      </Button>
+                    )}
+                    {job.status === 'draft' && (
+                      <Button
+                        variant="ghost"
+                        disabled={deleteJobMutation.isPending && deleteJobMutation.variables === job.id}
+                        onClick={() => handleDeleteJob(job.id)}
+                        className="rounded-full bg-rose-50 text-rose-600 hover:bg-rose-100"
+                      >
+                        Delete
+                      </Button>
+                    )}
+                    {job.status === 'open' && (
+                      <Button
+                        variant="ghost"
+                        disabled={cancelJobMutation.isPending && cancelJobMutation.variables === job.id}
+                        onClick={() => handleCancelJob(job.id)}
+                        className="rounded-full bg-rose-50 text-rose-600 hover:bg-rose-100"
+                      >
+                        Cancel Job
                       </Button>
                     )}
                   </div>

@@ -229,6 +229,22 @@ export const jobService = {
     };
   },
 
+  // Cancel job (Client action) - only allowed while the job is still draft or open
+  cancelJob: async (id: string, reason?: string): Promise<BaseResponse<Job>> => {
+    const response = await apiClient.post(`/jobs/${id}/cancel`, reason ?? null);
+    const normalized = normalizeBaseResponse<Job>(response);
+    return {
+      ...normalized,
+      data: normalized.data ? normalizeJob(normalized.data) : null,
+    };
+  },
+
+  // Delete job (Client action) - only allowed while the job is still a draft
+  deleteJob: async (id: string): Promise<BaseResponse<void>> => {
+    const response = await apiClient.delete(`/jobs/${id}`);
+    return normalizeBaseResponse<void>(response);
+  },
+
   // Get My Jobs (Client action)
   getMyJobs: async (params?: Record<string, string | number | boolean>): Promise<PaginatedResponse<Job>> => {
     const response = await apiClient.get('/jobs/my', { params });
