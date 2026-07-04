@@ -18,6 +18,7 @@ import {
   ExternalLink,
   FileText,
   Pencil,
+  Star,
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { useAuthStore } from '@/features/auth/store';
@@ -31,6 +32,7 @@ import { walletService } from '@/features/wallet/services';
 import { CreateDisputeModal } from '@/features/disputes/components/CreateDisputeModal';
 import { disputeService } from '@/features/disputes/services';
 import { DisputeStatus } from '@/features/disputes/types';
+import { reviewService } from '@/features/reviews/services';
 import { toast } from 'sonner';
 
 const toNumber = (value: unknown): number | null => {
@@ -148,6 +150,15 @@ export const ProjectWorkspacePage = () => {
   });
 
   const project = projectResponse?.data ?? fallbackProjectsResponse?.data?.find((item) => item.id === id);
+
+  const { data: projectReviewsResponse } = useQuery({
+    queryKey: ['project', id, 'reviews'],
+    queryFn: () => reviewService.getProjectReviews(id!),
+    enabled: !!id,
+    retry: false,
+  });
+  const projectReviews = projectReviewsResponse?.data ?? [];
+
   const walletBalance = getWalletBalance(walletResponse?.data);
   const { data: milestonesResponse, isLoading: isLoadingMilestones } = useProjectMilestones(id || '');
   const projectMilestones = project?.milestones ?? [];
@@ -627,11 +638,38 @@ export const ProjectWorkspacePage = () => {
             </div>
          </div>
 
-         <KanbanBoard 
-           milestones={milestones} 
+         <KanbanBoard
+           milestones={milestones}
            role={getKanbanRole()}
            onMilestoneClick={handleMilestoneClick}
          />
+      </div>
+
+      {/* Reviews */}
+      <div className="bg-slate-50/50 border border-slate-100 rounded-lg p-6 md:p-8 mt-6" data-testid="project-reviews-section">
+        <h3 className="text-lg font-black text-slate-900 mb-4">Reviews</h3>
+        {projectReviews.length === 0 ? (
+          <p className="text-sm text-slate-400 font-medium">No reviews yet for this project.</p>
+        ) : (
+          <div className="space-y-4">
+            {projectReviews.map((review) => (
+              <div key={review.id} className="bg-white rounded-lg border border-slate-100 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-black text-slate-900">{review.reviewerName || 'Anonymous'}</span>
+                  <div className="flex items-center gap-0.5">
+                    {Array.from({ length: 5 }, (_, i) => (
+                      <Star
+                        key={i}
+                        className={cn('size-4', i < review.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-200')}
+                      />
+                    ))}
+                  </div>
+                </div>
+                {review.comment && <p className="text-sm text-slate-600">{review.comment}</p>}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Side Detail Panel (Overlay) */}
