@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate, useParams } from 'react-router-dom';
 import { LoginPage } from '../features/auth/pages/LoginPage';
 import { RegisterPage } from '../features/auth/pages/RegisterPage';
 import { ProfilePage } from '../features/profiles/pages/ProfilePage';
+import { ServiceGeneratorPage } from '../features/profiles/pages/ServiceGeneratorPage';
 import { PostJobPage } from '../features/jobs/pages/PostJobPage';
 import { MyProjectsPage } from '../features/jobs/pages/MyProjectsPage';
 import { ClientJobProposalsPage } from '../features/proposals/pages/ClientJobProposalsPage';
@@ -116,6 +117,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <ExpertDashboardPage /> },
       { path: 'profile', element: <ProfilePage /> },
+      { path: 'service-generator', element: <ServiceGeneratorPage /> },
       { path: 'jobs', element: <FindWorkPage /> },
       { path: 'jobs/:id', element: <JobDetailsPage /> },
       { path: 'jobs/:id/proposals/:proposalId/edit', element: <JobDetailsPage /> },

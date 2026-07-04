@@ -13,6 +13,7 @@ import {
   Bell,
   Tags,
   Wrench,
+  Sparkles,
   type LucideIcon
 } from 'lucide-react';
 import { Role } from '@/shared/types/enums';
@@ -40,6 +41,7 @@ export const NAV_ITEMS: Record<string, NavItem[]> = {
     { label: 'Find Work', href: '/expert/jobs', icon: Search },
     { label: 'My Proposals', href: '/expert/proposals', icon: FileText },
     { label: 'My Jobs', href: '/expert/my-jobs', icon: Briefcase },
+    { label: 'Service Generator', href: '/expert/service-generator', icon: Sparkles },
     { label: 'Messages', href: '/expert/messages', icon: MessageSquare },
     { label: 'Notifications', href: '/expert/notifications', icon: Bell },
     { label: 'Wallet', href: '/expert/wallet', icon: Wallet },
