@@ -33,6 +33,7 @@ export const API_ENDPOINTS = {
     TRANSACTIONS: 'wallet/transactions',
     PAYMENT_HISTORY: 'payments/history',
     DEPOSIT: 'wallet/deposit',
+    DEPOSIT_DEMO: 'wallet/deposit-demo',
     VNPAY_DEPOSIT: 'wallet/vnpay/deposit',
     WITHDRAW: 'wallet/withdraw',
   },
