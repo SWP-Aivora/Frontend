@@ -58,6 +58,22 @@ describe('proposalService', () => {
     });
   });
   
+  describe('withdrawProposal', () => {
+    it('calls the withdraw endpoint and normalizes the response', async () => {
+      (vi.mocked(apiClient.put)).mockResolvedValue({
+        data: {
+          success: true,
+          data: null,
+          message: 'Proposal withdrawn'
+        }
+      });
+
+      const result = await proposalService.withdrawProposal('p1');
+      expect(apiClient.put).toHaveBeenCalledWith('proposals/p1/withdraw');
+      expect(result.success).toBe(true);
+    });
+  });
+
   describe('getMyProposals', () => {
     it('normalizes paginated response successfully', async () => {
       (vi.mocked(apiClient.get)).mockResolvedValue({
