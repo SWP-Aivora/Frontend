@@ -397,7 +397,7 @@ export const JobDraftForm = ({
                         </div>
                         <div className="space-y-2">
                           <label htmlFor={`milestone-amount-${idx}`} className="text-[10px] font-bold text-slate-400 uppercase">
-                            Amount (%)
+                            Amount (Aivora Coin)
                           </label>
                           <Input
                             id={`milestone-amount-${idx}`}
