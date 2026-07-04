@@ -17,6 +17,7 @@ import {
   Users,
   ExternalLink,
   FileText,
+  Pencil,
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { useAuthStore } from '@/features/auth/store';
@@ -208,8 +209,10 @@ export const ProjectWorkspacePage = () => {
   const queryClient = useQueryClient();
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [submitData, setSubmitData] = useState({ description: '', fileUrl: '', demoUrl: '', sourceCodeUrl: '', note: '' });
   const [revisionReason, setRevisionReason] = useState('');
+  const [editMilestoneData, setEditMilestoneData] = useState({ title: '', description: '', acceptanceCriteria: '', amount: 0, dueDate: '' });
   const selectedMilestoneId = selectedMilestone?.id;
 
   const {
@@ -253,6 +256,44 @@ export const ProjectWorkspacePage = () => {
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error, 'Failed to fund milestone.'));
+    },
+  });
+
+  const loadMilestoneForEditMutation = useMutation({
+    mutationFn: (milestoneId: string) => projectService.getMilestoneById(milestoneId),
+    onSuccess: (response) => {
+      const milestone = response.data;
+      if (!milestone) {
+        toast.error('Failed to load milestone details.');
+        return;
+      }
+
+      setEditMilestoneData({
+        title: milestone.title ?? '',
+        description: milestone.description ?? '',
+        acceptanceCriteria: milestone.acceptanceCriteria ?? '',
+        amount: milestone.amount ?? 0,
+        dueDate: milestone.dueDate ? milestone.dueDate.slice(0, 10) : '',
+      });
+      setIsEditModalOpen(true);
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Failed to load milestone details.'));
+    },
+  });
+
+  const updateMilestoneMutation = useMutation({
+    mutationFn: ({ milestoneId, data }: { milestoneId: string; data: typeof editMilestoneData }) =>
+      projectService.updateMilestone(milestoneId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
+      queryClient.invalidateQueries({ queryKey: ['project', id, 'milestones'] });
+      toast.success('Milestone updated successfully.');
+      setIsEditModalOpen(false);
+      setSelectedMilestone(null);
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Failed to update milestone.'));
     },
   });
 
@@ -346,6 +387,14 @@ export const ProjectWorkspacePage = () => {
   });
 
   const handleMilestoneClick = (milestone: Milestone) => setSelectedMilestone(milestone);
+
+  const openEditMilestoneModal = () => {
+    if (!selectedMilestone) return;
+
+    // Fetch full milestone details: the project's nested milestone summary omits
+    // fields like acceptanceCriteria, so editing from that alone would silently wipe them.
+    loadMilestoneForEditMutation.mutate(selectedMilestone.id);
+  };
 
   const handleFundMilestone = () => {
     if (!selectedMilestone) return;
@@ -725,13 +774,24 @@ export const ProjectWorkspacePage = () => {
               {/* Action Buttons based on status and role */}
               <div className="pt-8 border-t border-slate-100 space-y-3">
                  {selectedMilestone.status === MilestoneStatus.PENDING && user?.role === Role.CLIENT && (
-                   <Button
-                     onClick={handleFundMilestone}
-                     disabled={fundMutation.isPending || isLoadingWallet}
-                     className="w-full h-14 rounded-full font-black text-base shadow-xl shadow-primary/20"
-                   >
-                      {fundMutation.isPending ? 'Funding...' : isLoadingWallet ? 'Checking Wallet...' : 'Fund Milestone'}
-                   </Button>
+                   <div className="flex gap-3">
+                     <Button
+                       onClick={openEditMilestoneModal}
+                       disabled={loadMilestoneForEditMutation.isPending}
+                       variant="outline"
+                       className="h-14 rounded-full font-black border-slate-200 px-6 flex items-center gap-2"
+                     >
+                       <Pencil className="size-4" />
+                       {loadMilestoneForEditMutation.isPending ? 'Loading...' : 'Edit'}
+                     </Button>
+                     <Button
+                       onClick={handleFundMilestone}
+                       disabled={fundMutation.isPending || isLoadingWallet}
+                       className="flex-1 h-14 rounded-full font-black text-base shadow-xl shadow-primary/20"
+                     >
+                        {fundMutation.isPending ? 'Funding...' : isLoadingWallet ? 'Checking Wallet...' : 'Fund Milestone'}
+                     </Button>
+                   </div>
                  )}
                  {([MilestoneStatus.FUNDED, MilestoneStatus.IN_PROGRESS, MilestoneStatus.REVISION_REQUESTED] as MilestoneStatus[]).includes(selectedMilestone.status) && user?.role === Role.EXPERT && (
                     <Button 
@@ -853,6 +913,79 @@ export const ProjectWorkspacePage = () => {
                   : selectedMilestone?.status === MilestoneStatus.REVISION_REQUESTED
                     ? 'Resubmit Work'
                     : 'Submit Work'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Milestone Modal */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsEditModalOpen(false)} />
+          <div className="bg-white rounded-2xl p-8 w-[90%] max-w-lg relative z-10 shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="text-2xl font-black text-slate-900 mb-2">Edit Milestone</h3>
+            <p className="text-sm text-slate-500 mb-6">Only milestones that haven't been funded yet can be edited.</p>
+
+            <div className="space-y-4 mb-8">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Title</label>
+                <input
+                  type="text"
+                  className="w-full rounded-lg border-slate-200 p-3 text-sm focus:ring-primary focus:border-primary"
+                  value={editMilestoneData.title}
+                  onChange={e => setEditMilestoneData({ ...editMilestoneData, title: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Description</label>
+                <textarea
+                  className="w-full rounded-lg border-slate-200 p-3 text-sm focus:ring-primary focus:border-primary"
+                  rows={3}
+                  value={editMilestoneData.description}
+                  onChange={e => setEditMilestoneData({ ...editMilestoneData, description: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Acceptance Criteria</label>
+                <textarea
+                  className="w-full rounded-lg border-slate-200 p-3 text-sm focus:ring-primary focus:border-primary"
+                  rows={2}
+                  value={editMilestoneData.acceptanceCriteria}
+                  onChange={e => setEditMilestoneData({ ...editMilestoneData, acceptanceCriteria: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Amount (Aivora Coin)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    className="w-full rounded-lg border-slate-200 p-3 text-sm focus:ring-primary focus:border-primary"
+                    value={editMilestoneData.amount}
+                    onChange={e => setEditMilestoneData({ ...editMilestoneData, amount: Number(e.target.value) })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Due Date</label>
+                  <input
+                    type="date"
+                    className="w-full rounded-lg border-slate-200 p-3 text-sm focus:ring-primary focus:border-primary"
+                    value={editMilestoneData.dueDate}
+                    onChange={e => setEditMilestoneData({ ...editMilestoneData, dueDate: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setIsEditModalOpen(false)} className="rounded-full font-bold">Cancel</Button>
+              <Button
+                onClick={() => updateMilestoneMutation.mutate({ milestoneId: selectedMilestone!.id, data: editMilestoneData })}
+                disabled={updateMilestoneMutation.isPending || !editMilestoneData.title.trim()}
+                className="rounded-full shadow-lg shadow-primary/20 font-black"
+              >
+                {updateMilestoneMutation.isPending ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
           </div>

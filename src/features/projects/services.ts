@@ -128,16 +128,6 @@ export const projectService = {
     return normalizeBaseResponse<void>(response);
   },
 
-  uploadContract: async (projectId: string, contractData: Record<string, unknown>): Promise<BaseResponse<void>> => {
-    const response = await apiClient.post('/contracts/upload', { projectId, ...contractData });
-    return normalizeBaseResponse<void>(response);
-  },
-
-  confirmContract: async (contractId: string): Promise<BaseResponse<void>> => {
-    const response = await apiClient.put(`/contracts/${contractId}/confirm`);
-    return normalizeBaseResponse<void>(response);
-  },
-
   completeProject: async (id: string): Promise<BaseResponse<Project>> => {
     const response = await apiClient.post(`${API_ENDPOINTS.PROJECTS.ID(id)}/complete`);
     const normalized = normalizeBaseResponse<Project>(response);
@@ -166,6 +156,30 @@ export const projectService = {
         hasPreviousPage: false,
         hasNextPage: false,
       },
+    };
+  },
+
+  getMilestoneById: async (id: string): Promise<BaseResponse<Milestone>> => {
+    const response = await apiClient.get(API_ENDPOINTS.MILESTONES.ID(id));
+    const normalized = normalizeBaseResponse<Milestone>(response);
+    return {
+      ...normalized,
+      data: normalized.data ? normalizeMilestone(normalized.data) : null,
+    };
+  },
+
+  updateMilestone: async (id: string, data: {
+    title?: string;
+    description?: string;
+    acceptanceCriteria?: string;
+    amount?: number;
+    dueDate?: string;
+  }): Promise<BaseResponse<Milestone>> => {
+    const response = await apiClient.put(API_ENDPOINTS.MILESTONES.ID(id), data);
+    const normalized = normalizeBaseResponse<Milestone>(response);
+    return {
+      ...normalized,
+      data: normalized.data ? normalizeMilestone(normalized.data) : null,
     };
   },
 
