@@ -53,15 +53,40 @@ export const DepositModal = () => {
     },
   });
 
-  const confirmDeposit = () => {
+  const demoDepositMutation = useMutation({
+    mutationFn: (amt: number) => walletService.depositDemo({ amount: amt, description: 'Demo top-up' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wallet'] });
+      queryClient.invalidateQueries({ queryKey: ['wallet-transactions'] });
+      setOpen(false);
+      setAmountStr('1000');
+      toast.success('Demo deposit completed.');
+    },
+    onError: (error: Error) => {
+      toast.error(error?.message || 'Failed to complete demo deposit. Please try again.');
+    },
+  });
+
+  const parseAmount = () => {
     const result = depositSchema.safeParse({ amount: amountStr });
     if (!result.success) {
       toast.error('Invalid deposit amount. Please enter a valid number (1 - 100,000).');
-      return;
+      return null;
     }
-    depositMutation.mutate(result.data.amount);
+    return result.data.amount;
   };
 
+  const confirmDeposit = () => {
+    const amount = parseAmount();
+    if (amount !== null) depositMutation.mutate(amount);
+  };
+
+  const confirmDemoDeposit = () => {
+    const amount = parseAmount();
+    if (amount !== null) demoDepositMutation.mutate(amount);
+  };
+
+  const isPending = depositMutation.isPending || demoDepositMutation.isPending;
   const isInvalid = amountStr.trim() === '' || isNaN(Number(amountStr)) || Number(amountStr) <= 0;
 
   return (
@@ -70,7 +95,7 @@ export const DepositModal = () => {
       if (!o) setAmountStr('1000');
     }}>
       <Dialog.Trigger asChild>
-        <Button disabled={depositMutation.isPending} className="rounded-full px-6 shadow-lg shadow-primary/20 flex items-center gap-2">
+        <Button disabled={isPending} className="rounded-full px-6 shadow-lg shadow-primary/20 flex items-center gap-2">
           <Plus className="size-4" />
           Deposit Funds
         </Button>
@@ -113,9 +138,18 @@ export const DepositModal = () => {
             <Dialog.Close asChild>
               <Button variant="outline" className="rounded-full font-bold">Cancel</Button>
             </Dialog.Close>
-            <Button 
-              onClick={confirmDeposit} 
-              disabled={depositMutation.isPending || isInvalid}
+            <Button
+              onClick={confirmDemoDeposit}
+              disabled={isPending || isInvalid}
+              variant="outline"
+              className="rounded-full font-bold"
+              title="Instantly credit your wallet without going through VNPay — useful for testing"
+            >
+              {demoDepositMutation.isPending ? 'Processing...' : 'Demo Top-up'}
+            </Button>
+            <Button
+              onClick={confirmDeposit}
+              disabled={isPending || isInvalid}
               className="rounded-full shadow-lg shadow-primary/20 font-black"
             >
               {depositMutation.isPending ? 'Processing...' : 'Deposit'}

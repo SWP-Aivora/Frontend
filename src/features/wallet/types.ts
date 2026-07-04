@@ -57,6 +57,11 @@ export interface VnPayDepositRequest {
   amount: number;
 }
 
+export interface DepositDemoRequest {
+  amount: number;
+  description?: string | null;
+}
+
 export interface WithdrawRequest {
   amount: number;
   description?: string | null;
