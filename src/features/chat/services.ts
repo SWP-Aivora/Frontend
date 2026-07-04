@@ -136,14 +136,14 @@ private messageIdCounter = 0;
     };
   }
 
-  private getChatConnectionKey(token: string): string {
-    return `${CHAT_HUB_URL}:${token}`;
+  private getChatConnectionKey(): string {
+    return CHAT_HUB_URL;
   }
 
-  private createChatConnectionEntry(token: string, connectionKey: string): ChatConnectionPoolEntry {
+  private createChatConnectionEntry(connectionKey: string): ChatConnectionPoolEntry {
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(CHAT_HUB_URL, {
-        accessTokenFactory: () => token,
+        withCredentials: true,
         transport: signalR.HttpTransportType.LongPolling,
       })
       .withAutomaticReconnect()
@@ -177,8 +177,8 @@ private messageIdCounter = 0;
     };
   }
 
-  private async getChatConnectionEntry(token: string): Promise<ChatConnectionPoolEntry> {
-    const connectionKey = this.getChatConnectionKey(token);
+  private async getChatConnectionEntry(): Promise<ChatConnectionPoolEntry> {
+    const connectionKey = this.getChatConnectionKey();
 
     if (this.activeChatConnectionKey && this.activeChatConnectionKey !== connectionKey) {
       await this.resetChatConnection();
@@ -187,7 +187,7 @@ private messageIdCounter = 0;
     let entry = this.chatConnectionPool.get(connectionKey);
 
     if (!entry) {
-      entry = this.createChatConnectionEntry(token, connectionKey);
+      entry = this.createChatConnectionEntry(connectionKey);
       this.chatConnectionPool.set(connectionKey, entry);
     }
 
@@ -242,8 +242,8 @@ private messageIdCounter = 0;
     });
   }
 
-  private async ensureChatConnection(token: string): Promise<signalR.HubConnection> {
-    const entry = await this.getChatConnectionEntry(token);
+  private async ensureChatConnection(): Promise<signalR.HubConnection> {
+    const entry = await this.getChatConnectionEntry();
     const { connection } = entry;
 
     if (connection.state === signalR.HubConnectionState.Connected) {
@@ -282,12 +282,8 @@ private messageIdCounter = 0;
     return connection;
   }
 
-  async connect(token?: string): Promise<void> {
-    if (!token) {
-      throw new Error('You must be logged in to receive messages');
-    }
-
-    await this.ensureChatConnection(token);
+  async connect(): Promise<void> {
+    await this.ensureChatConnection();
   }
 
   /**
@@ -295,12 +291,8 @@ private messageIdCounter = 0;
    * UserTyping/ReadConfirmation broadcasts (Clients.Group / OthersInGroup on
    * the backend) to reach this connection.
    */
-  async joinConversation(conversationId: string, token?: string): Promise<void> {
-    if (!token) {
-      throw new Error('You must be logged in to receive messages');
-    }
-
-    const connection = await this.ensureChatConnection(token);
+  async joinConversation(conversationId: string): Promise<void> {
+    const connection = await this.ensureChatConnection();
     await connection.invoke('JoinConversation', conversationId);
   }
 
@@ -389,18 +381,14 @@ private messageIdCounter = 0;
    * Send a message through the backend SignalR hub.
    * The hub persists the message server-side before completing the invocation.
    */
-  async sendMessage(conversationId: string, payload: SendMessagePayload, token?: string): Promise<void> {
+  async sendMessage(conversationId: string, payload: SendMessagePayload): Promise<void> {
     const content = payload.content.trim();
     if (!content && !payload.attachmentUrl) {
       throw new Error('Message cannot be empty');
     }
 
-    if (!token) {
-      throw new Error('You must be logged in to send messages');
-    }
-
     try {
-      const connection = await this.ensureChatConnection(token);
+      const connection = await this.ensureChatConnection();
 
       try {
         await connection.invoke('SendMessage', {

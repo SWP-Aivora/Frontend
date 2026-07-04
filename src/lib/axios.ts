@@ -64,7 +64,18 @@ axiosInstance.interceptors.response.use(
         // The backend reads refreshToken from cookies
         axios
           .post(buildApiUrl(API_ENDPOINTS.AUTH.REFRESH_TOKEN), {}, { withCredentials: true })
-          .then(() => {
+          .then((response) => {
+            const data = response.data?.data || response.data;
+            const newAccessToken = data?.accessToken || data?.AccessToken;
+            const newRefreshToken = data?.refreshToken || data?.RefreshToken;
+            
+            if (newAccessToken) {
+               const state = useAuthStore.getState();
+               if (state.user) {
+                  state.setAuth(state.user, newAccessToken, newRefreshToken || state.refreshToken || undefined);
+               }
+            }
+            
             processQueue(null);
             resolve(axiosInstance(originalRequest));
           })

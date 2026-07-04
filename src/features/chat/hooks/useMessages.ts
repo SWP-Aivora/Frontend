@@ -15,16 +15,16 @@ export const useMessages = (conversationId: string, params?: Record<string, unkn
 
 export const useRealTimeMessages = (conversationId?: string) => {
   const queryClient = useQueryClient();
-  const token = useAuthStore((state) => state.accessToken);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   useEffect(() => {
-    // Skip effect if no conversation ID or no token
-    if (!conversationId || !token) return;
+    // Skip effect if no conversation ID or not authenticated
+    if (!conversationId || !isAuthenticated) return;
 
     let isSubscribed = true;
 
-    chatService.connect(token)
-      .then(() => chatService.joinConversation(conversationId, token))
+    chatService.connect()
+      .then(() => chatService.joinConversation(conversationId))
       .catch((error) => {
         if (isSubscribed) {
           console.warn('[chat] Unable to connect to real-time messages', error);
@@ -92,7 +92,7 @@ export const useRealTimeMessages = (conversationId?: string) => {
       unsubscribeRead();
       chatService.leaveConversation(conversationId);
     };
-  }, [conversationId, queryClient, token]);
+  }, [conversationId, queryClient, isAuthenticated]);
 };
 
 export const useMarkRead = () => {
@@ -109,10 +109,9 @@ export const useMarkRead = () => {
 
 export const useSendMessage = (conversationId: string) => {
   const queryClient = useQueryClient();
-  const token = useAuthStore((state) => state.accessToken);
 
   return useMutation({
-    mutationFn: (payload: SendMessagePayload) => chatService.sendMessage(conversationId, payload, token || undefined),
+    mutationFn: (payload: SendMessagePayload) => chatService.sendMessage(conversationId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
