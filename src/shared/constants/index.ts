@@ -86,6 +86,10 @@ export const API_ENDPOINTS = {
     BASE: 'categories',
     ID: (id: string) => `categories/${id}`,
   },
+  SKILLS: {
+    BASE: 'skills',
+    ID: (id: string) => `skills/${id}`,
+  },
   ADMIN: {
     DASHBOARD_SUMMARY: 'admin/stats',
     USERS: 'admin/users',
