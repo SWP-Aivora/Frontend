@@ -60,7 +60,8 @@ export const useAuthStore = create<AuthState>()(
       name: 'aivora-auth-store',
       partialize: (state) => ({ 
         user: state.user, 
-        isAuthenticated: state.isAuthenticated 
+        isAuthenticated: state.isAuthenticated,
+        accessToken: state.accessToken
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {

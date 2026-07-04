@@ -13,16 +13,16 @@ import { useAuthStore } from '@/features/auth/store';
  */
 export const useGlobalRealtimeSync = () => {
   const queryClient = useQueryClient();
-  const { accessToken, isAuthenticated } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
 
   // Maintain SignalR connection when authenticated
   useEffect(() => {
-    if (!isAuthenticated || !accessToken) return;
+    if (!isAuthenticated) return;
 
-    chatService.connect(accessToken).catch((error: unknown) => {
+    chatService.connect().catch((error: unknown) => {
       console.warn('[RealtimeSync] Failed to connect to SignalR hub:', error);
     });
-  }, [isAuthenticated, accessToken]);
+  }, [isAuthenticated]);
 
   // Listen for job/project status updates and invalidate all related caches
   useEffect(() => {
