@@ -132,6 +132,13 @@ describe('JobDetailsPage', () => {
       expect(screen.queryByText('This job is no longer accepting proposals')).toBeNull();
     });
 
+    it('should_render_proposal_form_when_job_status_is_open', () => {
+      mockJobWithStatus('OPEN'); // actual backend JobStatus enum value
+      renderComponent();
+      expect(screen.queryByTestId('proposal-form')).toBeInTheDocument();
+      expect(screen.queryByText('This job is no longer accepting proposals')).toBeNull();
+    });
+
     it('should_render_proposal_form_when_job_status_is_numeric_1', () => {
       mockJobWithStatus(1); // 1 = Published / Open
       renderComponent();

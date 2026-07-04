@@ -26,7 +26,7 @@ import { proposalService } from '../../proposals/services';
 
 const normalizeJobStatus = (status: unknown): string => {
   if (status === 0 || String(status).toUpperCase() === 'DRAFT') return 'draft';
-  if (status === 1 || String(status).toUpperCase() === 'PUBLISHED') return 'published';
+  if (status === 1 || String(status).toUpperCase() === 'PUBLISHED' || String(status).toUpperCase() === 'OPEN') return 'published';
   if (status === 2 || String(status).toUpperCase() === 'INPROGRESS' || String(status).toUpperCase() === 'IN_PROGRESS') return 'in-progress';
   if (status === 3 || String(status).toUpperCase() === 'COMPLETED') return 'completed';
   if (status === 4 || String(status).toUpperCase() === 'CANCELLED') return 'cancelled';
