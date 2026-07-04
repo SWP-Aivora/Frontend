@@ -102,7 +102,7 @@ export const DepositModal = () => {
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[60] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-        <Dialog.Content className="fixed left-[50%] top-[50%] z-[60] grid w-full max-w-sm translate-x-[-50%] translate-y-[-50%] gap-4 border bg-white p-8 shadow-2xl rounded-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]">
+        <Dialog.Content className="fixed left-[50%] top-[50%] z-[60] grid w-[calc(100vw-2rem)] max-w-md translate-x-[-50%] translate-y-[-50%] gap-4 border bg-white p-6 shadow-2xl rounded-2xl duration-200 sm:p-8 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]">
           
           <div className="flex justify-between items-start">
             <div>
@@ -124,25 +124,25 @@ export const DepositModal = () => {
               <div className="relative">
                 <input 
                   type="text" 
-                  className="w-full rounded-lg border-slate-200 p-3 pl-4 pr-12 text-lg font-bold text-slate-900 focus:ring-primary focus:border-primary" 
+                  className="w-full rounded-lg border-slate-200 p-3 pl-4 pr-32 text-lg font-bold text-slate-900 focus:ring-primary focus:border-primary" 
                   placeholder="1000"
                   value={amountStr}
                   onChange={e => setAmountStr(e.target.value)}
                 />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">Aivora Coin</span>
+                <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">Aivora Coin</span>
               </div>
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 mt-4">
+          <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_1.35fr_1fr]">
             <Dialog.Close asChild>
-              <Button variant="outline" className="rounded-full font-bold">Cancel</Button>
+              <Button variant="outline" className="w-full rounded-full font-bold">Cancel</Button>
             </Dialog.Close>
             <Button
               onClick={confirmDemoDeposit}
               disabled={isPending || isInvalid}
               variant="outline"
-              className="rounded-full font-bold"
+              className="w-full rounded-full font-bold"
               title="Instantly credit your wallet without going through VNPay — useful for testing"
             >
               {demoDepositMutation.isPending ? 'Processing...' : 'Demo Top-up'}
@@ -150,7 +150,7 @@ export const DepositModal = () => {
             <Button
               onClick={confirmDeposit}
               disabled={isPending || isInvalid}
-              className="rounded-full shadow-lg shadow-primary/20 font-black"
+              className="w-full rounded-full shadow-lg shadow-primary/20 font-black"
             >
               {depositMutation.isPending ? 'Processing...' : 'Deposit'}
             </Button>

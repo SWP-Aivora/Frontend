@@ -56,8 +56,8 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 w-full">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 w-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Full Name Field */}
         <div className="space-y-2">
           <label htmlFor="fullName" className="ml-1 text-sm font-bold text-slate-700">
@@ -70,7 +70,7 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
               placeholder="Enter your full name" 
               {...register('fullName')}
               className={cn(
-                "pl-14 h-14 bg-slate-50 border-slate-200 rounded-lg focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300",
+                "pl-14 h-12 bg-slate-50 border-slate-200 rounded-lg focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300",
                 errors.fullName ? 'border-destructive' : 'hover:border-slate-300'
               )}
             />
@@ -92,7 +92,7 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
               placeholder="name@example.com" 
               {...register('email')}
               className={cn(
-                "pl-14 h-14 bg-slate-50 border-slate-200 rounded-lg focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300",
+                "pl-14 h-12 bg-slate-50 border-slate-200 rounded-lg focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300",
                 errors.email ? 'border-destructive' : 'hover:border-slate-300'
               )}
             />
@@ -101,12 +101,12 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Password Field */}
         <div className="space-y-2">
           <label htmlFor="password" className="ml-1 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm font-bold text-slate-700">
             <span>Password <span className="text-red-500">*</span></span>
-            <span className="text-[10px] font-medium italic text-slate-400">At least 6 characters</span>
+            <span className="text-[10px] font-medium italic text-slate-400">At least 8 characters, including 1 uppercase letter, 1 lowercase letter, and 1 number</span>
           </label>
           <div className="relative group">
             <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
@@ -116,7 +116,7 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
               placeholder="••••••••" 
               {...register('password')}
               className={cn(
-                "pl-14 h-14 bg-slate-50 border-slate-200 rounded-lg focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300",
+                "pl-14 h-12 bg-slate-50 border-slate-200 rounded-lg focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300",
                 errors.password ? 'border-destructive' : 'hover:border-slate-300'
               )}
             />
@@ -128,7 +128,7 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
         <div className="space-y-2">
           <label htmlFor="confirmPassword" className="ml-1 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm font-bold text-slate-700">
             <span>Confirm Password <span className="text-red-500">*</span></span>
-            <span className="text-[10px] font-medium italic text-slate-400">Match password</span>
+            <span className="text-[10px] font-medium italic text-slate-400">At least 8 characters, including 1 uppercase letter, 1 lowercase letter, and 1 number</span>
           </label>
           <div className="relative group">
             <ShieldCheck className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
@@ -138,7 +138,7 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
               placeholder="••••••••" 
               {...register('confirmPassword')}
               className={cn(
-                "pl-14 h-14 bg-slate-50 border-slate-200 rounded-lg focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300",
+                "pl-14 h-12 bg-slate-50 border-slate-200 rounded-lg focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300",
                 errors.confirmPassword ? 'border-destructive' : 'hover:border-slate-300'
               )}
             />
@@ -148,7 +148,7 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
       </div>
 
       {/* Terms Row */}
-      <div className="flex items-start gap-3 px-1 py-2 bg-slate-50/50 border border-slate-100 rounded-lg">
+      <div className="flex items-start gap-3 px-1 py-1.5 bg-slate-50/50 border border-slate-100 rounded-lg">
         <label className="flex items-center gap-2 cursor-pointer group mt-1 ml-2">
           <div className="relative size-5 rounded-md border-2 border-slate-300 bg-white group-hover:border-primary transition-colors overflow-hidden shrink-0">
              <input type="checkbox" className="peer absolute inset-0 opacity-0 cursor-pointer" required />
@@ -183,7 +183,7 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
         type="submit" 
         size="lg" 
         className={cn(
-          "w-full h-14 rounded-full text-base font-bold shadow-lg transition-all duration-300 mt-2",
+          "w-full h-12 rounded-full text-base font-bold shadow-lg transition-all duration-300 mt-1",
           selectedRole === Role.CLIENT ? "shadow-primary/20" : "bg-brand-accent hover:bg-brand-accent/90 shadow-brand-accent/20"
         )} 
         disabled={isLoading}

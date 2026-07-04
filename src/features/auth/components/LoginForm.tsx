@@ -62,8 +62,8 @@ export const LoginForm = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 w-full">
-      <div className="space-y-5">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 w-full">
+      <div className="space-y-4">
         {/* Email Field */}
         <div className="space-y-2">
           <label htmlFor="email" className="text-sm font-bold text-slate-700 ml-1">
@@ -76,7 +76,7 @@ export const LoginForm = () => {
               type="email" 
               placeholder="Enter your email address" 
               {...register('email')}
-              className={`pl-14 h-14 bg-slate-50 border-slate-200 rounded-lg focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300 ${errors.email ? 'border-destructive' : 'hover:border-slate-300'}`}
+              className={`pl-14 h-12 bg-slate-50 border-slate-200 rounded-lg focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300 ${errors.email ? 'border-destructive' : 'hover:border-slate-300'}`}
             />
           </div>
           {errors.email && <p className="text-xs text-destructive font-medium ml-1">{errors.email.message}</p>}
@@ -94,7 +94,7 @@ export const LoginForm = () => {
               type="password" 
               placeholder="Enter your password" 
               {...register('password')}
-              className={`pl-14 h-14 bg-slate-50 border-slate-200 rounded-lg focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300 ${errors.password ? 'border-destructive' : 'hover:border-slate-300'}`}
+              className={`pl-14 h-12 bg-slate-50 border-slate-200 rounded-lg focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300 ${errors.password ? 'border-destructive' : 'hover:border-slate-300'}`}
             />
           </div>
           {errors.password && <p className="text-xs text-destructive font-medium ml-1">{errors.password.message}</p>}
@@ -104,7 +104,7 @@ export const LoginForm = () => {
       <Button 
         type="submit" 
         size="lg" 
-        className="w-full h-14 rounded-full text-base font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300" 
+        className="w-full h-12 rounded-full text-base font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300" 
         disabled={isLoading}
       >
         {isLoading ? 'Signing in...' : 'Log In'}
