@@ -135,6 +135,11 @@ export const proposalService = {
     };
   },
 
+  withdrawProposal: async (proposalId: string): Promise<BaseResponse<void>> => {
+    const response = await apiClient.put(API_ENDPOINTS.PROPOSALS.WITHDRAW(proposalId));
+    return normalizeBaseResponse<void>(response);
+  },
+
   rejectProposal: async (proposalId: string): Promise<BaseResponse<void>> => {
     const response = await apiClient.put(API_ENDPOINTS.PROPOSALS.REJECT(proposalId));
     return normalizeBaseResponse<void>(response);

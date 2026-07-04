@@ -1,5 +1,6 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import {
   ArrowRight,
   Briefcase,
@@ -40,9 +41,15 @@ const getStatusConfig = (status: number | string) => {
   return { label: 'Submitted', className: 'text-amber-700 bg-amber-50 border-amber-100' };
 };
 
+const isWithdrawable = (status: number | string) => {
+  const normalized = String(status).toUpperCase();
+  return !['2', 'ACCEPTED', '3', 'REJECTED', 'DECLINED', '4', 'WITHDRAWN'].includes(normalized);
+};
+
 export const ProposalDetailsPage = () => {
   const { proposalId } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user } = useAuthStore();
 
   const { data: proposalResponse, isLoading, isError } = useQuery({
@@ -59,6 +66,24 @@ export const ProposalDetailsPage = () => {
   const expertName = proposal?.expert?.fullName || proposal?.expertName || 'Expert';
   const isClient = user?.role === Role.CLIENT;
   const isExpert = user?.role === Role.EXPERT;
+
+  const withdrawMutation = useMutation({
+    mutationFn: () => proposalService.withdrawProposal(proposalId!),
+    onSuccess: () => {
+      toast.success('Proposal withdrawn.');
+      queryClient.invalidateQueries({ queryKey: ['proposal', proposalId] });
+      queryClient.invalidateQueries({ queryKey: ['myProposals'] });
+    },
+    onError: () => {
+      toast.error('Failed to withdraw proposal.');
+    },
+  });
+
+  const handleWithdraw = () => {
+    if (window.confirm('Withdraw this proposal? This cannot be undone.')) {
+      withdrawMutation.mutate();
+    }
+  };
 
   if (isLoading) {
     return (
@@ -133,6 +158,16 @@ export const ProposalDetailsPage = () => {
                     Edit Proposal
                     <ArrowRight className="size-4 ml-2" />
                   </Link>
+                </Button>
+              )}
+              {isExpert && isWithdrawable(proposal.status) && (
+                <Button
+                  variant="outline"
+                  disabled={withdrawMutation.isPending}
+                  onClick={handleWithdraw}
+                  className="rounded-full px-6 border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                >
+                  {withdrawMutation.isPending ? 'Withdrawing...' : 'Withdraw Proposal'}
                 </Button>
               )}
             </div>
