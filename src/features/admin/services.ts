@@ -81,27 +81,6 @@ const isValidBasePayload = (value: unknown): value is AdminRecord | AdminRecord[
 
 const isVoidPayload = (value: unknown): value is void => value === undefined;
 
-const isExpertReviewDetailPayload = (value: unknown): value is ExpertReviewDetail => {
-  if (!isRecord(value)) {
-    return false;
-  }
-
-  return (
-    typeof value.id === 'string'
-    && typeof value.expertId === 'string'
-    && typeof value.fullName === 'string'
-    && typeof value.email === 'string'
-    && typeof value.initials === 'string'
-    && typeof value.status === 'string'
-    && typeof value.submittedAt === 'string'
-    && typeof value.title === 'string'
-    && Array.isArray(value.skills)
-    && value.skills.every((skill) => typeof skill === 'string')
-    && typeof value.experienceYears === 'number'
-    && typeof value.proofCount === 'number'
-  );
-};
-
 const warnMalformedList = (reason: string, data: unknown, depth: number): void => {
   if (!import.meta.env.DEV) {
     return;
@@ -504,6 +483,33 @@ const normalizeExpertReviewItem = (raw: unknown): ExpertReviewItem => {
     skills: skills.map(String),
     experienceYears: getNumberOr(item, 0, 'experienceYears', 'ExperienceYears'),
     proofCount: getNumberOr(item, 0, 'proofCount', 'ProofCount', 'portfolioCount', 'PortfolioCount'),
+  };
+};
+
+// ponytail: backend ExpertProfileUpdateResponse has no skills/categories/portfolio diff yet, default those to empty
+const normalizeExpertReviewDetail = (raw: unknown): ExpertReviewDetail => {
+  const item = getRecord(raw);
+  const base = normalizeExpertReviewItem(item);
+  const bio = getStringValue(getValue(item, 'bio', 'Bio'));
+  const currentBio = getStringValue(getValue(item, 'currentBio', 'CurrentBio'));
+  const hourlyRate = getNumberOr(item, 0, 'hourlyRate', 'HourlyRate');
+  const currentHourlyRate = getNumberOr(item, 0, 'currentHourlyRate', 'CurrentHourlyRate');
+  const experienceYears = getNumberOr(item, 0, 'experienceYears', 'ExperienceYears');
+  const currentExperienceYears = getNumberOr(item, 0, 'currentExperienceYears', 'CurrentExperienceYears');
+
+  return {
+    ...base,
+    bio: { current: currentBio, requested: bio, isChanged: currentBio !== bio },
+    hourlyRate: { current: currentHourlyRate, requested: hourlyRate, isChanged: currentHourlyRate !== hourlyRate },
+    skillsComparison: { current: [], requested: [], isChanged: false },
+    categories: { current: [], requested: [], isChanged: false },
+    experience: {
+      current: String(currentExperienceYears),
+      requested: String(experienceYears),
+      isChanged: currentExperienceYears !== experienceYears,
+    },
+    portfolio: [],
+    adminNote: getOptionalString(item, 'rejectionReason', 'RejectionReason'),
   };
 };
 
@@ -998,15 +1004,18 @@ export const adminService = {
 
   getExpertReviewDetail: async (id: string): Promise<BaseResponse<ExpertReviewDetail & { _isStub?: boolean }>> => {
     const response = await apiClient.get<unknown>(API_ENDPOINTS.ADMIN.EXPERT_REVIEW_DETAIL(id));
-    const normalized = normalizeBaseResponse<ExpertReviewDetail>(response, isExpertReviewDetailPayload);
+    const normalized = normalizeBaseResponse<AdminRecord>(response, isMutableRecord);
     return {
       ...normalized,
-      data: normalized.data ? { ...normalized.data, _isStub: false } : null
+      data: normalized.data ? { ...normalizeExpertReviewDetail(normalized.data), _isStub: false } : null
     };
   },
 
   processExpertReview: async (params: ExpertReviewActionParams): Promise<BaseResponse<void>> => {
-    const response = await apiClient.post<unknown>(API_ENDPOINTS.ADMIN.PROCESS_EXPERT_REVIEW(params.id), params);
-    return normalizeBaseResponse<void>(response, isVoidPayload);
+    const response = await apiClient.put<unknown>(API_ENDPOINTS.ADMIN.PROCESS_EXPERT_REVIEW(params.id), {
+      isApproved: params.status === 'Approved',
+      rejectionReason: params.note,
+    });
+    return normalizeBaseResponse<void>(response);
   }
 };
