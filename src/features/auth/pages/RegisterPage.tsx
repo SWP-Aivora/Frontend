@@ -23,7 +23,7 @@ export const RegisterPage = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-white relative overflow-hidden flex items-center justify-center lg:p-12 font-sans selection:bg-primary/10">
+    <div className="h-screen w-full bg-white relative overflow-hidden flex items-center justify-center p-4 lg:p-6 font-sans selection:bg-primary/10">
       {/* Background Ornaments */}
       <img src={ASSETS.bgBlueWashLeft} alt="" className="absolute left-[-10%] top-0 w-[60%] opacity-40 pointer-events-none" />
       <img src={ASSETS.bgBlueWashRight} alt="" className="absolute right-[-10%] bottom-[-10%] w-[60%] opacity-40 pointer-events-none" />
@@ -31,15 +31,15 @@ export const RegisterPage = () => {
       <img src={ASSETS.bgRing2} alt="" className="absolute -left-20 -top-20 w-80 opacity-10 pointer-events-none" />
 
       {/* Main Container */}
-      <div className="container relative z-10 w-full max-w-7xl grid lg:grid-cols-2 gap-12 items-stretch">
+      <div className="container relative z-10 grid h-full max-h-[820px] w-full max-w-6xl items-stretch gap-6 lg:grid-cols-[0.82fr_1fr]">
         
         {/* Left Panel: Branding & Benefit Cards */}
-        <div className="hidden lg:flex flex-col bg-gradient-to-br from-brand-blue-light/80 to-white/40 backdrop-blur-xl border border-white/50 rounded-panel p-12 shadow-2xl relative overflow-hidden animate-slide-in-left">
+        <div className="hidden lg:flex flex-col bg-gradient-to-br from-brand-blue-light/80 to-white/40 backdrop-blur-xl border border-white/50 rounded-panel p-8 shadow-2xl relative overflow-hidden animate-slide-in-left">
           <img src={ASSETS.leftPanelGlow} alt="" className="absolute -left-20 top-20 w-[400px] opacity-30 pointer-events-none" />
           
           {/* Logo Section */}
-          <Link to="/" className="flex items-center mb-16 opacity-0 animate-fade-in [animation-delay:200ms] w-fit group">
-            <div className="relative w-48 h-16 overflow-hidden flex items-center justify-center transition-transform group-hover:scale-105 duration-300">
+          <Link to="/" className="flex items-center mb-8 opacity-0 animate-fade-in [animation-delay:200ms] w-fit group">
+            <div className="relative w-40 h-12 overflow-hidden flex items-center justify-center transition-transform group-hover:scale-105 duration-300">
               <img 
                 src={ASSETS.logoCircle} 
                 alt="AIVORA" 
@@ -49,28 +49,28 @@ export const RegisterPage = () => {
           </Link>
 
           {/* Badge */}
-          <div className="inline-flex items-center bg-white/60 backdrop-blur-md border border-primary/10 rounded-full px-4 py-1.5 mb-8 w-fit opacity-0 animate-fade-in [animation-delay:400ms]">
+          <div className="inline-flex items-center bg-white/60 backdrop-blur-md border border-primary/10 rounded-full px-4 py-1.5 mb-5 w-fit opacity-0 animate-fade-in [animation-delay:400ms]">
             <span className="text-xs font-semibold text-primary">Secure AI marketplace registration</span>
           </div>
 
           {/* Content */}
-          <div className="space-y-6 mb-12 opacity-0 animate-fade-in [animation-delay:600ms]">
-            <h1 className="text-5xl font-black text-foreground leading-tight tracking-tight">
+          <div className="space-y-4 mb-8 opacity-0 animate-fade-in [animation-delay:600ms]">
+            <h1 className="text-4xl font-black text-foreground leading-tight tracking-tight">
               Start your AI journey <br />
               with <span className="text-primary">AIVORA</span>
             </h1>
-            <p className="text-lg text-muted-foreground max-w-md leading-relaxed font-medium">
+            <p className="text-base text-muted-foreground max-w-md leading-relaxed font-medium">
               Whether you need an AI solution or want to offer your expertise, AIVORA helps you connect, collaborate, and complete projects with confidence.
             </p>
           </div>
 
           {/* Benefit Cards (Dynamic based on step) */}
-          <div className="grid grid-cols-2 gap-6 mt-auto opacity-0 animate-fade-in [animation-delay:1000ms]">
+          <div className="grid grid-cols-2 gap-4 mt-auto opacity-0 animate-fade-in [animation-delay:1000ms]">
             {[
               { label: 'Hire Talent', color: 'bg-primary/10 text-primary', desc: 'Post projects and find the best AI experts worldwide.' },
               { label: 'Find Work', color: 'bg-brand-accent/10 text-brand-accent', desc: 'Apply for AI jobs and grow your professional portfolio.' },
             ].map((card, i) => (
-              <div key={i} className="p-5 rounded-lg bg-white border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+              <div key={i} className="p-4 rounded-lg bg-white border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
                 <span className={`text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full ${card.color} mb-3 inline-block`}>
                   {card.label}
                 </span>
@@ -79,34 +79,34 @@ export const RegisterPage = () => {
             ))}
           </div>
           
-          <p className="mt-8 text-[13px] text-muted-foreground font-medium opacity-0 animate-fade-in [animation-delay:1200ms]">
+          <p className="mt-5 text-[13px] text-muted-foreground font-medium opacity-0 animate-fade-in [animation-delay:1200ms]">
              Secure authentication helps keep your account information protected.
           </p>
         </div>
 
         {/* Right Panel: Interactive Card */}
-        <div className="flex flex-col justify-center items-center py-12 lg:py-0">
-          <div className="w-full max-w-[640px] bg-white lg:rounded-lg p-8 sm:p-12 shadow-2xl border border-slate-100 relative overflow-hidden">
+        <div className="flex flex-col justify-center items-center py-0">
+          <div className="w-full max-w-[620px] bg-white rounded-lg p-7 sm:p-9 shadow-2xl border border-slate-100 relative overflow-hidden">
             
             {step === 'selection' ? (
-              <div className="space-y-8 animate-in fade-in zoom-in duration-500">
-                <div className="space-y-4">
+              <div className="space-y-6 animate-in fade-in zoom-in duration-500">
+                <div className="space-y-3">
                   <div className="inline-flex items-center px-3 py-1 bg-primary/5 rounded-full border border-primary/10">
                     <span className="text-xs font-bold text-primary tracking-widest uppercase">Step 1 of 2 — Role</span>
                   </div>
-                  <h2 className="text-4xl font-black text-foreground tracking-tight">Join as a Client or AI Expert</h2>
+                  <h2 className="text-3xl font-black text-foreground tracking-tight">Join as a Client or AI Expert</h2>
                   <p className="text-muted-foreground leading-relaxed font-medium">
                     Select your role so we can personalize your experience and guide you to the right registration flow.
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Client Card */}
                   <div 
                     onClick={() => handleRoleSelect(Role.CLIENT)}
-                    className="group cursor-pointer p-8 rounded-lg border-2 border-slate-100 hover:border-primary hover:bg-primary/5 transition-all duration-300 shadow-sm hover:shadow-xl hover:shadow-primary/10 flex flex-col items-center text-center space-y-4"
+                    className="group cursor-pointer p-6 rounded-lg border-2 border-slate-100 hover:border-primary hover:bg-primary/5 transition-all duration-300 shadow-sm hover:shadow-xl hover:shadow-primary/10 flex flex-col items-center text-center space-y-3"
                   >
-                    <div className="size-16 rounded-full bg-slate-50 group-hover:bg-primary flex items-center justify-center font-bold text-xl transition-colors duration-300 group-hover:text-white">CL</div>
+                    <div className="size-14 rounded-full bg-slate-50 group-hover:bg-primary flex items-center justify-center font-bold text-xl transition-colors duration-300 group-hover:text-white">CL</div>
                     <div>
                       <h3 className="text-xl font-black text-slate-900">I'm a Client</h3>
                       <p className="text-sm text-slate-500 mt-1">Hiring for AI projects</p>
@@ -116,9 +116,9 @@ export const RegisterPage = () => {
                   {/* Expert Card */}
                   <div 
                     onClick={() => handleRoleSelect(Role.EXPERT)}
-                    className="group cursor-pointer p-8 rounded-lg border-2 border-slate-100 hover:border-brand-accent hover:bg-brand-accent/5 transition-all duration-300 shadow-sm hover:shadow-xl hover:shadow-brand-accent/10 flex flex-col items-center text-center space-y-4"
+                    className="group cursor-pointer p-6 rounded-lg border-2 border-slate-100 hover:border-brand-accent hover:bg-brand-accent/5 transition-all duration-300 shadow-sm hover:shadow-xl hover:shadow-brand-accent/10 flex flex-col items-center text-center space-y-3"
                   >
-                    <div className="size-16 rounded-full bg-slate-50 group-hover:bg-brand-accent flex items-center justify-center font-bold text-xl transition-colors duration-300 group-hover:text-white">AI</div>
+                    <div className="size-14 rounded-full bg-slate-50 group-hover:bg-brand-accent flex items-center justify-center font-bold text-xl transition-colors duration-300 group-hover:text-white">AI</div>
                     <div>
                       <h3 className="text-xl font-black text-slate-900">I'm an Expert</h3>
                       <p className="text-sm text-slate-500 mt-1">Offering AI expertise</p>
@@ -138,8 +138,8 @@ export const RegisterPage = () => {
                 </div>
               </div>
             ) : (
-              <div className="space-y-8 animate-in slide-in-from-right fade-in duration-500">
-                <div className="space-y-4">
+              <div className="space-y-5 animate-in slide-in-from-right fade-in duration-500">
+                <div className="space-y-3">
                   <button 
                     onClick={() => setStep('selection')}
                     className="flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-primary transition-colors group"
@@ -149,7 +149,7 @@ export const RegisterPage = () => {
                     </svg>
                     BACK TO ROLE SELECTION
                   </button>
-                  <h2 className="text-4xl font-black text-foreground tracking-tight">Complete your profile</h2>
+                  <h2 className="text-3xl font-black text-foreground tracking-tight">Complete your profile</h2>
                   <p className="text-muted-foreground leading-relaxed font-medium">
                     Registering as <span className={cn("font-bold uppercase", selectedRole === Role.CLIENT ? "text-primary" : "text-brand-accent")}>{selectedRole}</span>
                   </p>
@@ -160,6 +160,15 @@ export const RegisterPage = () => {
                 <RegisterForm selectedRole={selectedRole} />
                 
                 <div className="h-px w-full bg-slate-100" />
+
+                <div className="flex justify-center">
+                  <p className="text-sm text-muted-foreground font-medium">
+                    Already have an account?{' '}
+                    <Link to="/login" className="text-primary font-bold hover:underline transition-all underline-offset-4">
+                      Sign In
+                    </Link>
+                  </p>
+                </div>
               </div>
             )}
           </div>
