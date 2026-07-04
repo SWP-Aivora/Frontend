@@ -174,7 +174,7 @@ const normalizeExpertMatch = (item: Record<string, unknown>): ExpertMatch => ({
   name: getOptionalStringValue(item, 'name', 'Name', 'expertName', 'ExpertName', 'fullName', 'FullName'),
   title: getOptionalStringValue(item, 'title', 'Title', 'expertTitle', 'ExpertTitle'),
   rating: getOptionalNumberValue(item, 'rating', 'Rating', 'averageRating', 'AverageRating'),
-  matchScore: getOptionalNumberValue(item, 'matchScore', 'MatchScore', 'score', 'Score', 'compatibilityScore', 'CompatibilityScore'),
+  matchScore: getOptionalNumberValue(item, 'totalScore', 'TotalScore', 'matchScore', 'MatchScore', 'score', 'Score', 'compatibilityScore', 'CompatibilityScore'),
   skills: normalizeStringArray(item.skills ?? item.Skills ?? item.skillNames ?? item.SkillNames),
 });
 
