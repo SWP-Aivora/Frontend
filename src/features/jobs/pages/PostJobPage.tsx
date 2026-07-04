@@ -100,6 +100,8 @@ export const PostJobPage = () => {
   const [suggestion, setSuggestion] = useState<AiJobSuggestion | null>(null);
   const [createdJobId, setJobId] = useState<string | null>(null);
   const [isDraftSaved, setIsDraftSaved] = useState(false);
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
 
   // --- Refs for stale closure guards ---
   const isBusyRef = useRef(false);
@@ -330,6 +332,33 @@ export const PostJobPage = () => {
     },
     onError: (error: unknown) => {
       toast.error(error instanceof Error ? error.message : 'Failed to accept draft');
+    }
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: (reason: string) => {
+      if (!suggestion?.id) throw new Error('No active session');
+      return jobService.rejectAiJobSuggestion(suggestion.id, reason);
+    },
+    onSuccess: () => {
+      toast.success('Draft discarded. Start a new conversation whenever you\'re ready.');
+      setIsRejectModalOpen(false);
+      setRejectReason('');
+      setSuggestion(null);
+      setJobId(null);
+      setIsDraftSaved(false);
+      setStep('PLANNING');
+      setMessages([
+        {
+          id: 'welcome',
+          role: 'assistant',
+          content: "Hi! I'm your AIVORA AI Assistant. What project do you have in mind today? Just describe it naturally, and I'll build the full requirements for you.",
+          createdAt: new Date().toISOString()
+        }
+      ]);
+    },
+    onError: (error: unknown) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to discard draft');
     }
   });
 
@@ -1053,6 +1082,7 @@ export const PostJobPage = () => {
                onCategoryChange={handleCategoryChange}
                onAccept={handleAccept}
                onSaveDraft={handleSaveDraft}
+               onReject={!isEditingExistingJob && !createdJobId ? () => setIsRejectModalOpen(true) : undefined}
                isAccepting={acceptMutation.isPending}
                isDraftSaved={isDraftSaved}
                canContinueToReview={!isPublishedExistingJob}
@@ -1062,6 +1092,39 @@ export const PostJobPage = () => {
         )}
       </div>
 
+      {isRejectModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsRejectModalOpen(false)} />
+          <div className="bg-white rounded-2xl p-8 w-[90%] max-w-lg relative z-10 shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="text-2xl font-black text-slate-900 mb-2">Discard this draft?</h3>
+            <p className="text-sm text-slate-500 mb-6">Tell us why so we can improve future suggestions. This clears the current draft and starts a new conversation.</p>
+
+            <div className="space-y-4 mb-8">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Reason</label>
+                <textarea
+                  className="w-full rounded-lg border-slate-200 p-3 text-sm focus:ring-primary focus:border-primary"
+                  rows={4}
+                  placeholder="e.g. Not what I was looking for, budget is off, wrong scope..."
+                  value={rejectReason}
+                  onChange={e => setRejectReason(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setIsRejectModalOpen(false)} className="rounded-full font-bold">Cancel</Button>
+              <Button
+                onClick={() => rejectMutation.mutate(rejectReason.trim())}
+                disabled={rejectMutation.isPending || rejectReason.trim().length < 3}
+                className="rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-600/20 font-black border-none"
+              >
+                {rejectMutation.isPending ? 'Discarding...' : 'Discard Draft'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 };

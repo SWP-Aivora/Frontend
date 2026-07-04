@@ -54,4 +54,42 @@ describe('jobService', () => {
       expect(apiClient.post).toHaveBeenCalledWith('/jobs/job-1/cancel', 'No longer needed');
     });
   });
+
+  describe('rejectAiJobSuggestion', () => {
+    it('calls the reject endpoint with the given reason', async () => {
+      (vi.mocked(apiClient.post)).mockResolvedValue({
+        data: {
+          success: true,
+          data: {
+            id: 'suggestion-1',
+            jobId: null,
+            clientId: 'client-1',
+            rawInput: 'Build me a website',
+            suggestedTitle: 'Website build',
+            suggestedDescription: 'A website',
+            businessDomain: null,
+            expectedOutcome: null,
+            categoryId: null,
+            categoryName: null,
+            budgetType: 'FIXED',
+            suggestedBudgetMin: 100,
+            suggestedBudgetMax: 500,
+            currency: 'AICOIN',
+            suggestedTimelineDays: 10,
+            experienceLevel: null,
+            suggestedSkills: [],
+            suggestedMilestones: [],
+            status: 'REJECTED',
+            createdAt: '2026-07-01T00:00:00Z',
+          },
+          message: 'AI suggestion rejected'
+        }
+      });
+
+      const result = await jobService.rejectAiJobSuggestion('suggestion-1', 'Not what I needed');
+      expect(apiClient.post).toHaveBeenCalledWith('/ai/job-assistant/suggestion-1/reject', { reason: 'Not what I needed' });
+      expect(result.success).toBe(true);
+      expect(result.data?.status).toBe('REJECTED');
+    });
+  });
 });
