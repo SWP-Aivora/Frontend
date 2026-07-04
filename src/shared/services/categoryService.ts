@@ -35,7 +35,7 @@ export const categoryService = {
       const response = await apiClient.get<BaseResponse<unknown>>(API_ENDPOINTS.CATEGORIES.BASE);
       const normalized = normalizeBaseResponse<unknown>(response);
       const normalizedData = normalizeList(normalized.data) as unknown as Category[];
-      
+
       return {
         ...normalized,
         data: normalizedData
@@ -49,6 +49,14 @@ export const categoryService = {
         data: []
       };
     }
+  },
+
+  /**
+   * Create a new category (Admin only)
+   */
+  createCategory: async (data: { name: string; description?: string }): Promise<BaseResponse<Category>> => {
+    const response = await apiClient.post<BaseResponse<Category>>(API_ENDPOINTS.CATEGORIES.BASE, data);
+    return normalizeBaseResponse<Category>(response);
   }
 };
 

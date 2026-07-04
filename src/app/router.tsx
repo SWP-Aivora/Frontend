@@ -20,6 +20,7 @@ import { AdminUserDetailPage } from '../features/admin/pages/AdminUserDetailPage
 import { AdminExpertReviewsPage } from '../features/admin/pages/AdminExpertReviewsPage';
 import { ProjectManagementPage } from '../features/admin/pages/ProjectManagementPage';
 import { AdminProjectDisputesPage } from '../features/admin/pages/AdminProjectDisputesPage';
+import { AdminCategoriesPage } from '../features/admin/pages/AdminCategoriesPage';
 import { NotificationsPage } from '../features/notifications';
 import { LandingPage } from '../shared/pages/LandingPage';
 import ReviewPage from '../features/reviews/pages/ReviewPage';
@@ -144,6 +145,7 @@ export const router = createBrowserRouter([
       { path: 'projects', element: <ProjectManagementPage /> },
       { path: 'projects/:projectId/disputes', element: <AdminProjectDisputesPage /> },
       { path: 'expert-reviews', element: <AdminExpertReviewsPage /> },
+      { path: 'categories', element: <AdminCategoriesPage /> },
       { path: 'messages', element: <ChatWorkspacePage /> },
       { path: 'notifications', element: <NotificationsPage /> },
       { path: 'profile', element: <ProfilePage /> },
