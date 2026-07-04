@@ -310,6 +310,15 @@ export const jobService = {
     };
   },
 
+  rejectAiJobSuggestion: async (id: string, reason: string): Promise<BaseResponse<AiJobSuggestion>> => {
+    const response = await apiClient.post<BaseResponse<AiJobSuggestion>>(`/ai/job-assistant/${id}/reject`, { reason });
+    const normalized = normalizeBaseResponse<AiJobSuggestion>(response);
+    return {
+      ...normalized,
+      data: normalized.data ? normalizeAiJobSuggestion(normalized.data) : null,
+    };
+  },
+
   // AI Recommendations
   generateRecommendations: async (jobId: string): Promise<BaseResponse<void>> => {
     const response = await apiClient.post(`/jobs/${jobId}/recommendations/generate`);

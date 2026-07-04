@@ -59,6 +59,7 @@ interface JobDraftFormProps {
   onCategoryChange: (categoryId: string) => void;
   onAccept: () => void;
   onSaveDraft: () => void;
+  onReject?: () => void;
   isAccepting: boolean;
   isDraftSaved?: boolean;
   isGenerating?: boolean;
@@ -72,6 +73,7 @@ export const JobDraftForm = ({
   onCategoryChange,
   onAccept,
   onSaveDraft,
+  onReject,
   isAccepting,
   isDraftSaved = false,
   isGenerating = false,
@@ -460,8 +462,17 @@ export const JobDraftForm = ({
             </p>
          </div>
          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <Button 
-              variant="outline" 
+            {onReject && (
+              <Button
+                variant="outline"
+                className="flex-1 sm:flex-none rounded-full font-bold border-slate-200 text-rose-600 hover:text-rose-700"
+                onClick={onReject}
+              >
+                Discard
+              </Button>
+            )}
+            <Button
+              variant="outline"
               className="flex-1 sm:flex-none rounded-full font-bold border-slate-200"
               onClick={onSaveDraft}
             >
