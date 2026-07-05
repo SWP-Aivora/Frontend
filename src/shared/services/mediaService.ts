@@ -4,6 +4,17 @@ import type { BaseResponse } from '@/shared/types/api';
 import { normalizeBaseResponse } from '@/lib/api-utils';
 
 /**
+ * Media item interface as returned by the backend.
+ */
+export interface MediaItem {
+  url: string;
+  publicId: string;
+  format: string;
+  bytes: number;
+  createdAt: string;
+}
+
+/**
  * Service for handling media uploads.
  */
 export const mediaService = {
@@ -41,5 +52,23 @@ export const mediaService = {
       },
     });
     return normalizeBaseResponse<{ url: string; publicId: string }>(response);
+  },
+
+  /**
+   * Get list of uploaded media for current user
+   */
+  async getMedia(): Promise<BaseResponse<MediaItem[]>> {
+    const response = await apiClient.get(API_ENDPOINTS.MEDIA.BASE);
+    return normalizeBaseResponse<MediaItem[]>(response);
+  },
+
+  /**
+   * Delete a media item by its publicId
+   * @param publicId The public ID of the media to delete
+   */
+  async deleteMedia(publicId: string): Promise<BaseResponse<null>> {
+    // Note: Do not encode publicId since backend uses it as a catch-all parameter including slashes
+    const response = await apiClient.delete(API_ENDPOINTS.MEDIA.DELETE(publicId));
+    return normalizeBaseResponse<null>(response);
   },
 };

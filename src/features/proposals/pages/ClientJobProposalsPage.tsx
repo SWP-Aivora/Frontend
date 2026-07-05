@@ -51,12 +51,12 @@ const normalizeProposalStatus = (status: unknown): NormalizedProposalStatus => {
 };
 
 const normalizeJobStatus = (status: unknown) => {
-  if (status === 2) return 'in-progress';
-  if (status === 3) return 'completed';
-  const normalized = String(status ?? '').toUpperCase().replace(/\s+|_/g, '');
-  if (normalized === 'INPROGRESS') return 'in-progress';
-  if (normalized === 'COMPLETED' || normalized === 'CLOSED') return 'completed';
-  return normalized.toLowerCase();
+  if (status === 0 || String(status) === '0' || String(status).toUpperCase() === 'DRAFT') return 'draft';
+  if (status === 1 || String(status) === '1' || String(status).toUpperCase() === 'PUBLISHED' || String(status).toUpperCase() === 'OPEN') return 'published';
+  if (status === 2 || String(status) === '2' || String(status).toUpperCase() === 'INPROGRESS' || String(status).toUpperCase() === 'IN_PROGRESS') return 'in-progress';
+  if (status === 3 || String(status) === '3' || String(status).toUpperCase() === 'COMPLETED' || String(status).toUpperCase() === 'CLOSED') return 'completed';
+  if (status === 4 || String(status) === '4' || String(status).toUpperCase() === 'CANCELLED') return 'cancelled';
+  return 'draft';
 };
 
 const getErrorMessage = (error: unknown, fallback: string) => {
@@ -393,6 +393,40 @@ export const ClientJobProposalsPage = () => {
     unshortlistMutation.mutate(pid);
   };
 
+  const cancelJobMutation = useMutation({
+    mutationFn: (jobId: string) => jobService.cancelJob(jobId),
+    onSuccess: () => {
+      toast.success('Job post cancelled.');
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.JOBS.DETAIL(id!) });
+      queryClient.invalidateQueries({ queryKey: ['clientJobs'] });
+      queryClient.invalidateQueries({ queryKey: ['clientProjects'] });
+    },
+    onError: () => toast.error('Failed to cancel job post.'),
+  });
+
+  const deleteJobMutation = useMutation({
+    mutationFn: (jobId: string) => jobService.deleteJob(jobId),
+    onSuccess: () => {
+      toast.success('Job post deleted.');
+      queryClient.invalidateQueries({ queryKey: ['clientJobs'] });
+      queryClient.invalidateQueries({ queryKey: ['clientProjects'] });
+      navigate('/client/projects');
+    },
+    onError: () => toast.error('Failed to delete job post.'),
+  });
+
+  const handleCancelJob = () => {
+    if (window.confirm('Cancel this job post? Experts will no longer be able to apply.')) {
+      if (id) cancelJobMutation.mutate(id);
+    }
+  };
+
+  const handleDeleteJob = () => {
+    if (window.confirm('Delete this draft job post? This action cannot be undone.')) {
+      if (id) deleteJobMutation.mutate(id);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 space-y-4" role="status" aria-live="polite">
@@ -422,6 +456,26 @@ export const ClientJobProposalsPage = () => {
         </div>
         <div className="flex items-center gap-3">
            <Button variant="outline" className="rounded-full border-slate-200">Edit Job</Button>
+           {(normalizeJobStatus(job?.status) === 'published' || normalizeJobStatus(job?.status) === 'in-progress') && (
+             <Button
+               variant="outline"
+               className="rounded-full border-rose-200 text-rose-600 hover:bg-rose-50"
+               onClick={handleCancelJob}
+               disabled={cancelJobMutation.isPending}
+             >
+               Cancel Job
+             </Button>
+           )}
+           {(normalizeJobStatus(job?.status) === 'draft') && (
+             <Button
+               variant="outline"
+               className="rounded-full border-rose-200 text-rose-600 hover:bg-rose-50"
+               onClick={handleDeleteJob}
+               disabled={deleteJobMutation.isPending}
+             >
+               Delete
+             </Button>
+           )}
         </div>
       </div>
 

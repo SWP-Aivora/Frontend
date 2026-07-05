@@ -82,7 +82,7 @@ describe('JobDetailsPage', () => {
               createdAt: new Date().toISOString(),
               budgetMin: 100,
               budgetMax: 500,
-              skills: ['React'],
+              skills: [{ id: '1', name: 'React' }],
               client: { fullName: 'Client Name' },
             },
           },
@@ -172,6 +172,24 @@ describe('JobDetailsPage', () => {
       renderComponent();
       expect(screen.queryByTestId('proposal-form')).toBeNull();
       expect(screen.getByText('This job is no longer accepting proposals')).toBeInTheDocument();
+    });
+
+    it('shows Cancel Job button for open jobs', () => {
+      mockJobWithStatus(1);
+      renderComponent();
+      expect(screen.getByRole('button', { name: /cancel job/i })).toBeInTheDocument();
+    });
+
+    it('shows Delete button for draft jobs', () => {
+      mockJobWithStatus(0);
+      renderComponent();
+      expect(screen.getByRole('button', { name: /delete/i })).toBeInTheDocument();
+    });
+
+    it('does not show Delete button for open jobs', () => {
+      mockJobWithStatus(1);
+      renderComponent();
+      expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument();
     });
   });
 });

@@ -313,7 +313,7 @@ export const MyProjectsPage = () => {
                         Delete
                       </Button>
                     )}
-                    {job.status === 'open' && (
+                    {(job.status === 'open' || job.status === 'in-progress') && (
                       <Button
                         variant="ghost"
                         disabled={cancelJobMutation.isPending && cancelJobMutation.variables === job.id}

@@ -78,7 +78,7 @@ describe('useGlobalRealtimeSync', () => {
     expect(mockConnect).toHaveBeenCalledWith();
   });
 
-  it('does NOT call chatService.connect when there is no access token', async () => {
+  it('does NOT call chatService.connect when there is no authentication', async () => {
     mockAuthState = { accessToken: null, isAuthenticated: false };
 
     const { useGlobalRealtimeSync } = await import(
@@ -158,7 +158,6 @@ describe('useGlobalRealtimeSync', () => {
 
     expect(mockUnsubscribe).toHaveBeenCalledTimes(1);
   });
-
   it('does NOT call chatService.connect when user is NOT authenticated', async () => {
     mockAuthState = { accessToken: 'some-token', isAuthenticated: false };
 
