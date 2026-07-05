@@ -36,6 +36,7 @@ export const API_ENDPOINTS = {
     DEPOSIT_DEMO: 'wallet/deposit-demo',
     VNPAY_DEPOSIT: 'wallet/vnpay/deposit',
     WITHDRAW: 'wallet/withdraw',
+    TRANSFER: (expertId: string) => `wallet/transfer/${expertId}`,
   },
   PROFILES: {
     CLIENT: 'profiles/client',
