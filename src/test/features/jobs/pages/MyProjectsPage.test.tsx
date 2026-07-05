@@ -92,4 +92,53 @@ describe('MyProjectsPage', () => {
     expect(queriesArg[0].queryKey).toEqual(QUERY_KEYS.JOBS.PROPOSAL_COUNT('job-1'));
     expect(queriesArg[0].refetchInterval).toBe(REFETCH_INTERVALS.BACKGROUND_SUMMARY);
   });
+
+  describe('Job Action Buttons', () => {
+    const mockJobs = (status: number) => {
+      (vi.mocked(reactQuery.useQuery)).mockImplementation((options: { queryKey?: readonly unknown[] }) => {
+        const queryKey = options.queryKey as unknown[];
+        if (queryKey?.[0] === 'clientJobs') {
+          return {
+            data: {
+              data: [{ id: 'job-1', title: 'Test Job', status, createdAt: new Date().toISOString() }]
+            },
+            isLoading: false
+          } as unknown as UseQueryResult;
+        }
+        if (queryKey?.[0] === 'clientProjects') {
+          return { data: { data: [] }, isLoading: false } as unknown as UseQueryResult;
+        }
+        return { isLoading: false } as unknown as UseQueryResult;
+      });
+      (vi.mocked(reactQuery.useQueries)).mockReturnValue([]);
+    };
+
+    it('shows Delete button for draft jobs', () => {
+      mockJobs(0); // 0 = draft
+      renderComponent();
+      expect(screen.getByRole('button', { name: /delete/i })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /cancel job/i })).not.toBeInTheDocument();
+    });
+
+    it('shows Cancel Job button for open jobs', () => {
+      mockJobs(1); // 1 = open
+      renderComponent();
+      expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /cancel job/i })).toBeInTheDocument();
+    });
+
+    it('shows Cancel Job button for in-progress jobs', () => {
+      mockJobs(2); // 2 = in-progress
+      renderComponent();
+      expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /cancel job/i })).toBeInTheDocument();
+    });
+
+    it('does not show Cancel or Delete buttons for completed jobs', () => {
+      mockJobs(3); // 3 = completed
+      renderComponent();
+      expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /cancel job/i })).not.toBeInTheDocument();
+    });
+  });
 });

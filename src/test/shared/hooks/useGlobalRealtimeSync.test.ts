@@ -63,7 +63,7 @@ describe('useGlobalRealtimeSync', () => {
     mockAuthState = { accessToken: null, isAuthenticated: false };
   });
 
-  it('calls chatService.connect(accessToken) when user is authenticated with a token', async () => {
+  it('calls chatService.connect() when user is authenticated', async () => {
     mockAuthState = { accessToken: 'test-token-123', isAuthenticated: true };
 
     // Dynamically import AFTER mocks are set up
@@ -75,10 +75,10 @@ describe('useGlobalRealtimeSync', () => {
       wrapper: createWrapper(queryClient),
     });
 
-    expect(mockConnect).toHaveBeenCalledWith('test-token-123');
+    expect(mockConnect).toHaveBeenCalled();
   });
 
-  it('does NOT call chatService.connect when there is no access token', async () => {
+  it('does NOT call chatService.connect when there is no authentication', async () => {
     mockAuthState = { accessToken: null, isAuthenticated: false };
 
     const { useGlobalRealtimeSync } = await import(
@@ -156,19 +156,5 @@ describe('useGlobalRealtimeSync', () => {
     unmount();
 
     expect(mockUnsubscribe).toHaveBeenCalledTimes(1);
-  });
-
-  it('does NOT call chatService.connect when authenticated but accessToken is null', async () => {
-    mockAuthState = { accessToken: null, isAuthenticated: true };
-
-    const { useGlobalRealtimeSync } = await import(
-      '@/shared/hooks/useGlobalRealtimeSync'
-    );
-
-    renderHook(() => useGlobalRealtimeSync(), {
-      wrapper: createWrapper(queryClient),
-    });
-
-    expect(mockConnect).not.toHaveBeenCalled();
   });
 });

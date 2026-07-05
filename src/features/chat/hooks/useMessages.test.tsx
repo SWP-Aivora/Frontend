@@ -33,7 +33,7 @@ describe('useRealTimeMessages', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockConnection.state = 'Connected';
-    useAuthStore.setState({ accessToken: 'token-123' });
+    useAuthStore.setState({ accessToken: 'token-123', isAuthenticated: true });
   });
 
   it('joins the conversation SignalR group so ReceiveMessage broadcasts are received', async () => {

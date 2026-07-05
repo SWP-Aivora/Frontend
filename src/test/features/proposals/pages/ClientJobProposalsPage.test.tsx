@@ -132,4 +132,70 @@ describe('ClientJobProposalsPage', () => {
     expect(jobQueryCall![0]).toHaveProperty('queryKey', QUERY_KEYS.JOBS.DETAIL('job-123'));
     expect(jobQueryCall![0]).toHaveProperty('refetchInterval', REFETCH_INTERVALS.REALTIME_SLOW);
   });
+
+  describe('Job Action Buttons', () => {
+    const mockJob = (status: number) => {
+      (vi.mocked(reactQuery.useQuery)).mockImplementation((options: { queryKey?: readonly unknown[] }) => {
+        const queryKey = options.queryKey as unknown[];
+        if (queryKey?.[0] === 'job') {
+          return {
+            data: {
+              data: {
+                id: 'job-123',
+                title: 'Test Job Title',
+                status,
+                timelineDays: 14,
+                budgetMin: 100,
+                budgetMax: 500,
+              },
+            },
+            isLoading: false,
+          } as unknown as UseQueryResult;
+        }
+        if (queryKey?.[0] === 'proposals') {
+          return { data: { data: [] }, isLoading: false } as unknown as UseQueryResult;
+        }
+        if (queryKey?.[0] === 'jobRecommendations') {
+          return { data: { data: [] }, isLoading: false, isFetching: false, refetch: vi.fn() } as unknown as UseQueryResult;
+        }
+        return { isLoading: false } as unknown as UseQueryResult;
+      });
+    };
+
+    it('shows Cancel Job button for open jobs', () => {
+      mockJob(1); // 1 = open
+      renderComponent();
+      expect(screen.getByRole('button', { name: /cancel job/i })).toBeInTheDocument();
+    });
+
+    it('shows Cancel Job button for in-progress jobs', () => {
+      mockJob(2); // 2 = in-progress
+      renderComponent();
+      expect(screen.getByRole('button', { name: /cancel job/i })).toBeInTheDocument();
+    });
+
+    it('does not show Cancel Job button for draft jobs', () => {
+      mockJob(0); // 0 = draft
+      renderComponent();
+      expect(screen.queryByRole('button', { name: /cancel job/i })).not.toBeInTheDocument();
+    });
+
+    it('does not show Cancel Job button for completed jobs', () => {
+      mockJob(3); // 3 = completed
+      renderComponent();
+      expect(screen.queryByRole('button', { name: /cancel job/i })).not.toBeInTheDocument();
+    });
+
+    it('shows Delete button for draft jobs', () => {
+      mockJob(0); // 0 = draft
+      renderComponent();
+      expect(screen.getByRole('button', { name: /delete/i })).toBeInTheDocument();
+    });
+
+    it('does not show Delete button for open jobs', () => {
+      mockJob(1); // 1 = open
+      renderComponent();
+      expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument();
+    });
+  });
 });
