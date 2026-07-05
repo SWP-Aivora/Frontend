@@ -30,6 +30,7 @@ export const useGlobalRealtimeSync = () => {
       console.log('[RealtimeSync] Job status updated:', data);
 
       // Invalidate all role-relevant query caches
+      void queryClient.invalidateQueries({ queryKey: ['jobs'] });
       void queryClient.invalidateQueries({ queryKey: ['clientJobs'] });
       void queryClient.invalidateQueries({ queryKey: ['myProposals'] });
       void queryClient.invalidateQueries({ queryKey: ['expertProjects'] });

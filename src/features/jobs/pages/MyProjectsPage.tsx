@@ -5,7 +5,6 @@ import { cn } from '@/lib/utils';
 import { useMemo, useState } from 'react';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { useJobStatusUpdates } from '../hooks/useJobStatusUpdates';
 import { projectService } from '@/features/projects/services';
 import { jobService } from '@/features/jobs/services';
 import { proposalService } from '@/features/proposals/services';
@@ -51,9 +50,6 @@ const getJobBudgetLabel = (job: Job) => {
 };
 
 export const MyProjectsPage = () => {
-  // Setup real-time job status updates
-  useJobStatusUpdates();
-
   const [filter, setFilter] = useState<StatusFilter>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
