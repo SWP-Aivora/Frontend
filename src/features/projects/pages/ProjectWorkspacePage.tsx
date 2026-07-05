@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { KanbanBoard } from '../components/KanbanBoard';
+import { AddMilestoneModal } from '../components/AddMilestoneModal';
 import type { Milestone } from '../types';
 import { projectService } from '../services';
 import { 
@@ -19,6 +20,7 @@ import {
   FileText,
   Pencil,
   Star,
+  Plus,
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { useAuthStore } from '@/features/auth/store';
@@ -103,6 +105,7 @@ export const ProjectWorkspacePage = () => {
   const [selectedMilestone, setSelectedMilestone] = useState<Milestone | null>(null);
   const [isFinishModalOpen, setIsFinishModalOpen] = useState(false);
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
+  const [isAddMilestoneModalOpen, setIsAddMilestoneModalOpen] = useState(false);
 
   // Fetch toàn bộ thông tin chi tiết của Project (Hợp đồng làm việc)
   const { data: projectResponse, isLoading: isLoadingProject } = useQuery({
@@ -629,12 +632,26 @@ export const ProjectWorkspacePage = () => {
                </div>
             </div>
 
-            <div className="flex -space-x-3">
-               {[project.client, project.expert].filter(Boolean).map((u, i) => (
-                 <div key={i} className="size-10 rounded-full border-4 border-slate-50 bg-slate-200 flex items-center justify-center overflow-hidden shadow-sm" title={u?.fullName}>
-                    {u?.avatarUrl ? <img src={u.avatarUrl} className="size-full object-cover" /> : <span className="text-xs font-black">{u?.fullName?.charAt(0)}</span>}
-                 </div>
-               ))}
+            <div className="flex items-center gap-3">
+               {/* Nút thêm milestone — chỉ hiện với CLIENT */}
+               {user?.role === Role.CLIENT && user.id === project.clientId && (
+                 <Button
+                   id="add-milestone-btn"
+                   variant="outline"
+                   onClick={() => setIsAddMilestoneModalOpen(true)}
+                   className="rounded-full px-4 border-primary/30 text-primary hover:bg-primary/5 font-black flex items-center gap-2 text-sm"
+                 >
+                   <Plus className="size-4" />
+                   Thêm Milestone
+                 </Button>
+               )}
+               <div className="flex -space-x-3">
+                  {[project.client, project.expert].filter(Boolean).map((u, i) => (
+                    <div key={i} className="size-10 rounded-full border-4 border-slate-50 bg-slate-200 flex items-center justify-center overflow-hidden shadow-sm" title={u?.fullName}>
+                       {u?.avatarUrl ? <img src={u.avatarUrl} className="size-full object-cover" /> : <span className="text-xs font-black">{u?.fullName?.charAt(0)}</span>}
+                    </div>
+                  ))}
+               </div>
             </div>
          </div>
 
@@ -1095,6 +1112,13 @@ export const ProjectWorkspacePage = () => {
         onSuccess={handleDisputeCreated}
         initialProjectId={project.id}
         lockProjectSelection
+      />
+
+      {/* Modal tạo milestone mới — chỉ Client mới có quyền thêm */}
+      <AddMilestoneModal
+        isOpen={isAddMilestoneModalOpen}
+        projectId={project.id}
+        onClose={() => setIsAddMilestoneModalOpen(false)}
       />
 
       {/* Overlay backdrop */}
