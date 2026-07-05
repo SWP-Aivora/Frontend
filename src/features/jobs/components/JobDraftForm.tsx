@@ -501,7 +501,7 @@ export const JobDraftForm = ({
                 className="flex-1 sm:flex-none rounded-full font-bold border-slate-200 text-rose-600 hover:text-rose-700"
                 onClick={onReject}
               >
-                Discard
+                Reject Suggestion
               </Button>
             )}
             <Button

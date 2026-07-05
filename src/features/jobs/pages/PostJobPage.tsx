@@ -350,7 +350,7 @@ export const PostJobPage = () => {
       return jobService.rejectAiJobSuggestion(suggestion.id, reason);
     },
     onSuccess: () => {
-      toast.success('Draft discarded. Start a new conversation whenever you\'re ready.');
+      toast.success('Suggestion rejected. Start a new conversation whenever you\'re ready.');
       setIsRejectModalOpen(false);
       setRejectReason('');
       setSuggestion(null);
@@ -367,7 +367,7 @@ export const PostJobPage = () => {
       ]);
     },
     onError: (error: unknown) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to discard draft');
+      toast.error(error instanceof Error ? error.message : 'Failed to reject suggestion');
     }
   });
 
@@ -1113,7 +1113,7 @@ export const PostJobPage = () => {
         <div className="fixed inset-0 z-[60] flex items-center justify-center">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsRejectModalOpen(false)} />
           <div className="bg-white rounded-2xl p-8 w-[90%] max-w-lg relative z-10 shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-2xl font-black text-slate-900 mb-2">Discard this draft?</h3>
+            <h3 className="text-2xl font-black text-slate-900 mb-2">Reject this suggestion?</h3>
             <p className="text-sm text-slate-500 mb-6">Tell us why so we can improve future suggestions. This clears the current draft and starts a new conversation.</p>
 
             <div className="space-y-4 mb-8">
@@ -1136,7 +1136,7 @@ export const PostJobPage = () => {
                 disabled={rejectMutation.isPending || rejectReason.trim().length < 3}
                 className="rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-600/20 font-black border-none"
               >
-                {rejectMutation.isPending ? 'Discarding...' : 'Discard Draft'}
+                {rejectMutation.isPending ? 'Rejecting...' : 'Reject Suggestion'}
               </Button>
             </div>
           </div>
