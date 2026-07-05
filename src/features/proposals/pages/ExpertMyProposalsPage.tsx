@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { proposalService } from '../services';
 import { projectService } from '@/features/projects/services';
 import { 
@@ -17,6 +17,7 @@ import {
 import { Button } from '@/shared/components/ui/Button';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 export const ExpertMyProposalsPage = () => {
   // Tự động gọi API lấy toàn bộ lịch sử nộp đơn của Expert đang đăng nhập
@@ -35,6 +36,18 @@ export const ExpertMyProposalsPage = () => {
   const proposals = response?.data || [];
   const projects = projectsResponse?.data || [];
   const [filter, setFilter] = useState<'all' | 'pending' | 'accepted' | 'declined'>('all');
+  const queryClient = useQueryClient();
+
+  const withdrawMutation = useMutation({
+    mutationFn: proposalService.withdrawProposal,
+    onSuccess: () => {
+      toast.success('Proposal withdrawn successfully');
+      queryClient.invalidateQueries({ queryKey: ['myProposals'] });
+    },
+    onError: () => {
+      toast.error('Failed to withdraw proposal');
+    },
+  });
 
   const getStatusKey = (status: number | string) => {
     const normalized = String(status).toUpperCase();
@@ -216,12 +229,28 @@ export const ExpertMyProposalsPage = () => {
                             </Link>
                          </Button>
                        ) : (
-                         <Button asChild variant="ghost" className="w-full rounded-full bg-slate-50 hover:bg-brand-accent hover:text-white group/btn pr-3 pl-6 border border-slate-100">
-                            <Link to={`/expert/proposals/${proposal.id}`}>
-                              View Proposal
-                              <ArrowRight className="size-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />
-                            </Link>
-                         </Button>
+                         <>
+                           <Button asChild variant="ghost" className="w-full rounded-full bg-slate-50 hover:bg-brand-accent hover:text-white group/btn pr-3 pl-6 border border-slate-100">
+                              <Link to={`/expert/proposals/${proposal.id}`}>
+                                View Proposal
+                                <ArrowRight className="size-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />
+                              </Link>
+                           </Button>
+                           {getStatusKey(proposal.status) === 'pending' && (
+                             <Button
+                               variant="outline"
+                               className="w-full rounded-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                               disabled={withdrawMutation.isPending}
+                               onClick={() => {
+                                 if (window.confirm('Are you sure you want to withdraw this proposal?')) {
+                                   withdrawMutation.mutate(proposal.id);
+                                 }
+                               }}
+                             >
+                               Withdraw Proposal
+                             </Button>
+                           )}
+                         </>
                        )}
                     </div>
                  </div>
