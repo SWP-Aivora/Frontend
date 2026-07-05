@@ -9,6 +9,7 @@ import { ExpertMatchInsights } from '../components/ExpertMatchInsights';
 import { jobService } from '../services';
 import { AiJobAssistantStatus, type ChatMessage, type AiJobSuggestion, type PatchAiJobSuggestionRequest, type AcceptAiJobSuggestionRequest, type AcceptedJobResponse, type CreateJobRequest, type Job } from '../types';
 import { categoryService } from '@/shared/services/categoryService';
+import { skillService } from '@/shared/services/skillService';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useDebouncedCallback } from '@/shared/hooks/useDebounce';
@@ -102,6 +103,7 @@ export const PostJobPage = () => {
   const [isDraftSaved, setIsDraftSaved] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
 
   // --- Refs for stale closure guards ---
   const isBusyRef = useRef(false);
@@ -129,6 +131,12 @@ export const PostJobPage = () => {
     queryFn: () => categoryService.getCategories(),
   });
 
+  const { data: skillsResponse } = useQuery({
+    queryKey: ['jobPostSkills', suggestion?.categoryId],
+    queryFn: () => skillService.getSkills(suggestion?.categoryId ?? undefined),
+    enabled: !!suggestion?.categoryId,
+  });
+
   const {
     data: existingJobResponse,
     isLoading: isLoadingExistingJob,
@@ -143,6 +151,7 @@ export const PostJobPage = () => {
   });
 
   const categories = categoriesResponse?.data ?? [];
+  const skills = skillsResponse?.data ?? [];
   const isPublishedExistingJob = isEditingExistingJob && existingJobResponse?.data
     ? !isDraftJobStatus(existingJobResponse.data.status)
     : false;
@@ -551,6 +560,7 @@ export const PostJobPage = () => {
 
     return {
       categoryId: suggestion.categoryId ?? null,
+      selectedSkillIds,
     };
   };
 
@@ -626,7 +636,7 @@ export const PostJobPage = () => {
       deadline: getDateAfterDays(suggestion.suggestedTimelineDays),
       experienceLevel: toCreateJobSkillLevel(suggestion.experienceLevel),
       visibility: JobVisibility.PRIVATE,
-      skillIds: [],
+      skillIds: selectedSkillIds,
       milestones: suggestion.suggestedMilestones.map((milestone, index) => ({
         title: milestone.title,
         description: milestone.description,
@@ -1078,6 +1088,13 @@ export const PostJobPage = () => {
              <JobDraftForm 
                 suggestion={suggestion}
                 categories={categories}
+                skills={skills}
+                selectedSkillIds={selectedSkillIds}
+                onSkillChange={(skillId) => {
+                  setSelectedSkillIds(prev => 
+                    prev.includes(skillId) ? prev.filter(id => id !== skillId) : [...prev, skillId]
+                  );
+                }}
                 onUpdate={handleManualUpdate}
                onCategoryChange={handleCategoryChange}
                onAccept={handleAccept}

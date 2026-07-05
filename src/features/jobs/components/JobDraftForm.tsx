@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import type { AiJobSuggestion, SuggestedMilestone } from '../types';
 import { BudgetType } from '@/shared/types/enums';
 import type { Category } from '@/shared/services/categoryService';
+import type { Skill } from '@/shared/services/skillService';
 
 const requiredPositiveNumberField = (label: string) =>
   z.preprocess(
@@ -55,6 +56,9 @@ type JobDraftFormValues = {
 interface JobDraftFormProps {
   suggestion: AiJobSuggestion;
   categories: Category[];
+  skills?: Skill[];
+  selectedSkillIds?: string[];
+  onSkillChange?: (skillId: string) => void;
   onUpdate: (data: Partial<AiJobSuggestion>) => void;
   onCategoryChange: (categoryId: string) => void;
   onAccept: () => void;
@@ -69,6 +73,9 @@ interface JobDraftFormProps {
 export const JobDraftForm = ({ 
   suggestion, 
   categories,
+  skills = [],
+  selectedSkillIds = [],
+  onSkillChange,
   onUpdate, 
   onCategoryChange,
   onAccept,
@@ -262,6 +269,32 @@ export const JobDraftForm = ({
                 </select>
               </div>
             </div>
+
+            {suggestion.categoryId && skills.length > 0 && onSkillChange && (
+              <div className="space-y-3 pt-2 text-left">
+                <label className="text-xs font-bold text-slate-500 ml-1 uppercase">Required Skills</label>
+                <div className="flex flex-wrap gap-2">
+                  {skills.map((skill) => {
+                    const isSelected = selectedSkillIds.includes(skill.id);
+                    return (
+                      <button
+                        key={skill.id}
+                        type="button"
+                        onClick={() => onSkillChange(skill.id)}
+                        className={cn(
+                          "px-4 py-2 rounded-xl text-xs font-bold transition-all border duration-200",
+                          isSelected
+                            ? "bg-primary text-white border-primary shadow-sm shadow-primary/20"
+                            : "bg-slate-50 text-slate-600 border-slate-200 hover:border-primary/50 hover:bg-primary/5"
+                        )}
+                      >
+                        {skill.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </section>
 
           {/* Section: Budget & Timeline */}
