@@ -187,16 +187,8 @@ export interface ComparisonValue<T> {
 export interface ExpertReviewDetail extends ExpertReviewItem {
   bio: ComparisonValue<string>;
   hourlyRate: ComparisonValue<number>;
-  skillsComparison: ComparisonValue<string[]>;
   categories: ComparisonValue<string[]>;
   experience: ComparisonValue<string>;
-  portfolio: {
-    id: string;
-    title: string;
-    type: string;
-    url: string;
-    status: 'Verified' | 'Review' | 'Strong';
-  }[];
   adminNote?: string;
 }
 
