@@ -11,9 +11,10 @@ import {
   PlusCircle,
   FileText,
   Bell,
-  Tags,
   Wrench,
   Sparkles,
+  ShieldCheck,
+  LayoutGrid,
   type LucideIcon
 } from 'lucide-react';
 import { Role } from '@/shared/types/enums';
@@ -53,7 +54,8 @@ export const NAV_ITEMS: Record<string, NavItem[]> = {
     { label: 'User Management', href: '/admin/users', icon: Users },
     { label: 'Project Management', href: '/admin/projects', icon: Briefcase },
     { label: 'Expert Reviews', href: '/admin/expert-reviews', icon: UserCheck },
-    { label: 'Categories', href: '/admin/categories', icon: Tags },
+    { label: 'Verifications', href: '/admin/expert-verifications', icon: ShieldCheck },
+    { label: 'Categories', href: '/admin/categories', icon: LayoutGrid },
     { label: 'Skills', href: '/admin/skills', icon: Wrench },
     { label: 'Messages', href: '/admin/messages', icon: MessageSquare },
     { label: 'Notifications', href: '/admin/notifications', icon: Bell },
