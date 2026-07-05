@@ -10,8 +10,24 @@ vi.mock('@tanstack/react-query', async () => {
   return {
     ...actual,
     useQuery: vi.fn(),
+    useMutation: vi.fn().mockReturnValue({ mutate: vi.fn(), isPending: false }),
+    useQueryClient: () => ({ invalidateQueries: vi.fn() }),
   };
 });
+
+vi.mock('../../../../features/proposals/services', () => ({
+  proposalService: {
+    getProposalById: vi.fn(),
+    withdrawProposal: vi.fn(),
+  },
+}));
+
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
@@ -23,9 +39,7 @@ vi.mock('react-router-dom', async () => {
 });
 
 vi.mock('@/features/auth/store', () => ({
-  useAuthStore: () => ({
-    user: { role: 'CLIENT', id: 'client-1' },
-  }),
+  useAuthStore: vi.fn(),
 }));
 
 const queryClient = new QueryClient();
@@ -41,20 +55,23 @@ const renderComponent = () => {
 };
 
 describe('ProposalDetailsPage', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    vi.mocked(await import('@/features/auth/store')).useAuthStore.mockReturnValue({
+      user: { role: 'EXPERT', id: 'exp-1' }
+    } as never);
   });
 
   it('renders loading state', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (vi.mocked(reactQuery.useQuery)).mockReturnValue({ isLoading: true } as any);
+    (vi.mocked(reactQuery.useQuery)).mockReturnValue({ isLoading: true } as never);
     renderComponent();
     expect(screen.getByRole('status', { hidden: true }) || screen.getByText(/Loading/i)).toBeDefined();
   });
 
   it('configures refetchInterval: 10000 and refetchOnWindowFocus: true for the proposal query', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (vi.mocked(reactQuery.useQuery)).mockReturnValue({ isLoading: false, data: { data: { id: 'prop-123', status: 1, jobId: 'job-123', jobTitle: 'Test Job', expertId: 'exp-1', proposedBudget: 100, proposedTimelineDays: 5, coverLetter: 'Hello', milestones: [] } } } as any);
+    (vi.mocked(reactQuery.useQuery)).mockReturnValue({ isLoading: false, data: { data: { id: 'prop-123', status: 1, jobId: 'job-123', jobTitle: 'Test Job', expertId: 'exp-1', proposedBudget: 100, proposedTimelineDays: 5, coverLetter: 'Hello', milestones: [] } } } as never);
     renderComponent();
     expect(reactQuery.useQuery).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -63,5 +80,67 @@ describe('ProposalDetailsPage', () => {
         refetchOnWindowFocus: true,
       })
     );
+  });
+
+  describe('Withdraw Proposal (Expert)', () => {
+    beforeEach(async () => {
+      vi.mocked(await import('@/features/auth/store')).useAuthStore.mockReturnValue({
+        user: { role: 'EXPERT', id: 'exp-1' }
+      } as never);
+    });
+
+    it('renders Withdraw Proposal button for submitted proposals', () => {
+      (vi.mocked(reactQuery.useQuery)).mockReturnValue({ 
+        isLoading: false, 
+        data: { data: { id: 'prop-123', status: 1, jobId: 'job-123', expertId: 'exp-1', milestones: [] } } 
+      } as never);
+      renderComponent();
+      expect(screen.getByRole('button', { name: /withdraw proposal/i })).toBeInTheDocument();
+    });
+
+    it('does not render Withdraw Proposal button for accepted proposals', () => {
+      (vi.mocked(reactQuery.useQuery)).mockReturnValue({ 
+        isLoading: false, 
+        data: { data: { id: 'prop-123', status: 2, jobId: 'job-123', expertId: 'exp-1', milestones: [] } } 
+      } as never);
+      renderComponent();
+      expect(screen.queryByRole('button', { name: /withdraw proposal/i })).not.toBeInTheDocument();
+    });
+
+    it('calls withdrawProposal on Withdraw button click', async () => {
+      const mockMutate = vi.fn();
+      (vi.mocked(reactQuery.useMutation)).mockReturnValue({
+        mutate: mockMutate,
+        isPending: false,
+      } as never);
+      (vi.mocked(reactQuery.useQuery)).mockReturnValue({ 
+        isLoading: false, 
+        data: { data: { id: 'prop-123', status: 1, jobId: 'job-123', expertId: 'exp-1', milestones: [] } } 
+      } as never);
+      
+      vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+      renderComponent();
+      const withdrawButton = screen.getByRole('button', { name: /withdraw proposal/i });
+      withdrawButton.click();
+      expect(mockMutate).toHaveBeenCalled();
+    });
+  });
+
+  describe('Withdraw Proposal (Client)', () => {
+    beforeEach(async () => {
+      vi.mocked(await import('@/features/auth/store')).useAuthStore.mockReturnValue({
+        user: { role: 'CLIENT', id: 'client-1' }
+      } as never);
+    });
+
+    it('does not render Withdraw Proposal button for clients', () => {
+      (vi.mocked(reactQuery.useQuery)).mockReturnValue({ 
+        isLoading: false, 
+        data: { data: { id: 'prop-123', status: 1, jobId: 'job-123', expertId: 'exp-1', milestones: [] } } 
+      } as never);
+      renderComponent();
+      expect(screen.queryByRole('button', { name: /withdraw proposal/i })).not.toBeInTheDocument();
+    });
   });
 });

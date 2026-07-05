@@ -10,8 +10,23 @@ vi.mock('@tanstack/react-query', async () => {
   return {
     ...actual,
     useQuery: vi.fn(),
+    useMutation: vi.fn().mockReturnValue({ mutate: vi.fn(), isPending: false }),
+    useQueryClient: () => ({ invalidateQueries: vi.fn() }),
   };
 });
+
+vi.mock('../../../../features/proposals/services', () => ({
+  proposalService: {
+    withdrawProposal: vi.fn(),
+  },
+}));
+
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
 
 const queryClient = new QueryClient();
 
@@ -70,6 +85,54 @@ describe('ExpertMyProposalsPage', () => {
         refetchOnWindowFocus: true,
       })
     );
+  });
+
+  describe('Withdraw Proposal', () => {
+    it('renders Withdraw Proposal button for submitted proposals', () => {
+      (vi.mocked(reactQuery.useQuery)).mockReturnValue({
+        data: {
+          data: [{ id: '1', status: 1, coverLetter: 'test', jobId: 'job123' }] // 1 is pending
+        },
+        isLoading: false,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
+      renderComponent();
+      expect(screen.getByRole('button', { name: /withdraw proposal/i })).toBeInTheDocument();
+    });
+
+    it('does not render Withdraw Proposal button for accepted proposals', () => {
+      (vi.mocked(reactQuery.useQuery)).mockReturnValue({
+        data: {
+          data: [{ id: '1', status: 2, coverLetter: 'test', jobId: 'job123' }] // 2 is accepted
+        },
+        isLoading: false,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
+      renderComponent();
+      expect(screen.queryByRole('button', { name: /withdraw proposal/i })).not.toBeInTheDocument();
+    });
+    it('calls withdrawProposal on Withdraw button click', async () => {
+      const mockMutate = vi.fn();
+      (vi.mocked(reactQuery.useMutation)).mockReturnValue({
+        mutate: mockMutate,
+        isPending: false,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
+      (vi.mocked(reactQuery.useQuery)).mockReturnValue({
+        data: {
+          data: [{ id: '1', status: 1, coverLetter: 'test', jobId: 'job123' }]
+        },
+        isLoading: false,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
+
+      vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+      renderComponent();
+      const withdrawButton = screen.getByRole('button', { name: /withdraw proposal/i });
+      withdrawButton.click();
+      expect(mockMutate).toHaveBeenCalledWith('1');
+    });
   });
 });
 
