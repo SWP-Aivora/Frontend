@@ -17,6 +17,7 @@ export const ServiceGeneratorPage = () => {
   const [deliveryDays, setDeliveryDays] = useState('7');
   const [tone, setTone] = useState('professional');
   const [targetClient, setTargetClient] = useState('startup');
+  const [language, setLanguage] = useState('en');
   const [result, setResult] = useState<ServiceDescriptionResult | null>(null);
 
   const generateMutation = useMutation({
@@ -27,6 +28,7 @@ export const ServiceGeneratorPage = () => {
       deliveryDays: Number(deliveryDays) || 0,
       tone,
       targetClient,
+      language,
     }),
     onSuccess: (response) => {
       if (!response.data) {
@@ -35,8 +37,16 @@ export const ServiceGeneratorPage = () => {
       }
       setResult(response.data);
     },
-    onError: () => {
-      toast.error('Failed to generate service description');
+    onError: (error: any) => {
+      const serverData = error?.response?.data;
+      const serverMessage = serverData?.message || serverData?.title || (serverData?.errors ? Object.values(serverData.errors)[0] : null);
+      
+      if (!error.response && (error?.message === 'Network Error' || error?.name === 'AxiosError' || error?.code === 'ERR_NETWORK')) {
+        toast.error('Network error: Please check your internet connection.');
+      } else {
+        toast.error(serverMessage ? `Lỗi: ${serverMessage}` : 'Failed to generate service description');
+        console.error("API 400 Error Details:", serverData);
+      }
     },
   });
 
@@ -56,9 +66,12 @@ export const ServiceGeneratorPage = () => {
             value={rawInput}
             onChange={(e) => setRawInput(e.target.value)}
             rows={4}
-            placeholder="e.g. I build custom React dashboards with data visualizations for SaaS startups"
+            placeholder="e.g. I build custom React dashboards with data visualizations for SaaS startups (min 20 characters)"
             className="w-full p-4 rounded-lg bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm font-medium"
           />
+          {rawInput.trim().length > 0 && rawInput.trim().length < 20 && (
+            <p className="text-xs text-red-500 ml-1">Description must be at least 20 characters.</p>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -100,7 +113,8 @@ export const ServiceGeneratorPage = () => {
             >
               <option value="professional">Professional</option>
               <option value="friendly">Friendly</option>
-              <option value="confident">Confident</option>
+              <option value="premium">Premium</option>
+              <option value="technical">Technical</option>
             </select>
           </div>
           <div className="space-y-1.5">
@@ -111,8 +125,20 @@ export const ServiceGeneratorPage = () => {
               className="w-full h-11 px-4 rounded-lg bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm appearance-none font-medium"
             >
               <option value="startup">Startups</option>
+              <option value="sme">SME (Small/Medium Enterprise)</option>
               <option value="enterprise">Enterprise</option>
-              <option value="smb">Small Business</option>
+              <option value="individual">Individual</option>
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">Language</label>
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              className="w-full h-11 px-4 rounded-lg bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm appearance-none font-medium"
+            >
+              <option value="en">English</option>
+              <option value="vi">Vietnamese</option>
             </select>
           </div>
         </div>
@@ -120,7 +146,7 @@ export const ServiceGeneratorPage = () => {
         <div className="flex justify-end pt-4 border-t border-slate-50">
           <Button
             onClick={() => generateMutation.mutate()}
-            disabled={generateMutation.isPending || !rawInput.trim()}
+            disabled={generateMutation.isPending || rawInput.trim().length < 20 || !skillsInput.trim() || Number(priceFrom) <= 0 || Number(deliveryDays) <= 0}
             className="rounded-lg px-8 h-11 font-bold shadow-lg shadow-primary/20 uppercase tracking-wider text-xs flex items-center gap-2"
           >
             <Sparkles className="size-4" />
