@@ -148,6 +148,38 @@ export const JobDetailsPage = () => {
     submitMutation.mutate(data);
   };
 
+  const cancelJobMutation = useMutation({
+    mutationFn: (jobId: string) => jobService.cancelJob(jobId),
+    onSuccess: () => {
+      toast.success('Job post cancelled.');
+      queryClient.invalidateQueries({ queryKey: ['job', id] });
+      queryClient.invalidateQueries({ queryKey: ['expertJobs'] });
+    },
+    onError: () => toast.error('Failed to cancel job post.'),
+  });
+
+  const deleteJobMutation = useMutation({
+    mutationFn: (jobId: string) => jobService.deleteJob(jobId),
+    onSuccess: () => {
+      toast.success('Job post deleted.');
+      queryClient.invalidateQueries({ queryKey: ['expertJobs'] });
+      navigate('/expert/jobs');
+    },
+    onError: () => toast.error('Failed to delete job post.'),
+  });
+
+  const handleCancelJob = () => {
+    if (window.confirm('Cancel this job post? Experts will no longer be able to apply.')) {
+      if (id) cancelJobMutation.mutate(id);
+    }
+  };
+
+  const handleDeleteJob = () => {
+    if (window.confirm('Delete this draft job post? This action cannot be undone.')) {
+      if (id) deleteJobMutation.mutate(id);
+    }
+  };
+
   const budgetMin = job?.budgetMin ?? 0;
   const budgetMax = job?.budgetMax ?? 0;
   const formattedBudgetRange = `${budgetMin.toLocaleString()} - ${budgetMax.toLocaleString()} Aivora Coin`;
@@ -173,14 +205,39 @@ export const JobDetailsPage = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Top Nav */}
-      <button 
-        onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-brand-accent transition-colors group"
-      >
-        <ChevronLeft className="size-4 group-hover:-translate-x-1 transition-transform" />
-        {isEditMode ? 'Back to Proposal' : 'Back to Job Board'}
-      </button>
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-2">
+        <button 
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-brand-accent transition-colors group"
+        >
+          <ChevronLeft className="size-4 group-hover:-translate-x-1 transition-transform" />
+          {isEditMode ? 'Back to Proposal' : 'Back to Job Board'}
+        </button>
+
+        <div className="flex items-center gap-3">
+          {(normalizeJobStatus(job?.status) === 'published' || normalizeJobStatus(job?.status) === 'in-progress') && (
+            <Button
+              variant="outline"
+              className="rounded-full border-rose-200 text-rose-600 hover:bg-rose-50"
+              onClick={handleCancelJob}
+              disabled={cancelJobMutation.isPending}
+            >
+              Cancel Job
+            </Button>
+          )}
+          {(normalizeJobStatus(job?.status) === 'draft') && (
+            <Button
+              variant="outline"
+              className="rounded-full border-rose-200 text-rose-600 hover:bg-rose-50"
+              onClick={handleDeleteJob}
+              disabled={deleteJobMutation.isPending}
+            >
+              Delete
+            </Button>
+          )}
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-6 items-start">
         

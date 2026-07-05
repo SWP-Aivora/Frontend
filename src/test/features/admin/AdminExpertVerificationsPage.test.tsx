@@ -13,11 +13,10 @@ vi.mock('@/shared/services/expertVerificationService', () => ({
 }));
 
 describe('AdminExpertVerificationsPage', () => {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
-
   const renderWithProviders = (ui: React.ReactElement) => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
     return render(
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>{ui}</BrowserRouter>

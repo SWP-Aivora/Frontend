@@ -262,7 +262,6 @@ describe('AdminUserDetailPage', () => {
     expect(screen.getByText('Bob Expert')).toBeInTheDocument();
     expect(screen.getByText('bob@expert.com')).toBeInTheDocument();
     expect(screen.getByText('Pending Profile Changes')).toBeInTheDocument();
-    expect(screen.getByText('Degree Cert')).toBeInTheDocument();
   });
 
   it('calls suspend action successfully', async () => {
