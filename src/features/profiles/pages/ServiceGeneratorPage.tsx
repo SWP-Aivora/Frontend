@@ -37,7 +37,8 @@ export const ServiceGeneratorPage = () => {
       }
       setResult(response.data);
     },
-    onError: (error: any) => {
+    onError: (err: unknown) => {
+      const error = err as Record<string, unknown> & { response?: { data?: { message?: string; title?: string; errors?: Record<string, string[]> } }; message?: string; name?: string; code?: string };
       const serverData = error?.response?.data;
       const serverMessage = serverData?.message || serverData?.title || (serverData?.errors ? Object.values(serverData.errors)[0] : null);
       
