@@ -52,6 +52,7 @@ export const NAV_ITEMS: Record<string, NavItem[]> = {
   [Role.ADMIN]: [
     { label: 'Admin Dashboard', href: '/admin', icon: LayoutDashboard },
     { label: 'User Management', href: '/admin/users', icon: Users },
+    { label: 'Job Post Management', href: '/admin/job-posts', icon: FileText },
     { label: 'Project Management', href: '/admin/projects', icon: Briefcase },
     { label: 'Expert Reviews', href: '/admin/expert-reviews', icon: UserCheck },
     { label: 'Verifications', href: '/admin/expert-verifications', icon: ShieldCheck },

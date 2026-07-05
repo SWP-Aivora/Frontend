@@ -9,6 +9,9 @@ import type {
   ExpertReviewActionParams,
   HealthAlertItem,
   AdminProject,
+  AdminJobPost,
+  AdminJobPostSkill,
+  AdminJobPostsQuery,
   AdminProjectMilestone,
   AdminProjectsQuery,
   AdminProjectItem,
@@ -457,6 +460,58 @@ const normalizeAdminProject = (raw: unknown): AdminProject => {
   };
 };
 
+const normalizeAdminJobPostSkill = (raw: unknown): AdminJobPostSkill => {
+  const skill = getRecord(raw);
+
+  return {
+    id: getStringValue(getValue(skill, 'id', 'Id')),
+    name: getStringValue(getValue(skill, 'name', 'Name'), 'Unnamed skill'),
+  };
+};
+
+const normalizeAdminJobPost = (raw: unknown): AdminJobPost => {
+  const job = getRecord(raw);
+  const client = getObjectValue(job, 'client', 'Client');
+  const clientName = getStringValue(
+    getValue(
+      job,
+      'clientName',
+      'ClientName',
+      'clientFullName',
+      'ClientFullName',
+      'companyName',
+      'CompanyName'
+    ) ?? getValue(client, 'fullName', 'FullName', 'name', 'Name', 'displayName', 'DisplayName'),
+    'Unknown Client'
+  );
+
+  return {
+    id: getStringValue(getValue(job, 'id', 'Id')),
+    title: getStringValue(getValue(job, 'title', 'Title'), 'Untitled job post'),
+    originalDescription: getStringValue(getValue(job, 'originalDescription', 'OriginalDescription')),
+    finalDescription: getNullableString(job, 'finalDescription', 'FinalDescription'),
+    businessDomain: getNullableString(job, 'businessDomain', 'BusinessDomain'),
+    expectedOutcome: getNullableString(job, 'expectedOutcome', 'ExpectedOutcome'),
+    categoryId: getNullableString(job, 'categoryId', 'CategoryId'),
+    categoryName: getNullableString(job, 'categoryName', 'CategoryName'),
+    budgetType: getStringOrNumberValue(getValue(job, 'budgetType', 'BudgetType'), 'Unknown'),
+    budgetMin: getNumberValue(job, 'budgetMin', 'BudgetMin') ?? null,
+    budgetMax: getNumberValue(job, 'budgetMax', 'BudgetMax') ?? null,
+    currency: getNullableString(job, 'currency', 'Currency'),
+    timelineDays: getNumberValue(job, 'timelineDays', 'TimelineDays') ?? null,
+    deadline: getNullableString(job, 'deadline', 'Deadline'),
+    experienceLevel: getStringOrNumberValue(getValue(job, 'experienceLevel', 'ExperienceLevel'), 'Unknown'),
+    visibility: getStringOrNumberValue(getValue(job, 'visibility', 'Visibility'), 'Unknown'),
+    status: getStringOrNumberValue(getValue(job, 'status', 'Status'), 'Unknown'),
+    clientId: getStringValue(getValue(job, 'clientId', 'ClientId') ?? getValue(client, 'id', 'Id', 'userId', 'UserId')),
+    clientName,
+    clientAvatarUrl: getNullableString(client, 'avatarUrl', 'AvatarUrl', 'avatar', 'Avatar', 'profilePictureUrl', 'ProfilePictureUrl'),
+    createdAt: getStringValue(getValue(job, 'createdAt', 'CreatedAt')),
+    updatedAt: getNullableString(job, 'updatedAt', 'UpdatedAt'),
+    skills: getArrayValue(job, 'skills', 'Skills').map(normalizeAdminJobPostSkill),
+  };
+};
+
 const formatExpertReviewStatus = (status: unknown): ExpertReviewItem['status'] => {
   const normalized = String(status ?? 'Pending').replace(/_/g, '').toUpperCase();
   if (normalized === 'APPROVED') return 'Approved';
@@ -564,6 +619,26 @@ export const formatActivityDate = (dateString: string): string => {
  * Admin Services
  */
 export const adminService = {
+  getJobPosts: async (params?: AdminJobPostsQuery): Promise<PaginatedResponse<AdminJobPost>> => {
+    const response = await apiClient.get(API_ENDPOINTS.JOBS.BASE, { params });
+    const normalized = normalizePaginatedResponse<AdminRecord>(response, isMutableRecord);
+
+    return {
+      ...normalized,
+      data: (normalized.data ?? []).map(normalizeAdminJobPost),
+    };
+  },
+
+  getJobPostDetail: async (id: string): Promise<BaseResponse<AdminJobPost>> => {
+    const response = await apiClient.get(API_ENDPOINTS.JOBS.ID(id));
+    const normalized = normalizeBaseResponse<AdminRecord>(response, isMutableRecord);
+
+    return {
+      ...normalized,
+      data: normalized.data ? normalizeAdminJobPost(normalized.data) : null,
+    };
+  },
+
   getProjects: async (params?: AdminProjectsQuery): Promise<PaginatedResponse<AdminProject>> => {
     const response = await apiClient.get(API_ENDPOINTS.PROJECTS.BASE, { params });
     const normalized = normalizePaginatedResponse<AdminRecord>(response, isMutableRecord);
