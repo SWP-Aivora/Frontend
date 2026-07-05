@@ -67,3 +67,21 @@ export interface WithdrawRequest {
   description?: string | null;
   paymentMethod?: string | null;
 }
+
+export interface TransferRequest {
+  amount: number;
+  description?: string | null;
+}
+
+export interface TransferResult {
+  wallet: {
+    id: string;
+    userId: string;
+    availableBalance: number;
+    heldBalance: number;
+    totalEarned: number;
+    currency: string;
+    updatedAt?: string | null;
+  };
+  transaction: Transaction;
+}

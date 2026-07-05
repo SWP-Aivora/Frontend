@@ -32,3 +32,47 @@ describe('walletService.depositDemo', () => {
     expect(result.data?.balance).toBe(2000);
   });
 });
+
+describe('walletService.transferToExpert', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('calls the transfer endpoint with expertId and payload', async () => {
+    (vi.mocked(apiClient.post)).mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          wallet: {
+            id: 'wallet-1',
+            userId: 'user-client',
+            balance: 9000,
+            currency: 'AICOIN',
+          },
+          transaction: {
+            id: 'tx-1',
+            walletId: 'wallet-1',
+            amount: 1000,
+            type: 2, // Payment/Transfer type
+            status: 1, // Completed
+            description: 'Direct Transfer to Expert',
+            createdAt: '2026-07-04T00:00:00Z',
+          },
+        },
+        message: 'Transfer to expert processed successfully',
+      },
+    });
+
+    const result = await walletService.transferToExpert('expert-user-id', {
+      amount: 1000,
+      description: 'Direct Transfer to Expert',
+    });
+
+    expect(apiClient.post).toHaveBeenCalledWith('wallet/transfer/expert-user-id', {
+      amount: 1000,
+      description: 'Direct Transfer to Expert',
+    });
+    expect(result.success).toBe(true);
+    expect(result.data?.transaction.amount).toBe(1000);
+  });
+});

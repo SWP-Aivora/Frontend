@@ -10,14 +10,16 @@ import { profileService } from '../services';
 import { reviewService } from '@/features/reviews/services';
 import { projectService } from '@/features/projects/services';
 import { chatService } from '@/features/chat/services';
-import { AvailabilityStatus, ProjectStatus } from '@/shared/types/enums';
+import { AvailabilityStatus, ProjectStatus, Role } from '@/shared/types/enums';
 import { useAuthStore } from '@/features/auth/store';
+import { DirectTransferModal } from '@/features/wallet';
 
 export const ExpertPublicProfilePage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const currentUserId = useAuthStore((state) => state.user?.id);
+  const isClient = useAuthStore((state) => state.user?.role === Role.CLIENT);
 
   const expertId = id || '';
 
@@ -400,6 +402,13 @@ export const ExpertPublicProfilePage = () => {
                 >
                   {initChatMutation.isPending ? 'Connecting...' : 'Send Message'}
                 </Button>
+
+                {isClient && currentUserId !== profile?.userId && (
+                  <DirectTransferModal 
+                    recipientId={profile?.userId || ''} 
+                    recipientName={name} 
+                  />
+                )}
               </div>
             </div>
 
