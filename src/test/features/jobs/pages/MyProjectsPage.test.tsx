@@ -15,9 +15,6 @@ vi.mock('@tanstack/react-query', async () => {
   };
 });
 
-vi.mock('../../../../features/jobs/hooks/useJobStatusUpdates', () => ({
-  useJobStatusUpdates: vi.fn(),
-}));
 
 vi.mock('../../../../features/projects/services', () => ({
   projectService: {

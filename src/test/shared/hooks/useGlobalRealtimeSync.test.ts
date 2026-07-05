@@ -75,7 +75,7 @@ describe('useGlobalRealtimeSync', () => {
       wrapper: createWrapper(queryClient),
     });
 
-    expect(mockConnect).toHaveBeenCalled();
+    expect(mockConnect).toHaveBeenCalledWith();
   });
 
   it('does NOT call chatService.connect when there is no authentication', async () => {
@@ -123,6 +123,7 @@ describe('useGlobalRealtimeSync', () => {
 
     // All relevant query keys should be invalidated
     const expectedKeys = [
+      ['jobs'],
       ['clientJobs'],
       ['myProposals'],
       ['expertProjects'],
@@ -156,5 +157,18 @@ describe('useGlobalRealtimeSync', () => {
     unmount();
 
     expect(mockUnsubscribe).toHaveBeenCalledTimes(1);
+  });
+  it('does NOT call chatService.connect when user is NOT authenticated', async () => {
+    mockAuthState = { accessToken: 'some-token', isAuthenticated: false };
+
+    const { useGlobalRealtimeSync } = await import(
+      '@/shared/hooks/useGlobalRealtimeSync'
+    );
+
+    renderHook(() => useGlobalRealtimeSync(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    expect(mockConnect).not.toHaveBeenCalled();
   });
 });
