@@ -45,8 +45,10 @@ export const API_ENDPOINTS = {
     SEARCH_EXPERTS: 'profiles/experts/search',
   },
   MEDIA: {
+    BASE: 'media',
     UPLOAD_IMAGE: 'media/upload-image',
     UPLOAD_FILE: 'media/upload-file',
+    DELETE: (publicId: string) => `media/${publicId}`,
   },
   USERS: {
     ME: 'users/me',
@@ -104,6 +106,9 @@ export const QUERY_KEYS = {
     DETAIL: (id: string) => ['job', id] as const,
     PROPOSALS: (id: string) => ['proposals', id] as const,
     PROPOSAL_COUNT: (id: string) => ['proposals', id, 'count'] as const,
+  },
+  MEDIA: {
+    LIST: ['media', 'list'] as const,
   },
 } as const;
 
