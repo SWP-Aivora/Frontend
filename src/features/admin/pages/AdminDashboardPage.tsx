@@ -21,7 +21,6 @@ export const AdminDashboardPage = () => {
 
   const recentActivity = recentActivityResponse?.data || [];
   const activityFailed = isActivityError || recentActivityResponse?.success === false;
-  const isPreviewMode = (summary as unknown as Record<string, unknown>)?._isStub === true;
   const isPartialData = !isError && summary?.healthAlerts?.some((alert) => alert.title.includes('API Unavailable'));
 
   const paginatedProjects = summary?.activeProjectsList || [];
@@ -39,7 +38,6 @@ export const AdminDashboardPage = () => {
       <DashboardHeader
         summary={summary ?? undefined}
         isPartialData={Boolean(isPartialData)}
-        isPreviewMode={isPreviewMode}
         onRetry={() => refetch()}
       />
 

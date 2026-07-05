@@ -16,11 +16,10 @@ import {
   Briefcase, 
   FileText,
   Activity,
-  ExternalLink,
   Clock
 } from 'lucide-react';
 import { adminService } from '../services';
-import type { ExpertReviewItem, AdminUserManagementData, AdminExpertReviewsData } from '../types';
+import type { ExpertReviewItem } from '../types';
 
 export const AdminUserDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -34,12 +33,6 @@ export const AdminUserDetailPage = () => {
   // Fetch reviews to find if this expert has a pending one
   const { data: reviewsDataResponse } = useAdminExpertReviews();
 
-  // PREVIEW MODE:
-  // Derived from data sources (adminService handles fallback)
-  const isPreviewMode = (userDataResponse as AdminUserManagementData & { _isStub?: boolean })?._isStub || 
-                       (reviewsDataResponse as AdminExpertReviewsData & { _isStub?: boolean })?._isStub || 
-                       false; 
-  
   const userData = userDataResponse;
   const reviewsData = reviewsDataResponse;
 
@@ -90,7 +83,7 @@ export const AdminUserDetailPage = () => {
     );
   }
 
-  if (isUserError && !isPreviewMode) {
+  if (isUserError) {
     return (
       <div className="bg-rose-50 border border-rose-100 rounded-lg p-10 text-center max-w-2xl mx-auto my-10">
         <AlertCircle className="size-12 text-rose-500 mx-auto mb-4" />
@@ -300,12 +293,7 @@ export const AdminUserDetailPage = () => {
                               requested={`${currentReviewDetail.hourlyRate.requested} Aivora Coin/hr`}
                              isChanged={currentReviewDetail.hourlyRate.isChanged}
                            />
-                           <ComparisonField 
-                             label="Skills" 
-                             current={currentReviewDetail.skillsComparison.current.join(', ')} 
-                             requested={currentReviewDetail.skillsComparison.requested.join(', ')}
-                             isChanged={currentReviewDetail.skillsComparison.isChanged}
-                           />
+
                            <ComparisonField 
                              label="Categories" 
                              current={currentReviewDetail.categories.current.join(', ')} 
@@ -320,44 +308,7 @@ export const AdminUserDetailPage = () => {
                            />
                         </div>
 
-                        {/* Evidence */}
-                        <div className="space-y-4">
-                           <div className="flex items-center justify-between">
-                            <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                              <FileText className="size-4 text-primary" />
-                              Verification Evidence
-                            </h4>
-                            <span className="bg-slate-50 text-slate-500 text-xs font-black px-2 py-0.5 rounded-full border border-slate-100">
-                              {currentReviewDetail.portfolio.length} items
-                            </span>
-                           </div>
-                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              {currentReviewDetail.portfolio.map((item: { id: string; title: string; type: string; url: string; status: string }) => (
-                                <div key={item.id} className="group p-3 bg-slate-50 hover:bg-white rounded-lg border border-slate-100 hover:border-primary/20 transition-all flex items-center justify-between">
-                                  <div className="flex items-center gap-3">
-                                    <div className="size-10 rounded-lg bg-white flex items-center justify-center border border-slate-100 group-hover:border-primary/20">
-                                      <span className="text-xs font-black text-primary">DOC</span>
-                                    </div>
-                                    <div>
-                                      <p className="text-xs font-bold text-slate-900 leading-tight">{item.title}</p>
-                                      <p className="text-xs text-slate-500 font-medium mt-0.5">{item.type}</p>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                     <span className={cn(
-                                       "px-2 py-0.5 rounded-full text-xs font-bold border",
-                                       item.status === 'Verified' || item.status === 'Strong' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-orange-50 text-orange-600 border-orange-100"
-                                     )}>
-                                       {item.status}
-                                     </span>
-                                     <button className="p-1.5 hover:bg-primary/10 text-slate-400 hover:text-primary rounded-lg transition-colors">
-                                       <ExternalLink className="size-3.5" />
-                                     </button>
-                                  </div>
-                                </div>
-                              ))}
-                           </div>
-                        </div>
+
 
                         {/* Decision */}
                         <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row gap-3">

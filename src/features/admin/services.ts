@@ -501,14 +501,12 @@ const normalizeExpertReviewDetail = (raw: unknown): ExpertReviewDetail => {
     ...base,
     bio: { current: currentBio, requested: bio, isChanged: currentBio !== bio },
     hourlyRate: { current: currentHourlyRate, requested: hourlyRate, isChanged: currentHourlyRate !== hourlyRate },
-    skillsComparison: { current: [], requested: [], isChanged: false },
     categories: { current: [], requested: [], isChanged: false },
     experience: {
       current: String(currentExperienceYears),
       requested: String(experienceYears),
       isChanged: currentExperienceYears !== experienceYears,
     },
-    portfolio: [],
     adminNote: getOptionalString(item, 'rejectionReason', 'RejectionReason'),
   };
 };
