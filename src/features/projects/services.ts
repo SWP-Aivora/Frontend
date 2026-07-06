@@ -131,15 +131,6 @@ export const projectService = {
     return normalizeBaseResponse<void>(response);
   },
 
-  completeProject: async (id: string): Promise<BaseResponse<Project>> => {
-    const response = await apiClient.post(`${API_ENDPOINTS.PROJECTS.ID(id)}/complete`);
-    const normalized = normalizeBaseResponse<Project>(response);
-    return {
-      ...normalized,
-      data: normalized.data ? normalizeProject(normalized.data) : null,
-    };
-  },
-
   // Milestone endpoints
   getMilestonesByProject: async (projectId: string): Promise<PaginatedResponse<Milestone>> => {
     const response = await apiClient.get(API_ENDPOINTS.PROJECTS.ID(projectId));
