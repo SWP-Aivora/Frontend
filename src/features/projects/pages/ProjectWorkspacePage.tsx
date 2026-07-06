@@ -287,7 +287,6 @@ export const ProjectWorkspacePage = () => {
   const [selectedMilestone, setSelectedMilestone] = useState<Milestone | null>(null);
   const [timelineSelectedMilestoneId, setTimelineSelectedMilestoneId] = useState('');
   const [viewedTimelineMilestoneId, setViewedTimelineMilestoneId] = useState('');
-  const [isFinishModalOpen, setIsFinishModalOpen] = useState(false);
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
   const [isAddMilestoneModalOpen, setIsAddMilestoneModalOpen] = useState(false);
   const [isTimelineStepModalOpen, setIsTimelineStepModalOpen] = useState(false);
@@ -453,6 +452,7 @@ export const ProjectWorkspacePage = () => {
   const approveMutation = useMutation({
     mutationFn: (milestoneId: string) => projectService.approveMilestone(milestoneId),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
       queryClient.invalidateQueries({ queryKey: ['project', id, 'milestones'] });
       setSelectedMilestone(null);
     }
@@ -531,41 +531,6 @@ export const ProjectWorkspacePage = () => {
     },
   });
 
-  const finishProjectMutation = useMutation({
-    mutationFn: () => projectService.completeProject(id!),
-    onSuccess: (response) => {
-      const completedProject = response.data ?? project;
-      queryClient.setQueryData<typeof projectResponse>(['project', id], (current) => {
-        if (!current) return current;
-        return {
-          ...current,
-          data: completedProject ?? current.data,
-        };
-      });
-      setIsFinishModalOpen(false);
-
-      if (!completedProject) return;
-      const reviewState = buildReviewState(completedProject);
-      if (!reviewState) return;
-
-      navigate('/reviews', {
-        state: reviewState,
-      });
-    },
-    onError: (error) => {
-      const message =
-        typeof error === 'object' &&
-        error !== null &&
-        'response' in error &&
-        typeof (error as { response?: { data?: { message?: unknown } } }).response?.data?.message === 'string'
-          ? (error as { response: { data: { message: string } } }).response.data.message
-          : error instanceof Error
-            ? error.message
-            : 'Failed to finish project.';
-
-      toast.error(message);
-    },
-  });
 
   const openChatMutation = useMutation({
     mutationFn: async () => {
@@ -704,7 +669,6 @@ export const ProjectWorkspacePage = () => {
   };
 
   const canShowFinishProject = user?.role === Role.CLIENT && user.id === project?.clientId;
-  const canRequestFinishProject = !!id && project?.status !== ProjectStatus.CANCELLED;
   const canReviewCompletedProject = project?.status === ProjectStatus.COMPLETED;
   const canOpenProjectDispute = Boolean(
     project
@@ -752,18 +716,13 @@ export const ProjectWorkspacePage = () => {
     setIsSubmitModalOpen(true);
   };
 
-  const handleFinishProject = () => {
+  const handleLeaveReview = () => {
     if (!project) return;
 
-    if (canReviewCompletedProject) {
-      const reviewState = buildReviewState(project);
-      if (reviewState) {
-        navigate('/reviews', { state: reviewState });
-      }
-      return;
+    const reviewState = buildReviewState(project);
+    if (reviewState) {
+      navigate('/reviews', { state: reviewState });
     }
-
-    finishProjectMutation.mutate();
   };
 
   const handleDisputeCreated = () => {
@@ -851,15 +810,13 @@ export const ProjectWorkspacePage = () => {
                 View Disputes
              </Button>
            )}
-           {canShowFinishProject && (
+           {canShowFinishProject && canReviewCompletedProject && (
              <Button
                variant="outline"
-               onClick={handleFinishProject}
-               disabled={!canRequestFinishProject || finishProjectMutation.isPending}
+               onClick={handleLeaveReview}
                className="rounded-full px-6 border-slate-200 font-black"
-               title={!canRequestFinishProject ? 'This project cannot be finished from this state.' : undefined}
              >
-                {finishProjectMutation.isPending ? 'Finishing...' : 'Finish Project'}
+                Leave a Review
              </Button>
            )}
            <Button
@@ -1774,30 +1731,6 @@ export const ProjectWorkspacePage = () => {
                 className="rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-600/20 font-black border-none"
               >
                 {revisionMutation.isPending ? 'Requesting...' : 'Request Revision'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isFinishModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsFinishModalOpen(false)} />
-          <div className="bg-white rounded-2xl p-8 w-[90%] max-w-md relative z-10 shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-2xl font-black text-slate-900 mb-2">Finish this project?</h3>
-            <p className="text-sm text-slate-500 mb-6 leading-relaxed">
-              This will mark the project as completed and the client may be asked to review the expert.
-            </p>
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setIsFinishModalOpen(false)} className="rounded-full font-bold">
-                Cancel
-              </Button>
-              <Button
-                onClick={() => finishProjectMutation.mutate()}
-                disabled={finishProjectMutation.isPending}
-                className="rounded-full shadow-lg shadow-primary/20 font-black"
-              >
-                {finishProjectMutation.isPending ? 'Finishing...' : 'Finish Project'}
               </Button>
             </div>
           </div>
