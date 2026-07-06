@@ -39,9 +39,9 @@ export const NAV_ITEMS: Record<string, NavItem[]> = {
   ],
   [Role.EXPERT]: [
     { label: 'Dashboard', href: '/expert', icon: LayoutDashboard },
+    { label: 'My Workspace', href: '/expert/my-jobs', icon: Briefcase },
     { label: 'Find Work', href: '/expert/jobs', icon: Search },
     { label: 'My Proposals', href: '/expert/proposals', icon: FileText },
-    { label: 'My Jobs', href: '/expert/my-jobs', icon: Briefcase },
     { label: 'Service Generator', href: '/expert/service-generator', icon: Sparkles },
     { label: 'Messages', href: '/expert/messages', icon: MessageSquare },
     { label: 'Notifications', href: '/expert/notifications', icon: Bell },
