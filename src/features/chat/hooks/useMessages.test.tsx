@@ -9,6 +9,7 @@ const mockConnection = vi.hoisted(() => ({
   stop: vi.fn().mockResolvedValue(undefined),
   invoke: vi.fn().mockResolvedValue(undefined),
   on: vi.fn(),
+  off: vi.fn(),
   onclose: vi.fn(),
   onreconnecting: vi.fn(),
   onreconnected: vi.fn(),
@@ -33,7 +34,7 @@ describe('useRealTimeMessages', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockConnection.state = 'Connected';
-    useAuthStore.setState({ accessToken: 'token-123' });
+    useAuthStore.setState({ accessToken: 'token-123', isAuthenticated: true });
   });
 
   it('joins the conversation SignalR group so ReceiveMessage broadcasts are received', async () => {

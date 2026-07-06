@@ -4,7 +4,7 @@ import { ChatBox } from '../components/ChatBox';
 import { ChatHeader } from '../components/ChatHeader';
 import { EmptyState } from '../components/EmptyState';
 import { useConversations } from '../hooks/useConversations';
-import { useMessages, useRealTimeMessages, useMarkRead, useSendMessage } from '../hooks/useMessages';
+import { useMessages, useRealTimeMessages, useMarkRead, useSendMessage, useTyping } from '../hooks/useMessages';
 import type { Conversation } from '../types';
 import { Info, ChevronRight, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
@@ -57,6 +57,7 @@ export const ChatWorkspacePage = () => {
 
   // Enable real-time updates - hook handles conditional logic internally
   useRealTimeMessages(selectedConversationId);
+  const { isOtherTyping, notifyTyping } = useTyping(selectedConversationId);
 
   // Strictly use API data
   const conversations = useMemo(() => {
@@ -237,11 +238,13 @@ export const ChatWorkspacePage = () => {
                 onToggleRightPanel={() => setIsRightPanelCollapsed(!isRightPanelCollapsed)}
               />
               
-              <ChatBox 
-                messages={messages} 
+              <ChatBox
+                messages={messages}
                 isLoading={isLoadingMessages}
                 isSending={isSendingMessage}
+                isOtherTyping={isOtherTyping}
                 onSendMessage={handleSendMessage}
+                onTyping={notifyTyping}
               />
             </>
           ) : (

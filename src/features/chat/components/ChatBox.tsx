@@ -8,10 +8,12 @@ interface ChatBoxProps {
   messages: Message[];
   isLoading: boolean;
   isSending?: boolean;
+  isOtherTyping?: boolean;
   onSendMessage?: (content: string, attachmentUrl?: string) => Promise<void>;
+  onTyping?: () => void;
 }
 
-export const ChatBox = ({ messages, isLoading, isSending = false, onSendMessage }: ChatBoxProps) => {
+export const ChatBox = ({ messages, isLoading, isSending = false, isOtherTyping = false, onSendMessage, onTyping }: ChatBoxProps) => {
   const { user } = useAuthStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -48,9 +50,14 @@ export const ChatBox = ({ messages, isLoading, isSending = false, onSendMessage 
         )}
       </div>
 
+      {isOtherTyping && (
+        <div className="px-4 lg:px-6 pb-1 text-xs text-slate-500 italic">typing…</div>
+      )}
+
       {onSendMessage && (
         <MessageInput
           onSendMessage={onSendMessage}
+          onTyping={onTyping}
           disabled={isLoading || isSending}
           disabledReason={isSending ? 'Sending message...' : 'Please wait while messages load.'}
         />
