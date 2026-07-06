@@ -231,7 +231,10 @@ export const jobService = {
 
   // Cancel job (Client action) - only allowed while the job is still draft or open
   cancelJob: async (id: string, reason?: string): Promise<BaseResponse<Job>> => {
-    const response = await apiClient.post(`/jobs/${id}/cancel`, reason ?? null);
+    // BE binds [FromBody] string? — body must be a JSON-encoded string, not raw text
+    const response = await apiClient.post(`/jobs/${id}/cancel`, JSON.stringify(reason ?? null), {
+      headers: { 'Content-Type': 'application/json' },
+    });
     const normalized = normalizeBaseResponse<Job>(response);
     return {
       ...normalized,

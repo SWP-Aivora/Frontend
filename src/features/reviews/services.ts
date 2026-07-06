@@ -11,14 +11,18 @@ export const reviewService = {
     return response.data;
   },
 
-  getUserReviews: async (userId: string, pageSize: number = 10, pageIndex: number = 1) => {
-    const response = await axiosInstance.get<UserReviewsResponse>(`${BASE_URL}/users/${userId}/reviews`, {
+  getUserReviews: async (userId: string, pageSize: number = 10, pageIndex: number = 1): Promise<UserReviewsResponse> => {
+    const response = await axiosInstance.get(`${BASE_URL}/users/${userId}/reviews`, {
       params: {
         PageSize: pageSize,
         PageIndex: pageIndex,
       },
     });
-    return response.data;
+    const normalized = normalizePaginatedResponse<Review>(response);
+    return {
+      items: normalized.data ?? [],
+      totalCount: normalized.metadata?.totalCount ?? normalized.data?.length ?? 0,
+    };
   },
 
   getProjectReviews: async (projectId: string, pageSize: number = 10, pageIndex: number = 1): Promise<PaginatedResponse<Review>> => {

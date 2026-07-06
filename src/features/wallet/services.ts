@@ -50,6 +50,7 @@ const normalizeTransactionStatus = (
   const text = toStringValue(value)?.toLowerCase();
   if (text?.includes('success') || text?.includes('complete') || text?.includes('paid')) return TransactionStatus.COMPLETED;
   if (text?.includes('fail') || text?.includes('cancel') || text?.includes('reject')) return TransactionStatus.FAILED;
+  if (text?.includes('pending')) return TransactionStatus.PENDING;
 
   if (item) {
     const isCompleted = item.isCompleted ?? item.IsCompleted ?? item.completed ?? item.Completed;
@@ -79,7 +80,9 @@ const normalizeTransactionStatus = (
     }
   }
 
-  return TransactionStatus.PENDING;
+  // BE ledger only records transactions after the balance has moved,
+  // so entries without an explicit status are already completed.
+  return TransactionStatus.COMPLETED;
 };
 
 const buildFallbackTransactionId = (

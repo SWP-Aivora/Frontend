@@ -941,9 +941,14 @@ export const ProjectWorkspacePage = () => {
 
             <div className="flex justify-end gap-3">
               <Button variant="outline" onClick={() => setIsSubmitModalOpen(false)} className="rounded-full font-bold">Cancel</Button>
-              <Button 
-                onClick={() => submitMutation.mutate({ milestoneId: selectedMilestone!.id, data: submitData })} 
-                disabled={submitMutation.isPending || !submitData.description.trim()}
+              <Button
+                onClick={() => submitMutation.mutate({ milestoneId: selectedMilestone!.id, data: submitData })}
+                disabled={
+                  submitMutation.isPending
+                  || !submitData.description.trim()
+                  // BE requires at least one evidence field (Description alone is rejected)
+                  || ![submitData.fileUrl, submitData.demoUrl, submitData.sourceCodeUrl, submitData.note].some(v => v.trim())
+                }
                 className="rounded-full shadow-lg shadow-primary/20 font-black"
               >
                 {submitMutation.isPending

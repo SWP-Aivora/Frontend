@@ -44,9 +44,13 @@ const getNumber = (value: unknown, fallback = 0): number => (
   typeof value === 'number' ? value : fallback
 );
 
-const normalizeAvailabilityStatus = (value: unknown): AvailabilityStatus => (
-  Number.isInteger(value) ? value as AvailabilityStatus : AvailabilityStatus.AVAILABLE
-);
+const normalizeAvailabilityStatus = (value: unknown): AvailabilityStatus => {
+  if (typeof value === 'string') {
+    const key = value.toUpperCase() as keyof typeof AvailabilityStatus;
+    if (key in AvailabilityStatus) return AvailabilityStatus[key];
+  }
+  return Number.isInteger(value) ? value as AvailabilityStatus : AvailabilityStatus.AVAILABLE;
+};
 
 const toNullableTrimmedString = (value: string | null | undefined): string | null => {
   const trimmed = value?.trim() ?? '';
@@ -172,7 +176,13 @@ export const profileService = {
   getExpertProfile: async (): Promise<BaseResponse<ExpertProfile>> => {
     try {
       const response = await apiClient.get(API_ENDPOINTS.PROFILES.EXPERT);
-      return normalizeBaseResponse<ExpertProfile>(response);
+      const normalized = normalizeBaseResponse<ExpertProfile>(response);
+      return {
+        ...normalized,
+        data: normalized.data
+          ? { ...normalized.data, availabilityStatus: normalizeAvailabilityStatus(normalized.data.availabilityStatus) }
+          : null,
+      };
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 404) {
         return {
