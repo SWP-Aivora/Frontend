@@ -9,6 +9,7 @@ import { ExpertMatchInsights } from '../components/ExpertMatchInsights';
 import { jobService } from '../services';
 import { AiJobAssistantStatus, type ChatMessage, type AiJobSuggestion, type PatchAiJobSuggestionRequest, type AcceptAiJobSuggestionRequest, type AcceptedJobResponse, type CreateJobRequest, type Job } from '../types';
 import { categoryService } from '@/shared/services/categoryService';
+import { skillService } from '@/shared/services/skillService';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useDebouncedCallback } from '@/shared/hooks/useDebounce';
@@ -102,6 +103,7 @@ export const PostJobPage = () => {
   const [isDraftSaved, setIsDraftSaved] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
 
   // --- Refs for stale closure guards ---
   const isBusyRef = useRef(false);
@@ -129,6 +131,12 @@ export const PostJobPage = () => {
     queryFn: () => categoryService.getCategories(),
   });
 
+  const { data: skillsResponse } = useQuery({
+    queryKey: ['jobPostSkills', suggestion?.categoryId],
+    queryFn: () => skillService.getSkills(suggestion?.categoryId ?? undefined),
+    enabled: !!suggestion?.categoryId,
+  });
+
   const {
     data: existingJobResponse,
     isLoading: isLoadingExistingJob,
@@ -143,6 +151,7 @@ export const PostJobPage = () => {
   });
 
   const categories = categoriesResponse?.data ?? [];
+  const skills = skillsResponse?.data ?? [];
   const isPublishedExistingJob = isEditingExistingJob && existingJobResponse?.data
     ? !isDraftJobStatus(existingJobResponse.data.status)
     : false;
@@ -341,7 +350,7 @@ export const PostJobPage = () => {
       return jobService.rejectAiJobSuggestion(suggestion.id, reason);
     },
     onSuccess: () => {
-      toast.success('Draft discarded. Start a new conversation whenever you\'re ready.');
+      toast.success('Suggestion rejected. Start a new conversation whenever you\'re ready.');
       setIsRejectModalOpen(false);
       setRejectReason('');
       setSuggestion(null);
@@ -358,7 +367,7 @@ export const PostJobPage = () => {
       ]);
     },
     onError: (error: unknown) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to discard draft');
+      toast.error(error instanceof Error ? error.message : 'Failed to reject suggestion');
     }
   });
 
@@ -551,6 +560,7 @@ export const PostJobPage = () => {
 
     return {
       categoryId: suggestion.categoryId ?? null,
+      selectedSkillIds,
     };
   };
 
@@ -626,7 +636,7 @@ export const PostJobPage = () => {
       deadline: getDateAfterDays(suggestion.suggestedTimelineDays),
       experienceLevel: toCreateJobSkillLevel(suggestion.experienceLevel),
       visibility: JobVisibility.PRIVATE,
-      skillIds: [],
+      skillIds: selectedSkillIds,
       milestones: suggestion.suggestedMilestones.map((milestone, index) => ({
         title: milestone.title,
         description: milestone.description,
@@ -1078,6 +1088,13 @@ export const PostJobPage = () => {
              <JobDraftForm 
                 suggestion={suggestion}
                 categories={categories}
+                skills={skills}
+                selectedSkillIds={selectedSkillIds}
+                onSkillChange={(skillId) => {
+                  setSelectedSkillIds(prev => 
+                    prev.includes(skillId) ? prev.filter(id => id !== skillId) : [...prev, skillId]
+                  );
+                }}
                 onUpdate={handleManualUpdate}
                onCategoryChange={handleCategoryChange}
                onAccept={handleAccept}
@@ -1096,7 +1113,7 @@ export const PostJobPage = () => {
         <div className="fixed inset-0 z-[60] flex items-center justify-center">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsRejectModalOpen(false)} />
           <div className="bg-white rounded-2xl p-8 w-[90%] max-w-lg relative z-10 shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-2xl font-black text-slate-900 mb-2">Discard this draft?</h3>
+            <h3 className="text-2xl font-black text-slate-900 mb-2">Reject this suggestion?</h3>
             <p className="text-sm text-slate-500 mb-6">Tell us why so we can improve future suggestions. This clears the current draft and starts a new conversation.</p>
 
             <div className="space-y-4 mb-8">
@@ -1119,7 +1136,7 @@ export const PostJobPage = () => {
                 disabled={rejectMutation.isPending || rejectReason.trim().length < 3}
                 className="rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-600/20 font-black border-none"
               >
-                {rejectMutation.isPending ? 'Discarding...' : 'Discard Draft'}
+                {rejectMutation.isPending ? 'Rejecting...' : 'Reject Suggestion'}
               </Button>
             </div>
           </div>

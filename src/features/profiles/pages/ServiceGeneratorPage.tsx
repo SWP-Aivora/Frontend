@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { Sparkles, Copy } from 'lucide-react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { Sparkles, Copy, X, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/shared/components/ui/Button';
 import { aiServiceGeneratorService, type ServiceDescriptionResult } from '../aiServiceGeneratorService';
+import { profileService } from '../services';
 
 const copyToClipboard = (text: string, label: string) => {
   navigator.clipboard.writeText(text);
@@ -17,7 +18,80 @@ export const ServiceGeneratorPage = () => {
   const [deliveryDays, setDeliveryDays] = useState('7');
   const [tone, setTone] = useState('professional');
   const [targetClient, setTargetClient] = useState('startup');
+  const [language, setLanguage] = useState('en');
   const [result, setResult] = useState<ServiceDescriptionResult | null>(null);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalBio, setModalBio] = useState('');
+
+  const { data: profileResponse, refetch: refetchProfile } = useQuery({
+    queryKey: ['expertProfile'],
+    queryFn: profileService.getExpertProfile,
+    enabled: false,
+  });
+
+  const updateProfileMutation = useMutation({
+    mutationFn: (data: { title: string; bio: string; hourlyRate: number; experienceYears: number; availabilityStatus: number }) => 
+      profileService.updateExpertProfile({
+        title: data.title,
+        bio: data.bio,
+        hourlyRate: data.hourlyRate,
+        experienceYears: data.experienceYears,
+        availabilityStatus: data.availabilityStatus
+      }),
+    onSuccess: () => {
+      toast.success('Profile updated successfully!');
+      setIsModalOpen(false);
+    },
+    onError: (err: unknown) => {
+      const error = err as Record<string, unknown> & { response?: { data?: { message?: string } } };
+      toast.error('Failed to update profile');
+      console.error(error);
+    }
+  });
+
+  const handleOpenModal = async () => {
+    if (!result) return;
+    
+    let fullBio = result.suggestedDescription + '\n\n';
+    
+    if (result.packages.length > 0) {
+      fullBio += '--- PACKAGES ---\n';
+      result.packages.forEach(pkg => {
+        fullBio += `${pkg.name} (${pkg.price} Aivora Coin): ${pkg.description}\n`;
+      });
+      fullBio += '\n';
+    }
+    
+    if (result.faqs.length > 0) {
+      fullBio += '--- FAQs ---\n';
+      result.faqs.forEach(faq => {
+        fullBio += `Q: ${faq.question}\nA: ${faq.answer}\n\n`;
+      });
+    }
+
+    setModalTitle(result.suggestedTitle);
+    setModalBio(fullBio.trim());
+    
+    await refetchProfile();
+    setIsModalOpen(true);
+  };
+
+  const handleSaveToProfile = () => {
+    const currentProfile = profileResponse?.data;
+    if (!currentProfile) {
+      toast.error('Could not fetch current profile data');
+      return;
+    }
+    updateProfileMutation.mutate({
+      title: modalTitle,
+      bio: modalBio,
+      hourlyRate: currentProfile.hourlyRate || 0,
+      experienceYears: currentProfile.experienceYears || 0,
+      availabilityStatus: currentProfile.availabilityStatus || 1,
+    });
+  };
 
   const generateMutation = useMutation({
     mutationFn: () => aiServiceGeneratorService.generateServiceDescription({
@@ -27,6 +101,7 @@ export const ServiceGeneratorPage = () => {
       deliveryDays: Number(deliveryDays) || 0,
       tone,
       targetClient,
+      language,
     }),
     onSuccess: (response) => {
       if (!response.data) {
@@ -35,8 +110,17 @@ export const ServiceGeneratorPage = () => {
       }
       setResult(response.data);
     },
-    onError: () => {
-      toast.error('Failed to generate service description');
+    onError: (err: unknown) => {
+      const error = err as Record<string, unknown> & { response?: { data?: { message?: string; title?: string; errors?: Record<string, string[]> } }; message?: string; name?: string; code?: string };
+      const serverData = error?.response?.data;
+      const serverMessage = serverData?.message || serverData?.title || (serverData?.errors ? Object.values(serverData.errors)[0] : null);
+      
+      if (!error.response && (error?.message === 'Network Error' || error?.name === 'AxiosError' || error?.code === 'ERR_NETWORK')) {
+        toast.error('Network error: Please check your internet connection.');
+      } else {
+        toast.error(serverMessage ? `Lỗi: ${serverMessage}` : 'Failed to generate service description');
+        console.error("API 400 Error Details:", serverData);
+      }
     },
   });
 
@@ -56,9 +140,12 @@ export const ServiceGeneratorPage = () => {
             value={rawInput}
             onChange={(e) => setRawInput(e.target.value)}
             rows={4}
-            placeholder="e.g. I build custom React dashboards with data visualizations for SaaS startups"
+            placeholder="e.g. I build custom React dashboards with data visualizations for SaaS startups (min 20 characters)"
             className="w-full p-4 rounded-lg bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm font-medium"
           />
+          {rawInput.trim().length > 0 && rawInput.trim().length < 20 && (
+            <p className="text-xs text-red-500 ml-1">Description must be at least 20 characters.</p>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -100,7 +187,8 @@ export const ServiceGeneratorPage = () => {
             >
               <option value="professional">Professional</option>
               <option value="friendly">Friendly</option>
-              <option value="confident">Confident</option>
+              <option value="premium">Premium</option>
+              <option value="technical">Technical</option>
             </select>
           </div>
           <div className="space-y-1.5">
@@ -111,8 +199,20 @@ export const ServiceGeneratorPage = () => {
               className="w-full h-11 px-4 rounded-lg bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm appearance-none font-medium"
             >
               <option value="startup">Startups</option>
+              <option value="sme">SME (Small/Medium Enterprise)</option>
               <option value="enterprise">Enterprise</option>
-              <option value="smb">Small Business</option>
+              <option value="individual">Individual</option>
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">Language</label>
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              className="w-full h-11 px-4 rounded-lg bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm appearance-none font-medium"
+            >
+              <option value="en">English</option>
+              <option value="vi">Vietnamese</option>
             </select>
           </div>
         </div>
@@ -120,7 +220,7 @@ export const ServiceGeneratorPage = () => {
         <div className="flex justify-end pt-4 border-t border-slate-50">
           <Button
             onClick={() => generateMutation.mutate()}
-            disabled={generateMutation.isPending || !rawInput.trim()}
+            disabled={generateMutation.isPending || rawInput.trim().length < 20 || !skillsInput.trim() || Number(priceFrom) <= 0 || Number(deliveryDays) <= 0}
             className="rounded-lg px-8 h-11 font-bold shadow-lg shadow-primary/20 uppercase tracking-wider text-xs flex items-center gap-2"
           >
             <Sparkles className="size-4" />
@@ -193,6 +293,53 @@ export const ServiceGeneratorPage = () => {
               </div>
             </div>
           )}
+
+          <div className="flex justify-end pt-6 border-t border-slate-100">
+            <Button onClick={handleOpenModal} className="rounded-lg px-8 h-11 font-bold shadow-lg shadow-primary/20 uppercase tracking-wider text-xs">
+              Apply to Profile
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+              <h2 className="text-xl font-black text-slate-900">Review & Apply to Profile</h2>
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <X className="size-5" />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">Title</label>
+                <input
+                  value={modalTitle}
+                  onChange={(e) => setModalTitle(e.target.value)}
+                  className="w-full h-11 px-4 rounded-lg bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm font-medium"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 ml-1 uppercase tracking-widest">Bio (including Packages & FAQs)</label>
+                <textarea
+                  value={modalBio}
+                  onChange={(e) => setModalBio(e.target.value)}
+                  rows={12}
+                  className="w-full p-4 rounded-lg bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm font-medium"
+                />
+              </div>
+            </div>
+            <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveToProfile} disabled={updateProfileMutation.isPending} className="flex items-center gap-2">
+                <Check className="size-4" />
+                {updateProfileMutation.isPending ? 'Saving...' : 'Confirm & Save'}
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>

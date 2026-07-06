@@ -11,9 +11,10 @@ import {
   PlusCircle,
   FileText,
   Bell,
-  Tags,
   Wrench,
   Sparkles,
+  ShieldCheck,
+  LayoutGrid,
   type LucideIcon
 } from 'lucide-react';
 import { Role } from '@/shared/types/enums';
@@ -38,9 +39,9 @@ export const NAV_ITEMS: Record<string, NavItem[]> = {
   ],
   [Role.EXPERT]: [
     { label: 'Dashboard', href: '/expert', icon: LayoutDashboard },
+    { label: 'My Workspace', href: '/expert/my-jobs', icon: Briefcase },
     { label: 'Find Work', href: '/expert/jobs', icon: Search },
     { label: 'My Proposals', href: '/expert/proposals', icon: FileText },
-    { label: 'My Jobs', href: '/expert/my-jobs', icon: Briefcase },
     { label: 'Service Generator', href: '/expert/service-generator', icon: Sparkles },
     { label: 'Messages', href: '/expert/messages', icon: MessageSquare },
     { label: 'Notifications', href: '/expert/notifications', icon: Bell },
@@ -51,9 +52,11 @@ export const NAV_ITEMS: Record<string, NavItem[]> = {
   [Role.ADMIN]: [
     { label: 'Admin Dashboard', href: '/admin', icon: LayoutDashboard },
     { label: 'User Management', href: '/admin/users', icon: Users },
+    { label: 'Job Post Management', href: '/admin/job-posts', icon: FileText },
     { label: 'Project Management', href: '/admin/projects', icon: Briefcase },
     { label: 'Expert Reviews', href: '/admin/expert-reviews', icon: UserCheck },
-    { label: 'Categories', href: '/admin/categories', icon: Tags },
+    { label: 'Verifications', href: '/admin/expert-verifications', icon: ShieldCheck },
+    { label: 'Categories', href: '/admin/categories', icon: LayoutGrid },
     { label: 'Skills', href: '/admin/skills', icon: Wrench },
     { label: 'Messages', href: '/admin/messages', icon: MessageSquare },
     { label: 'Notifications', href: '/admin/notifications', icon: Bell },

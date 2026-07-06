@@ -19,7 +19,9 @@ import { AdminDashboardPage } from '../features/admin/pages/AdminDashboardPage';
 import { UserManagementPage } from '../features/admin/pages/UserManagementPage';
 import { AdminUserDetailPage } from '../features/admin/pages/AdminUserDetailPage';
 import { AdminExpertReviewsPage } from '../features/admin/pages/AdminExpertReviewsPage';
+import { AdminExpertVerificationsPage } from '../features/admin/pages/AdminExpertVerificationsPage';
 import { ProjectManagementPage } from '../features/admin/pages/ProjectManagementPage';
+import { JobPostManagementPage } from '../features/admin/pages/JobPostManagementPage';
 import { AdminProjectDisputesPage } from '../features/admin/pages/AdminProjectDisputesPage';
 import { AdminCategoriesPage } from '../features/admin/pages/AdminCategoriesPage';
 import { AdminSkillsPage } from '../features/admin/pages/AdminSkillsPage';
@@ -40,6 +42,7 @@ import { Role } from '../shared/types/enums';
 /**
  * Global Router Configuration
  */
+// eslint-disable-next-line react-refresh/only-export-components
 const ProposalCreateRouteRedirect = () => {
   const { jobId } = useParams();
   return <Navigate to={`/expert/jobs/${jobId ?? ''}`} replace />;
@@ -145,9 +148,11 @@ export const router = createBrowserRouter([
       { index: true, element: <AdminDashboardPage /> },
       { path: 'users', element: <UserManagementPage /> },
       { path: 'users/:id', element: <AdminUserDetailPage /> },
+      { path: 'job-posts', element: <JobPostManagementPage /> },
       { path: 'projects', element: <ProjectManagementPage /> },
       { path: 'projects/:projectId/disputes', element: <AdminProjectDisputesPage /> },
       { path: 'expert-reviews', element: <AdminExpertReviewsPage /> },
+      { path: 'expert-verifications', element: <AdminExpertVerificationsPage /> },
       { path: 'categories', element: <AdminCategoriesPage /> },
       { path: 'skills', element: <AdminSkillsPage /> },
       { path: 'messages', element: <ChatWorkspacePage /> },

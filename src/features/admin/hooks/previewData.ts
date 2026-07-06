@@ -322,11 +322,7 @@ export const ADMIN_EXPERT_REVIEW_DETAIL_PREVIEW_DATA: Record<string, ExpertRevie
       requested: 25,
       isChanged: true
     },
-    skillsComparison: {
-      current: ['Python', 'Chatbot'],
-      requested: ['Python', 'Chatbot', 'NLP', 'LLM'],
-      isChanged: true
-    },
+
     categories: {
       current: ['Development'],
       requested: ['Development', 'AI & Machine Learning'],
@@ -337,10 +333,6 @@ export const ADMIN_EXPERT_REVIEW_DETAIL_PREVIEW_DATA: Record<string, ExpertRevie
       requested: '3 years of building production-grade RAG systems.',
       isChanged: true
     },
-    portfolio: [
-      { id: 'p1', title: 'Chatbot Demo', type: 'Portfolio', url: '#', status: 'Strong' },
-      { id: 'p2', title: 'ML Certificate', type: 'Certificate', url: '#', status: 'Verified' },
-      { id: 'p3', title: 'Project Screenshot', type: 'Screenshot', url: '#', status: 'Review' }
-    ]
+
   }
 };

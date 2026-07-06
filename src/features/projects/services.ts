@@ -201,6 +201,24 @@ export const projectService = {
     return normalizeBaseResponse<void>(response);
   },
 
+  createMilestone: async (
+    projectId: string,
+    data: {
+      title: string;
+      description?: string;
+      amount: number;
+      dueDate?: string;
+      acceptanceCriteria?: string;
+    }
+  ): Promise<BaseResponse<Milestone>> => {
+    const response = await apiClient.post(API_ENDPOINTS.PROJECTS.MILESTONES(projectId), data);
+    const normalized = normalizeBaseResponse<Milestone>(response);
+    return {
+      ...normalized,
+      data: normalized.data ? normalizeMilestone(normalized.data) : null,
+    };
+  },
+
   // Deliverable endpoints
   getDeliverables: async (milestoneId: string): Promise<PaginatedResponse<Deliverable>> => {
     const response = await apiClient.get(API_ENDPOINTS.MILESTONES.DELIVERABLES(milestoneId));

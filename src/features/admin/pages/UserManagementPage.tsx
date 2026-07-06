@@ -27,9 +27,196 @@ const formatStatusLabel = (status: string) => {
   const normalized = normalizeStatus(status);
   return normalized.charAt(0) + normalized.slice(1).toLowerCase();
 };
+const formatPercent = (value: number) => `${Math.round(value)}%`;
 const formatDateTime = (value?: string | null) => {
   const date = parseAdminApiDate(value);
   return date ? date.toLocaleString() : 'Not provided';
+};
+
+interface UserDistributionSlice {
+  label: string;
+  count: number;
+  percentage: number;
+  colorClass: string;
+  color: string;
+}
+
+interface UserDistributionChartProps {
+  totalUsers: number;
+  activeUsers: number;
+  suspendedUsers: number;
+  totalClients: number;
+  totalExperts: number;
+}
+
+const polarToCartesian = (center: number, radius: number, angleInDegrees: number) => {
+  const angleInRadians = (angleInDegrees - 90) * Math.PI / 180;
+  return {
+    x: center + radius * Math.cos(angleInRadians),
+    y: center + radius * Math.sin(angleInRadians),
+  };
+};
+
+const createPieSlicePath = (center: number, radius: number, startAngle: number, endAngle: number) => {
+  const start = polarToCartesian(center, radius, endAngle);
+  const end = polarToCartesian(center, radius, startAngle);
+  const largeArcFlag = endAngle - startAngle <= 180 ? '0' : '1';
+
+  return [
+    `M ${center} ${center}`,
+    `L ${start.x} ${start.y}`,
+    `A ${radius} ${radius} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`,
+    'Z',
+  ].join(' ');
+};
+
+const UserDistributionChart = ({
+  totalUsers,
+  activeUsers,
+  suspendedUsers,
+  totalClients,
+  totalExperts,
+}: UserDistributionChartProps) => {
+  const getPercentage = (count: number) => totalUsers > 0 ? (count / totalUsers) * 100 : 0;
+  const totalAdmins = Math.max(0, totalUsers - totalClients - totalExperts);
+  const center = 110;
+  const radius = 88;
+  const slices: UserDistributionSlice[] = [
+    {
+      label: 'Clients',
+      count: totalClients,
+      percentage: getPercentage(totalClients),
+      colorClass: 'bg-blue-600',
+      color: '#2563EB',
+    },
+    {
+      label: 'Experts',
+      count: totalExperts,
+      percentage: getPercentage(totalExperts),
+      colorClass: 'bg-teal-500',
+      color: '#14B8A6',
+    },
+    {
+      label: 'Admins',
+      count: totalAdmins,
+      percentage: getPercentage(totalAdmins),
+      colorClass: 'bg-violet-600',
+      color: '#7C3AED',
+    },
+  ];
+  let accumulatedAngle = 0;
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+        <div className="h-full rounded-lg border border-slate-100 bg-slate-50/40 p-5 lg:p-6 shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-[minmax(240px,320px)_minmax(0,1fr)] items-center gap-6">
+            <div className="mx-auto w-full max-w-[300px] text-center">
+              <h3 className="text-[16px] font-black text-slate-900">System User Distribution</h3>
+              <p className="text-xs font-medium text-slate-400 mt-1 mb-5">Global users by account group</p>
+              <svg viewBox="0 0 220 220" role="img" aria-label="User role distribution pie chart" className="w-full">
+                {totalUsers === 0 && <circle cx={center} cy={center} r={radius} className="fill-slate-100" />}
+                {slices.map((slice) => {
+                  if (slice.count <= 0 || totalUsers <= 0) return null;
+
+                  const sliceAngle = (slice.percentage / 100) * 360;
+                  const startAngle = accumulatedAngle;
+                  const endAngle = accumulatedAngle + sliceAngle;
+                  const middleAngle = startAngle + sliceAngle / 2;
+                  const labelPosition = polarToCartesian(center, radius * 0.58, middleAngle);
+                  accumulatedAngle = endAngle;
+
+                  return (
+                    <g key={slice.label}>
+                      {slice.percentage >= 99.99 ? (
+                        <circle cx={center} cy={center} r={radius} fill={slice.color} />
+                      ) : (
+                        <path
+                          d={createPieSlicePath(center, radius, startAngle, endAngle)}
+                          fill={slice.color}
+                          stroke="#ffffff"
+                          strokeWidth="4"
+                        />
+                      )}
+                      <text
+                        x={labelPosition.x}
+                        y={labelPosition.y}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        className="fill-white text-[12px] font-black"
+                      >
+                        {slice.percentage >= 6 ? formatPercent(slice.percentage) : ''}
+                      </text>
+                    </g>
+                  );
+                })}
+              </svg>
+              <div className="mt-4 inline-flex items-baseline justify-center gap-2 rounded-full bg-white border border-slate-100 px-4 py-2 shadow-sm">
+                <span className="text-lg font-black text-blue-600">{totalUsers.toLocaleString()}</span>
+                <span className="text-xs font-bold text-slate-400">Total Users</span>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-xs font-black uppercase tracking-widest text-slate-400">Legend</p>
+              {slices.map((slice) => (
+                <div key={slice.label} className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className={cn('size-3 rounded-full shrink-0', slice.colorClass)} />
+                    <div className="min-w-0">
+                      <p className="text-sm font-black text-slate-700">{slice.label}</p>
+                      <p className="text-xs font-semibold text-slate-400">{slice.count.toLocaleString()} users</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid h-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3 content-stretch">
+          <MetricsSummaryCard
+            label="Total Users"
+            value={totalUsers.toLocaleString()}
+            secondaryInfo="System wide"
+            icon={Users}
+            variant="blue"
+            className="p-3 min-h-[76px]"
+          />
+          <MetricsSummaryCard
+            label="Active Users"
+            value={activeUsers.toLocaleString()}
+            secondaryInfo="Active (filtered)"
+            icon={UserCheck}
+            variant="green"
+            className="p-3 min-h-[76px]"
+          />
+          <MetricsSummaryCard
+            label="Suspended"
+            value={suspendedUsers.toString()}
+            secondaryInfo="Suspended (filtered)"
+            icon={ShieldAlert}
+            variant="red"
+            className="p-3 min-h-[76px]"
+          />
+          <MetricsSummaryCard
+            label="Clients"
+            value={totalClients.toLocaleString()}
+            secondaryInfo="Global count"
+            icon={Users}
+            variant="blue"
+            className="p-3 min-h-[76px]"
+          />
+          <MetricsSummaryCard
+            label="Experts"
+            value={totalExperts.toLocaleString()}
+            secondaryInfo="Global count"
+            icon={Users}
+            variant="blue"
+            className="p-3 min-h-[76px]"
+          />
+      </div>
+    </div>
+  );
 };
 
 export const UserManagementPage = () => {
@@ -165,44 +352,13 @@ export const UserManagementPage = () => {
         description="Search, filter, suspend, activate, and audit clients, experts, and admins in one operational surface."
       />
 
-      {/* Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-4">
-        <MetricsSummaryCard 
-          label="Total Users" 
-          value={globalStats?.totalUsers?.toLocaleString() || '0'} 
-          secondaryInfo="System wide"
-          icon={Users}
-          variant="blue"
-        />
-        <MetricsSummaryCard 
-          label="Active Users" 
-          value={metrics.active.toLocaleString()} 
-          secondaryInfo="Active (filtered)"
-          icon={UserCheck}
-          variant="green"
-        />
-        <MetricsSummaryCard 
-          label="Suspended" 
-          value={metrics.suspended.toString()} 
-          secondaryInfo="Suspended (filtered)"
-          icon={ShieldAlert}
-          variant="red"
-        />
-        <MetricsSummaryCard 
-          label="Clients" 
-          value={globalStats?.totalClients?.toLocaleString() || '0'} 
-          secondaryInfo="Global count"
-          icon={Users}
-          variant="blue"
-        />
-        <MetricsSummaryCard 
-          label="Experts" 
-          value={globalStats?.totalExperts?.toLocaleString() || '0'} 
-          secondaryInfo="Global count"
-          icon={Users}
-          variant="blue"
-        />
-      </div>
+      <UserDistributionChart
+        totalUsers={globalStats?.totalUsers || 0}
+        activeUsers={metrics.active}
+        suspendedUsers={metrics.suspended}
+        totalClients={globalStats?.totalClients || 0}
+        totalExperts={globalStats?.totalExperts || 0}
+      />
 
       <div className="space-y-4">
         {/* Main Table */}

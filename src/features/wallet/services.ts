@@ -1,6 +1,6 @@
 import apiClient from '@/lib/axios';
 import { TransactionStatus, TransactionType } from './types';
-import type { Wallet, Transaction, DepositRequest, DepositDemoRequest, VnPayDepositRequest, WithdrawRequest } from './types';
+import type { Wallet, Transaction, DepositRequest, DepositDemoRequest, VnPayDepositRequest, WithdrawRequest, TransferRequest, TransferResult } from './types';
 import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
 import { API_ENDPOINTS } from '@/shared/constants';
 import { normalizeBaseResponse, normalizePaginatedResponse } from '@/lib/api-utils';
@@ -170,6 +170,11 @@ export const walletService = {
   withdraw: async (data: WithdrawRequest): Promise<BaseResponse<Wallet>> => {
     const response = await apiClient.post(API_ENDPOINTS.WALLET.WITHDRAW, data);
     return normalizeBaseResponse<Wallet>(response);
+  },
+
+  transferToExpert: async (expertId: string, data: TransferRequest): Promise<BaseResponse<TransferResult>> => {
+    const response = await apiClient.post(API_ENDPOINTS.WALLET.TRANSFER(expertId), data);
+    return normalizeBaseResponse<TransferResult>(response);
   },
 
   getTransactions: async (params?: Record<string, string | number | boolean>): Promise<PaginatedResponse<Transaction>> => {

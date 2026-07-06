@@ -1,6 +1,6 @@
 import type { Milestone } from '../types';
 import { MilestoneCard } from './MilestoneCard';
-import { Sparkles, MoreHorizontal, Info } from 'lucide-react';
+import { MoreHorizontal, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MilestoneStatus } from '@/shared/types/enums';
 
@@ -56,18 +56,6 @@ export const KanbanBoard = ({ milestones, role, onMilestoneClick }: KanbanBoardP
                  </div>
                )}
             </div>
-            
-            {/* AI Insight Footer (Optional) */}
-            {column.status.includes(MilestoneStatus.IN_PROGRESS) && columnMilestones.length > 0 && (
-               <div className="mt-4 bg-white/50 backdrop-blur-md rounded-lg p-3 border border-amber-100 flex items-center gap-3">
-                  <div className="size-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
-                     <Sparkles className="size-4 text-amber-600" />
-                  </div>
-                  <p className="text-xs font-bold text-amber-700 leading-tight">
-                    AI Suggestion: Review the medical dataset documentation for accurate validation.
-                  </p>
-               </div>
-            )}
           </div>
         );
       })}

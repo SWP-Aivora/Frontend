@@ -90,6 +90,46 @@ export interface AdminProjectsQuery {
   status?: number;
 }
 
+export type AdminJobPostStatusValue = number | string;
+
+export interface AdminJobPostSkill {
+  id: string;
+  name: string;
+}
+
+export interface AdminJobPost {
+  id: string;
+  title: string;
+  originalDescription: string;
+  finalDescription?: string | null;
+  businessDomain?: string | null;
+  expectedOutcome?: string | null;
+  categoryId?: string | null;
+  categoryName?: string | null;
+  budgetType: number | string;
+  budgetMin?: number | null;
+  budgetMax?: number | null;
+  currency?: string | null;
+  timelineDays?: number | null;
+  deadline?: string | null;
+  experienceLevel?: number | string | null;
+  visibility: number | string;
+  status: AdminJobPostStatusValue;
+  clientId: string;
+  clientName: string;
+  clientAvatarUrl?: string | null;
+  createdAt: string;
+  updatedAt?: string | null;
+  skills: AdminJobPostSkill[];
+}
+
+export interface AdminJobPostsQuery {
+  PageIndex?: number;
+  PageSize?: number;
+  SearchTerm?: string;
+  categoryId?: string;
+}
+
 export interface ReviewQueueItem {
   label: string;
   count: number;
@@ -187,16 +227,8 @@ export interface ComparisonValue<T> {
 export interface ExpertReviewDetail extends ExpertReviewItem {
   bio: ComparisonValue<string>;
   hourlyRate: ComparisonValue<number>;
-  skillsComparison: ComparisonValue<string[]>;
   categories: ComparisonValue<string[]>;
   experience: ComparisonValue<string>;
-  portfolio: {
-    id: string;
-    title: string;
-    type: string;
-    url: string;
-    status: 'Verified' | 'Review' | 'Strong';
-  }[];
   adminNote?: string;
 }
 
