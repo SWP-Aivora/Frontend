@@ -124,7 +124,10 @@ export const projectService = {
   },
 
   cancelProject: async (id: string, reason: string): Promise<BaseResponse<void>> => {
-    const response = await apiClient.put(API_ENDPOINTS.PROJECTS.CANCEL(id), { reason });
+    // BE binds [FromBody] string? — body must be a JSON-encoded string, not an object
+    const response = await apiClient.put(API_ENDPOINTS.PROJECTS.CANCEL(id), JSON.stringify(reason), {
+      headers: { 'Content-Type': 'application/json' },
+    });
     return normalizeBaseResponse<void>(response);
   },
 

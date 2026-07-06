@@ -27,7 +27,8 @@ vi.mock('./hooks/useMessages', () => ({
   useMarkRead: vi.fn(() => ({
     mutate: vi.fn()
   })),
-  useRealTimeMessages: vi.fn()
+  useRealTimeMessages: vi.fn(),
+  useTyping: vi.fn(() => ({ isOtherTyping: false, notifyTyping: vi.fn() }))
 }));
 
 vi.mock('@/shared/services/mediaService', () => ({

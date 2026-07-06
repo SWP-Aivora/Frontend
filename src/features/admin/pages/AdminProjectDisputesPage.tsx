@@ -220,31 +220,11 @@ export const AdminProjectDisputesPage = () => {
     queries: detailQueryOptions,
   });
 
-  const evidenceQueryOptions = useMemo(() => projectDisputes.map(dispute => ({
-    queryKey: ['dispute', dispute.id, 'evidence'],
-    queryFn: () => disputeService.getEvidence(dispute.id),
-    enabled: Boolean(dispute.id),
-    retry: false,
-  })), [projectDisputes]);
-
-  const evidenceQueries = useQueries({
-    queries: evidenceQueryOptions,
-  });
-
   const disputes = useMemo<Dispute[]>(() => (
-    projectDisputes.map((summary, index) => {
-      const detail = detailQueries[index]?.data?.data ?? summary;
-      const evidence = evidenceQueries[index]?.data?.data;
-
-      return {
-        ...detail,
-        evidences: evidence ?? detail.evidences,
-      };
-    })
-  ), [detailQueries, evidenceQueries, projectDisputes]);
+    projectDisputes.map((summary, index) => detailQueries[index]?.data?.data ?? summary)
+  ), [detailQueries, projectDisputes]);
 
   const isLoadingDetails = detailQueries.some(query => query.isLoading);
-  const isLoadingEvidence = evidenceQueries.some(query => query.isLoading);
   const isLoadingAdditionalPages = additionalDisputePageQueries.some(query => query.isLoading);
   const isLoading = isLoadingProject || isLoadingDisputes || isLoadingAdditionalPages;
 
@@ -295,7 +275,7 @@ export const AdminProjectDisputesPage = () => {
         </div>
       )}
 
-      {(isLoadingDetails || isLoadingEvidence) && (
+      {isLoadingDetails && (
         <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm font-semibold text-blue-700">
           Loading detailed dispute evidence...
         </div>

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { chatService } from '../services';
 import type { SendMessagePayload, NewMessagePayload } from '../types';
 import type { Message } from '../types';
@@ -34,7 +34,7 @@ export const useRealTimeMessages = (conversationId?: string) => {
     const handleNewMessage = (message: NewMessagePayload) => {
       if (message.conversationId === conversationId) {
         const newMessage: Message = {
-          id: message.senderId + '_' + Date.now(), // Generate unique ID
+          id: message.id, // server-assigned id; enables dedup against refetched messages
           conversationId: message.conversationId,
           senderId: message.senderId,
           senderName: message.senderName,
@@ -93,6 +93,62 @@ export const useRealTimeMessages = (conversationId?: string) => {
       chatService.leaveConversation(conversationId);
     };
   }, [conversationId, queryClient, isAuthenticated]);
+};
+
+/**
+ * Typing indicator for a conversation.
+ * - `isOtherTyping`: the other participant is currently typing.
+ * - `notifyTyping`: call on each keystroke; sends a debounced "typing" ping
+ *   and an automatic "stopped" ping after a short idle.
+ */
+export const useTyping = (conversationId?: string) => {
+  const currentUserId = useAuthStore((state) => state.user?.id);
+  const [isOtherTyping, setIsOtherTyping] = useState(false);
+  const stopTypingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearOtherTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isSendingTyping = useRef(false);
+
+  useEffect(() => {
+    if (!conversationId) return;
+
+    setIsOtherTyping(false);
+
+    const unsubscribe = chatService.onTyping((data) => {
+      if (data.conversationId !== conversationId) return;
+      if (data.userId === currentUserId) return;
+
+      setIsOtherTyping(data.isTyping);
+
+      // Fail-safe: clear the indicator if no follow-up ping arrives.
+      if (clearOtherTimer.current) clearTimeout(clearOtherTimer.current);
+      if (data.isTyping) {
+        clearOtherTimer.current = setTimeout(() => setIsOtherTyping(false), 4000);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      if (clearOtherTimer.current) clearTimeout(clearOtherTimer.current);
+      setIsOtherTyping(false);
+    };
+  }, [conversationId, currentUserId]);
+
+  const notifyTyping = useCallback(() => {
+    if (!conversationId) return;
+
+    if (!isSendingTyping.current) {
+      isSendingTyping.current = true;
+      void chatService.sendTyping(conversationId, true);
+    }
+
+    if (stopTypingTimer.current) clearTimeout(stopTypingTimer.current);
+    stopTypingTimer.current = setTimeout(() => {
+      isSendingTyping.current = false;
+      void chatService.sendTyping(conversationId, false);
+    }, 2000);
+  }, [conversationId]);
+
+  return { isOtherTyping, notifyTyping };
 };
 
 export const useMarkRead = () => {

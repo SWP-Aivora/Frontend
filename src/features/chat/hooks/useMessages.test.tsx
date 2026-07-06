@@ -9,6 +9,7 @@ const mockConnection = vi.hoisted(() => ({
   stop: vi.fn().mockResolvedValue(undefined),
   invoke: vi.fn().mockResolvedValue(undefined),
   on: vi.fn(),
+  off: vi.fn(),
   onclose: vi.fn(),
   onreconnecting: vi.fn(),
   onreconnected: vi.fn(),

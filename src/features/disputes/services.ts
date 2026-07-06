@@ -308,21 +308,6 @@ export const disputeService = {
   },
 
   /**
-   * Get evidence for an existing dispute.
-   */
-  async getEvidence(disputeId: string): Promise<BaseResponse<Evidence[]>> {
-    const response = await apiClient.get(API_ENDPOINTS.DISPUTES.EVIDENCE(disputeId));
-    const normalized = normalizePaginatedResponse<BEDisputeEvidenceResponse>(response);
-
-    return {
-      success: normalized.success,
-      message: normalized.message,
-      statusCode: normalized.statusCode,
-      data: (normalized.data ?? []).map((evidence) => mapEvidence(evidence, disputeId)),
-    };
-  },
-
-  /**
    * Close an open dispute.
    */
   async closeDispute(disputeId: string): Promise<BaseResponse<void>> {

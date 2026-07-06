@@ -36,7 +36,9 @@ describe('jobService', () => {
       });
 
       const result = await jobService.cancelJob('job-1');
-      expect(apiClient.post).toHaveBeenCalledWith('/jobs/job-1/cancel', null);
+      expect(apiClient.post).toHaveBeenCalledWith('/jobs/job-1/cancel', 'null', {
+        headers: { 'Content-Type': 'application/json' },
+      });
       expect(result.success).toBe(true);
       expect(result.data?.id).toBe('job-1');
     });
@@ -51,7 +53,9 @@ describe('jobService', () => {
       });
 
       await jobService.cancelJob('job-1', 'No longer needed');
-      expect(apiClient.post).toHaveBeenCalledWith('/jobs/job-1/cancel', 'No longer needed');
+      expect(apiClient.post).toHaveBeenCalledWith('/jobs/job-1/cancel', '"No longer needed"', {
+        headers: { 'Content-Type': 'application/json' },
+      });
     });
   });
 

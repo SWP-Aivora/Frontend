@@ -39,6 +39,7 @@ export interface SendMessagePayload {
 }
 
 export interface NewMessagePayload {
+  id: string;
   conversationId: string;
   senderId: string;
   senderName: string;

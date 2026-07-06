@@ -5,11 +5,12 @@ import { mediaService } from '@/shared/services/mediaService';
 
 interface MessageInputProps {
   onSendMessage: (content: string, attachmentUrl?: string) => Promise<void>;
+  onTyping?: () => void;
   disabled?: boolean;
   disabledReason?: string;
 }
 
-export const MessageInput = ({ onSendMessage, disabled, disabledReason = 'Please wait before sending.' }: MessageInputProps) => {
+export const MessageInput = ({ onSendMessage, onTyping, disabled, disabledReason = 'Please wait before sending.' }: MessageInputProps) => {
   const [content, setContent] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
@@ -201,6 +202,7 @@ export const MessageInput = ({ onSendMessage, disabled, disabledReason = 'Please
             setContent(e.target.value);
             e.target.style.height = 'auto';
             e.target.style.height = `${e.target.scrollHeight}px`;
+            if (e.target.value.trim()) onTyping?.();
           }}
           onKeyDown={handleKeyDown}
           className="flex-1 max-h-32 bg-transparent border-none focus:outline-none py-1.5 resize-none text-sm leading-relaxed scrollbar-hide"

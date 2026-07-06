@@ -162,39 +162,6 @@ describe('disputeService', () => {
     });
   });
 
-  describe('getEvidence', () => {
-    it('gets evidence from the dispute evidence endpoint', async () => {
-      (vi.mocked(apiClient.get)).mockResolvedValue({
-        data: {
-          success: true,
-          data: [
-            {
-              id: 'e1',
-              submittedBy: 'u1',
-              submittedByName: 'Client One',
-              content: 'Screenshot and timeline evidence.',
-              fileUrl: 'https://example.com/evidence.png',
-              createdAt: '2026-06-28T10:00:00.000Z',
-            },
-          ],
-        },
-      });
-
-      const result = await disputeService.getEvidence('d1');
-
-      expect(result.success).toBe(true);
-      expect(apiClient.get).toHaveBeenCalledWith(expect.stringContaining('/d1/evidence'));
-      expect(result.data?.[0]).toMatchObject({
-        id: 'e1',
-        disputeId: 'd1',
-        submitterId: 'u1',
-        submitterName: 'Client One',
-        content: 'Screenshot and timeline evidence.',
-        fileUrl: 'https://example.com/evidence.png',
-      });
-    });
-  });
-
   describe('closeDispute', () => {
     it('calls close dispute endpoint with PUT and no payload', async () => {
       (vi.mocked(apiClient.put)).mockResolvedValue({ data: { success: true } });

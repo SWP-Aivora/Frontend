@@ -76,7 +76,7 @@ export const ResolutionForm: React.FC<ResolutionFormProps> = ({ disputeId, total
             {totalAmount !== undefined && (
               <option value={DisputeResolutionType.SPLIT_PAYMENT}>Split payment (Custom)</option>
             )}
-            <option value={DisputeResolutionType.REQUEST_REVISION}>Request expert redo</option>
+            {/* REQUEST_REVISION intentionally omitted: BE ResolveDisputeAsync rejects it */}
           </select>
         </div>
 

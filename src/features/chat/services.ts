@@ -10,6 +10,7 @@ import type { AxiosResponse } from 'axios';
 import * as signalR from '@microsoft/signalr';
 
 interface NewMessagePayload {
+  id: string;
   conversationId: string;
   senderId: string;
   senderName: string;
@@ -71,6 +72,9 @@ const mapConversationResponse = (item: Record<string, unknown>, currentUserId?: 
 class ChatService extends BaseService<Conversation> {
   private readonly chatConnectionPool = new Map<string, ChatConnectionPoolEntry>();
   private activeChatConnectionKey: string | null = null;
+  // Conversations currently joined; re-joined after a reconnect since a new
+  // ConnectionId loses all server-side group membership.
+  private readonly activeConversations = new Set<string>();
 private messageIdCounter = 0;
   private typingIdCounter = 0;
   private jobIdCounter = 0;
@@ -78,7 +82,7 @@ private messageIdCounter = 0;
 
   // Separate callback registries to prevent interference between components
   private messageCallbacks = new Map<string, (message: NewMessagePayload) => void>();
-  private typingCallbacks = new Map<string, (data: { userId: string; isTyping: boolean }) => void>();
+  private typingCallbacks = new Map<string, (data: { conversationId: string; userId: string; isTyping: boolean }) => void>();
   private jobStatusCallbacks = new Map<string, (data: { jobId: string; status: string; title?: string }) => void>();
   private readCallbacks = new Map<string, (data: { conversationId: string; userId: string }) => void>();
   private readIdCounter = 0;
@@ -103,7 +107,7 @@ private messageIdCounter = 0;
   /**
    * Listen to typing indicators
    */
-  onTyping(callback: (data: { userId: string; isTyping: boolean }) => void): () => void {
+  onTyping(callback: (data: { conversationId: string; userId: string; isTyping: boolean }) => void): () => void {
     const id = `typing_${++this.typingIdCounter}`;
     this.typingCallbacks.set(id, callback);
 
@@ -207,26 +211,35 @@ private messageIdCounter = 0;
   }
 
   private setupMessageListeners(connection: signalR.HubConnection): void {
+    // Detach any prior handlers first so a re-setup (StrictMode remount, HMR,
+    // reconnect) never leaves two handlers firing the same event twice.
+    connection.off('ReceiveMessage');
+    connection.off('UserTyping');
+    connection.off('ReadConfirmation');
+
     // Listen for new messages
     connection.on('ReceiveMessage', (message: NewMessagePayload) => {
-      console.log('New message received:', message);
       this.messageCallbacks.forEach(callback => callback(message));
     });
 
     // Listen for typing indicators
-    connection.on('UserTyping', (data: { userId: string; isTyping: boolean }) => {
-      console.log('User typing:', data);
+    connection.on('UserTyping', (data: { conversationId: string; userId: string; isTyping: boolean }) => {
       this.typingCallbacks.forEach(callback => callback(data));
     });
 
     // Listen for read confirmations
     connection.on('ReadConfirmation', (data: { conversationId: string; userId: string }) => {
-      console.log('Read confirmation:', data);
       this.readCallbacks.forEach(callback => callback(data));
     });
 
     connection.onreconnected(() => {
-      console.log('SignalR reconnected');
+      // Re-join every active conversation group; the reconnect got a fresh
+      // ConnectionId and dropped all prior group memberships.
+      this.activeConversations.forEach((conversationId) => {
+        connection.invoke('JoinConversation', conversationId).catch((rejoinError: unknown) => {
+          console.warn('Failed to re-join conversation after reconnect', conversationId, rejoinError);
+        });
+      });
     });
 
     connection.onreconnecting(() => {
@@ -235,9 +248,10 @@ private messageIdCounter = 0;
   }
 
   private setupJobStatusListeners(connection: signalR.HubConnection): void {
+    connection.off('JobStatusUpdated');
+
     // Listen for job status updates
     connection.on('JobStatusUpdated', (data: { jobId: string; status: string; title?: string }) => {
-      console.log('Job status updated:', data);
       this.jobStatusCallbacks.forEach(callback => callback(data));
     });
   }
@@ -294,9 +308,25 @@ private messageIdCounter = 0;
   async joinConversation(conversationId: string): Promise<void> {
     const connection = await this.ensureChatConnection();
     await connection.invoke('JoinConversation', conversationId);
+    this.activeConversations.add(conversationId);
+  }
+
+  /**
+   * Broadcast a typing indicator to the other participant via the hub.
+   * Best-effort: typing is non-critical, so failures are swallowed.
+   */
+  async sendTyping(conversationId: string, isTyping: boolean): Promise<void> {
+    try {
+      const connection = await this.ensureChatConnection();
+      await connection.invoke('UserTyping', conversationId, isTyping);
+    } catch (typingError: unknown) {
+      console.warn('Failed to send typing indicator', typingError);
+    }
   }
 
   async leaveConversation(conversationId: string): Promise<void> {
+    this.activeConversations.delete(conversationId);
+
     const entry = this.activeChatConnectionKey
       ? this.chatConnectionPool.get(this.activeChatConnectionKey)
       : undefined;
@@ -409,11 +439,14 @@ private messageIdCounter = 0;
   }
 
   /**
-   * Mark conversation as read
+   * Mark conversation as read via the hub. The hub's MarkAsRead persists the
+   * read state (same MarkAsReadAsync call the REST endpoint used) AND
+   * broadcasts ReadConfirmation to the other participant — the REST endpoint
+   * only persisted, so read receipts never reached the other side.
    */
-  async markAsRead(conversationId: string): Promise<BaseResponse<null>> {
-    const response = await apiClient.post(API_ENDPOINTS.MESSAGES.READ(conversationId));
-    return normalizeBaseResponse<null>(response);
+  async markAsRead(conversationId: string): Promise<void> {
+    const connection = await this.ensureChatConnection();
+    await connection.invoke('MarkAsRead', conversationId);
   }
 
   /**
