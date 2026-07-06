@@ -1,5 +1,4 @@
 name: Gemini AI Code Review
-
 on:
   pull_request:
     types: [opened, synchronize]
@@ -13,450 +12,140 @@ permissions:
   contents: read
   pull-requests: write
 
-jobs:
-  review:
-    name: AI Code Review
-    runs-on: ubuntu-latest
-    # Skip draft PRs
-    if: github.event.pull_request.draft == false
+env:
+  GEMINI_MODEL_LIGHT: ${{ vars.GEMINI_MODEL_LIGHT || 'gemini-3.1-flash-lite' }}
+  GEMINI_MODEL_STRONG: ${{ vars.GEMINI_MODEL_STRONG || 'gemini-3.5-flash' }}
+  PR_NUMBER: ${{ github.event.pull_request.number }}
+  REPO: ${{ github.repository }}
+  PR_TITLE: ${{ github.event.pull_request.title }}
+  PR_BODY: ${{ github.event.pull_request.body }}
+  PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+  HEAD_SHA: ${{ github.event.pull_request.head.sha }}
 
+jobs:
+  prepare:
+    name: Prepare diff
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    outputs:
+      has_changes: ${{ steps.run.outputs.has_changes }}
+      diff_b64: ${{ steps.run.outputs.diff_b64 }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Get PR diff
-        id: diff
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Run self-checks
+        run: python3 .github/scripts/test_review_bot.py
+      - id: run
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api \
-            "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}" \
-            -H "Accept: application/vnd.github.diff" \
-            > /tmp/pr_full.diff
+          GH_TOKEN: ${{ secrets.BOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+        run: python3 .github/scripts/review_bot.py prepare
 
-          # Filter out files that don't need review
-          python3 << 'PYEOF'
-          import re, sys
+  pass-gemini-md:
+    name: "Pass: GEMINI.md compliance"
+    needs: prepare
+    if: needs.prepare.outputs.has_changes == 'true'
+    uses: ./.github/workflows/gemini-review-pass.yml
+    with:
+      pass_name: gemini-md
+      diff_b64: ${{ needs.prepare.outputs.diff_b64 }}
+      model: ${{ vars.GEMINI_MODEL_LIGHT || 'gemini-3.1-flash-lite' }}
+      repo: ${{ github.repository }}
+      pr_number: ${{ github.event.pull_request.number }}
+      pr_title: ${{ github.event.pull_request.title }}
+      pr_body: ${{ github.event.pull_request.body }}
+      pr_author: ${{ github.event.pull_request.user.login }}
+    secrets: inherit
 
-          SKIP_PATTERNS = [
-              r'package-lock\.json$',
-              r'pnpm-lock\.yaml$',
-              r'yarn\.lock$',
-              r'\.png$', r'\.jpg$', r'\.jpeg$', r'\.gif$', r'\.svg$', r'\.ico$', r'\.webp$',
-              r'\.woff2?$', r'\.ttf$', r'\.eot$',
-              r'^dist/',
-              r'\.env\.example$',
-              r'\.gitattributes$',
-              r'\.gitignore$',
-          ]
+  pass-bug-scan:
+    name: "Pass: Bug scan"
+    needs: prepare
+    if: needs.prepare.outputs.has_changes == 'true'
+    uses: ./.github/workflows/gemini-review-pass.yml
+    with:
+      pass_name: bug-scan
+      diff_b64: ${{ needs.prepare.outputs.diff_b64 }}
+      model: ${{ vars.GEMINI_MODEL_LIGHT || 'gemini-3.1-flash-lite' }}
+      repo: ${{ github.repository }}
+      pr_number: ${{ github.event.pull_request.number }}
+      pr_title: ${{ github.event.pull_request.title }}
+      pr_body: ${{ github.event.pull_request.body }}
+      pr_author: ${{ github.event.pull_request.user.login }}
+    secrets: inherit
 
-          with open('/tmp/pr_full.diff', 'r', errors='replace') as f:
-              full_diff = f.read()
+  pass-git-blame:
+    name: "Pass: Git history"
+    needs: prepare
+    if: needs.prepare.outputs.has_changes == 'true'
+    uses: ./.github/workflows/gemini-review-pass.yml
+    with:
+      pass_name: git-blame
+      diff_b64: ${{ needs.prepare.outputs.diff_b64 }}
+      model: ${{ vars.GEMINI_MODEL_LIGHT || 'gemini-3.1-flash-lite' }}
+      repo: ${{ github.repository }}
+      pr_number: ${{ github.event.pull_request.number }}
+      pr_title: ${{ github.event.pull_request.title }}
+      pr_body: ${{ github.event.pull_request.body }}
+      pr_author: ${{ github.event.pull_request.user.login }}
+    secrets: inherit
 
-          # Split into per-file diffs
-          file_diffs = re.split(r'(?=^diff --git )', full_diff, flags=re.MULTILINE)
-          filtered = []
+  pass-pr-history:
+    name: "Pass: Related past PRs"
+    needs: prepare
+    if: needs.prepare.outputs.has_changes == 'true'
+    uses: ./.github/workflows/gemini-review-pass.yml
+    with:
+      pass_name: pr-history
+      diff_b64: ${{ needs.prepare.outputs.diff_b64 }}
+      model: ${{ vars.GEMINI_MODEL_LIGHT || 'gemini-3.1-flash-lite' }}
+      repo: ${{ github.repository }}
+      pr_number: ${{ github.event.pull_request.number }}
+      pr_title: ${{ github.event.pull_request.title }}
+      pr_body: ${{ github.event.pull_request.body }}
+      pr_author: ${{ github.event.pull_request.user.login }}
+    secrets: inherit
 
-          for chunk in file_diffs:
-              if not chunk.strip():
-                  continue
-              # Extract file path from "diff --git a/path b/path"
-              match = re.match(r'diff --git a/(.*?) b/(.*)', chunk)
-              if not match:
-                  filtered.append(chunk)
-                  continue
-              filepath = match.group(2)
-              if any(re.search(p, filepath) for p in SKIP_PATTERNS):
-                  continue
-              filtered.append(chunk)
+  pass-code-comment:
+    name: "Pass: Code comment compliance"
+    needs: prepare
+    if: needs.prepare.outputs.has_changes == 'true'
+    uses: ./.github/workflows/gemini-review-pass.yml
+    with:
+      pass_name: code-comment
+      diff_b64: ${{ needs.prepare.outputs.diff_b64 }}
+      model: ${{ vars.GEMINI_MODEL_LIGHT || 'gemini-3.1-flash-lite' }}
+      repo: ${{ github.repository }}
+      pr_number: ${{ github.event.pull_request.number }}
+      pr_title: ${{ github.event.pull_request.title }}
+      pr_body: ${{ github.event.pull_request.body }}
+      pr_author: ${{ github.event.pull_request.user.login }}
+    secrets: inherit
 
-          result = ''.join(filtered)
-
-          # Truncate to ~100k chars to stay within Gemini context limits
-          MAX_CHARS = 100_000
-          if len(result) > MAX_CHARS:
-              result = result[:MAX_CHARS] + '\n\n... [diff truncated due to size] ...'
-
-          with open('/tmp/pr_filtered.diff', 'w') as f:
-              f.write(result)
-
-          # Check if there's anything left to review
-          if not result.strip():
-              print('NO_DIFF=true')
-              with open('/tmp/skip_review', 'w') as f:
-                  f.write('true')
-          else:
-              with open('/tmp/skip_review', 'w') as f:
-                  f.write('false')
-          PYEOF
-
-          echo "skip=$(cat /tmp/skip_review)" >> "$GITHUB_OUTPUT"
-
-      - name: Skip if no reviewable changes
-        if: steps.diff.outputs.skip == 'true'
-        run: echo "No reviewable file changes found. Skipping review."
-
-      - name: Review with Gemini
-        if: steps.diff.outputs.skip != 'true'
-        id: gemini
-        env:
-          GEMINI_AI_KEY: ${{ secrets.GEMINI_AI_KEY }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          PR_BODY: ${{ github.event.pull_request.body }}
-          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
-        run: |
-          # Write prompt to a separate file to avoid heredoc shell injection
-          cat > /tmp/review_prompt.txt << 'PROMPT_END'
-          You are a Senior Frontend Engineer performing an automated code review for the AIVORA project — an AI Marketplace built with React, TypeScript (strict mode), Vite, Tailwind v4, and Feature-Sliced Design (FSD) architecture.
-
-          ## Project Guidelines (from GEMINI.md)
-
-          ### Architecture (FSD)
-          - Features are strictly isolated in `src/features/<name>/` with: components/, hooks/, pages/, schema.ts, services.ts, store.ts, types.ts, index.ts
-          - Shared layer: `src/shared/`, App layer: `src/app/`, Lib layer: `src/lib/`
-
-          ### TypeScript Strictness
-          - MUST use `import type` for type-only imports (`verbatimModuleSyntax`)
-          - MUST NOT use standard `enum` — use `const X = {...} as const` instead (`erasableSyntaxOnly`)
-
-          ### Styling
-          - Tailwind v4 with `@theme` — NO legacy `tailwind.config.js`
-          - Prefer `class-variance-authority` (CVA) for component variants
-
-          ### Data & API
-          - Use Zod + react-hook-form for validation
-          - API endpoints managed in `src/shared/constants/index.ts`
-
-          ### Security
-          - Never log/print/commit secrets, API keys, or `.env` files
-          - Never commit AI metadata (`.gemini/`, `MEMORY.md`)
-
-          ## Your Review Task
-
-          Review the PR diff below. Focus ONLY on changes introduced in this PR (not pre-existing code).
-
-          ### Review Focus Areas (ordered by priority):
-          1. **Bugs**: Logic errors, null/undefined risks, race conditions, infinite loops, missing error handling
-          2. **Security**: XSS vulnerabilities, credential exposure, unsafe `dangerouslySetInnerHTML`, eval usage
-          3. **TypeScript compliance**: Missing `import type`, enum usage, `any` types where avoidable
-          4. **FSD architecture violations**: Cross-feature imports, wrong layer dependencies
-          5. **React anti-patterns**: Rules of Hooks violations, missing deps in useEffect, missing keys in lists
-
-          ### Confidence Scoring
-          For each issue found, assign a confidence score (0-100):
-          - 0: False positive, doesn't hold up under scrutiny
-          - 25: Might be real, could also be false positive. Stylistic issue not in GEMINI.md
-          - 50: Real but minor, nitpick, or unlikely in practice
-          - 75: Verified real and important, directly impacts functionality or violates GEMINI.md
-          - 100: Absolutely certain, confirmed real issue, will cause problems
-
-          ### What is NOT an issue (false positives to ignore):
-          - Pre-existing issues not introduced in this PR
-          - Things linters/typecheckers will catch (imports, formatting, unused vars)
-          - Pedantic style nitpicks a senior engineer wouldn't flag
-          - Intentional functionality changes related to the PR's purpose
-          - General code quality concerns not in GEMINI.md (unless severe bugs)
-          - Issues on lines the author did not modify
-
-          ### Output Format
-          Respond with ONLY valid JSON, no markdown fences, no extra text:
-          {
-            "summary": "Brief 1-2 sentence summary of the PR changes",
-            "issues": [
-              {
-                "file": "path/to/file.ts",
-                "line": 42,
-                "description": "Brief description of the issue",
-                "confidence": 85,
-                "category": "bug|security|typescript|architecture|react",
-                "suggestion": "How to fix it (optional, brief)"
-              }
-            ]
-          }
-
-          If no issues with confidence >= 50 exist, return:
-          {
-            "summary": "Brief summary of changes",
-            "issues": []
-          }
-          PROMPT_END
-
-          # Build JSON payload using --rawfile to safely handle special chars and large diffs
-          jq -n \
-            --rawfile prompt /tmp/review_prompt.txt \
-            --rawfile diff /tmp/pr_filtered.diff \
-            --arg title "$PR_TITLE" \
-            --arg body "${PR_BODY:-No description provided}" \
-            --arg author "$PR_AUTHOR" \
-            '{
-              "contents": [{
-                "parts": [{
-                  "text": ($prompt + "\n\n## PR Information\n- **Title**: " + $title + "\n- **Author**: " + $author + "\n- **Description**: " + $body + "\n\n## Diff\n```diff\n" + $diff + "\n```")
-                }]
-              }],
-              "generationConfig": {
-                "temperature": 0.2,
-                "topP": 0.8,
-                "maxOutputTokens": 8192,
-                "responseMimeType": "application/json"
-              }
-            }' > /tmp/gemini_payload.json
-
-          # Call Gemini API with payload from file
-          RESPONSE=$(curl -s -w "\n%{http_code}" \
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${GEMINI_AI_KEY}" \
-            -H "Content-Type: application/json" \
-            -d @/tmp/gemini_payload.json)
-
-          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-          BODY=$(echo "$RESPONSE" | sed '$d')
-
-          if [ "$HTTP_CODE" -ne 200 ]; then
-            echo "::error::Gemini API returned HTTP $HTTP_CODE"
-            echo "$BODY" | head -20
-            exit 1
-          fi
-
-          # Extract the text content from Gemini response
-          REVIEW_JSON=$(echo "$BODY" | jq -r '.candidates[0].content.parts[0].text // empty')
-
-          if [ -z "$REVIEW_JSON" ]; then
-            echo "::error::Empty response from Gemini"
-            echo "$BODY" | jq . || echo "$BODY"
-            exit 1
-          fi
-
-          echo "$REVIEW_JSON" > /tmp/review_result.json
-
-          # Validate it's proper JSON
-          if ! jq empty /tmp/review_result.json 2>/dev/null; then
-            echo "::warning::Gemini returned invalid JSON, attempting cleanup..."
-            # Try to extract JSON from potential markdown fences
-            echo "$REVIEW_JSON" | sed 's/^```json//; s/^```//; s/```$//' | jq . > /tmp/review_result.json 2>/dev/null || {
-              echo "::error::Could not parse Gemini response as JSON"
-              echo "$REVIEW_JSON"
-              exit 1
-            }
-          fi
-
-          echo "Review result:"
-          jq . /tmp/review_result.json
-
-      - name: Submit GitHub Review
-        if: steps.diff.outputs.skip != 'true'
-        env:
-          GH_TOKEN: ${{ secrets.BOT_GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          REPO: ${{ github.repository }}
-        run: |
-          python3 << 'PYEOF'
-          import json, os, subprocess, sys
-
-          with open('/tmp/review_result.json', 'r') as f:
-              review = json.load(f)
-
-          summary = review.get('summary', 'No summary provided.')
-          issues = review.get('issues', [])
-
-          # Categorize issues by confidence tier
-          high_confidence = [i for i in issues if i.get('confidence', 0) >= 80]
-          medium_confidence = [i for i in issues if 50 <= i.get('confidence', 0) < 80]
-
-          pr_number = os.environ['PR_NUMBER']
-          head_sha = os.environ['HEAD_SHA']
-          repo = os.environ['REPO']
-
-          # Dismiss any previous reviews from this bot to avoid stale REQUEST_CHANGES blocking PRs
-          prev_reviews = subprocess.run(
-              ['gh', 'api', f'repos/{repo}/pulls/{pr_number}/reviews', '--jq',
-               '[.[] | select(.user.login == "github-actions[bot]" and .state == "CHANGES_REQUESTED") | .id]'],
-              capture_output=True, text=True,
-          )
-          if prev_reviews.returncode == 0 and prev_reviews.stdout.strip():
-              try:
-                  review_ids = json.loads(prev_reviews.stdout.strip())
-                  for rid in review_ids:
-                      subprocess.run(
-                          ['gh', 'api', '--method', 'PUT',
-                           f'repos/{repo}/pulls/{pr_number}/reviews/{rid}/dismissals',
-                           '-f', 'message=Superseded by new review run',
-                           '-f', 'event=DISMISS'],
-                          capture_output=True, text=True,
-                      )
-                      print(f'Dismissed previous review {rid}')
-              except (json.JSONDecodeError, TypeError):
-                  pass  # No previous reviews to dismiss
-
-          CATEGORY_ICONS = {
-              'bug': '🐛',
-              'security': '🔒',
-              'typescript': '📘',
-              'architecture': '🏗️',
-              'react': '⚛️',
-          }
-
-          def format_issues(issue_list, start_idx=1):
-              """Format a list of issues into markdown lines."""
-              lines = []
-              for idx, issue in enumerate(issue_list, start_idx):
-                  icon = CATEGORY_ICONS.get(issue.get('category', ''), '⚠️')
-                  conf = issue.get('confidence', 0)
-                  file_path = issue.get('file', 'unknown')
-                  line = issue.get('line', 0)
-                  desc = issue.get('description', 'No description')
-                  suggestion = issue.get('suggestion', '')
-                  category = issue.get('category', 'other').upper()
-
-                  link = f'https://github.com/{repo}/blob/{head_sha}/{file_path}'
-                  if line:
-                      start = max(1, line - 1)
-                      end = line + 1
-                      link += f'#L{start}-L{end}'
-
-                  lines.append(f'{idx}. {icon} **[{category}]** {desc} (confidence: {conf})')
-                  lines.append('')
-                  lines.append(f'   📄 [{file_path}:{line}]({link})')
-                  if suggestion:
-                      lines.append('')
-                      lines.append(f'   💡 **Suggestion:** {suggestion}')
-                  lines.append('')
-              return lines
-
-          FOOTER = [
-              '---',
-              '<sub>🤖 Reviewed by Gemini 3.1 Flash Lite | '
-              'React with 👍 if helpful, 👎 if not</sub>',
-          ]
-
-          if high_confidence:
-              # REQUEST_CHANGES — critical issues found
-              body_lines = [
-                  '## 🤖 Gemini AI Code Review',
-                  '',
-                  f'> {summary}',
-                  '',
-                  f'### 🚨 Found **{len(high_confidence)}** critical issue(s) (confidence ≥ 80):',
-                  '',
-              ]
-              body_lines.extend(format_issues(high_confidence))
-
-              if medium_confidence:
-                  body_lines.extend([
-                      f'### 💬 Additionally, **{len(medium_confidence)}** minor note(s) (confidence 50-79):',
-                      '',
-                  ])
-                  body_lines.extend(format_issues(medium_confidence))
-
-              body_lines.extend(FOOTER)
-              event = 'REQUEST_CHANGES'
-
-          elif medium_confidence:
-              # APPROVE with notes — minor issues don't block the PR
-              body_lines = [
-                  '## 🤖 Gemini AI Code Review',
-                  '',
-                  f'> {summary}',
-                  '',
-                  '✅ **Approved** — no critical issues found.',
-                  '',
-                  f'### 💬 **{len(medium_confidence)}** minor note(s) for your consideration (confidence 50-79):',
-                  '',
-                  '*These are observations, not blockers. Review at your discretion.*',
-                  '',
-              ]
-              body_lines.extend(format_issues(medium_confidence))
-              body_lines.extend(FOOTER)
-              event = 'APPROVE'
-
-          else:
-              # APPROVE — no issues at all
-              body_lines = [
-                  '## 🤖 Gemini AI Code Review',
-                  '',
-                  f'> {summary}',
-                  '',
-                  '✅ No significant issues found. Code looks good!',
-                  '',
-                  'Checked for: bugs, security, TypeScript compliance, FSD architecture, React best practices.',
-                  '',
-              ]
-              body_lines.extend(FOOTER)
-              event = 'APPROVE'
-
-          body = '\n'.join(body_lines)
-
-          # Submit the review via GitHub API
-          review_payload = json.dumps({
-              'body': body,
-              'event': event,
-              'commit_id': head_sha,
-          })
-
-          result = subprocess.run(
-              [
-                  'gh', 'api',
-                  f'repos/{repo}/pulls/{pr_number}/reviews',
-                  '--method', 'POST',
-                  '--input', '-',
-              ],
-              input=review_payload,
-              capture_output=True,
-              text=True,
-          )
-
-          if result.returncode != 0:
-              # Check if it failed because of 422 Unprocessable Entity (likely due to self-approval or Workflow permissions)
-              if '422' in result.stderr or 'Unprocessable Entity' in result.stderr:
-                  print("::warning::Failed to submit review as APPROVE/REQUEST_CHANGES (HTTP 422). "
-                        "This can happen if: 1) The PR author is the owner of the token (GitHub prevents self-approval), "
-                        "or 2) Workflow permissions block Actions from approving PRs. Falling back to COMMENT review.")
-                  
-                  # Prepend a warning message to the body to inform the author/admin
-                  warning_header = (
-                      "⚠️ **Note:** Bot attempted to submit this review as "
-                      f"`{event}` but fell back to `COMMENT` (HTTP 422).\n\n"
-                      "*Why this happens: GitHub prevents users from approving their own PRs (if using a personal token), "
-                      "or the GITHUB_TOKEN lacks approval permissions.*"
-                  )
-                  fallback_body = f"{warning_header}\n\n---\n\n{body}"
-                  
-                  fallback_payload = json.dumps({
-                      'body': fallback_body,
-                      'event': 'COMMENT',
-                      'commit_id': head_sha,
-                  })
-                  
-                  fallback_result = subprocess.run(
-                      [
-                          'gh', 'api',
-                          f'repos/{repo}/pulls/{pr_number}/reviews',
-                          '--method', 'POST',
-                          '--input', '-',
-                      ],
-                      input=fallback_payload,
-                      capture_output=True,
-                      text=True,
-                  )
-                  
-                  if fallback_result.returncode == 0:
-                      print(f'Review submitted successfully as COMMENT (Fallback).')
-                      sys.exit(0)
-                  else:
-                      print(f'::error::Fallback submission failed: {fallback_result.stderr}')
-                      sys.exit(1)
-              else:
-                  print(f'::error::Failed to submit review: {result.stderr}')
-                  sys.exit(1)
-
-          STATUS_MAP = {
-              'REQUEST_CHANGES': f'🚨 Issues found: {len(high_confidence)} critical, {len(medium_confidence)} minor',
-              'APPROVE': f'✅ Approved' + (f' with {len(medium_confidence)} minor note(s)' if medium_confidence else ' — no issues!'),
-              'COMMENT': f'💬 Commented'
-          }
-          print(f'Review submitted: {event}')
-          print(f'   {STATUS_MAP[event]}')
-
-          PYEOF
+  verify-and-post:
+    name: Verify confidence and post review
+    needs:
+      - prepare
+      - pass-gemini-md
+      - pass-bug-scan
+      - pass-git-blame
+      - pass-pr-history
+      - pass-code-comment
+    uses: ./.github/workflows/gemini-review-verify.yml
+    with:
+      model: ${{ vars.GEMINI_MODEL_STRONG || 'gemini-3.5-flash' }}
+      diff_b64: ${{ needs.prepare.outputs.diff_b64 }}
+      repo: ${{ github.repository }}
+      pr_number: ${{ github.event.pull_request.number }}
+      pr_title: ${{ github.event.pull_request.title }}
+      pr_body: ${{ github.event.pull_request.body }}
+      pr_author: ${{ github.event.pull_request.user.login }}
+      head_sha: ${{ github.event.pull_request.head.sha }}
+      issues_gemini_md_b64: ${{ needs.pass-gemini-md.outputs.issues_b64 }}
+      issues_bug_scan_b64: ${{ needs.pass-bug-scan.outputs.issues_b64 }}
+      issues_git_blame_b64: ${{ needs.pass-git-blame.outputs.issues_b64 }}
+      issues_pr_history_b64: ${{ needs.pass-pr-history.outputs.issues_b64 }}
+      issues_code_comment_b64: ${{ needs.pass-code-comment.outputs.issues_b64 }}
+    secrets: inherit
