@@ -1284,6 +1284,7 @@ export const ProjectWorkspacePage = () => {
                   <StepBoard
                     milestoneId={selectedMilestone.id}
                     isExpert={user?.role === Role.EXPERT && user?.id === project?.expertId}
+                    isClient={user?.role === Role.CLIENT && user?.id === project?.clientId}
                   />
 
                   <div className="space-y-4">

@@ -102,6 +102,7 @@ const normalizeMilestoneStep = (step: MilestoneStep): MilestoneStep => {
     dueDate: (step.dueDate ?? getString(raw.DueDate, '')) || null,
     completedAt: (step.completedAt ?? getString(raw.CompletedAt, '')) || null,
     completedByUserId: (step.completedByUserId ?? getString(raw.CompletedByUserId, '')) || null,
+    blockedReason: (step.blockedReason ?? getString(raw.BlockedReason, '')) || null,
   };
 };
 
@@ -272,8 +273,8 @@ export const projectService = {
     return normalizeBaseResponse<void>(response);
   },
 
-  updateStepStatus: async (stepId: string, status: MilestoneStepStatus): Promise<BaseResponse<MilestoneStep>> => {
-    const response = await apiClient.put(API_ENDPOINTS.STEPS.STATUS(stepId), { status });
+  updateStepStatus: async (stepId: string, status: MilestoneStepStatus, reason?: string): Promise<BaseResponse<MilestoneStep>> => {
+    const response = await apiClient.put(API_ENDPOINTS.STEPS.STATUS(stepId), { status, reason });
     const normalized = normalizeBaseResponse<MilestoneStep>(response);
     return {
       ...normalized,

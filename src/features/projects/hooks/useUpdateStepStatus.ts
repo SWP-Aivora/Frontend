@@ -8,8 +8,8 @@ export const useUpdateStepStatus = (milestoneId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ stepId, status }: { stepId: string; status: MilestoneStepStatus }) =>
-      projectService.updateStepStatus(stepId, status),
+    mutationFn: ({ stepId, status, reason }: { stepId: string; status: MilestoneStepStatus; reason?: string }) =>
+      projectService.updateStepStatus(stepId, status, reason),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['milestone', milestoneId, 'steps'] });
     },

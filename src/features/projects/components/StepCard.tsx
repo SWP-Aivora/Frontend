@@ -1,18 +1,21 @@
 import { useState } from 'react';
 import type { MilestoneStep } from '../types';
 import { MilestoneStepStatus } from '@/shared/types/enums';
-import { Circle, Clock, CheckCircle2, XCircle, Pencil, Trash2, ArrowUp, ArrowDown, Play, Ban } from 'lucide-react';
+import { Circle, Clock, CheckCircle2, XCircle, Pencil, Trash2, ArrowUp, ArrowDown, Play, Ban, AlertTriangle, Unlock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/shared/components/ui/Button';
 
 interface StepCardProps {
   step: MilestoneStep;
   isExpert: boolean;
+  isClient: boolean;
   isFirst: boolean;
   isLast: boolean;
   onStart: () => void;
   onComplete: () => void;
   onSkip: () => void;
+  onBlock: (reason: string) => void;
+  onUnblock: () => void;
   onDelete: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
@@ -24,10 +27,13 @@ const STATUS_CONFIG: Record<MilestoneStep['status'], { label: string; color: str
   [MilestoneStepStatus.IN_PROGRESS]: { label: 'In Progress', color: 'text-blue-600 bg-blue-50', icon: Clock },
   [MilestoneStepStatus.COMPLETED]: { label: 'Completed', color: 'text-emerald-600 bg-emerald-50', icon: CheckCircle2 },
   [MilestoneStepStatus.SKIPPED]: { label: 'Skipped', color: 'text-slate-400 bg-slate-50', icon: XCircle },
+  [MilestoneStepStatus.BLOCKED]: { label: 'Blocked', color: 'text-amber-600 bg-amber-50', icon: AlertTriangle },
 };
 
-export const StepCard = ({ step, isExpert, isFirst, isLast, onStart, onComplete, onSkip, onDelete, onMoveUp, onMoveDown, onEdit }: StepCardProps) => {
+export const StepCard = ({ step, isExpert, isClient, isFirst, isLast, onStart, onComplete, onSkip, onBlock, onUnblock, onDelete, onMoveUp, onMoveDown, onEdit }: StepCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [isBlocking, setIsBlocking] = useState(false);
+  const [blockReason, setBlockReason] = useState('');
   const [title, setTitle] = useState(step.title);
   const [description, setDescription] = useState(step.description ?? '');
   const [dueDate, setDueDate] = useState(step.dueDate ? step.dueDate.slice(0, 10) : '');
@@ -35,6 +41,7 @@ export const StepCard = ({ step, isExpert, isFirst, isLast, onStart, onComplete,
   const config = STATUS_CONFIG[step.status];
   const StatusIcon = config.icon;
   const isTerminal = step.status === MilestoneStepStatus.COMPLETED || step.status === MilestoneStepStatus.SKIPPED;
+  const isBlocked = step.status === MilestoneStepStatus.BLOCKED;
 
   if (isEditing) {
     return (
@@ -75,6 +82,36 @@ export const StepCard = ({ step, isExpert, isFirst, isLast, onStart, onComplete,
     );
   }
 
+  if (isBlocking) {
+    return (
+      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-3">
+        <p className="text-xs font-black text-amber-700 uppercase tracking-wider">Block step — reason required</p>
+        <textarea
+          autoFocus
+          value={blockReason}
+          onChange={(e) => setBlockReason(e.target.value)}
+          className="w-full rounded-lg border border-amber-200 px-3 py-2 text-sm"
+          placeholder="What are you waiting on from the client?"
+          rows={2}
+        />
+        <div className="flex gap-2 justify-end">
+          <Button variant="outline" size="sm" onClick={() => { setIsBlocking(false); setBlockReason(''); }}>Cancel</Button>
+          <Button
+            size="sm"
+            onClick={() => {
+              onBlock(blockReason.trim());
+              setIsBlocking(false);
+              setBlockReason('');
+            }}
+            disabled={!blockReason.trim()}
+          >
+            Block
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-lg border border-slate-100 bg-white p-4 space-y-3">
       <div className="flex items-start justify-between gap-3">
@@ -108,9 +145,14 @@ export const StepCard = ({ step, isExpert, isFirst, isLast, onStart, onComplete,
             Due {new Date(step.dueDate).toLocaleDateString()}
           </p>
         )}
+        {isBlocked && step.blockedReason && (
+          <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
+            Blocked: {step.blockedReason}
+          </p>
+        )}
       </div>
 
-      {isExpert && !isTerminal && (
+      {isExpert && !isTerminal && !isBlocked && (
         <div className="flex gap-2 pt-1">
           {step.status === MilestoneStepStatus.PENDING && (
             <Button size="sm" onClick={onStart} className="flex-1 h-8 text-xs font-black flex items-center gap-1.5">
@@ -122,8 +164,21 @@ export const StepCard = ({ step, isExpert, isFirst, isLast, onStart, onComplete,
               <CheckCircle2 className="size-3" /> Complete
             </Button>
           )}
+          {step.status === MilestoneStepStatus.IN_PROGRESS && (
+            <Button variant="outline" size="sm" onClick={() => setIsBlocking(true)} className="h-8 text-xs font-black flex items-center gap-1.5">
+              <AlertTriangle className="size-3" /> Block
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={onSkip} className="h-8 text-xs font-black flex items-center gap-1.5">
             <Ban className="size-3" /> Skip
+          </Button>
+        </div>
+      )}
+
+      {isClient && isBlocked && (
+        <div className="flex gap-2 pt-1">
+          <Button size="sm" onClick={onUnblock} className="flex-1 h-8 text-xs font-black flex items-center gap-1.5">
+            <Unlock className="size-3" /> Unblock
           </Button>
         </div>
       )}
