@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { chatService } from '@/features/chat/services';
+import { chatService, configureChatAccessTokenProvider } from '@/features/chat/services';
 import { useAuthStore } from '@/features/auth/store';
 
 /**
@@ -13,16 +13,31 @@ import { useAuthStore } from '@/features/auth/store';
  */
 export const useGlobalRealtimeSync = () => {
   const queryClient = useQueryClient();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, accessToken } = useAuthStore();
+  const hasAccessToken = typeof accessToken === 'string' && accessToken.trim().length > 0;
+
+  configureChatAccessTokenProvider(() => useAuthStore.getState().accessToken);
 
   // Maintain SignalR connection when authenticated
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !hasAccessToken) {
+      void chatService.resetChatConnection();
+      return;
+    }
+
+    let isSubscribed = true;
 
     chatService.connect().catch((error: unknown) => {
-      console.warn('[RealtimeSync] Failed to connect to SignalR hub:', error);
+      if (isSubscribed) {
+        console.warn('[RealtimeSync] Failed to connect to SignalR hub:', error);
+      }
     });
-  }, [isAuthenticated]);
+
+    return () => {
+      isSubscribed = false;
+      void chatService.resetChatConnection();
+    };
+  }, [isAuthenticated, hasAccessToken]);
 
   // Listen for job/project status updates and invalidate all related caches
   useEffect(() => {

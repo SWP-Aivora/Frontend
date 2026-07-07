@@ -20,6 +20,9 @@ export const registerSchema = z.object({
   role: z.enum(['CLIENT', 'EXPERT'], {
     required_error: 'Please select a role',
   }),
+  termsAccepted: z.boolean().refine((value) => value === true, {
+    message: 'Please agree to the Terms of Service and Privacy Policy.',
+  }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],

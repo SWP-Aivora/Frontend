@@ -124,9 +124,9 @@ export const authService = {
   },
   
   register: async (data: RegisterFormValues): Promise<BaseResponse<void>> => {
-    // Backend expects specific fields, confirmPassword is only for client-side validation
+    // Backend expects specific fields, confirmPassword and termsAccepted are only for client-side validation
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { confirmPassword, ...registerData } = data;
+    const { confirmPassword, termsAccepted, ...registerData } = data;
     const response = await apiClient.post<BaseResponse<void>>(API_ENDPOINTS.AUTH.REGISTER, registerData);
     return normalizeBaseResponse<void>(response);
   },
@@ -188,4 +188,3 @@ export const authService = {
     }
   },
 };
-

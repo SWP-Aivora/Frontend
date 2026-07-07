@@ -31,10 +31,16 @@ const processQueue = (error: AxiosError | null) => {
   failedQueue = [];
 };
 
-// Request Interceptor: Attach Bearer Token (Now handled by cookies)
+// Request Interceptor: Attach Bearer Token while keeping cookies as fallback
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // Tokens are now stored in HttpOnly cookies, so we don't need to manually attach them here.
+    const accessToken = useAuthStore.getState().accessToken;
+    const existingAuthorization = config.headers.get?.('Authorization') ?? config.headers.Authorization;
+
+    if (typeof accessToken === 'string' && accessToken.trim() && !existingAuthorization) {
+      config.headers.set('Authorization', `Bearer ${accessToken}`);
+    }
+
     return config;
   },
   (error) => Promise.reject(error)

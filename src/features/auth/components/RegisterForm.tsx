@@ -25,6 +25,7 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
     resolver: zodResolver(registerSchema),
     defaultValues: {
       role: selectedRole,
+      termsAccepted: false,
     }
   });
 
@@ -148,23 +149,38 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
       </div>
 
       {/* Terms Row */}
-      <div className="flex items-start gap-3 px-1 py-1.5 bg-slate-50/50 border border-slate-100 rounded-lg">
-        <label className="flex items-center gap-2 cursor-pointer group mt-1 ml-2">
-          <div className="relative size-5 rounded-md border-2 border-slate-300 bg-white group-hover:border-primary transition-colors overflow-hidden shrink-0">
-             <input type="checkbox" className="peer absolute inset-0 opacity-0 cursor-pointer" required />
-             <div className="absolute inset-0 bg-primary opacity-0 peer-checked:opacity-100 transition-opacity flex items-center justify-center">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="size-3 text-white">
-                  <path d="M5 13l4 4L19 7" />
+      <div className={cn(
+        "flex items-start gap-3 px-1 py-1.5 bg-slate-50/50 border border-slate-100 rounded-lg",
+        errors.termsAccepted && "border-destructive"
+      )}>
+        <label htmlFor="termsAccepted" className="flex items-center gap-2 cursor-pointer group mt-1 ml-2">
+          <div className={cn(
+            "relative size-5 rounded-md border-2 border-slate-300 bg-white group-hover:border-primary transition-colors overflow-hidden shrink-0",
+            errors.termsAccepted && "border-destructive"
+          )}>
+             <input
+               id="termsAccepted"
+               type="checkbox"
+               className="peer absolute inset-0 opacity-0 cursor-pointer"
+               aria-invalid={Boolean(errors.termsAccepted)}
+               aria-describedby={errors.termsAccepted ? 'termsAccepted-error' : undefined}
+               {...register('termsAccepted')}
+             />
+              <div className="absolute inset-0 bg-primary opacity-0 peer-checked:opacity-100 transition-opacity flex items-center justify-center">
+                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="size-3 text-white">
+                   <path d="M5 13l4 4L19 7" />
                 </svg>
              </div>
           </div>
         </label>
         <div className="space-y-0.5">
            <p className="text-[13px] font-bold text-slate-700">
-             I agree to the <span className="text-red-500">*</span>{' '}
-             <PolicyDialog type="terms">
-               <button type="button" className="text-primary underline underline-offset-4 transition-colors hover:text-primary/80">
-                 Terms of Service
+             <label htmlFor="termsAccepted" className="cursor-pointer">
+               I agree to the <span className="text-red-500">*</span>
+             </label>{' '}
+              <PolicyDialog type="terms">
+                <button type="button" className="text-primary underline underline-offset-4 transition-colors hover:text-primary/80">
+                  Terms of Service
                </button>
              </PolicyDialog>
              {' '}and{' '}
@@ -174,9 +190,14 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
                </button>
              </PolicyDialog>
              .
-           </p>
-           <p className="text-xs font-medium text-slate-400">Use the service responsibly and follow AIVORA platform policies.</p>
-        </div>
+            </p>
+            <p className="text-xs font-medium text-slate-400">Use the service responsibly and follow AIVORA platform policies.</p>
+            {errors.termsAccepted && (
+              <p id="termsAccepted-error" className="text-xs text-destructive font-medium">
+                {errors.termsAccepted.message}
+              </p>
+            )}
+         </div>
       </div>
 
       <Button 

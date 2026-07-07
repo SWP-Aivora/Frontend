@@ -23,6 +23,8 @@ import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { jobService } from '../services';
 import { proposalService } from '../../proposals/services';
+import { useAuthStore } from '@/features/auth/store';
+import { Role } from '@/shared/types/enums';
 
 const normalizeJobStatus = (status: unknown): string => {
   if (status === 0 || String(status).toUpperCase() === 'DRAFT') return 'draft';
@@ -37,6 +39,7 @@ export const JobDetailsPage = () => {
   const { id, proposalId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
   const isEditMode = Boolean(proposalId);
   const [hasSubmitted, setHasSubmitted] = useState(() => localStorage.getItem(`submitted_proposal_${id}`) === 'true');
 
@@ -49,7 +52,15 @@ export const JobDetailsPage = () => {
   });
   
   const job = jobResponse?.data;
-  const isJobOpen = normalizeJobStatus(job?.status) === 'published';
+  const jobStatus = normalizeJobStatus(job?.status);
+  const isJobOpen = jobStatus === 'published';
+  const isCancelableJobStatus = jobStatus === 'published' || jobStatus === 'in-progress';
+  const isCurrentUserClientOwner =
+    user?.role === Role.CLIENT &&
+    typeof user.id === 'string' &&
+    typeof job?.clientId === 'string' &&
+    user.id.toLowerCase() === job.clientId.toLowerCase();
+  const canCancelJob = isCurrentUserClientOwner && isCancelableJobStatus;
 
   const { data: proposalResponse, isLoading: isProposalLoading } = useQuery({
     queryKey: ['proposal', proposalId],
@@ -169,6 +180,8 @@ export const JobDetailsPage = () => {
   });
 
   const handleCancelJob = () => {
+    if (!canCancelJob) return;
+
     if (window.confirm('Cancel this job post? Experts will no longer be able to apply.')) {
       if (id) cancelJobMutation.mutate(id);
     }
@@ -216,7 +229,7 @@ export const JobDetailsPage = () => {
         </button>
 
         <div className="flex items-center gap-3">
-          {(normalizeJobStatus(job?.status) === 'published' || normalizeJobStatus(job?.status) === 'in-progress') && (
+          {canCancelJob && (
             <Button
               variant="outline"
               className="rounded-full border-rose-200 text-rose-600 hover:bg-rose-50"
