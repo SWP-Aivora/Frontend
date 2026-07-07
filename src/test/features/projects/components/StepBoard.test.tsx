@@ -28,7 +28,7 @@ vi.mock('../../../../features/projects/hooks/useMilestoneSteps', () => ({
   useMilestoneSteps: vi.fn(() => ({ data: { data: [mockStep] }, isLoading: false })),
 }));
 vi.mock('../../../../features/projects/hooks/useCreateMilestoneStep', () => ({
-  useCreateMilestoneStep: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
+  useCreateMilestoneStep: vi.fn(() => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false })),
 }));
 vi.mock('../../../../features/projects/hooks/useUpdateMilestoneStep', () => ({
   useUpdateMilestoneStep: vi.fn(() => ({ mutate: vi.fn() })),
@@ -41,6 +41,9 @@ vi.mock('../../../../features/projects/hooks/useUpdateStepStatus', () => ({
 }));
 vi.mock('../../../../features/projects/hooks/useReorderMilestoneSteps', () => ({
   useReorderMilestoneSteps: vi.fn(() => ({ mutate: vi.fn() })),
+}));
+vi.mock('../../../../features/projects/hooks/useSuggestMilestoneSteps', () => ({
+  useSuggestMilestoneSteps: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
 }));
 
 describe('StepBoard', () => {
@@ -140,5 +143,60 @@ describe('StepBoard', () => {
 
     await user.click(screen.getByText('Unblock'));
     expect(mutate).toHaveBeenCalledWith({ stepId: blockedStep.id, status: 'IN_PROGRESS' });
+  });
+
+  it('lets the Expert generate, edit, and save AI-suggested steps', async () => {
+    const user = userEvent.setup();
+    const useSuggestMilestoneStepsMock = await import('../../../../features/projects/hooks/useSuggestMilestoneSteps');
+    const suggestMutate = vi.fn((_vars, opts?: { onSuccess?: (res: { data: { title: string; description: string | null }[] }) => void }) => {
+      opts?.onSuccess?.({ data: [{ title: 'Draft schema', description: 'Design the DB schema' }, { title: 'Build API', description: null }] });
+    });
+    vi.mocked(useSuggestMilestoneStepsMock.useSuggestMilestoneSteps).mockReturnValue({ mutate: suggestMutate, isPending: false } as never);
+
+    const useCreateMilestoneStepMock = await import('../../../../features/projects/hooks/useCreateMilestoneStep');
+    const mutateAsync = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(useCreateMilestoneStepMock.useCreateMilestoneStep).mockReturnValue({ mutate: vi.fn(), mutateAsync, isPending: false } as never);
+
+    render(<StepBoard milestoneId="milestone-1" isExpert={true} isClient={false} />);
+
+    await user.click(screen.getByText('AI Suggest Steps'));
+    expect(suggestMutate).toHaveBeenCalled();
+    expect(screen.getByDisplayValue('Draft schema')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Build API')).toBeInTheDocument();
+
+    // Remove the second draft step
+    const removeButtons = screen.getAllByTitle('Remove');
+    await user.click(removeButtons[1]);
+    expect(screen.queryByDisplayValue('Build API')).not.toBeInTheDocument();
+
+    await user.click(screen.getByText(/Save 1 step/));
+    expect(mutateAsync).toHaveBeenCalledTimes(1);
+    expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ title: 'Draft schema' }));
+  });
+
+  it('does not re-offer an already-saved draft step for resubmission after a mid-save failure', async () => {
+    const user = userEvent.setup();
+    const useSuggestMilestoneStepsMock = await import('../../../../features/projects/hooks/useSuggestMilestoneSteps');
+    const suggestMutate = vi.fn((_vars, opts?: { onSuccess?: (res: { data: { title: string; description: string | null }[] }) => void }) => {
+      opts?.onSuccess?.({ data: [{ title: 'Draft schema', description: null }, { title: 'Build API', description: null }] });
+    });
+    vi.mocked(useSuggestMilestoneStepsMock.useSuggestMilestoneSteps).mockReturnValue({ mutate: suggestMutate, isPending: false } as never);
+
+    const useCreateMilestoneStepMock = await import('../../../../features/projects/hooks/useCreateMilestoneStep');
+    const mutateAsync = vi.fn()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('network error'));
+    vi.mocked(useCreateMilestoneStepMock.useCreateMilestoneStep).mockReturnValue({ mutate: vi.fn(), mutateAsync, isPending: false } as never);
+
+    render(<StepBoard milestoneId="milestone-1" isExpert={true} isClient={false} />);
+
+    await user.click(screen.getByText('AI Suggest Steps'));
+    await user.click(screen.getByText(/Save 2 step/)).catch(() => undefined);
+
+    // "Draft schema" saved successfully and is no longer in the draft panel;
+    // "Build API" failed and stays so the user can retry without duplicating the first one.
+    expect(screen.queryByDisplayValue('Draft schema')).not.toBeInTheDocument();
+    expect(screen.getByDisplayValue('Build API')).toBeInTheDocument();
+    expect(mutateAsync).toHaveBeenCalledTimes(2);
   });
 });

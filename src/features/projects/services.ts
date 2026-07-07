@@ -1,6 +1,6 @@
 // Cấu hình các hàm gọi API (axios) quản lý Không gian làm việc chung (Project Workspace) và Mốc tiến độ (Milestone)
 import apiClient from '@/lib/axios';
-import type { Project, Milestone, Deliverable, MilestoneStep } from './types';
+import type { Project, Milestone, Deliverable, MilestoneStep, SuggestedMilestoneStep } from './types';
 import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
 import { MilestoneStepStatus } from '@/shared/types/enums';
 import { API_ENDPOINTS } from '@/shared/constants';
@@ -285,6 +285,15 @@ export const projectService = {
   reorderMilestoneSteps: async (milestoneId: string, stepIds: string[]): Promise<BaseResponse<void>> => {
     const response = await apiClient.put(API_ENDPOINTS.MILESTONES.STEPS_REORDER(milestoneId), stepIds);
     return normalizeBaseResponse<void>(response);
+  },
+
+  suggestMilestoneSteps: async (milestoneId: string): Promise<BaseResponse<SuggestedMilestoneStep[]>> => {
+    const response = await apiClient.post(API_ENDPOINTS.MILESTONES.STEPS_SUGGEST(milestoneId), {});
+    const normalized = normalizeBaseResponse<{ steps?: SuggestedMilestoneStep[] }>(response);
+    return {
+      ...normalized,
+      data: normalized.data?.steps ?? [],
+    };
   },
 
   // Deliverable endpoints

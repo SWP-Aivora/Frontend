@@ -29,6 +29,7 @@ export const API_ENDPOINTS = {
     DELIVERABLES: (id: string) => `milestones/${id}/deliverables`,
     STEPS: (id: string) => `milestones/${id}/steps`,
     STEPS_REORDER: (id: string) => `milestones/${id}/steps/reorder`,
+    STEPS_SUGGEST: (id: string) => `milestones/${id}/steps/suggest`,
   },
   STEPS: {
     ID: (id: string) => `steps/${id}`,

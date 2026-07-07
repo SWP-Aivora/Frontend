@@ -60,6 +60,11 @@ export interface MilestoneStep {
   blockedReason: string | null;
 }
 
+export interface SuggestedMilestoneStep {
+  title: string;
+  description: string | null;
+}
+
 export interface Deliverable {
   id: string;
   milestoneId: string;
