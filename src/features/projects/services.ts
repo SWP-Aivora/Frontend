@@ -2,7 +2,7 @@
 import apiClient from '@/lib/axios';
 import type { Project, Milestone, Deliverable, MilestoneStep } from './types';
 import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
-import type { MilestoneStepStatus } from '@/shared/types/enums';
+import { MilestoneStepStatus } from '@/shared/types/enums';
 import { API_ENDPOINTS } from '@/shared/constants';
 import { normalizePaginatedResponse, normalizeBaseResponse } from '@/lib/api-utils';
 import { normalizeMilestoneStatus, normalizeProjectStatus } from './utils';
@@ -84,6 +84,11 @@ const normalizeProject = (project: Project): Project => {
   };
 };
 
+const STEP_STATUS_VALUES = Object.values(MilestoneStepStatus);
+const normalizeMilestoneStepStatus = (status: unknown): MilestoneStepStatus => (
+  STEP_STATUS_VALUES.includes(status as MilestoneStepStatus) ? (status as MilestoneStepStatus) : MilestoneStepStatus.PENDING
+);
+
 const normalizeMilestoneStep = (step: MilestoneStep): MilestoneStep => {
   const raw = step as MilestoneStepRecord;
   return {
@@ -93,7 +98,7 @@ const normalizeMilestoneStep = (step: MilestoneStep): MilestoneStep => {
     title: step.title || getString(raw.Title, 'Untitled step'),
     description: (step.description ?? getString(raw.Description, '')) || null,
     orderIndex: Number(step.orderIndex ?? raw.OrderIndex ?? 0),
-    status: (step.status || getString(raw.Status, 'PENDING')) as MilestoneStepStatus,
+    status: normalizeMilestoneStepStatus(step.status || raw.Status),
     dueDate: (step.dueDate ?? getString(raw.DueDate, '')) || null,
     completedAt: (step.completedAt ?? getString(raw.CompletedAt, '')) || null,
     completedByUserId: (step.completedByUserId ?? getString(raw.CompletedByUserId, '')) || null,
