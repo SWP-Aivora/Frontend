@@ -19,6 +19,7 @@ export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, isAuthenticated, setUser } = useAuthStore();
   const location = useLocation();
+  const mainRef = useRef<HTMLElement | null>(null);
   const items = NAV_ITEMS[role] || [];
 
   // Global real-time sync: maintains SignalR connection and listens for backend events
@@ -26,6 +27,10 @@ export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
 
   const isMessagePage = location.pathname.endsWith('/messages');
   const isHydrating = useRef(false);
+
+  useEffect(() => {
+    mainRef.current?.scrollTo({ top: 0, left: 0 });
+  }, [location.pathname]);
 
   // Hydrate user data on mount
   useEffect(() => {
@@ -116,7 +121,8 @@ export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
         <main className={cn(
           "flex-1 overflow-y-auto min-w-0",
           !isMessagePage && "p-6 lg:p-10"
-        )}>
+        )}
+        ref={mainRef}>
           <div className={cn(
             "animate-in fade-in slide-in-from-bottom-4 duration-700",
             isMessagePage ? "h-full" : "max-w-screen-2xl mx-auto"

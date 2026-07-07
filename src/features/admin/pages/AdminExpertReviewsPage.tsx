@@ -19,6 +19,15 @@ import type { LucideIcon } from 'lucide-react';
 import type { ExpertReviewStatus, ExpertReviewItem } from '../types';
 import type { AxiosError } from 'axios';
 
+const formatDate = (value?: string | null) => {
+  if (!value) return 'N/A';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'N/A';
+
+  return date.toLocaleDateString();
+};
+
 export const AdminExpertReviewsPage = () => {
   const [draftSearchTerm, setDraftSearchTerm] = useState('');
   const [submittedSearchTerm, setSubmittedSearchTerm] = useState('');
@@ -248,7 +257,7 @@ export const AdminExpertReviewsPage = () => {
                     </span>
                   </td>
                   <td className="px-4 py-2.5 whitespace-nowrap text-xs font-medium text-slate-600">
-                    {rev.submittedAt}
+                    {formatDate(rev.submittedAt)}
                   </td>
                   <td className="px-4 py-2.5 text-center">
                     <button
@@ -352,7 +361,7 @@ export const AdminExpertReviewsPage = () => {
               </div>
               <div className="rounded-lg bg-slate-50 p-3 sm:col-span-2">
                 <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Submitted</p>
-                <p className="mt-1 font-semibold text-slate-800">{selectedReview.submittedAt}</p>
+                <p className="mt-1 font-semibold text-slate-800">{formatDate(selectedReview.submittedAt)}</p>
               </div>
             </div>
           </div>

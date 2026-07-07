@@ -889,7 +889,7 @@ export const ProjectWorkspacePage = () => {
                    className="rounded-full px-4 border-primary/30 text-primary hover:bg-primary/5 font-black flex items-center gap-2 text-sm"
                  >
                    <Plus className="size-4" />
-                   Thêm Milestone
+                    Add Milestone
                  </Button>
                )}
                <div className="flex -space-x-3">

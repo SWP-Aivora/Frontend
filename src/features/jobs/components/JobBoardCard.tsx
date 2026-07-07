@@ -34,8 +34,13 @@ export const JobBoardCard = ({ job }: JobBoardCardProps) => {
 
       {/* Header: Title & Time */}
       <div className="flex justify-between items-start gap-4 mb-4 relative z-10">
-        <h3 className="text-xl font-black text-slate-900 group-hover:text-brand-accent transition-colors leading-tight">
-          {job.title}
+        <h3 className="text-xl font-black leading-tight">
+          <Link
+            to={`/expert/jobs/${job.id}`}
+            className="text-slate-900 transition-colors group-hover:text-brand-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 rounded-sm"
+          >
+            {job.title}
+          </Link>
         </h3>
         <span className="text-xs font-bold text-slate-400 uppercase tracking-widest shrink-0 mt-1.5 flex items-center gap-1">
           <Clock className="size-3" /> {job.createdAt}

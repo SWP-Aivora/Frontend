@@ -42,6 +42,12 @@ const buildApiUrl = (endpoint: string): string => (
 
 const CHAT_HUB_URL = buildApiUrl(API_ENDPOINTS.MESSAGES.CHAT_HUB);
 
+let chatAccessTokenProvider: () => string | null = () => null;
+
+export const configureChatAccessTokenProvider = (provider: () => string | null) => {
+  chatAccessTokenProvider = provider;
+};
+
 type ChatConnectionPoolEntry = {
   connection: signalR.HubConnection;
   startPromise: Promise<void> | null;
@@ -149,6 +155,7 @@ private messageIdCounter = 0;
       .withUrl(CHAT_HUB_URL, {
         withCredentials: true,
         transport: signalR.HttpTransportType.LongPolling,
+        accessTokenFactory: () => chatAccessTokenProvider()?.trim() || '',
       })
       .withAutomaticReconnect()
       .build();

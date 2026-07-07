@@ -19,6 +19,25 @@ import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
+const getDisplayJobTitle = (jobTitle?: string, jobId?: string) => {
+  const trimmedTitle = jobTitle?.trim();
+  if (trimmedTitle) return trimmedTitle;
+
+  const shortJobId = jobId?.trim() ? jobId.substring(0, 8) : '';
+  return shortJobId ? `Job #${shortJobId}...` : 'Untitled job';
+};
+
+const getCoverLetterPreview = (coverLetter?: string) => {
+  const trimmedCoverLetter = coverLetter?.trim();
+  if (!trimmedCoverLetter) return 'No cover letter provided.';
+
+  if (/^https?:\/\/\S+$/i.test(trimmedCoverLetter)) {
+    return 'No cover letter provided.';
+  }
+
+  return trimmedCoverLetter;
+};
+
 export const ExpertMyProposalsPage = () => {
   // Tự động gọi API lấy toàn bộ lịch sử nộp đơn của Expert đang đăng nhập
   const { data: response, isLoading, isError } = useQuery({
@@ -173,6 +192,8 @@ export const ExpertMyProposalsPage = () => {
             const config = getStatusConfig(proposal.status);
             const StatusIcon = config.icon;
             const submittedAt = proposal.createdAt || proposal.submittedAt;
+            const displayJobTitle = getDisplayJobTitle(proposal.jobTitle, proposal.jobId);
+            const coverLetterPreview = getCoverLetterPreview(proposal.coverLetter);
 
             return (
               <div key={proposal.id} className="group bg-white border border-slate-100 hover:border-brand-accent/30 rounded-lg p-8 shadow-sm hover:shadow-xl hover:shadow-brand-accent/5 transition-all duration-300 relative overflow-hidden">
@@ -191,10 +212,10 @@ export const ExpertMyProposalsPage = () => {
 
                        <div>
                           <h3 className="text-xl font-black text-slate-900 group-hover:text-brand-accent transition-colors leading-tight mb-2">
-                             Job #{proposal.jobId.substring(0, 8)}...
+                             {displayJobTitle}
                           </h3>
                           <p className="text-sm text-slate-500 font-medium leading-relaxed line-clamp-2">
-                             {proposal.coverLetter}
+                             {coverLetterPreview}
                           </p>
                        </div>
 

@@ -12,6 +12,34 @@ import { profileService } from '@/features/profiles/services';
 import { categoryService, type Category } from '../services/categoryService';
 import { useAppStore } from '@/app/store';
 import { PolicyDialog } from '@/features/auth/components/PolicyDialog';
+import { Role, type Role as UserRole } from '@/shared/types/enums';
+
+const CLIENT_EXPERTS_PATH = '/client/experts';
+const CLIENT_POST_JOB_PATH = '/client/post-job';
+
+const getClientFeaturePath = (targetPath: string, isAuthenticated: boolean, role?: UserRole) => {
+  if (!isAuthenticated) {
+    return '/login';
+  }
+
+  if (role === Role.CLIENT) {
+    return targetPath;
+  }
+
+  if (role === Role.EXPERT) {
+    return '/expert/jobs';
+  }
+
+  if (role === Role.ADMIN) {
+    if (targetPath === CLIENT_POST_JOB_PATH) {
+      return '/admin/job-posts';
+    }
+
+    return '/admin/users';
+  }
+
+  return '/';
+};
 
 const Navbar: React.FC = () => {
   const { isAuthenticated, user, setUser } = useAuthStore();
@@ -228,7 +256,7 @@ const Categories: React.FC = () => {
                   <div className="w-10 h-10 bg-brand-blue-light text-brand-blue-dark rounded-lg flex items-center justify-center font-bold text-[13px] mb-4">
                     {cat.name.substring(0, 2).toUpperCase()}
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900 mb-1.5 truncate" title={cat.name}>{cat.name}</h3>
+                  <h3 className="text-lg font-bold text-slate-900 mb-1.5 line-clamp-2" title={cat.name}>{cat.name}</h3>
                   <p className="text-slate-500 text-xs leading-relaxed line-clamp-2 h-10">
                     {cat.description || 'Explore expert services in this category.'}
                   </p>
@@ -247,6 +275,8 @@ const Categories: React.FC = () => {
 };
 
 const Process: React.FC = () => {
+  const { isAuthenticated, user } = useAuthStore();
+  const postJobPath = getClientFeaturePath(CLIENT_POST_JOB_PATH, isAuthenticated, user?.role);
   const steps = [
     { title: 'Describe Your AI Project', description: 'Enter the idea, expected outcome, budget, and timeline.', number: '01' },
     { title: 'Get AI Assistance', description: 'AIVORA clarifies requirements and generates a better project description.', number: '02' },
@@ -284,6 +314,12 @@ const Process: React.FC = () => {
             </div>
           ))}
         </div>
+
+        <div className="mt-8 flex justify-center">
+          <Button asChild className="rounded-full px-7 font-bold shadow-aivora bg-brand-blue-dark hover:bg-brand-blue-dark/90">
+            <Link to={postJobPath}>Start posting -&gt;</Link>
+          </Button>
+        </div>
       </div>
     </section>
   );
@@ -301,8 +337,10 @@ type FeaturedExpert = {
 };
 
 const Experts: React.FC = () => {
+  const { isAuthenticated, user } = useAuthStore();
   const [experts, setExperts] = React.useState<FeaturedExpert[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+  const expertsPath = getClientFeaturePath(CLIENT_EXPERTS_PATH, isAuthenticated, user?.role);
 
   React.useEffect(() => {
     const fetchExperts = async () => {
@@ -397,6 +435,12 @@ const Experts: React.FC = () => {
               <p className="text-slate-400 text-[15px] font-medium">Unable to load featured experts. Please try again later.</p>
             </div>
           )}
+        </div>
+
+        <div className="mt-8 flex justify-center">
+          <Button asChild variant="outline" className="rounded-full px-7 font-bold">
+            <Link to={expertsPath}>View more experts -&gt;</Link>
+          </Button>
         </div>
       </div>
     </section>
