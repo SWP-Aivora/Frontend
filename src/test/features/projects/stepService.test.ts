@@ -125,3 +125,42 @@ describe('projectService.reorderMilestoneSteps', () => {
     expect(apiClient.put).toHaveBeenCalledWith('milestones/milestone-1/steps/reorder', ['step-2', 'step-1']);
   });
 });
+
+describe('projectService.suggestMilestoneSteps', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('calls POST /milestones/{id}/steps/suggest and unwraps the steps array', async () => {
+    (vi.mocked(apiClient.post)).mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          steps: [
+            { title: 'Draft schema', description: 'Design the DB schema' },
+            { title: 'Build API', description: null },
+          ],
+          aiModel: 'Aivora-Mock',
+        },
+        message: 'Milestone step suggestions generated',
+      },
+    });
+
+    const result = await projectService.suggestMilestoneSteps('milestone-1');
+
+    expect(apiClient.post).toHaveBeenCalledWith('milestones/milestone-1/steps/suggest', {});
+    expect(result.data).toHaveLength(2);
+    expect(result.data?.[0].title).toBe('Draft schema');
+    expect(result.data?.[1].description).toBeNull();
+  });
+
+  it('returns an empty array when the response has no steps', async () => {
+    (vi.mocked(apiClient.post)).mockResolvedValue({
+      data: { success: true, data: {}, message: 'Milestone step suggestions generated' },
+    });
+
+    const result = await projectService.suggestMilestoneSteps('milestone-1');
+
+    expect(result.data).toEqual([]);
+  });
+});

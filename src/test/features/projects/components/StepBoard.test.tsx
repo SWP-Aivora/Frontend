@@ -173,4 +173,30 @@ describe('StepBoard', () => {
     expect(mutateAsync).toHaveBeenCalledTimes(1);
     expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ title: 'Draft schema' }));
   });
+
+  it('does not re-offer an already-saved draft step for resubmission after a mid-save failure', async () => {
+    const user = userEvent.setup();
+    const useSuggestMilestoneStepsMock = await import('../../../../features/projects/hooks/useSuggestMilestoneSteps');
+    const suggestMutate = vi.fn((_vars, opts?: { onSuccess?: (res: { data: { title: string; description: string | null }[] }) => void }) => {
+      opts?.onSuccess?.({ data: [{ title: 'Draft schema', description: null }, { title: 'Build API', description: null }] });
+    });
+    vi.mocked(useSuggestMilestoneStepsMock.useSuggestMilestoneSteps).mockReturnValue({ mutate: suggestMutate, isPending: false } as never);
+
+    const useCreateMilestoneStepMock = await import('../../../../features/projects/hooks/useCreateMilestoneStep');
+    const mutateAsync = vi.fn()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('network error'));
+    vi.mocked(useCreateMilestoneStepMock.useCreateMilestoneStep).mockReturnValue({ mutate: vi.fn(), mutateAsync, isPending: false } as never);
+
+    render(<StepBoard milestoneId="milestone-1" isExpert={true} isClient={false} />);
+
+    await user.click(screen.getByText('AI Suggest Steps'));
+    await user.click(screen.getByText(/Save 2 step/)).catch(() => undefined);
+
+    // "Draft schema" saved successfully and is no longer in the draft panel;
+    // "Build API" failed and stays so the user can retry without duplicating the first one.
+    expect(screen.queryByDisplayValue('Draft schema')).not.toBeInTheDocument();
+    expect(screen.getByDisplayValue('Build API')).toBeInTheDocument();
+    expect(mutateAsync).toHaveBeenCalledTimes(2);
+  });
 });

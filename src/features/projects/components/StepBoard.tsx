@@ -103,8 +103,15 @@ export const StepBoard = ({ milestoneId, isExpert, isClient }: StepBoardProps) =
       for (const step of kept) {
         orderIndex += 1;
         await createStep.mutateAsync({ title: step.title.trim(), description: step.description.trim() || undefined, orderIndex });
+        // Drop the just-saved entry so a mid-loop failure leaves only the
+        // unsaved remainder in the panel — retrying "Save" can't re-create
+        // entries that already persisted.
+        setDraftSteps((prev) => prev?.filter((s) => s !== step) ?? null);
       }
-      setDraftSteps(null);
+      setDraftSteps((prev) => (prev?.some((s) => s.title.trim()) ? prev : null));
+    } catch {
+      // Already surfaced via useCreateMilestoneStep's onError toast; stop here
+      // so the unsaved remainder stays in the draft panel for retry.
     } finally {
       setIsSavingDraft(false);
     }
