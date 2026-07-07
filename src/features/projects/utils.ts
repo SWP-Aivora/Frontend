@@ -65,6 +65,20 @@ export const getDefaultNonDisputeProjectStatus = (status: unknown): ProjectStatu
   return ProjectStatus.IN_PROGRESS;
 };
 
+export const getMutationErrorMessage = (error: unknown, fallback: string): string => {
+  if (typeof error !== 'object' || error === null) return fallback;
+  const err = error as { response?: { data?: unknown } };
+  const data = err.response?.data;
+  if (typeof data === 'string' && data.trim()) return data;
+  if (data && typeof data === 'object') {
+    const record = data as Record<string, unknown>;
+    const msg = [record.message, record.detail, record.title]
+      .find((v): v is string => typeof v === 'string' && v.trim() !== '');
+    if (msg) return msg;
+  }
+  return error instanceof Error ? error.message : fallback;
+};
+
 export const normalizeMilestoneStatus = (status: unknown): MilestoneStatus => {
   if (typeof status === 'number' && Number.isFinite(status)) {
     return status as MilestoneStatus;

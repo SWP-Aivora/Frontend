@@ -66,6 +66,17 @@ export const MilestoneStatus = {
 export type MilestoneStatus = (typeof MilestoneStatus)[keyof typeof MilestoneStatus];
 
 /**
+ * Milestone Step Status
+ */
+export const MilestoneStepStatus = {
+  PENDING: 'PENDING',
+  IN_PROGRESS: 'IN_PROGRESS',
+  COMPLETED: 'COMPLETED',
+  SKIPPED: 'SKIPPED',
+} as const;
+export type MilestoneStepStatus = (typeof MilestoneStepStatus)[keyof typeof MilestoneStepStatus];
+
+/**
  * Skill Level (from API)
  */
 export const SkillLevel = {

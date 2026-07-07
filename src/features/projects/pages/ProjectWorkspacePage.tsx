@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { KanbanBoard } from '../components/KanbanBoard';
 import { AddMilestoneModal } from '../components/AddMilestoneModal';
+import { StepBoard } from '../components/StepBoard';
 import type { Deliverable, Milestone } from '../types';
 import { projectService } from '../services';
 import { 
@@ -1279,6 +1280,11 @@ export const ProjectWorkspacePage = () => {
                        )}
                      </ul>
                   </div>
+
+                  <StepBoard
+                    milestoneId={selectedMilestone.id}
+                    isExpert={user?.role === Role.EXPERT && user?.id === project?.expertId}
+                  />
 
                   <div className="space-y-4">
                     <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">

@@ -1,7 +1,8 @@
 // Cấu hình các hàm gọi API (axios) quản lý Không gian làm việc chung (Project Workspace) và Mốc tiến độ (Milestone)
 import apiClient from '@/lib/axios';
-import type { Project, Milestone, Deliverable } from './types';
+import type { Project, Milestone, Deliverable, MilestoneStep } from './types';
 import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
+import { MilestoneStepStatus } from '@/shared/types/enums';
 import { API_ENDPOINTS } from '@/shared/constants';
 import { normalizePaginatedResponse, normalizeBaseResponse } from '@/lib/api-utils';
 import { normalizeMilestoneStatus, normalizeProjectStatus } from './utils';
@@ -9,6 +10,7 @@ import { normalizeMilestoneStatus, normalizeProjectStatus } from './utils';
 type ProjectRecord = Project & Record<string, unknown>;
 type MilestoneRecord = Milestone & Record<string, unknown>;
 type DeliverableRecord = Deliverable & Record<string, unknown>;
+type MilestoneStepRecord = MilestoneStep & Record<string, unknown>;
 
 const getString = (value: unknown, fallback = ''): string => (
   typeof value === 'string' ? value : fallback
@@ -79,6 +81,27 @@ const normalizeProject = (project: Project): Project => {
       avatarUrl: null,
       role: 'EXPERT',
     },
+  };
+};
+
+const STEP_STATUS_VALUES = Object.values(MilestoneStepStatus);
+const normalizeMilestoneStepStatus = (status: unknown): MilestoneStepStatus => (
+  STEP_STATUS_VALUES.includes(status as MilestoneStepStatus) ? (status as MilestoneStepStatus) : MilestoneStepStatus.PENDING
+);
+
+const normalizeMilestoneStep = (step: MilestoneStep): MilestoneStep => {
+  const raw = step as MilestoneStepRecord;
+  return {
+    ...step,
+    id: step.id || getString(raw.Id),
+    milestoneId: step.milestoneId || getString(raw.MilestoneId),
+    title: step.title || getString(raw.Title, 'Untitled step'),
+    description: (step.description ?? getString(raw.Description, '')) || null,
+    orderIndex: Number(step.orderIndex ?? raw.OrderIndex ?? 0),
+    status: normalizeMilestoneStepStatus(step.status || raw.Status),
+    dueDate: (step.dueDate ?? getString(raw.DueDate, '')) || null,
+    completedAt: (step.completedAt ?? getString(raw.CompletedAt, '')) || null,
+    completedByUserId: (step.completedByUserId ?? getString(raw.CompletedByUserId, '')) || null,
   };
 };
 
@@ -208,6 +231,59 @@ export const projectService = {
       ...normalized,
       data: normalized.data ? normalizeMilestone(normalized.data) : null,
     };
+  },
+
+  // Milestone step endpoints
+  getMilestoneSteps: async (milestoneId: string): Promise<BaseResponse<MilestoneStep[]>> => {
+    const response = await apiClient.get(API_ENDPOINTS.MILESTONES.STEPS(milestoneId));
+    const normalized = normalizeBaseResponse<MilestoneStep[]>(response);
+    return {
+      ...normalized,
+      data: (normalized.data ?? []).map(normalizeMilestoneStep),
+    };
+  },
+
+  createMilestoneStep: async (
+    milestoneId: string,
+    data: { title: string; description?: string; dueDate?: string; orderIndex: number }
+  ): Promise<BaseResponse<MilestoneStep>> => {
+    const response = await apiClient.post(API_ENDPOINTS.MILESTONES.STEPS(milestoneId), data);
+    const normalized = normalizeBaseResponse<MilestoneStep>(response);
+    return {
+      ...normalized,
+      data: normalized.data ? normalizeMilestoneStep(normalized.data) : null,
+    };
+  },
+
+  updateMilestoneStep: async (
+    stepId: string,
+    data: { title?: string; description?: string | null; dueDate?: string | null; orderIndex?: number }
+  ): Promise<BaseResponse<MilestoneStep>> => {
+    const response = await apiClient.put(API_ENDPOINTS.STEPS.ID(stepId), data);
+    const normalized = normalizeBaseResponse<MilestoneStep>(response);
+    return {
+      ...normalized,
+      data: normalized.data ? normalizeMilestoneStep(normalized.data) : null,
+    };
+  },
+
+  deleteMilestoneStep: async (stepId: string): Promise<BaseResponse<void>> => {
+    const response = await apiClient.delete(API_ENDPOINTS.STEPS.ID(stepId));
+    return normalizeBaseResponse<void>(response);
+  },
+
+  updateStepStatus: async (stepId: string, status: MilestoneStepStatus): Promise<BaseResponse<MilestoneStep>> => {
+    const response = await apiClient.put(API_ENDPOINTS.STEPS.STATUS(stepId), { status });
+    const normalized = normalizeBaseResponse<MilestoneStep>(response);
+    return {
+      ...normalized,
+      data: normalized.data ? normalizeMilestoneStep(normalized.data) : null,
+    };
+  },
+
+  reorderMilestoneSteps: async (milestoneId: string, stepIds: string[]): Promise<BaseResponse<void>> => {
+    const response = await apiClient.put(API_ENDPOINTS.MILESTONES.STEPS_REORDER(milestoneId), stepIds);
+    return normalizeBaseResponse<void>(response);
   },
 
   // Deliverable endpoints
