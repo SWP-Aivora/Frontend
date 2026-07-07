@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { StepBoard } from '../../../../features/projects/components/StepBoard';
 
 const mockStep = {
@@ -101,5 +102,43 @@ describe('StepBoard', () => {
     render(<StepBoard milestoneId="milestone-1" isExpert={true} isClient={false} />);
 
     expect(screen.getByText('Block')).toBeInTheDocument();
+  });
+
+  it('requires a non-empty reason before submitting a Block, and calls mutate with it once provided', async () => {
+    const user = userEvent.setup();
+    const useMilestoneStepsMock = await import('../../../../features/projects/hooks/useMilestoneSteps');
+    vi.mocked(useMilestoneStepsMock.useMilestoneSteps).mockReturnValueOnce({
+      data: { data: [{ ...mockStep, status: 'IN_PROGRESS' as const }] },
+      isLoading: false,
+    } as never);
+    const useUpdateStepStatusMock = await import('../../../../features/projects/hooks/useUpdateStepStatus');
+    const mutate = vi.fn();
+    vi.mocked(useUpdateStepStatusMock.useUpdateStepStatus).mockReturnValueOnce({ mutate } as never);
+
+    render(<StepBoard milestoneId="milestone-1" isExpert={true} isClient={false} />);
+
+    await user.click(screen.getByText('Block'));
+    const submitButton = screen.getByRole('button', { name: 'Block' });
+    expect(submitButton).toBeDisabled();
+
+    await user.type(screen.getByPlaceholderText(/what are you waiting on/i), 'Waiting on client access');
+    expect(submitButton).not.toBeDisabled();
+
+    await user.click(submitButton);
+    expect(mutate).toHaveBeenCalledWith({ stepId: mockStep.id, status: 'BLOCKED', reason: 'Waiting on client access' });
+  });
+
+  it('calls mutate with IN_PROGRESS when the Client clicks Unblock', async () => {
+    const user = userEvent.setup();
+    const useMilestoneStepsMock = await import('../../../../features/projects/hooks/useMilestoneSteps');
+    vi.mocked(useMilestoneStepsMock.useMilestoneSteps).mockReturnValueOnce({ data: { data: [blockedStep] }, isLoading: false } as never);
+    const useUpdateStepStatusMock = await import('../../../../features/projects/hooks/useUpdateStepStatus');
+    const mutate = vi.fn();
+    vi.mocked(useUpdateStepStatusMock.useUpdateStepStatus).mockReturnValueOnce({ mutate } as never);
+
+    render(<StepBoard milestoneId="milestone-1" isExpert={false} isClient={true} />);
+
+    await user.click(screen.getByText('Unblock'));
+    expect(mutate).toHaveBeenCalledWith({ stepId: blockedStep.id, status: 'IN_PROGRESS' });
   });
 });
