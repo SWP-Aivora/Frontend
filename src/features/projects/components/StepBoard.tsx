@@ -14,22 +14,25 @@ import { StepCard } from './StepCard';
 interface StepBoardProps {
   milestoneId: string;
   isExpert: boolean;
+  isClient: boolean;
 }
 
 const STATUS_ORDER: MilestoneStepStatus[] = [
   MilestoneStepStatus.PENDING,
   MilestoneStepStatus.IN_PROGRESS,
+  MilestoneStepStatus.BLOCKED,
   MilestoneStepStatus.COMPLETED,
   MilestoneStepStatus.SKIPPED,
 ];
 const STATUS_SECTION_LABEL: Record<MilestoneStepStatus, string> = {
   [MilestoneStepStatus.PENDING]: 'Pending',
   [MilestoneStepStatus.IN_PROGRESS]: 'In Progress',
+  [MilestoneStepStatus.BLOCKED]: 'Blocked',
   [MilestoneStepStatus.COMPLETED]: 'Completed',
   [MilestoneStepStatus.SKIPPED]: 'Skipped',
 };
 
-export const StepBoard = ({ milestoneId, isExpert }: StepBoardProps) => {
+export const StepBoard = ({ milestoneId, isExpert, isClient }: StepBoardProps) => {
   const [isAdding, setIsAdding] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
@@ -128,11 +131,14 @@ export const StepBoard = ({ milestoneId, isExpert }: StepBoardProps) => {
                     key={step.id}
                     step={step}
                     isExpert={isExpert}
+                    isClient={isClient}
                     isFirst={steps[0]?.id === step.id}
                     isLast={steps[steps.length - 1]?.id === step.id}
                     onStart={() => updateStatus.mutate({ stepId: step.id, status: MilestoneStepStatus.IN_PROGRESS })}
                     onComplete={() => updateStatus.mutate({ stepId: step.id, status: MilestoneStepStatus.COMPLETED })}
                     onSkip={() => updateStatus.mutate({ stepId: step.id, status: MilestoneStepStatus.SKIPPED })}
+                    onBlock={(reason) => updateStatus.mutate({ stepId: step.id, status: MilestoneStepStatus.BLOCKED, reason })}
+                    onUnblock={() => updateStatus.mutate({ stepId: step.id, status: MilestoneStepStatus.IN_PROGRESS })}
                     onDelete={() => deleteStep.mutate(step.id)}
                     onMoveUp={() => moveStep(step, -1)}
                     onMoveDown={() => moveStep(step, 1)}

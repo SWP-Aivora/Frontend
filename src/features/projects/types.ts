@@ -57,6 +57,7 @@ export interface MilestoneStep {
   dueDate: string | null;
   completedAt: string | null;
   completedByUserId: string | null;
+  blockedReason: string | null;
 }
 
 export interface Deliverable {

@@ -73,6 +73,7 @@ export const MilestoneStepStatus = {
   IN_PROGRESS: 'IN_PROGRESS',
   COMPLETED: 'COMPLETED',
   SKIPPED: 'SKIPPED',
+  BLOCKED: 'BLOCKED',
 } as const;
 export type MilestoneStepStatus = (typeof MilestoneStepStatus)[keyof typeof MilestoneStepStatus];
 
