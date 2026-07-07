@@ -27,6 +27,12 @@ export const API_ENDPOINTS = {
     APPROVE: (id: string) => `milestones/${id}/approve`,
     REVISION: (id: string) => `milestones/${id}/request-revision`,
     DELIVERABLES: (id: string) => `milestones/${id}/deliverables`,
+    STEPS: (id: string) => `milestones/${id}/steps`,
+    STEPS_REORDER: (id: string) => `milestones/${id}/steps/reorder`,
+  },
+  STEPS: {
+    ID: (id: string) => `steps/${id}`,
+    STATUS: (id: string) => `steps/${id}/status`,
   },
   WALLET: {
     ME: 'wallet/me',

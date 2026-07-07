@@ -1,4 +1,4 @@
-import type { Role, MilestoneStatus } from '@/shared/types/enums';
+import type { Role, MilestoneStatus, MilestoneStepStatus } from '@/shared/types/enums';
 import type { ProjectStatus } from '@/shared/types/enums';
 
 export interface UserSummary {
@@ -45,6 +45,18 @@ export interface Project {
   createdAt: string;
   updatedAt: string;
   milestones: Milestone[];
+}
+
+export interface MilestoneStep {
+  id: string;
+  milestoneId: string;
+  title: string;
+  description: string | null;
+  orderIndex: number;
+  status: MilestoneStepStatus;
+  dueDate: string | null;
+  completedAt: string | null;
+  completedByUserId: string | null;
 }
 
 export interface Deliverable {
