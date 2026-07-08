@@ -42,11 +42,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.BOT_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
         run: python3 .github/scripts/review_bot.py prepare
-      - name: Store diff for reusable workflows
-        if: steps.run.outputs.has_changes == 'true'
-        env:
-          DIFF_B64: ${{ steps.run.outputs.diff_b64 }}
-        run: printf '%s' "$DIFF_B64" > pr_diff.b64
       - uses: actions/upload-artifact@v4
         if: steps.run.outputs.has_changes == 'true'
         with:

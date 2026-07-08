@@ -554,12 +554,12 @@ def cmd_prepare(_args):
     if not filtered.strip():
         print("No reviewable file changes found. Skipping review.")
         write_github_output("has_changes", "false")
-        write_github_output("diff_b64", "")
         return
 
     truncated = truncate_diff(filtered)
+    with open("pr_diff.b64", "w", encoding="utf-8") as f:
+        f.write(b64_encode(truncated))
     write_github_output("has_changes", "true")
-    write_github_output("diff_b64", b64_encode(truncated))
 
 
 def cmd_pass(args):
