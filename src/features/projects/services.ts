@@ -22,12 +22,17 @@ const getStringOrNumber = (value: unknown): string | number | undefined => (
 
 const normalizeMilestone = (milestone: Milestone): Milestone => {
   const raw = milestone as MilestoneRecord;
+  const sourceSteps = Array.isArray(milestone.steps)
+    ? milestone.steps
+    : (Array.isArray(raw.Steps) ? raw.Steps as MilestoneStep[] : []);
+
   return {
     ...milestone,
     projectId: milestone.projectId || getString(raw.ProjectId),
     title: milestone.title || getString(raw.Title, 'Untitled milestone'),
     description: milestone.description ?? getString(raw.Description, ''),
     amount: Number(milestone.amount ?? raw.Amount ?? 0),
+    currency: milestone.currency || getString(raw.Currency),
     dueDate: milestone.dueDate ?? getString(raw.DueDate, ''),
     dueDays: milestone.dueDays ?? null,
     acceptanceCriteria: milestone.acceptanceCriteria ?? getString(raw.AcceptanceCriteria, ''),
@@ -35,6 +40,13 @@ const normalizeMilestone = (milestone: Milestone): Milestone => {
     status: normalizeMilestoneStatus(milestone.status ?? raw.Status),
     createdAt: milestone.createdAt || getString(raw.CreatedAt),
     updatedAt: milestone.updatedAt || getString(raw.UpdatedAt),
+    fundedAt: (milestone.fundedAt ?? getString(raw.FundedAt, '')) || null,
+    depositPaidAt: (milestone.depositPaidAt ?? getString(raw.DepositPaidAt, '')) || null,
+    submittedAt: (milestone.submittedAt ?? getString(raw.SubmittedAt, '')) || null,
+    approvedAt: (milestone.approvedAt ?? getString(raw.ApprovedAt, '')) || null,
+    paidAt: (milestone.paidAt ?? getString(raw.PaidAt, '')) || null,
+    releasedAt: (milestone.releasedAt ?? getString(raw.ReleasedAt, '')) || null,
+    steps: sourceSteps.map(normalizeMilestoneStep),
   };
 };
 

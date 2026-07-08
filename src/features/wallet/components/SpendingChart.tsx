@@ -11,6 +11,9 @@ const PLOT_BOTTOM = 44;
 const FIRST_POINT_OFFSET = 34;
 const AXIS_END_PADDING = 32;
 const GRID_STEP = 25;
+const NEGATIVE_COLOR = '#E11D48';
+const ZERO_COLOR = '#1F5AA6';
+const POSITIVE_COLOR = '#16A34A';
 
 interface SpendingChartProps {
   transactions: Transaction[];
@@ -25,6 +28,10 @@ const isClientReleasedPayment = (transaction: Transaction): boolean =>
   getTransactionDescription(transaction).includes('released');
 
 const getSignedAmount = (transaction: Transaction, isClient: boolean): number => {
+  if (transaction.amount < 0) {
+    return transaction.amount;
+  }
+
   if (transaction.type === WalletTransactionType.DEPOSIT || transaction.type === WalletTransactionType.REFUND) {
     return transaction.amount;
   }
@@ -55,22 +62,10 @@ const formatChartDate = (date: Date): string => {
   return `${month}/${day}`;
 };
 
-const getPointFillClass = (total: number): string => {
-  if (total > 0) return 'fill-emerald-500';
-  if (total < 0) return 'fill-rose-500';
-  return 'fill-brand-blue-dark';
-};
-
-const getSegmentStrokeClass = (total: number): string => {
-  if (total > 0) return 'stroke-emerald-500';
-  if (total < 0) return 'stroke-rose-500';
-  return 'stroke-brand-blue-dark';
-};
-
-const getValueTextClass = (total: number): string => {
-  if (total > 0) return 'fill-emerald-600';
-  if (total < 0) return 'fill-rose-600';
-  return 'fill-brand-blue-dark';
+const getSignColor = (total: number): string => {
+  if (total > 0) return POSITIVE_COLOR;
+  if (total < 0) return NEGATIVE_COLOR;
+  return ZERO_COLOR;
 };
 
 export const SpendingChart = ({ transactions, isClient }: SpendingChartProps) => {
@@ -105,19 +100,23 @@ export const SpendingChart = ({ transactions, isClient }: SpendingChartProps) =>
       });
 
     const visibleTotals = totals.slice(0, currentDayIndex + 1);
-    const values = visibleTotals.map(entry => Math.abs(entry.total));
+    const values = visibleTotals.map(entry => entry.total);
+    const minValue = Math.min(...values, 0);
     const maxValue = Math.max(...values, 0);
-    const yAxisMax = Math.max(100, Math.ceil(maxValue / GRID_STEP) * GRID_STEP);
+    const hasNegativeValue = minValue < 0;
+    const yAxisMin = hasNegativeValue ? Math.floor(minValue / GRID_STEP) * GRID_STEP : 0;
+    const yAxisMax = Math.max(hasNegativeValue ? GRID_STEP : 100, Math.ceil(maxValue / GRID_STEP) * GRID_STEP);
+    const yAxisRange = yAxisMax - yAxisMin;
     const plotWidth = CHART_WIDTH - PLOT_LEFT - PLOT_RIGHT - FIRST_POINT_OFFSET - AXIS_END_PADDING;
     const plotHeight = CHART_HEIGHT - PLOT_TOP - PLOT_BOTTOM;
+    const getYPosition = (value: number): number => PLOT_TOP + ((yAxisMax - value) / yAxisRange) * plotHeight;
+    const zeroY = getYPosition(0);
     const points = totals.map((entry, index) => {
-      const value = Math.abs(entry.total);
       const x = PLOT_LEFT + FIRST_POINT_OFFSET + (plotWidth / 6) * index;
-      const y = PLOT_TOP + plotHeight - (value / yAxisMax) * plotHeight;
+      const y = getYPosition(entry.total);
 
       return {
         ...entry,
-        value,
         x,
         y,
         isFuture: index > currentDayIndex,
@@ -125,14 +124,40 @@ export const SpendingChart = ({ transactions, isClient }: SpendingChartProps) =>
     });
 
     const visiblePoints = points.filter(point => !point.isFuture);
-    const lineSegments = visiblePoints.slice(1).map((point, index) => ({
-      from: visiblePoints[index],
-      to: point,
-    }));
+    const lineSegments = visiblePoints.slice(1).flatMap((point, index) => {
+      const from = visiblePoints[index];
+      const to = point;
 
-    const gridValues = Array.from({ length: yAxisMax / GRID_STEP + 1 }, (_, index) => {
-      const value = GRID_STEP * index;
-      const y = PLOT_TOP + plotHeight - (value / yAxisMax) * plotHeight;
+      if (from.total === 0 && to.total === 0) {
+        return [{ from, to, color: ZERO_COLOR }];
+      }
+
+      if ((from.total < 0 && to.total > 0) || (from.total > 0 && to.total < 0)) {
+        const crossingRatio = Math.abs(from.total) / (Math.abs(from.total) + Math.abs(to.total));
+        const zeroPoint = {
+          ...from,
+          total: 0,
+          x: from.x + (to.x - from.x) * crossingRatio,
+          y: zeroY,
+        };
+
+        return [
+          { from, to: zeroPoint, color: getSignColor(from.total) },
+          { from: zeroPoint, to, color: getSignColor(to.total) },
+        ];
+      }
+
+      return [{
+        from,
+        to,
+        color: getSignColor(from.total || to.total),
+      }];
+    });
+
+    const tickCount = Math.round((yAxisMax - yAxisMin) / GRID_STEP) + 1;
+    const gridValues = Array.from({ length: tickCount }, (_, index) => {
+      const value = yAxisMin + GRID_STEP * index;
+      const y = getYPosition(value);
 
       return {
         label: Math.round(value).toLocaleString(),
@@ -144,16 +169,17 @@ export const SpendingChart = ({ transactions, isClient }: SpendingChartProps) =>
       gridValues,
       lineSegments,
       points,
+      zeroY,
     };
   }, [isClient, transactions]);
 
-  const hasActivity = chartData.points.some(point => !point.isFuture && point.value > 0);
+  const hasActivity = chartData.points.some(point => !point.isFuture && point.total !== 0);
 
   return (
-    <div className="h-full min-h-[318px] bg-white rounded-lg p-6 border border-slate-100 shadow-sm flex flex-col">
-      <div className="flex items-center justify-between gap-4 mb-4">
-        <h3 className="text-lg font-black text-slate-900">{isClient ? 'Weekly Spending Flow' : 'Weekly Earning Flow'}</h3>
-        <span className="shrink-0 text-xs font-black text-slate-400 uppercase tracking-widest">Current week</span>
+    <div className="flex h-full min-h-[300px] w-full min-w-0 flex-col rounded-md border border-slate-100 bg-white p-5 shadow-sm">
+      <div className="mb-3 flex items-center justify-between gap-4">
+        <h3 className="text-base font-black text-slate-900">{isClient ? 'Weekly Spending Flow' : 'Weekly Earning Flow'}</h3>
+        <span className="shrink-0 text-[11px] font-black uppercase tracking-widest text-slate-400">Current week</span>
       </div>
 
       <div className="relative flex-1 min-w-0">
@@ -162,7 +188,7 @@ export const SpendingChart = ({ transactions, isClient }: SpendingChartProps) =>
           role="img"
           aria-label={`${isClient ? 'Weekly spending' : 'Weekly earning'} line chart for the current week`}
           preserveAspectRatio="none"
-          className="w-full h-full min-h-[250px]"
+          className="h-full min-h-[226px] w-full"
         >
           <defs>
             <marker
@@ -174,7 +200,7 @@ export const SpendingChart = ({ transactions, isClient }: SpendingChartProps) =>
               orient="auto"
               markerUnits="strokeWidth"
             >
-              <path d="M0,0 L8,4 L0,8 Z" className="fill-brand-blue-dark" />
+              <path d="M0,0 L8,4 L0,8 Z" fill={ZERO_COLOR} />
             </marker>
           </defs>
 
@@ -184,7 +210,7 @@ export const SpendingChart = ({ transactions, isClient }: SpendingChartProps) =>
                 x={PLOT_LEFT - 16}
                 y={gridLine.y + 4}
                 textAnchor="end"
-                className="fill-blue-900/50 text-[11px] font-bold"
+                className="fill-blue-900/50 text-[10px] font-bold"
               >
                 {gridLine.label}
               </text>
@@ -204,16 +230,16 @@ export const SpendingChart = ({ transactions, isClient }: SpendingChartProps) =>
             x2={PLOT_LEFT}
             y1={CHART_HEIGHT - PLOT_BOTTOM}
             y2={PLOT_TOP - AXIS_END_PADDING}
-            className="stroke-brand-blue-dark"
+            stroke={ZERO_COLOR}
             strokeWidth="1.75"
             markerEnd="url(#wallet-chart-arrow)"
           />
           <line
             x1={PLOT_LEFT}
             x2={CHART_WIDTH - PLOT_RIGHT}
-            y1={CHART_HEIGHT - PLOT_BOTTOM}
-            y2={CHART_HEIGHT - PLOT_BOTTOM}
-            className="stroke-brand-blue-dark"
+            y1={chartData.zeroY}
+            y2={chartData.zeroY}
+            stroke={ZERO_COLOR}
             strokeWidth="1.75"
             markerEnd="url(#wallet-chart-arrow)"
           />
@@ -225,7 +251,7 @@ export const SpendingChart = ({ transactions, isClient }: SpendingChartProps) =>
               y1={segment.from.y}
               x2={segment.to.x}
               y2={segment.to.y}
-              className={getSegmentStrokeClass(segment.to.total)}
+              stroke={segment.color}
               strokeWidth="3"
               strokeLinecap="round"
             />
@@ -239,15 +265,17 @@ export const SpendingChart = ({ transactions, isClient }: SpendingChartProps) =>
                     cx={point.x}
                     cy={point.y}
                     r="4.5"
-                    className={`${getPointFillClass(point.total)} stroke-white`}
+                    fill={getSignColor(point.total)}
+                    className="stroke-white"
                     strokeWidth="2"
                   />
-                  {point.value > 0 && (
+                  {point.total !== 0 && (
                     <text
                       x={point.x}
                       y={point.y - 12}
                       textAnchor="middle"
-                      className={`${getValueTextClass(point.total)} text-[12px] font-black`}
+                      fill={getSignColor(point.total)}
+                      className="text-[11px] font-black"
                     >
                       {point.total.toLocaleString()}
                     </text>
@@ -257,8 +285,8 @@ export const SpendingChart = ({ transactions, isClient }: SpendingChartProps) =>
               <line
                 x1={point.x}
                 x2={point.x}
-                y1={CHART_HEIGHT - PLOT_BOTTOM}
-                y2={CHART_HEIGHT - PLOT_BOTTOM + 8}
+                y1={chartData.zeroY}
+                y2={chartData.zeroY + 8}
                 className="stroke-brand-blue-dark/35"
                 strokeWidth="1.5"
               />
@@ -266,7 +294,7 @@ export const SpendingChart = ({ transactions, isClient }: SpendingChartProps) =>
                 x={point.x}
                 y={CHART_HEIGHT - 18}
                 textAnchor="middle"
-                className="fill-brand-blue-dark text-[12px] font-black"
+                className="fill-brand-blue-dark text-[11px] font-black"
               >
                 {point.label}
               </text>
@@ -277,7 +305,7 @@ export const SpendingChart = ({ transactions, isClient }: SpendingChartProps) =>
 
         {!hasActivity && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <span className="rounded-full bg-white/90 px-4 py-2 text-xs font-black uppercase tracking-widest text-slate-400 shadow-sm border border-slate-100">
+            <span className="rounded-lg border border-slate-100 bg-white/90 px-4 py-2 text-[11px] font-black uppercase tracking-widest text-slate-400 shadow-sm">
               No activity this week
             </span>
           </div>

@@ -79,7 +79,7 @@ export const DirectTransferModal = ({ recipientId, recipientName }: DirectTransf
     if (data.amount > walletBalance) {
       setError('amount', {
         type: 'manual',
-        message: 'Số dư ví khả dụng không đủ để chuyển khoản.',
+        message: 'Available wallet balance is not enough for this transfer.',
       });
       return;
     }
@@ -101,7 +101,7 @@ export const DirectTransferModal = ({ recipientId, recipientName }: DirectTransf
           className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold h-11 text-sm shadow-md transition-all duration-300 flex items-center justify-center gap-2"
         >
           <ArrowRightLeft className="w-4 h-4" />
-          Chuyển Tiền Trực Tiếp
+          Direct Transfer
         </Button>
       </Dialog.Trigger>
       
@@ -117,10 +117,10 @@ export const DirectTransferModal = ({ recipientId, recipientName }: DirectTransf
               </div>
               <div>
                 <Dialog.Title className="text-xl font-black text-slate-900">
-                  Chuyển Tiền Trực Tiếp
+                  Direct Transfer
                 </Dialog.Title>
                 <Dialog.Description className="text-xs text-slate-500">
-                  Gửi Aivora Coin trực tiếp tới Expert (ngoài Escrow).
+                  Send Aivora Coin directly to the expert outside Escrow.
                 </Dialog.Description>
               </div>
             </div>
@@ -136,20 +136,20 @@ export const DirectTransferModal = ({ recipientId, recipientName }: DirectTransf
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3 text-xs text-amber-800 my-2">
             <AlertTriangle className="size-5 text-amber-600 shrink-0 mt-0.5" />
             <div>
-              <span className="font-bold">Cảnh báo Escrow Protection:</span> Giao dịch này chuyển tiền trực tiếp và hoàn toàn bỏ qua chế độ bảo vệ Escrow của AIVORA. Tiền sẽ được cộng ngay vào ví của Expert và <span className="font-bold underline">không thể hoàn lại thông qua tranh chấp (dispute)</span>.
+              <span className="font-bold">Escrow Protection Warning:</span> This transfer sends funds directly and bypasses AIVORA Escrow protection. The funds will be credited to the expert's wallet immediately and <span className="font-bold underline">cannot be refunded through a dispute</span>.
             </div>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 flex justify-between items-center text-sm">
-              <span className="font-semibold text-slate-500">Người nhận:</span>
+              <span className="font-semibold text-slate-500">Recipient:</span>
               <span className="font-bold text-slate-900">{recipientName}</span>
             </div>
 
             {/* Amount */}
             <div>
               <label htmlFor="transfer-amount" className="block text-xs font-bold text-slate-700 mb-1">
-                Số lượng chuyển (Aivora Coin)
+                Transfer Amount (Aivora Coin)
               </label>
               <div className="relative">
                 <input
@@ -165,20 +165,20 @@ export const DirectTransferModal = ({ recipientId, recipientName }: DirectTransf
                 <p className="text-[11px] text-rose-500 mt-1 font-semibold">{errors.amount.message}</p>
               )}
               <p className="text-[10px] font-medium text-slate-400 mt-1">
-                Số dư khả dụng: {walletBalance.toLocaleString()} Aivora Coin
+                Available balance: {walletBalance.toLocaleString()} Aivora Coin
               </p>
             </div>
 
             {/* Description */}
             <div>
               <label htmlFor="transfer-description" className="block text-xs font-bold text-slate-700 mb-1">
-                Lời nhắn / Mô tả (Tùy chọn)
+                Message / Description (Optional)
               </label>
               <textarea
                 id="transfer-description"
                 rows={3}
                 className={`w-full rounded-lg p-3 text-sm text-slate-900 border ${errors.description ? 'border-rose-500' : 'border-slate-200'} focus:outline-none focus:ring-2 focus:ring-primary/20`}
-                placeholder="Ví dụ: Tip thêm cho công việc hoàn thành xuất sắc..."
+                placeholder="Example: Extra tip for excellent completed work..."
                 {...register('description')}
               />
               {errors.description && (
@@ -189,7 +189,7 @@ export const DirectTransferModal = ({ recipientId, recipientName }: DirectTransf
             <div className="flex justify-end gap-3 pt-2">
               <Dialog.Close asChild>
                 <Button type="button" variant="outline" className="rounded-full font-bold">
-                  Hủy
+                  Cancel
                 </Button>
               </Dialog.Close>
               
@@ -198,7 +198,7 @@ export const DirectTransferModal = ({ recipientId, recipientName }: DirectTransf
                 disabled={transferMutation.isPending}
                 className="rounded-full bg-blue-600 hover:bg-blue-700 text-white font-black px-6 shadow-md shadow-blue-500/20"
               >
-                {transferMutation.isPending ? 'Đang chuyển...' : 'Xác Nhận Chuyển Tiền'}
+                {transferMutation.isPending ? 'Transferring...' : 'Confirm Transfer'}
               </Button>
             </div>
           </form>

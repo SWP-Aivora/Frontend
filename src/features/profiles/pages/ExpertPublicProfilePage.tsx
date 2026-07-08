@@ -1,18 +1,31 @@
 import { useParams, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { 
   Star, MapPin, ShieldCheck, 
-  Briefcase, Clock, ChevronLeft
+  Briefcase, Clock, ChevronLeft, X, Calendar, DollarSign, Users
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { profileService } from '../services';
 import { reviewService } from '@/features/reviews/services';
 import { projectService } from '@/features/projects/services';
+import type { Project } from '@/features/projects/types';
 import { chatService } from '@/features/chat/services';
 import { AvailabilityStatus, ProjectStatus, Role } from '@/shared/types/enums';
 import { useAuthStore } from '@/features/auth/store';
 import { DirectTransferModal } from '@/features/wallet';
+
+const formatProjectDate = (value?: string | null): string => {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'N/A' : date.toLocaleDateString();
+};
+
+const formatProjectBudget = (project?: Project | null): string => {
+  if (!project || typeof project.totalBudget !== 'number') return 'N/A';
+  return `${project.totalBudget.toLocaleString()} ${project.currency || 'Aivora Coin'}`;
+};
 
 export const ExpertPublicProfilePage = () => {
   const { id } = useParams<{ id: string }>();
@@ -20,6 +33,7 @@ export const ExpertPublicProfilePage = () => {
   const queryClient = useQueryClient();
   const currentUserId = useAuthStore((state) => state.user?.id);
   const isClient = useAuthStore((state) => state.user?.role === Role.CLIENT);
+  const [selectedCompletedProject, setSelectedCompletedProject] = useState<Project | null>(null);
 
   const expertId = id || '';
 
@@ -57,13 +71,11 @@ export const ExpertPublicProfilePage = () => {
     p => p.status === ProjectStatus.COMPLETED
   );
 
-  const mappedProjects = completedProjects.map(p => ({
-    title: p.title,
-    description: p.description || '',
-    totalBudget: p.totalBudget,
-    currency: p.currency,
-    endDate: p.endDate,
-  }));
+  const { data: selectedProjectResponse, isLoading: isLoadingSelectedProject } = useQuery({
+    queryKey: ['expertProfile', expertId, 'completedProject', selectedCompletedProject?.id],
+    queryFn: () => projectService.getProjectById(selectedCompletedProject!.id),
+    enabled: !!selectedCompletedProject?.id,
+  });
 
   // 4. Initialize Chat Mutation
   const initChatMutation = useMutation({
@@ -108,7 +120,8 @@ export const ExpertPublicProfilePage = () => {
   const skills = profile?.skills?.map(skill => skill.skillName).filter(Boolean) || [];
   
   const displayReviews = reviews;
-  const displayProjects = mappedProjects;
+  const displayProjects = completedProjects;
+  const modalProject = selectedProjectResponse?.data ?? selectedCompletedProject;
   const completedProjectCount = profile?.completedProjects ?? displayProjects.length;
   const totalReviewCount = profile?.totalReviews ?? displayReviews.length;
   const projectCompletionRate = expertProjects.length > 0
@@ -272,13 +285,18 @@ export const ExpertPublicProfilePage = () => {
               
               {displayProjects.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {displayProjects.map((project: { title: string; description: string; totalBudget?: number; currency?: string; endDate?: string | null }, i) => (
-                    <div key={i} className="border border-blue-100/30 bg-slate-50/20 hover:bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-300 border-l-4 border-l-brand-primary">
+                  {displayProjects.map((project) => (
+                    <button
+                      key={project.id}
+                      type="button"
+                      onClick={() => setSelectedCompletedProject(project)}
+                      className="border border-blue-100/30 bg-slate-50/20 hover:bg-white rounded-xl p-5 text-left shadow-sm hover:shadow-md transition-all duration-300 border-l-4 border-l-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+                    >
                       <div className="flex justify-between items-start mb-3">
-                        <span className="bg-blue-50/70 text-brand-primary text-xs font-bold px-2.5 py-1 rounded-lg">AI/ML Project</span>
+                        <span className="bg-blue-50/70 text-brand-primary text-xs font-bold px-2.5 py-1 rounded-lg">Completed Project</span>
                         {project.endDate && (
                           <span className="text-xs font-bold text-slate-500">
-                            {new Date(project.endDate).toLocaleDateString()}
+                            {formatProjectDate(project.endDate)}
                           </span>
                         )}
                       </div>
@@ -286,10 +304,10 @@ export const ExpertPublicProfilePage = () => {
                       <p className="text-xs text-brand-secondary leading-relaxed line-clamp-2">{project.description}</p>
                       {typeof project.totalBudget === 'number' && project.totalBudget > 0 && (
                         <p className="mt-3 text-xs font-bold text-slate-700">
-                          Budget: {project.totalBudget} {project.currency || ''}
+                          Budget: {formatProjectBudget(project)}
                         </p>
                       )}
-                    </div>
+                    </button>
                   ))}
                 </div>
               ) : (
@@ -468,6 +486,108 @@ export const ExpertPublicProfilePage = () => {
           </div>
         </div>
       </div>
+
+      {selectedCompletedProject && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <button
+            type="button"
+            aria-label="Close completed project details"
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => setSelectedCompletedProject(null)}
+          />
+          <div className="relative z-10 max-h-[85vh] w-full max-w-2xl overflow-hidden rounded-xl bg-white shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-100 p-6">
+              <div className="min-w-0">
+                <p className="text-xs font-bold uppercase tracking-wider text-brand-primary">Completed Project</p>
+                <h3 className="mt-2 text-2xl font-black leading-tight text-slate-900">
+                  {modalProject?.title || 'Untitled Project'}
+                </h3>
+                {isLoadingSelectedProject && (
+                  <p className="mt-2 text-xs font-semibold text-slate-400">Loading project details...</p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedCompletedProject(null)}
+                className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-400 transition-colors hover:text-slate-900"
+                aria-label="Close completed project details"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+
+            <div className="max-h-[calc(85vh-104px)] overflow-y-auto p-6">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-lg border border-slate-100 bg-slate-50 p-4">
+                  <DollarSign className="mb-2 size-5 text-emerald-600" />
+                  <p className="text-sm font-black text-slate-900">{formatProjectBudget(modalProject)}</p>
+                  <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">Total Budget</p>
+                </div>
+                <div className="rounded-lg border border-slate-100 bg-slate-50 p-4">
+                  <Calendar className="mb-2 size-5 text-brand-primary" />
+                  <p className="text-sm font-black text-slate-900">{formatProjectDate(modalProject?.startDate)}</p>
+                  <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">Start Date</p>
+                </div>
+                <div className="rounded-lg border border-slate-100 bg-slate-50 p-4">
+                  <Calendar className="mb-2 size-5 text-brand-primary" />
+                  <p className="text-sm font-black text-slate-900">{formatProjectDate(modalProject?.endDate)}</p>
+                  <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">Completed Date</p>
+                </div>
+              </div>
+
+              <div className="mt-5 rounded-lg border border-slate-100 bg-white p-4">
+                <h4 className="text-xs font-black uppercase tracking-widest text-slate-900">Project Summary</h4>
+                <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-brand-secondary">
+                  {modalProject?.description || 'No project description available.'}
+                </p>
+              </div>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-lg border border-slate-100 bg-slate-50 p-4">
+                  <Users className="mb-2 size-5 text-slate-500" />
+                  <p className="text-sm font-black text-slate-900">{modalProject?.clientName || modalProject?.client?.fullName || 'Client'}</p>
+                  <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">Client</p>
+                </div>
+                <div className="rounded-lg border border-slate-100 bg-slate-50 p-4">
+                  <ShieldCheck className="mb-2 size-5 text-emerald-600" />
+                  <p className="text-sm font-black text-slate-900">{modalProject?.expertName || modalProject?.expert?.fullName || name || 'Expert'}</p>
+                  <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">Expert</p>
+                </div>
+              </div>
+
+              <div className="mt-5 rounded-lg border border-slate-100 bg-white p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <h4 className="text-xs font-black uppercase tracking-widest text-slate-900">Completed Milestones</h4>
+                  <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-black text-brand-primary">
+                    {modalProject?.milestones?.length ?? 0} total
+                  </span>
+                </div>
+                {modalProject?.milestones?.length ? (
+                  <div className="space-y-2">
+                    {modalProject.milestones.map((milestone) => (
+                      <div key={milestone.id} className="rounded-lg bg-slate-50 p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="text-sm font-black text-slate-900">{milestone.title}</p>
+                          <span className="shrink-0 text-xs font-bold text-slate-500">
+                            {milestone.amount?.toLocaleString()} {milestone.currency || modalProject.currency || 'Aivora Coin'}
+                          </span>
+                        </div>
+                        {milestone.description && (
+                          <p className="mt-1 line-clamp-2 text-xs leading-5 text-brand-secondary">{milestone.description}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="rounded-lg bg-slate-50 p-3 text-sm font-semibold text-slate-400">
+                    Milestone details are not available from the current project response.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

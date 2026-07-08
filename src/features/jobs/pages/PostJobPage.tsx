@@ -52,6 +52,14 @@ const isDraftJobStatus = (status: unknown) => {
   return String(status ?? '').toUpperCase().replace(/\s+|_/g, '') === 'DRAFT';
 };
 
+const getUniqueSkillIds = (skills: Array<{ id?: string | null } | string> | null | undefined): string[] => (
+  Array.from(new Set(
+    (skills ?? [])
+      .map((skill) => typeof skill === 'string' ? skill : skill.id)
+      .filter((skillId): skillId is string => Boolean(skillId))
+  ))
+);
+
 const buildSuggestionFromJob = (job: Job): AiJobSuggestion => ({
   id: '',
   jobId: job.id,
@@ -405,6 +413,7 @@ export const PostJobPage = () => {
         timelineDays: number | null;
         experienceLevel: CreateJobRequest['experienceLevel'];
         visibility?: JobVisibility;
+        skillIds?: string[];
         milestones: CreateJobRequest['milestones'];
       };
     }) => jobService.updateJob(payload.jobId, payload.data),
@@ -461,6 +470,7 @@ export const PostJobPage = () => {
 
     setSuggestion(buildSuggestionFromJob(job));
     setJobId(job.id);
+    setSelectedSkillIds(getUniqueSkillIds(job.skills));
     setIsDraftSaved(true);
     setStep('DRAFTING');
     if (shouldResetEditChat) {
@@ -551,6 +561,16 @@ export const PostJobPage = () => {
       categoryId: categoryId || null,
       categoryName: selectedCategory?.name ?? null,
     });
+    setSelectedSkillIds([]);
+  };
+
+  const handleSkillChange = (skillId: string) => {
+    setIsDraftSaved(false);
+    setSelectedSkillIds(prev => (
+      prev.includes(skillId)
+        ? prev.filter(id => id !== skillId)
+        : [...prev, skillId]
+    ));
   };
 
   const buildAcceptRequest = (): AcceptAiJobSuggestionRequest | null => {
@@ -597,6 +617,7 @@ export const PostJobPage = () => {
       currency: suggestion.currency,
       timelineDays: suggestion.suggestedTimelineDays,
       experienceLevel: toCreateJobSkillLevel(suggestion.experienceLevel),
+      skillIds: selectedSkillIds,
       milestones: suggestion.suggestedMilestones.map((milestone, index) => ({
         title: milestone.title,
         description: milestone.description || null,
@@ -867,55 +888,68 @@ export const PostJobPage = () => {
   if (step === 'REVIEWING' && suggestion) {
     const isPublishing = acceptMutation.isPending || publishMutation.isPending || updateDraftJobMutation.isPending;
     const missingRequiredFields = getMissingRequiredFields();
+    const skillNameById = new Map<string, string>();
+    existingJobResponse?.data?.skills.forEach(skill => {
+      skillNameById.set(skill.id, skill.name);
+    });
+    skills.forEach(skill => {
+      skillNameById.set(skill.id, skill.name);
+    });
+    const resolvedSelectedSkillNames = selectedSkillIds
+      .map(skillId => skillNameById.get(skillId))
+      .filter((skillName): skillName is string => Boolean(skillName));
+    const reviewSkillNames = selectedSkillIds.length > 0
+      ? Array.from(new Set(resolvedSelectedSkillNames.length > 0 ? resolvedSelectedSkillNames : suggestion.suggestedSkills))
+      : [];
 
     return (
-      <div className="mx-auto max-w-6xl px-4 py-2 animate-in fade-in duration-500">
-        <div className="flex h-[calc(100vh-132px)] min-h-[560px] flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white p-4 shadow-sm lg:p-5">
-          <div className="mb-3 flex items-start gap-3 border-b border-slate-100 pb-3">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand-accent/10 text-brand-accent">
-              <Sparkles className="size-4" />
+      <div className="mx-auto max-w-6xl px-3 py-2 animate-in fade-in duration-500">
+        <div className="flex min-h-[560px] flex-col rounded-xl border border-slate-100 bg-white p-3 shadow-sm lg:p-4">
+          <div className="mb-3 flex items-start gap-2.5 border-b border-slate-100 pb-3">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-accent/10 text-brand-accent">
+              <Sparkles className="size-3.5" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-[92%] font-black leading-tight text-slate-900 sm:text-[95%] lg:text-[24px]">Review Project Details</h2>
-              <p className="mt-1 text-[82%] leading-relaxed text-slate-500 sm:text-[86%] lg:text-[14px]">
+              <h2 className="text-[88%] font-black leading-tight text-slate-900 sm:text-[92%] lg:text-[21px]">Review Project Details</h2>
+              <p className="mt-1 text-[80%] leading-relaxed text-slate-500 sm:text-[84%] lg:text-[13px]">
                 {getStatusMessage()}
               </p>
             </div>
           </div>
 
           {missingRequiredFields.length > 0 && (
-            <div className="mb-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5">
-              <p className="text-[84%] font-semibold text-rose-700 lg:text-[13px]">
+            <div className="mb-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2">
+              <p className="text-[80%] font-semibold text-rose-700 lg:text-[12px]">
                 Missing required fields before publish: {missingRequiredFields.join(', ')}
               </p>
             </div>
           )}
 
-          <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,1fr)]">
-            <div className="flex min-h-0 flex-col gap-4">
-              <div className="space-y-3">
+          <div className="grid flex-1 grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.95fr)]">
+            <div className="flex flex-col gap-3">
+              <div className="space-y-2.5">
                 <div>
-                  <h3 className="mb-2 text-[78%] font-semibold text-slate-400 lg:text-[12px]">Project title</h3>
-                  <p className="max-w-3xl text-[88%] font-black leading-[1.15] text-slate-900 sm:text-[92%] lg:line-clamp-2 lg:text-[24px]">
+                  <h3 className="mb-1.5 text-[74%] font-semibold text-slate-400 lg:text-[11px]">Project title</h3>
+                  <p className="max-w-3xl text-[84%] font-black leading-[1.15] text-slate-900 sm:text-[88%] lg:line-clamp-2 lg:text-[21px]">
                     {suggestion.suggestedTitle}
                   </p>
                 </div>
 
                 <div>
-                  <h3 className="mb-2 text-[78%] font-semibold text-slate-400 lg:text-[12px]">Description</h3>
-                  <p className="max-w-3xl whitespace-pre-wrap text-[84%] leading-6 text-slate-600 lg:line-clamp-4 lg:text-[14px]">
+                  <h3 className="mb-1.5 text-[74%] font-semibold text-slate-400 lg:text-[11px]">Description</h3>
+                  <p className="max-w-3xl whitespace-pre-wrap text-[80%] leading-5 text-slate-600 lg:line-clamp-4 lg:text-[13px]">
                     {suggestion.suggestedDescription}
                   </p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-                <div className="flex min-h-[88px] flex-col justify-between rounded-xl border border-slate-100 bg-slate-50/80 p-3">
+              <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">
+                <div className="flex min-h-[80px] flex-col justify-between rounded-lg border border-slate-100 bg-slate-50/80 p-3">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-[76%] font-semibold text-slate-400 lg:text-[12px]">Budget</p>
+                    <p className="text-[72%] font-semibold text-slate-400 lg:text-[11px]">Budget</p>
                     <span
                       className={cn(
-                        "inline-flex items-center rounded-full border px-2.5 py-1 text-[70%] font-semibold lg:text-[11px]",
+                        "inline-flex items-center rounded-lg border px-2 py-0.5 text-[68%] font-semibold lg:text-[10px]",
                         suggestion.budgetType === BudgetType.HOURLY
                           ? "border-violet-200 bg-violet-50 text-violet-700"
                           : "border-sky-200 bg-sky-50 text-sky-700"
@@ -924,59 +958,71 @@ export const PostJobPage = () => {
                       {formatBudgetTypeLabel(suggestion.budgetType)}
                     </span>
                   </div>
-                  <p className="text-[84%] font-bold leading-snug text-slate-900 sm:text-[88%] lg:text-[16px]">{suggestion.suggestedBudgetMin} - {suggestion.suggestedBudgetMax} Aivora Coin</p>
+                  <p className="text-[80%] font-bold leading-snug text-slate-900 sm:text-[84%] lg:text-[15px]">{suggestion.suggestedBudgetMin} - {suggestion.suggestedBudgetMax} Aivora Coin</p>
                 </div>
-                <div className="flex min-h-[88px] flex-col justify-between rounded-xl border border-slate-100 bg-slate-50/80 p-3">
-                  <p className="text-[76%] font-semibold text-slate-400 lg:text-[12px]">Timeline</p>
-                  <p className="text-[84%] font-bold leading-snug text-slate-900 sm:text-[88%] lg:text-[16px]">{suggestion.suggestedTimelineDays} Days</p>
+                <div className="flex min-h-[80px] flex-col justify-between rounded-lg border border-slate-100 bg-slate-50/80 p-3">
+                  <p className="text-[72%] font-semibold text-slate-400 lg:text-[11px]">Timeline</p>
+                  <p className="text-[80%] font-bold leading-snug text-slate-900 sm:text-[84%] lg:text-[15px]">{suggestion.suggestedTimelineDays} Days</p>
                 </div>
-                <div className="flex min-h-[88px] flex-col justify-between rounded-xl border border-slate-100 bg-slate-50/80 p-3">
-                  <p className="text-[76%] font-semibold text-slate-400 lg:text-[12px]">Experience</p>
-                  <p className="text-[84%] font-bold leading-snug text-slate-900 sm:text-[88%] lg:text-[16px]">
+                <div className="flex min-h-[80px] flex-col justify-between rounded-lg border border-slate-100 bg-slate-50/80 p-3">
+                  <p className="text-[72%] font-semibold text-slate-400 lg:text-[11px]">Experience</p>
+                  <p className="text-[80%] font-bold leading-snug text-slate-900 sm:text-[84%] lg:text-[15px]">
                     {formatExperienceLabel(suggestion.experienceLevel)}
                   </p>
                 </div>
-                <div className="flex min-h-[88px] flex-col justify-between rounded-xl border border-slate-100 bg-slate-50/80 p-3">
-                  <p className="text-[76%] font-semibold text-slate-400 lg:text-[12px]">Domain</p>
-                  <p className="text-[84%] font-bold leading-snug text-slate-900 sm:text-[88%] lg:text-[16px]">{suggestion.businessDomain || 'General'}</p>
+                <div className="flex min-h-[80px] flex-col justify-between rounded-lg border border-slate-100 bg-slate-50/80 p-3">
+                  <p className="text-[72%] font-semibold text-slate-400 lg:text-[11px]">Domain</p>
+                  <p className="text-[80%] font-bold leading-snug text-slate-900 sm:text-[84%] lg:text-[15px]">{suggestion.businessDomain || 'General'}</p>
                 </div>
-                <div className="flex min-h-[88px] flex-col justify-between rounded-xl border border-slate-100 bg-slate-50/80 p-3 lg:col-span-2">
-                  <p className="text-[76%] font-semibold text-slate-400 lg:text-[12px]">Category</p>
-                  <p className="text-[84%] font-bold leading-snug text-slate-900 sm:text-[88%] lg:text-[16px]">{suggestion.categoryName || 'Not selected'}</p>
+                <div className="flex min-h-[80px] flex-col justify-between rounded-lg border border-slate-100 bg-slate-50/80 p-3 lg:col-span-2">
+                  <p className="text-[72%] font-semibold text-slate-400 lg:text-[11px]">Category</p>
+                  <p className="text-[80%] font-bold leading-snug text-slate-900 sm:text-[84%] lg:text-[15px]">{suggestion.categoryName || 'Not selected'}</p>
+                </div>
+                <div className="flex min-h-[80px] flex-col justify-between rounded-lg border border-slate-100 bg-slate-50/80 p-3 lg:col-span-3">
+                  <p className="text-[72%] font-semibold text-slate-400 lg:text-[11px]">Job Skills</p>
+                  {reviewSkillNames.length > 0 ? (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {reviewSkillNames.map(skillName => (
+                        <span
+                          key={skillName}
+                          className="inline-flex rounded-lg border border-blue-100 bg-white px-2.5 py-0.5 text-[72%] font-bold text-brand-blue-dark lg:text-[11px]"
+                        >
+                          {skillName}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[80%] font-bold leading-snug text-slate-900 sm:text-[84%] lg:text-[15px]">Not selected</p>
+                  )}
                 </div>
               </div>
             </div>
 
-            <div className="flex min-h-0 flex-col rounded-2xl border border-slate-100 bg-slate-50/50 p-3.5 lg:p-4">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <h3 className="text-[76%] font-semibold text-slate-400 lg:text-[12px]">Milestones</h3>
-                <span className="text-[78%] font-semibold text-slate-400 lg:text-[12px]">{suggestion.suggestedMilestones.length} total</span>
+            <div className="flex max-h-[min(560px,calc(100vh-240px))] min-h-[320px] flex-col rounded-lg border border-slate-100 bg-slate-50/50 p-3 lg:p-3.5">
+              <div className="mb-2.5 flex items-center justify-between gap-3">
+                <h3 className="text-[72%] font-semibold text-slate-400 lg:text-[11px]">Milestones</h3>
+                <span className="text-[74%] font-semibold text-slate-400 lg:text-[11px]">{suggestion.suggestedMilestones.length} total</span>
               </div>
-              <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+              <div className="flex-1 space-y-2.5 overflow-y-auto pr-1">
                 {suggestion.suggestedMilestones.map((milestone, index) => (
-                  <div key={milestone.id || `review-milestone-${index}`} className="rounded-xl border border-slate-100 bg-white p-3.5 shadow-sm">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0 flex-1 space-y-2">
+                  <div key={milestone.id || `review-milestone-${index}`} className="rounded-lg border border-slate-100 bg-white p-3 shadow-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1 space-y-1.5">
                         <div className="flex items-center gap-2">
-                          <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/8 text-[72%] font-bold text-primary lg:text-[11px]">
+                          <span className="flex size-5 shrink-0 items-center justify-center rounded-lg bg-primary/8 text-[68%] font-bold text-primary lg:text-[10px]">
                             {index + 1}
                           </span>
-                          <p className="line-clamp-2 text-[84%] font-bold leading-5 text-slate-900 sm:text-[88%] lg:text-[16px]">
+                          <p className="line-clamp-2 text-[80%] font-bold leading-5 text-slate-900 sm:text-[84%] lg:text-[15px]">
                             {milestone.title}
                           </p>
                         </div>
                         {milestone.description && (
-                          <p className="line-clamp-2 pl-8 text-[80%] leading-5 text-slate-600 lg:text-[13px]">{milestone.description}</p>
-                        )}
-                        {milestone.id && (
-                          <p className="pl-8 text-[70%] font-semibold uppercase tracking-[0.12em] text-slate-400 lg:text-[10px]">
-                            Milestone ID: {milestone.id}
-                          </p>
+                          <p className="line-clamp-2 pl-7 text-[76%] leading-5 text-slate-600 lg:text-[12px]">{milestone.description}</p>
                         )}
                       </div>
                       <div className="shrink-0 text-right">
-                        <p className="text-[88%] font-black leading-none text-slate-800 sm:text-[92%] lg:text-[18px]">{Number(milestone.amount ?? 0).toLocaleString()} Aivora Coin</p>
-                        <p className="mt-2 text-[72%] font-semibold text-slate-500 lg:text-[11px]">{milestone.dueDays ?? 0} days</p>
+                        <p className="text-[84%] font-black leading-none text-slate-800 sm:text-[88%] lg:text-[16px]">{Number(milestone.amount ?? 0).toLocaleString()} Aivora Coin</p>
+                        <p className="mt-1.5 text-[68%] font-semibold text-slate-500 lg:text-[10px]">{milestone.dueDays ?? 0} days</p>
                       </div>
                     </div>
                   </div>
@@ -985,19 +1031,19 @@ export const PostJobPage = () => {
             </div>
           </div>
 
-          <div className="mt-3 flex shrink-0 flex-col gap-3 border-t border-slate-100 pt-3 sm:flex-row sm:items-center">
+          <div className="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-3 sm:flex-row sm:items-center">
             <Button 
               variant="outline" 
               onClick={() => setStep('DRAFTING')}
               disabled={isPublishing}
-              className="rounded-full px-7 py-2 text-[84%] sm:text-[88%] lg:text-[14px]"
+              className="rounded-lg px-6 py-2 text-[80%] sm:text-[84%] lg:text-[13px]"
             >
               Back to Edit
             </Button>
             <Button 
               onClick={handlePublishClick}
               disabled={isPublishing}
-              className="rounded-full px-7 py-2 text-[84%] sm:ml-auto sm:text-[88%] lg:text-[14px]"
+              className="rounded-lg px-6 py-2 text-[80%] sm:ml-auto sm:text-[84%] lg:text-[13px]"
             >
               {isPublishing ? (
                 <>
@@ -1090,11 +1136,7 @@ export const PostJobPage = () => {
                 categories={categories}
                 skills={skills}
                 selectedSkillIds={selectedSkillIds}
-                onSkillChange={(skillId) => {
-                  setSelectedSkillIds(prev => 
-                    prev.includes(skillId) ? prev.filter(id => id !== skillId) : [...prev, skillId]
-                  );
-                }}
+                onSkillChange={handleSkillChange}
                 onUpdate={handleManualUpdate}
                onCategoryChange={handleCategoryChange}
                onAccept={handleAccept}

@@ -117,12 +117,12 @@ export const WalletPage = () => {
   if (isWalletError) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-        <div className="size-16 rounded-xl bg-rose-50 flex items-center justify-center mb-4">
+        <div className="size-16 rounded-lg bg-rose-50 flex items-center justify-center mb-4">
            <ArrowDownLeft className="size-8 text-rose-500" />
         </div>
-        <h3 className="text-2xl font-black text-slate-900">Failed to load wallet data</h3>
-        <p className="text-slate-500 font-medium max-w-sm text-center">There was a problem retrieving your financial data. Please try again.</p>
-        <Button onClick={() => { refetchWallet(); }} className="rounded-full mt-4">
+        <h3 className="text-xl font-black text-slate-900">Failed to load wallet data</h3>
+        <p className="max-w-sm text-center text-sm font-medium text-slate-500">There was a problem retrieving your financial data. Please try again.</p>
+        <Button onClick={() => { refetchWallet(); }} className="mt-4 rounded-lg text-sm">
           Retry Connection
         </Button>
       </div>
@@ -134,10 +134,10 @@ export const WalletPage = () => {
       {/* Header Area */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
-           <h1 className="text-3xl font-black text-slate-900 tracking-tight">
+           <h1 className="text-2xl font-black text-slate-900 tracking-tight">
              {isClient ? 'Billing & Wallet' : 'Earnings & Payouts'}
            </h1>
-           <p className="text-slate-500 font-medium mt-1">Manage your funds and view transaction history.</p>
+           <p className="mt-1 text-sm font-medium text-slate-500">Manage your funds and view transaction history.</p>
         </div>
         <div className="flex items-center gap-3">
            {isClient && <DepositModal />}
@@ -147,14 +147,14 @@ export const WalletPage = () => {
 
       <EscrowInfoCard />
 
-      <div className="grid grid-cols-1 xl:grid-cols-5 gap-8 items-stretch">
-        <div className="xl:col-span-2">
+      <div className="grid w-full grid-cols-1 items-stretch gap-6 xl:grid-cols-[minmax(280px,420px)_minmax(0,1fr)]">
+        <div className="min-w-0">
           <WalletBalanceCard 
             balance={walletBalance} 
           />
         </div>
 
-        <div className="xl:col-span-3">
+        <div className="min-w-0">
           <SpendingChart transactions={validTx} isClient={isClient} />
         </div>
       </div>
@@ -162,10 +162,10 @@ export const WalletPage = () => {
       {/* Transaction History Section */}
       <div className="space-y-6">
          <div className="flex items-center justify-between">
-            <h3 className="text-2xl font-black text-slate-900 tracking-tight">Transaction History</h3>
-            <div className="flex items-center gap-2 rounded-lg border border-slate-100 bg-white px-3 py-2 shadow-sm">
+            <h3 className="text-xl font-black text-slate-900 tracking-tight">Transaction History</h3>
+            <div className="flex items-center gap-2 rounded-md border border-slate-100 bg-white px-3 py-2 shadow-sm">
                <ArrowUpDown className="size-4 text-slate-400" />
-               <label htmlFor="transaction-sort" className="text-xs font-black uppercase tracking-widest text-slate-400">
+               <label htmlFor="transaction-sort" className="text-[11px] font-black uppercase tracking-widest text-slate-400">
                  Sort
                </label>
                <select
@@ -175,7 +175,7 @@ export const WalletPage = () => {
                    setSortOrder(event.target.value as 'newest' | 'oldest');
                    setTransactionPage(1);
                  }}
-                 className="bg-transparent text-sm font-bold text-slate-700 outline-none"
+                 className="bg-transparent text-xs font-bold text-slate-700 outline-none"
                >
                  <option value="newest">Newest first</option>
                  <option value="oldest">Oldest first</option>
@@ -184,20 +184,20 @@ export const WalletPage = () => {
          </div>
 
          {/* High #3 & Leader #1: ErrorBoundary wrapping the data-heavy section */}
-         <div className="bg-white border border-slate-100 rounded-lg overflow-hidden shadow-sm">
+         <div className="overflow-hidden rounded-md border border-slate-100 bg-white shadow-sm">
             {isHistoryError && (
-              <div className="border-b border-amber-100 bg-amber-50/60 px-6 py-4 text-sm font-semibold text-amber-700">
+              <div className="border-b border-amber-100 bg-amber-50/60 px-6 py-4 text-xs font-semibold text-amber-700">
                 Payment history is temporarily unavailable. Your wallet balance is still shown above.
               </div>
             )}
             <ErrorBoundary fallback={
               <div className="p-12 text-center border-y border-rose-100 bg-rose-50/30 text-rose-600">
-                <p className="font-bold mb-2">Failed to load transaction table</p>
-                <p className="text-sm opacity-80">Some transaction data might be corrupted. Try refreshing or contact support.</p>
+                <p className="mb-2 text-sm font-bold">Failed to load transaction table</p>
+                <p className="text-xs opacity-80">Some transaction data might be corrupted. Try refreshing or contact support.</p>
               </div>
             }>
               {isLoadingHistory ? (
-                <div className="px-8 py-10 text-center text-slate-400 font-medium">
+                <div className="px-8 py-10 text-center text-sm font-medium text-slate-400">
                   Loading transactions...
                 </div>
               ) : (
@@ -224,7 +224,7 @@ export const WalletPage = () => {
                    size="sm"
                    disabled={currentTransactionPage === 1}
                    onClick={() => setTransactionPage(page => Math.max(1, page - 1))}
-                   className="rounded-lg"
+                   className="rounded-md text-xs"
                  >
                    Previous
                  </Button>
@@ -236,7 +236,7 @@ export const WalletPage = () => {
                    size="sm"
                    disabled={currentTransactionPage === transactionPageCount}
                    onClick={() => setTransactionPage(page => Math.min(transactionPageCount, page + 1))}
-                   className="rounded-lg"
+                   className="rounded-md text-xs"
                  >
                    Next
                  </Button>

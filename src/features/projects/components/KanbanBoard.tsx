@@ -1,6 +1,6 @@
 import type { Milestone } from '../types';
 import { MilestoneCard } from './MilestoneCard';
-import { MoreHorizontal, Info } from 'lucide-react';
+import { Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MilestoneStatus } from '@/shared/types/enums';
 
@@ -33,9 +33,6 @@ export const KanbanBoard = ({ milestones, role, onMilestoneClick }: KanbanBoardP
                     {columnMilestones.length}
                   </span>
                </div>
-               <button className="text-slate-400 hover:text-slate-900 transition-colors">
-                  <MoreHorizontal className="size-4" />
-               </button>
             </div>
 
             {/* Drop Zone / Card Container */}

@@ -43,10 +43,10 @@ export const TransactionTable = ({ transactions, isClient }: TransactionTablePro
     <table className="w-full text-left">
       <thead>
         <tr className="bg-slate-50/50 border-bottom border-slate-100">
-          <th className="px-8 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Transaction</th>
-          <th className="px-8 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Date</th>
-          <th className="px-8 py-5 text-xs font-black text-slate-400 uppercase tracking-widest">Status</th>
-          <th className="px-8 py-5 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Amount</th>
+          <th className="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">Transaction</th>
+          <th className="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">Date</th>
+          <th className="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">Status</th>
+          <th className="px-8 py-5 text-right text-[11px] font-black uppercase tracking-widest text-slate-400">Amount</th>
         </tr>
       </thead>
       <tbody className="divide-y divide-slate-50">
@@ -59,28 +59,28 @@ export const TransactionTable = ({ transactions, isClient }: TransactionTablePro
               <td className="px-8 py-6">
                 <div className="flex items-center gap-4">
                   <div className={cn(
-                    "size-10 rounded-lg flex items-center justify-center shadow-sm",
+                    "flex size-9 items-center justify-center rounded-md shadow-sm",
                     typeInfo.bg,
                     typeInfo.color
                   )}>
-                    <typeInfo.icon className="size-5" />
+                    <typeInfo.icon className="size-4" />
                   </div>
                   <div>
-                    <p className="text-sm font-black text-slate-900 leading-tight">
+                    <p className="text-xs font-black leading-tight text-slate-900">
                       {t.description || typeInfo.label}
                     </p>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mt-1">ID: {t.id?.toUpperCase() ?? 'N/A'}</p>
+                    <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">ID: {t.id?.toUpperCase() ?? 'N/A'}</p>
                   </div>
                 </div>
               </td>
               <td className="px-8 py-6">
-                <span className="text-xs font-bold text-slate-500">
+                <span className="text-[11px] font-bold text-slate-500">
                   {formatDate(t.createdAt)}
                 </span>
               </td>
               <td className="px-8 py-6">
                 <div className={cn(
-                  "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase",
+                  "inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-[11px] font-black uppercase",
                   statusInfo.color
                 )}>
                   <span className="size-1.5 rounded-full bg-current" />
@@ -89,7 +89,7 @@ export const TransactionTable = ({ transactions, isClient }: TransactionTablePro
               </td>
               <td className="px-8 py-6 text-right">
                 <span className={cn(
-                  "text-base font-black",
+                  "text-sm font-black",
                   isIncoming ? "text-emerald-600" : "text-slate-900"
                 )}>
                   {isIncoming ? '+' : '-'}{t.amount?.toLocaleString() ?? '0'} Aivora Coin
@@ -100,7 +100,7 @@ export const TransactionTable = ({ transactions, isClient }: TransactionTablePro
         })}
         {transactions.length === 0 && (
           <tr>
-            <td colSpan={4} className="px-8 py-10 text-center text-slate-400 font-medium">
+            <td colSpan={4} className="px-8 py-10 text-center text-sm font-medium text-slate-400">
               No transactions found.
             </td>
           </tr>
