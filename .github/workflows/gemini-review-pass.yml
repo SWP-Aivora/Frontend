@@ -60,6 +60,4 @@ jobs:
           PR_TITLE: ${{ inputs.pr_title }}
           PR_BODY: ${{ inputs.pr_body }}
           PR_AUTHOR: ${{ inputs.pr_author }}
-        run: |
-          export DIFF_B64="$(cat pr_diff.b64)"
-          python3 .github/scripts/review_bot.py pass --pass-name ${{ inputs.pass_name }}
+        run: python3 .github/scripts/review_bot.py pass --pass-name ${{ inputs.pass_name }}

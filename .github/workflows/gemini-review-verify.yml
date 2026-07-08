@@ -71,6 +71,4 @@ jobs:
           ISSUES_GIT_BLAME_B64: ${{ inputs.issues_git_blame_b64 }}
           ISSUES_PR_HISTORY_B64: ${{ inputs.issues_pr_history_b64 }}
           ISSUES_CODE_COMMENT_B64: ${{ inputs.issues_code_comment_b64 }}
-        run: |
-          export DIFF_B64="$(cat pr_diff.b64)"
-          python3 .github/scripts/review_bot.py verify
+        run: python3 .github/scripts/review_bot.py verify

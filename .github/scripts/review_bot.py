@@ -537,6 +537,17 @@ def load_pr_meta():
     }
 
 
+def load_diff():
+    diff_b64 = os.environ.get("DIFF_B64")
+    if not diff_b64 and os.path.exists("pr_diff.b64"):
+        with open("pr_diff.b64", encoding="utf-8") as f:
+            diff_b64 = f.read().strip()
+    if not diff_b64:
+        print("::error::Missing DIFF_B64 environment variable or pr_diff.b64 artifact")
+        sys.exit(1)
+    return b64_decode_str(diff_b64)
+
+
 def cmd_prepare(_args):
     repo = require_env("REPO")
     pr_number = require_env("PR_NUMBER")
@@ -564,7 +575,7 @@ def cmd_prepare(_args):
 
 def cmd_pass(args):
     api_key, model, fallback_model = load_gemini_config()
-    diff = b64_decode_str(require_env("DIFF_B64"))
+    diff = load_diff()
     pr_meta = load_pr_meta()
     repo = require_env("REPO")
 
@@ -610,7 +621,7 @@ def cmd_verify(_args):
     repo = require_env("REPO")
     pr_number = require_env("PR_NUMBER")
     head_sha = require_env("HEAD_SHA")
-    diff = b64_decode_str(require_env("DIFF_B64"))
+    diff = load_diff()
     pr_meta = load_pr_meta()
 
     all_issues = []
