@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { KanbanBoard } from '../components/KanbanBoard';
 import { AddMilestoneModal } from '../components/AddMilestoneModal';
 import { StepBoard } from '../components/StepBoard';
-import type { Deliverable, Milestone } from '../types';
+import type { Deliverable, Milestone, MilestoneStep } from '../types';
 import { projectService } from '../services';
 import { 
   ChevronLeft, 
@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { useAuthStore } from '@/features/auth/store';
-import { Role, ProjectStatus, MilestoneStatus } from '@/shared/types/enums';
+import { Role, ProjectStatus, MilestoneStatus, MilestoneStepStatus } from '@/shared/types/enums';
 import { cn } from '@/lib/utils';
 import { ProjectDisputeStatusBadge } from '../components/ProjectDisputeStatusBadge';
 import { getDefaultNonDisputeProjectStatus, isProjectDisputed } from '../utils';
@@ -98,8 +98,17 @@ const DISPUTE_PAGE_SIZE = 100;
 type WorkspaceTab = 'overview' | 'timeline';
 type TimelineStepDraft = {
   id: string;
+  apiStepId?: string;
   label: string;
   status: string;
+  time: string;
+  completed: boolean;
+  current: boolean;
+};
+type TimelineStepItem = {
+  id: string;
+  label: string;
+  statusLabel: string;
   time: string;
   completed: boolean;
   current: boolean;
@@ -134,6 +143,30 @@ const formatDateTime = (value?: string | null): string => {
 const formatDate = (value?: string | null, fallback = 'N/A'): string => {
   const date = parseDate(value);
   return date ? date.toLocaleDateString() : fallback;
+};
+
+const formatDateInputValue = (value?: string | null): string => {
+  const date = parseDate(value);
+  if (!date) return '';
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const formatShortDate = (value?: string | null): string => {
+  const date = parseDate(value);
+  return date ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A';
+};
+
+const getLatestMilestoneDueDate = (milestones: Milestone[]): string | null => {
+  const latest = milestones
+    .map((milestone) => milestone.dueDate)
+    .filter((value): value is string => Boolean(value && parseDate(value)))
+    .sort((a, b) => (parseDate(b)?.getTime() ?? 0) - (parseDate(a)?.getTime() ?? 0))[0];
+
+  return latest ?? null;
 };
 
 const calculateDaysElapsed = (startDate?: string | null): number | null => {
@@ -181,6 +214,10 @@ const getDeadlineStatus = (startDate: string | null | undefined, dueDate: string
   return 'On track';
 };
 
+const getMilestoneStartDate = (milestone: Milestone, projectStartDate?: string | null): string | null => (
+  milestone.createdAt || projectStartDate || null
+);
+
 const getMilestoneProgressCount = (status: MilestoneStatus): number => {
   if (status >= MilestoneStatus.COMPLETED) return 6;
   if (status >= MilestoneStatus.SUBMITTED) return 4;
@@ -200,6 +237,7 @@ const buildTimelineSteps = (status: MilestoneStatus) => {
 
 const getTimelineStepTime = (label: string, milestone: Milestone, deliverables: Deliverable[]): string => {
   if (label === 'Created') return formatDateTime(milestone.createdAt);
+  if (label === 'Funded') return formatDateTime(milestone.fundedAt ?? milestone.depositPaidAt);
 
   const sortedDeliverables = [...deliverables].sort((a, b) => {
     const aTime = parseDate(a.submittedAt ?? a.createdAt)?.getTime() ?? Number.MAX_SAFE_INTEGER;
@@ -208,12 +246,18 @@ const getTimelineStepTime = (label: string, milestone: Milestone, deliverables: 
   });
 
   if (label === 'Submitted') {
-    const submittedAt = sortedDeliverables.find((deliverable) => deliverable.submittedAt || deliverable.createdAt)?.submittedAt ?? sortedDeliverables[0]?.createdAt;
+    const submittedAt = milestone.submittedAt
+      ?? sortedDeliverables.find((deliverable) => deliverable.submittedAt || deliverable.createdAt)?.submittedAt
+      ?? sortedDeliverables[0]?.createdAt;
     return formatDateTime(submittedAt);
   }
 
   if (label === 'Client Review') {
-    return formatDateTime(sortedDeliverables.find((deliverable) => deliverable.reviewedAt)?.reviewedAt);
+    return formatDateTime(milestone.approvedAt ?? sortedDeliverables.find((deliverable) => deliverable.reviewedAt)?.reviewedAt);
+  }
+
+  if (label === 'Completed') {
+    return formatDateTime(milestone.releasedAt ?? milestone.paidAt ?? milestone.approvedAt);
   }
 
   return 'N/A';
@@ -224,6 +268,78 @@ const getTimelineStepStatus = (step: { completed: boolean; current: boolean }): 
   if (step.current) return 'Current';
   return 'Pending';
 };
+
+const getMilestoneStepStatusLabel = (status: MilestoneStepStatus): string => {
+  switch (status) {
+    case MilestoneStepStatus.IN_PROGRESS:
+      return 'In progress';
+    case MilestoneStepStatus.COMPLETED:
+      return 'Completed';
+    case MilestoneStepStatus.SKIPPED:
+      return 'Skipped';
+    case MilestoneStepStatus.BLOCKED:
+      return 'Blocked';
+    case MilestoneStepStatus.PENDING:
+    default:
+      return 'Pending';
+  }
+};
+
+const getMilestoneStepTimelineState = (step: MilestoneStep) => ({
+  completed: step.status === MilestoneStepStatus.COMPLETED || step.status === MilestoneStepStatus.SKIPPED,
+  current: step.status === MilestoneStepStatus.IN_PROGRESS || step.status === MilestoneStepStatus.BLOCKED,
+});
+
+const getMilestoneStepTimelineTime = (step: MilestoneStep): string => {
+  if (step.completedAt) return formatDateTime(step.completedAt);
+  return 'Not Yet';
+};
+
+const buildApiTimelineSteps = (steps: MilestoneStep[]): TimelineStepItem[] => (
+  [...steps]
+    .sort((a, b) => a.orderIndex - b.orderIndex)
+    .map((step) => {
+      const timelineState = getMilestoneStepTimelineState(step);
+
+      return {
+        id: step.id,
+        label: step.title,
+        statusLabel: getMilestoneStepStatusLabel(step.status),
+        time: timelineState.completed ? getMilestoneStepTimelineTime(step) : 'Not Yet',
+        completed: timelineState.completed,
+        current: timelineState.current,
+      };
+    })
+);
+
+const buildMilestoneStatusTimelineSteps = (milestone: Milestone, deliverables: Deliverable[]): TimelineStepItem[] => (
+  buildTimelineSteps(milestone.status).map((step, index) => ({
+    id: `${step.label}-${index}`,
+    label: step.label,
+    statusLabel: getTimelineStepStatus(step),
+    time: step.completed ? getTimelineStepTime(step.label, milestone, deliverables) : 'Not Yet',
+    completed: step.completed,
+    current: step.current,
+  }))
+);
+
+const buildApiTimelineStepDrafts = (steps: MilestoneStep[]): TimelineStepDraft[] => (
+  [...steps]
+    .sort((a, b) => a.orderIndex - b.orderIndex)
+    .map((step) => {
+      const timelineState = getMilestoneStepTimelineState(step);
+
+      return {
+        id: step.id,
+        apiStepId: step.id,
+        label: step.title,
+        status: getMilestoneStepStatusLabel(step.status),
+        time: formatDateInputValue(step.dueDate),
+        completed: timelineState.completed,
+        current: timelineState.current,
+      };
+    })
+);
 
 const getAcceptanceCriteriaItems = (value?: string | null): string[] => (
   value
@@ -252,12 +368,12 @@ const formatDaysRemaining = (value: number | null): string => {
   return `${value} day${value === 1 ? '' : 's'}`;
 };
 
-const buildTimelineStepDrafts = (milestone: Milestone, deliverables: Deliverable[]): TimelineStepDraft[] => (
+const buildTimelineStepDrafts = (milestone: Milestone): TimelineStepDraft[] => (
   buildTimelineSteps(milestone.status).map((step, index) => ({
     id: `${step.label}-${index}`,
     label: step.label,
     status: getTimelineStepStatus(step),
-    time: getTimelineStepTime(step.label, milestone, deliverables),
+    time: '',
     completed: step.completed,
     current: step.current,
   }))
@@ -280,6 +396,12 @@ const isActiveDisputeStatus = (status: DisputeStatus): boolean => (
   status === DisputeStatus.OPEN || status === DisputeStatus.UNDER_REVIEW
 );
 
+const EXPERT_SUBMITTABLE_MILESTONE_STATUSES: MilestoneStatus[] = [
+  MilestoneStatus.FUNDED,
+  MilestoneStatus.IN_PROGRESS,
+  MilestoneStatus.REVISION_REQUESTED,
+];
+
 export const ProjectWorkspacePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -292,6 +414,7 @@ export const ProjectWorkspacePage = () => {
   const [isAddMilestoneModalOpen, setIsAddMilestoneModalOpen] = useState(false);
   const [isTimelineStepModalOpen, setIsTimelineStepModalOpen] = useState(false);
   const [timelineStepDrafts, setTimelineStepDrafts] = useState<TimelineStepDraft[]>([]);
+  const [deletedTimelineStepIds, setDeletedTimelineStepIds] = useState<string[]>([]);
 
   // Fetch toàn bộ thông tin chi tiết của Project (Hợp đồng làm việc)
   const { data: projectResponse, isLoading: isLoadingProject } = useQuery({
@@ -340,13 +463,23 @@ export const ProjectWorkspacePage = () => {
 
   const project = projectResponse?.data ?? fallbackProjectsResponse?.data?.find((item) => item.id === id);
 
-  const { data: projectReviewsResponse } = useQuery({
+  const {
+    data: projectReviewsResponse,
+    isLoading: isLoadingProjectReviews,
+    isError: isProjectReviewsError,
+  } = useQuery({
     queryKey: ['project', id, 'reviews'],
     queryFn: () => reviewService.getProjectReviews(id!),
     enabled: !!id,
     retry: false,
   });
   const projectReviews = projectReviewsResponse?.data ?? [];
+  const clientExpertReviews = project
+    ? projectReviews.filter((review) => (
+      review.reviewerId?.toLowerCase() === project.clientId?.toLowerCase()
+      && review.revieweeId?.toLowerCase() === project.expertId?.toLowerCase()
+    ))
+    : [];
 
   const walletBalance = getWalletBalance(walletResponse?.data);
   const { data: milestonesResponse, isLoading: isLoadingMilestones } = useProjectMilestones(id || '');
@@ -362,6 +495,7 @@ export const ProjectWorkspacePage = () => {
   const displayProjectStatus = project && !hasProjectDispute
     ? getDefaultNonDisputeProjectStatus(project.status)
     : project?.status;
+  const targetDeadline = project?.endDate || getLatestMilestoneDueDate(milestones);
 
   const getPartyName = (
     responseName: string | undefined,
@@ -416,6 +550,19 @@ export const ProjectWorkspacePage = () => {
   const selectedMilestoneId = selectedMilestone?.id;
 
   const {
+    data: selectedMilestoneResponse,
+    isLoading: isLoadingSelectedMilestone,
+    isError: isSelectedMilestoneError,
+  } = useQuery({
+    queryKey: ['milestone', selectedMilestoneId, 'detail'],
+    queryFn: () => projectService.getMilestoneById(selectedMilestoneId!),
+    enabled: !!selectedMilestoneId,
+  });
+  const selectedMilestoneDetail = selectedMilestoneResponse?.data ?? null;
+  const drawerMilestone = selectedMilestoneDetail ?? selectedMilestone;
+  const drawerAcceptanceCriteriaItems = getAcceptanceCriteriaItems(drawerMilestone?.acceptanceCriteria);
+
+  const {
     data: deliverablesResponse,
     isLoading: isLoadingDeliverables,
     isError: isDeliverablesError,
@@ -431,6 +578,16 @@ export const ProjectWorkspacePage = () => {
     [milestones, viewedTimelineMilestoneId]
   );
   const {
+    data: timelineMilestoneResponse,
+    isLoading: isLoadingTimelineMilestone,
+    isError: isTimelineMilestoneError,
+  } = useQuery({
+    queryKey: ['milestone', viewedTimelineMilestoneId, 'detail'],
+    queryFn: () => projectService.getMilestoneById(viewedTimelineMilestoneId),
+    enabled: Boolean(viewedTimelineMilestoneId),
+  });
+  const viewedTimelineMilestoneDetail = timelineMilestoneResponse?.data ?? null;
+  const {
     data: timelineDeliverablesResponse,
   } = useQuery({
     queryKey: ['milestone', viewedTimelineMilestoneId, 'timeline-deliverables'],
@@ -438,13 +595,26 @@ export const ProjectWorkspacePage = () => {
     enabled: Boolean(viewedTimelineMilestoneId),
   });
   const timelineDeliverables = timelineDeliverablesResponse?.data ?? [];
+  const {
+    data: timelineStepsResponse,
+    isLoading: isLoadingTimelineSteps,
+    isError: isTimelineStepsError,
+  } = useQuery({
+    queryKey: ['milestone', viewedTimelineMilestoneId, 'timeline-steps'],
+    queryFn: () => projectService.getMilestoneSteps(viewedTimelineMilestoneId),
+    enabled: Boolean(viewedTimelineMilestoneId),
+  });
+  const timelineApiSteps = timelineStepsResponse?.data ?? viewedTimelineMilestoneDetail?.steps ?? [];
 
   // API Nộp sản phẩm (Expert bấm Submit)
   const submitMutation = useMutation({
     mutationFn: ({ milestoneId, data }: { milestoneId: string; data: { description: string; fileUrl: string; demoUrl: string; sourceCodeUrl: string; note: string } }) => projectService.submitDeliverable(milestoneId, data),
     onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
       queryClient.invalidateQueries({ queryKey: ['project', id, 'milestones'] });
+      queryClient.invalidateQueries({ queryKey: ['milestone', variables.milestoneId, 'detail'] });
       queryClient.invalidateQueries({ queryKey: ['milestone', variables.milestoneId, 'deliverables'] });
+      queryClient.invalidateQueries({ queryKey: ['milestone', variables.milestoneId, 'timeline-deliverables'] });
       setIsSubmitModalOpen(false);
       setSelectedMilestone(null);
     }
@@ -510,10 +680,73 @@ export const ProjectWorkspacePage = () => {
     },
   });
 
+  const updateTimelineStepsMutation = useMutation({
+    mutationFn: async ({
+      milestoneId,
+      drafts,
+      deletedStepIds,
+    }: {
+      milestoneId: string;
+      drafts: TimelineStepDraft[];
+      deletedStepIds: string[];
+    }) => {
+      await Promise.all(deletedStepIds.map((stepId) => projectService.deleteMilestoneStep(stepId)));
+
+      const savedStepIds: string[] = [];
+
+      for (const [index, draft] of drafts.entries()) {
+        const title = draft.label.trim();
+        if (!title) {
+          throw new Error('Step title is required.');
+        }
+
+        const dueDate = draft.time.trim() || undefined;
+
+        if (draft.apiStepId) {
+          await projectService.updateMilestoneStep(draft.apiStepId, {
+            title,
+            dueDate: dueDate ?? null,
+            orderIndex: index,
+          });
+          savedStepIds.push(draft.apiStepId);
+        } else {
+          const created = await projectService.createMilestoneStep(milestoneId, {
+            title,
+            dueDate,
+            orderIndex: index,
+          });
+
+          if (created.data?.id) {
+            savedStepIds.push(created.data.id);
+          }
+        }
+      }
+
+      if (savedStepIds.length > 0) {
+        await projectService.reorderMilestoneSteps(milestoneId, savedStepIds);
+      }
+    },
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['milestone', variables.milestoneId, 'steps'] });
+      queryClient.invalidateQueries({ queryKey: ['milestone', variables.milestoneId, 'timeline-steps'] });
+      queryClient.invalidateQueries({ queryKey: ['milestone', variables.milestoneId, 'detail'] });
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
+      queryClient.invalidateQueries({ queryKey: ['project', id, 'milestones'] });
+      setDeletedTimelineStepIds([]);
+      setIsTimelineStepModalOpen(false);
+      toast.success('Timeline steps updated successfully.');
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Failed to update timeline steps.'));
+    },
+  });
+
   const revisionMutation = useMutation({
     mutationFn: ({ milestoneId, reason }: { milestoneId: string; reason: string }) => projectService.requestRevision(milestoneId, reason),
-    onSuccess: () => {
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
       queryClient.invalidateQueries({ queryKey: ['project', id, 'milestones'] });
+      queryClient.invalidateQueries({ queryKey: ['milestone', variables.milestoneId, 'detail'] });
       setIsRevisionModalOpen(false);
       setSelectedMilestone(null);
     },
@@ -613,7 +846,12 @@ export const ProjectWorkspacePage = () => {
   const openTimelineStepModal = () => {
     if (!viewedTimelineMilestone) return;
 
-    setTimelineStepDrafts(buildTimelineStepDrafts(viewedTimelineMilestone, timelineDeliverables));
+    setDeletedTimelineStepIds([]);
+    setTimelineStepDrafts(
+      timelineApiSteps.length > 0
+        ? buildApiTimelineStepDrafts(timelineApiSteps)
+        : buildTimelineStepDrafts(viewedTimelineMilestoneDetail ?? viewedTimelineMilestone)
+    );
     setIsTimelineStepModalOpen(true);
   };
 
@@ -630,9 +868,9 @@ export const ProjectWorkspacePage = () => {
       ...currentSteps,
       {
         id: `local-step-${Date.now()}`,
-        label: 'N/A',
+        label: '',
         status: 'Pending',
-        time: 'N/A',
+        time: '',
         completed: false,
         current: false,
       },
@@ -640,7 +878,25 @@ export const ProjectWorkspacePage = () => {
   };
 
   const deleteTimelineStepDraft = (stepId: string) => {
+    const deletedStep = timelineStepDrafts.find((step) => step.id === stepId);
+    const deletedApiStepId = deletedStep?.apiStepId;
+    if (deletedApiStepId) {
+      setDeletedTimelineStepIds((currentIds) => (
+        currentIds.includes(deletedApiStepId) ? currentIds : [...currentIds, deletedApiStepId]
+      ));
+    }
+
     setTimelineStepDrafts((currentSteps) => currentSteps.filter((step) => step.id !== stepId));
+  };
+
+  const handleUpdateTimelineSteps = () => {
+    if (!viewedTimelineMilestoneId) return;
+
+    updateTimelineStepsMutation.mutate({
+      milestoneId: viewedTimelineMilestoneId,
+      drafts: timelineStepDrafts,
+      deletedStepIds: deletedTimelineStepIds,
+    });
   };
 
   const getStatusLabel = (status: ProjectStatus) => {
@@ -676,13 +932,22 @@ export const ProjectWorkspacePage = () => {
       && (user?.role === Role.CLIENT || user?.role === Role.EXPERT)
       && (user.id === project.clientId || user.id === project.expertId)
   );
+  const isCurrentUserProjectExpert = user?.role === Role.EXPERT && user.id === project?.expertId;
+  const canExpertSubmitMilestone = (milestone?: Milestone | null): boolean => (
+    Boolean(milestone && isCurrentUserProjectExpert && EXPERT_SUBMITTABLE_MILESTONE_STATUSES.includes(milestone.status))
+  );
 
   const resetDeliverableForm = () => {
     setSubmitData({ description: '', fileUrl: '', demoUrl: '', sourceCodeUrl: '', note: '' });
   };
 
   const openDeliverableModal = () => {
-    if (selectedMilestone?.status === MilestoneStatus.REVISION_REQUESTED && deliverables.length > 0) {
+    const targetMilestone = drawerMilestone ?? selectedMilestone;
+    if (!targetMilestone) return;
+
+    setSelectedMilestone(targetMilestone);
+
+    if (targetMilestone.status === MilestoneStatus.REVISION_REQUESTED && deliverables.length > 0) {
       const latestDeliverable = deliverables[0];
       setSubmitData({
         description: latestDeliverable.description ?? '',
@@ -872,7 +1137,7 @@ export const ProjectWorkspacePage = () => {
                   </div>
                   <div>
                      <p className="text-lg font-black text-slate-900 leading-none">
-                        {project.endDate ? new Date(project.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'}
+                        {formatShortDate(targetDeadline)}
                      </p>
                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Target Deadline</p>
                   </div>
@@ -912,24 +1177,40 @@ export const ProjectWorkspacePage = () => {
       {/* Reviews */}
       <div className="bg-slate-50/50 border border-slate-100 rounded-lg p-6 md:p-8 mt-6" data-testid="project-reviews-section">
         <h3 className="text-lg font-black text-slate-900 mb-4">Reviews</h3>
-        {projectReviews.length === 0 ? (
-          <p className="text-sm text-slate-400 font-medium">No reviews yet for this project.</p>
+        {isLoadingProjectReviews ? (
+          <p className="text-sm font-semibold text-slate-400">Loading project review...</p>
+        ) : isProjectReviewsError ? (
+          <p className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700">
+            Client review could not be loaded.
+          </p>
+        ) : clientExpertReviews.length === 0 ? (
+          <p className="text-sm text-slate-400 font-medium">No client review for this expert yet.</p>
         ) : (
           <div className="space-y-4">
-            {projectReviews.map((review) => (
+            {clientExpertReviews.map((review) => (
               <div key={review.id} className="bg-white rounded-lg border border-slate-100 p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-black text-slate-900">{review.reviewerName || 'Anonymous'}</span>
-                  <div className="flex items-center gap-0.5">
-                    {Array.from({ length: 5 }, (_, i) => (
-                      <Star
-                        key={i}
-                        className={cn('size-4', i < review.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-200')}
-                      />
-                    ))}
+                <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-sm font-black text-slate-900">
+                      {review.reviewerName || project?.clientName || 'Client'}
+                    </p>
+                    <p className="mt-0.5 text-xs font-semibold text-slate-400">
+                      Reviewed {project?.expertName || 'Expert'}{review.createdAt ? ` on ${formatDate(review.createdAt)}` : ''}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-0.5" aria-label={`${review.rating} out of 5 stars`}>
+                    {Array.from({ length: 5 }, (_, i) => {
+                      const rating = Math.max(0, Math.min(5, Number(review.rating) || 0));
+                      return (
+                        <Star
+                          key={i}
+                          className={cn('size-4', i < rating ? 'fill-amber-400 text-amber-400' : 'text-slate-200')}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
-                {review.comment && <p className="text-sm text-slate-600">{review.comment}</p>}
+                {review.comment && <p className="whitespace-pre-wrap text-sm leading-6 text-slate-600">{review.comment}</p>}
               </div>
             ))}
           </div>
@@ -981,18 +1262,22 @@ export const ProjectWorkspacePage = () => {
               <p className="text-sm font-bold text-slate-500">Select a milestone to view its timeline and progress details.</p>
             </div>
           ) : (() => {
-            const daysElapsed = calculateDaysElapsed(viewedTimelineMilestone.createdAt);
-            const daysRemaining = calculateDaysRemaining(viewedTimelineMilestone.dueDate);
-            const deadlineStatus = getDeadlineStatus(viewedTimelineMilestone.createdAt, viewedTimelineMilestone.dueDate, viewedTimelineMilestone.status);
-            const timelineSteps = buildTimelineSteps(viewedTimelineMilestone.status);
-            const criteriaItems = getAcceptanceCriteriaItems(viewedTimelineMilestone.acceptanceCriteria);
-            const canClientFund = viewedTimelineMilestone.status === MilestoneStatus.PENDING && user?.role === Role.CLIENT;
-            const canClientReview = viewedTimelineMilestone.status === MilestoneStatus.SUBMITTED && user?.role === Role.CLIENT;
-            const canExpertSubmit = ([MilestoneStatus.FUNDED, MilestoneStatus.IN_PROGRESS, MilestoneStatus.REVISION_REQUESTED] as MilestoneStatus[]).includes(viewedTimelineMilestone.status) && user?.role === Role.EXPERT;
+            const timelineMilestone = viewedTimelineMilestoneDetail ?? viewedTimelineMilestone;
+            const milestoneStartDate = getMilestoneStartDate(timelineMilestone, project?.startDate);
+            const daysElapsed = calculateDaysElapsed(milestoneStartDate);
+            const daysRemaining = calculateDaysRemaining(timelineMilestone.dueDate);
+            const deadlineStatus = getDeadlineStatus(milestoneStartDate, timelineMilestone.dueDate, timelineMilestone.status);
+            const timelineStepItems = timelineApiSteps.length > 0
+              ? buildApiTimelineSteps(timelineApiSteps)
+              : buildMilestoneStatusTimelineSteps(timelineMilestone, timelineDeliverables);
+            const criteriaItems = getAcceptanceCriteriaItems(timelineMilestone.acceptanceCriteria);
+            const canClientFund = timelineMilestone.status === MilestoneStatus.PENDING && user?.role === Role.CLIENT;
+            const canClientReview = timelineMilestone.status === MilestoneStatus.SUBMITTED && user?.role === Role.CLIENT;
+            const canExpertSubmit = canExpertSubmitMilestone(timelineMilestone);
             const summaryItems = [
-              { label: 'Budget', value: `${formatNumberValue(viewedTimelineMilestone.amount)} Aivora Coin` },
-              { label: 'Start date', value: formatDate(viewedTimelineMilestone.createdAt) },
-              { label: 'Due date', value: formatDate(viewedTimelineMilestone.dueDate) },
+              { label: 'Budget', value: `${formatNumberValue(timelineMilestone.amount)} Aivora Coin` },
+              { label: 'Start date', value: formatDate(milestoneStartDate) },
+              { label: 'Due date', value: formatDate(timelineMilestone.dueDate) },
               { label: 'Days elapsed', value: formatDayCount(daysElapsed) },
               { label: 'Days remaining', value: formatDaysRemaining(daysRemaining) },
               { label: 'Deadline status', value: deadlineStatus },
@@ -1004,22 +1289,27 @@ export const ProjectWorkspacePage = () => {
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0">
                       <div className="mb-2 flex flex-wrap items-center gap-2">
-                        <span className={cn('rounded-lg border px-2.5 py-1 text-[10px] font-black uppercase tracking-wider', getMilestoneBadgeClass(viewedTimelineMilestone.status))}>
-                          {getMilestoneStatusLabel(viewedTimelineMilestone.status)}
+                        <span className={cn('rounded-lg border px-2.5 py-1 text-[10px] font-black uppercase tracking-wider', getMilestoneBadgeClass(timelineMilestone.status))}>
+                          {getMilestoneStatusLabel(timelineMilestone.status)}
                         </span>
                         <span className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-500">
                           {deadlineStatus}
                         </span>
                       </div>
-                      <h3 className="text-2xl font-black leading-tight text-slate-900">{viewedTimelineMilestone.title}</h3>
-                      <p className="mt-2 max-w-4xl text-sm font-medium leading-6 text-slate-500">
-                        {viewedTimelineMilestone.description?.trim() || 'N/A'}
-                      </p>
+                      <h3 className="text-2xl font-black leading-tight text-slate-900">{timelineMilestone.title}</h3>
+                      {isLoadingTimelineMilestone && (
+                        <p className="mt-2 text-xs font-semibold text-slate-400">Loading milestone details...</p>
+                      )}
+                      {isTimelineMilestoneError && (
+                        <p className="mt-2 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
+                          Milestone detail could not be loaded. Showing available project milestone data.
+                        </p>
+                      )}
                     </div>
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => setSelectedMilestone(viewedTimelineMilestone)}
+                      onClick={() => setSelectedMilestone(timelineMilestone)}
                       className="shrink-0 rounded-full border-slate-200 font-black"
                     >
                       Open Details
@@ -1039,62 +1329,72 @@ export const ProjectWorkspacePage = () => {
                 <section className="p-5">
                   <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Milestone Timeline Chart</h3>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={openTimelineStepModal}
-                      disabled={user?.role !== Role.CLIENT}
-                      title={user?.role === Role.CLIENT ? 'Open timeline step editor' : 'Only clients can edit timeline steps.'}
-                      className="rounded-full border-slate-200 font-black disabled:text-slate-400"
-                    >
-                      Edit step
-                    </Button>
+                    {user?.role === Role.CLIENT && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={openTimelineStepModal}
+                        title="Open timeline step editor"
+                        className="rounded-full border-slate-200 font-black disabled:text-slate-400"
+                      >
+                        Edit step
+                      </Button>
+                    )}
                   </div>
 
-                  <div className="overflow-x-auto pb-2">
-                    <div className="min-w-[760px]">
-                      <div className="relative grid grid-cols-6 gap-3">
-                        <div className="absolute left-10 right-10 top-5 h-px bg-slate-200" />
-                        {timelineSteps.map((step) => {
-                          const stepTime = getTimelineStepTime(step.label, viewedTimelineMilestone, timelineDeliverables);
-                          const statusLabel = getTimelineStepStatus(step);
-
-                          return (
-                            <div key={step.label} className="relative min-w-0 pt-12">
-                              <div className={cn(
-                                'absolute left-1/2 top-2 z-10 flex size-7 -translate-x-1/2 items-center justify-center rounded-full border-2 bg-white',
-                                step.completed && 'border-primary bg-primary text-white',
-                                step.current && !step.completed && 'border-primary bg-white text-primary ring-4 ring-primary/10',
-                                !step.completed && !step.current && 'border-slate-300 text-slate-300'
-                              )}>
-                                {step.completed ? <CheckCircle2 className="size-4" /> : <span className="size-2 rounded-full bg-current" />}
-                              </div>
-                              <div className={cn(
-                                'rounded-lg border px-3 py-3 text-center',
-                                step.completed && 'border-primary/20 bg-blue-50/70',
-                                step.current && !step.completed && 'border-primary/40 bg-white shadow-sm',
-                                !step.completed && !step.current && 'border-slate-100 bg-slate-50'
-                              )}>
-                                <p className={cn('text-xs font-black', step.completed || step.current ? 'text-slate-900' : 'text-slate-400')}>
-                                  {step.label}
-                                </p>
-                                <p className={cn('mt-1 text-[11px] font-black uppercase tracking-wider', step.completed || step.current ? 'text-primary' : 'text-slate-400')}>
-                                  {statusLabel}
-                                </p>
-                                <p className="mt-1 truncate text-[11px] font-semibold text-slate-500" title={stepTime}>
-                                  {stepTime}
-                                </p>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                  {isLoadingTimelineSteps ? (
+                    <div className="rounded-lg bg-slate-50 p-4 text-sm font-semibold text-slate-500">
+                      Loading timeline steps...
                     </div>
-                  </div>
+                  ) : (
+                    <>
+                      {isTimelineStepsError && (
+                        <p className="mb-3 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
+                          Milestone steps could not be loaded. Showing milestone status from the project response.
+                        </p>
+                      )}
 
-                  <p className="mt-3 text-xs font-semibold leading-5 text-slate-500">
-                    Some timeline dates may be unavailable because the current API does not expose all step timestamps.
-                  </p>
+                      <div className="overflow-x-auto pb-2">
+                        <div className="min-w-[760px]">
+                          <div
+                            className="relative grid gap-3"
+                            style={{ gridTemplateColumns: `repeat(${timelineStepItems.length}, minmax(0, 1fr))` }}
+                          >
+                            <div className="absolute left-10 right-10 top-5 h-px bg-slate-200" />
+                            {timelineStepItems.map((step) => (
+                              <div key={step.id} className="relative min-w-0 pt-12">
+                                <div className={cn(
+                                  'absolute left-1/2 top-2 z-10 flex size-7 -translate-x-1/2 items-center justify-center rounded-full border-2 bg-white',
+                                  step.completed && 'border-primary bg-primary text-white',
+                                  step.current && !step.completed && 'border-primary bg-white text-primary ring-4 ring-primary/10',
+                                  !step.completed && !step.current && 'border-slate-300 text-slate-300'
+                                )}>
+                                  {step.completed ? <CheckCircle2 className="size-4" /> : <span className="size-2 rounded-full bg-current" />}
+                                </div>
+                                <div className={cn(
+                                  'rounded-lg border px-3 py-3 text-center',
+                                  step.completed && 'border-primary/20 bg-blue-50/70',
+                                  step.current && !step.completed && 'border-primary/40 bg-white shadow-sm',
+                                  !step.completed && !step.current && 'border-slate-100 bg-slate-50'
+                                )}>
+                                  <p className={cn('truncate text-xs font-black', step.completed || step.current ? 'text-slate-900' : 'text-slate-400')} title={step.label}>
+                                    {step.label}
+                                  </p>
+                                  <p className={cn('mt-1 text-[11px] font-black uppercase tracking-wider', step.completed || step.current ? 'text-primary' : 'text-slate-400')}>
+                                    {step.statusLabel}
+                                  </p>
+                                  <p className="mt-1 truncate text-[11px] font-semibold text-slate-500" title={step.time}>
+                                    {step.time}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
                 </section>
 
                 <section className="p-5">
@@ -1118,7 +1418,7 @@ export const ProjectWorkspacePage = () => {
                     <div>
                       <h3 className="mb-3 text-sm font-black uppercase tracking-widest text-slate-900">Submitted Deliverables</h3>
                       {timelineDeliverables.length === 0 ? (
-                        <p className="rounded-lg bg-slate-50 p-4 text-sm font-semibold text-slate-500">N/A</p>
+                        <p className="rounded-lg bg-slate-50 p-4 text-sm font-semibold text-slate-500">No Deliverable Submitted Yet</p>
                       ) : (
                         <div className="space-y-2">
                           {timelineDeliverables.map((deliverable) => {
@@ -1172,15 +1472,12 @@ export const ProjectWorkspacePage = () => {
                 <section className="flex flex-col gap-3 bg-slate-50/70 p-5 md:flex-row md:items-center md:justify-between">
                   <div>
                     <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Actions</h3>
-                    <p className="mt-1 text-xs font-semibold text-slate-500">
-                      Step editing is unavailable because the current API does not expose a step edit endpoint.
-                    </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {canClientFund && (
                       <Button
                         type="button"
-                        onClick={() => handleFundTimelineMilestone(viewedTimelineMilestone)}
+                        onClick={() => handleFundTimelineMilestone(timelineMilestone)}
                         disabled={fundMutation.isPending || isLoadingWallet}
                         className="rounded-full font-black"
                       >
@@ -1193,7 +1490,7 @@ export const ProjectWorkspacePage = () => {
                           type="button"
                           variant="outline"
                           onClick={() => {
-                            setSelectedMilestone(viewedTimelineMilestone);
+                            setSelectedMilestone(timelineMilestone);
                             setIsRevisionModalOpen(true);
                           }}
                           className="rounded-full border-slate-200 font-black"
@@ -1202,7 +1499,7 @@ export const ProjectWorkspacePage = () => {
                         </Button>
                         <Button
                           type="button"
-                          onClick={() => approveMutation.mutate(viewedTimelineMilestone.id)}
+                          onClick={() => approveMutation.mutate(timelineMilestone.id)}
                           disabled={approveMutation.isPending}
                           className="rounded-full font-black"
                         >
@@ -1213,10 +1510,10 @@ export const ProjectWorkspacePage = () => {
                     {canExpertSubmit && (
                       <Button
                         type="button"
-                        onClick={() => openTimelineDeliverableModal(viewedTimelineMilestone)}
+                        onClick={() => openTimelineDeliverableModal(timelineMilestone)}
                         className="rounded-full bg-brand-accent font-black hover:bg-brand-accent/90"
                       >
-                        {viewedTimelineMilestone.status === MilestoneStatus.REVISION_REQUESTED ? 'Edit Deliverables' : 'Submit Deliverables'}
+                        {timelineMilestone.status === MilestoneStatus.REVISION_REQUESTED ? 'Edit Deliverables' : 'Submit Deliverables'}
                       </Button>
                     )}
                   </div>
@@ -1232,7 +1529,7 @@ export const ProjectWorkspacePage = () => {
         "fixed inset-y-0 right-0 w-full md:w-[450px] bg-white shadow-2xl z-50 transform transition-transform duration-500 ease-out border-l border-slate-100 p-8",
         selectedMilestone ? "translate-x-0" : "translate-x-full"
       )}>
-         {selectedMilestone && (
+         {drawerMilestone && (
            <div className="h-full flex flex-col">
               <div className="flex items-center justify-between mb-10">
                  <div className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-black uppercase tracking-widest">
@@ -1245,20 +1542,28 @@ export const ProjectWorkspacePage = () => {
 
               <div className="flex-1 space-y-8 overflow-y-auto pr-2 scrollbar-hide">
                  <div className="space-y-2">
-                    <h2 className="text-2xl font-black text-slate-900 leading-tight">{selectedMilestone.title}</h2>
-                    <p className="text-slate-500 font-medium text-sm leading-relaxed">{selectedMilestone.description}</p>
+                    <h2 className="text-2xl font-black text-slate-900 leading-tight">{drawerMilestone.title}</h2>
+                    <p className="text-slate-500 font-medium text-sm leading-relaxed">{drawerMilestone.description}</p>
+                    {isLoadingSelectedMilestone && (
+                      <p className="text-xs font-semibold text-slate-400">Loading milestone details...</p>
+                    )}
+                    {isSelectedMilestoneError && (
+                      <p className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
+                        Milestone detail could not be loaded. Showing available project milestone data.
+                      </p>
+                    )}
                  </div>
 
                  <div className="grid grid-cols-2 gap-4">
                     <div className="bg-slate-50 rounded-lg p-4 border border-slate-100">
                        <DollarSign className="size-5 text-emerald-600 mb-2" />
-                       <p className="text-lg font-black text-slate-900">{selectedMilestone.amount?.toLocaleString()} Aivora Coin</p>
+                       <p className="text-lg font-black text-slate-900">{drawerMilestone.amount?.toLocaleString()} Aivora Coin</p>
                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Budget Locked</p>
                     </div>
                     <div className="bg-slate-50 rounded-lg p-4 border border-slate-100">
-                       <Clock className="size-5 text-blue-600 mb-2" />
-                       <p className="text-lg font-black text-slate-900">{selectedMilestone.dueDays || 0} Days</p>
-                       <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Est. Duration</p>
+                       <Calendar className="size-5 text-blue-600 mb-2" />
+                       <p className="text-lg font-black text-slate-900">{formatShortDate(drawerMilestone.dueDate)}</p>
+                       <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Target Deadline</p>
                     </div>
                  </div>
 
@@ -1268,9 +1573,9 @@ export const ProjectWorkspacePage = () => {
                        Acceptance Criteria
                     </h3>
                     <ul className="space-y-3">
-                       {selectedMilestone.acceptanceCriteria ? (
-                         selectedMilestone.acceptanceCriteria.split('\n').map((item, idx) => (
-                           <li key={idx} className="flex items-start gap-3 text-sm text-slate-600 font-medium">
+                       {drawerAcceptanceCriteriaItems.length > 0 ? (
+                         drawerAcceptanceCriteriaItems.map((item) => (
+                           <li key={item} className="flex items-start gap-3 text-sm text-slate-600 font-medium">
                               <span className="size-1.5 rounded-full bg-slate-300 mt-2 shrink-0" />
                               {item}
                            </li>
@@ -1282,16 +1587,28 @@ export const ProjectWorkspacePage = () => {
                   </div>
 
                   <StepBoard
-                    milestoneId={selectedMilestone.id}
+                    milestoneId={drawerMilestone.id}
                     isExpert={user?.role === Role.EXPERT && user?.id === project?.expertId}
                     isClient={user?.role === Role.CLIENT && user?.id === project?.clientId}
                   />
 
                   <div className="space-y-4">
-                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                      <FileText className="size-4 text-primary" />
-                      Submitted Deliverables
-                    </h3>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                        <FileText className="size-4 text-primary" />
+                        Submitted Deliverables
+                      </h3>
+                      {canExpertSubmitMilestone(drawerMilestone) && (
+                        <Button
+                          type="button"
+                          onClick={openDeliverableModal}
+                          className="rounded-full bg-brand-accent px-4 py-2 text-xs font-black hover:bg-brand-accent/90"
+                        >
+                          <Upload className="mr-1.5 size-3.5" />
+                          {drawerMilestone.status === MilestoneStatus.REVISION_REQUESTED ? 'Resubmit Deliverables' : 'Submit Deliverables'}
+                        </Button>
+                      )}
+                    </div>
 
                     {isLoadingDeliverables ? (
                       <div className="rounded-lg border border-slate-100 bg-slate-50 p-4 text-sm font-semibold text-slate-500">
@@ -1372,7 +1689,7 @@ export const ProjectWorkspacePage = () => {
 
               {/* Action Buttons based on status and role */}
               <div className="pt-8 border-t border-slate-100 space-y-3">
-                 {selectedMilestone.status === MilestoneStatus.PENDING && user?.role === Role.CLIENT && (
+                 {drawerMilestone.status === MilestoneStatus.PENDING && user?.role === Role.CLIENT && (
                    <div className="flex gap-3">
                      <Button
                        onClick={openEditMilestoneModal}
@@ -1392,16 +1709,16 @@ export const ProjectWorkspacePage = () => {
                      </Button>
                    </div>
                  )}
-                 {([MilestoneStatus.FUNDED, MilestoneStatus.IN_PROGRESS, MilestoneStatus.REVISION_REQUESTED] as MilestoneStatus[]).includes(selectedMilestone.status) && user?.role === Role.EXPERT && (
+                 {canExpertSubmitMilestone(drawerMilestone) && (
                     <Button 
                       onClick={openDeliverableModal}
                       className="w-full h-14 rounded-full font-black text-base bg-brand-accent hover:bg-brand-accent/90 shadow-xl shadow-brand-accent/20 flex items-center justify-center gap-2"
                     >
                        <Upload className="size-5" />
-                       {selectedMilestone.status === MilestoneStatus.REVISION_REQUESTED ? 'Edit Deliverables' : 'Submit Deliverables'}
+                       {drawerMilestone.status === MilestoneStatus.REVISION_REQUESTED ? 'Resubmit Deliverables' : 'Submit Deliverables'}
                     </Button>
                   )}
-                 {selectedMilestone.status === MilestoneStatus.SUBMITTED && user?.role === Role.CLIENT && (
+                 {drawerMilestone.status === MilestoneStatus.SUBMITTED && user?.role === Role.CLIENT && (
                    <div className="flex gap-3">
                       <Button 
                         onClick={() => setIsRevisionModalOpen(true)}
@@ -1411,7 +1728,7 @@ export const ProjectWorkspacePage = () => {
                         Revision
                       </Button>
                       <Button 
-                        onClick={() => approveMutation.mutate(selectedMilestone!.id)}
+                        onClick={() => approveMutation.mutate(drawerMilestone.id)}
                         disabled={approveMutation.isPending}
                         className="flex-[2] h-14 rounded-full font-black shadow-xl shadow-primary/20"
                       >
@@ -1419,12 +1736,12 @@ export const ProjectWorkspacePage = () => {
                       </Button>
                    </div>
                  )}
-                 {selectedMilestone.status === MilestoneStatus.COMPLETED && (
+                 {drawerMilestone.status === MilestoneStatus.COMPLETED && (
                    <div className="bg-emerald-50 text-emerald-700 p-4 rounded-lg border border-emerald-100 flex items-center gap-3">
                       <CheckCircle2 className="size-6 shrink-0" />
                       <div>
                          <p className="font-black text-sm uppercase">Milestone Completed</p>
-                         <p className="text-xs font-bold opacity-80">Payment of {selectedMilestone.amount?.toLocaleString()} Aivora Coin has been released.</p>
+                         <p className="text-xs font-bold opacity-80">Payment of {drawerMilestone.amount?.toLocaleString()} Aivora Coin has been released.</p>
                       </div>
                    </div>
                  )}
@@ -1436,8 +1753,8 @@ export const ProjectWorkspacePage = () => {
       {isTimelineStepModalOpen && viewedTimelineMilestone && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsTimelineStepModalOpen(false)} />
-          <div className="relative z-10 w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="mb-5 flex items-start justify-between gap-4">
+          <div className="relative z-10 flex max-h-[80vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="mb-5 flex shrink-0 items-start justify-between gap-4">
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-black uppercase tracking-widest text-primary">Timeline Steps</p>
                 <h3 className="mt-1 text-2xl font-black text-slate-900">Edit step</h3>
@@ -1448,7 +1765,7 @@ export const ProjectWorkspacePage = () => {
                   <button
                     type="button"
                     onClick={addTimelineStepDraft}
-                    title="Add new step locally. Update is blocked until a suitable API exists."
+                    title="Add milestone step"
                     className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-primary/20 bg-blue-50 text-primary transition-colors hover:bg-blue-100"
                     aria-label="Add new timeline step"
                   >
@@ -1468,63 +1785,57 @@ export const ProjectWorkspacePage = () => {
               </div>
             </div>
 
-            <div className="space-y-2">
-              {timelineStepDrafts.length === 0 ? (
-                <p className="rounded-lg border border-slate-100 bg-slate-50 p-4 text-sm font-semibold text-slate-500">N/A</p>
-              ) : timelineStepDrafts.map((step, index) => (
-                <div key={step.id} className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 p-3">
-                  <span className={cn(
-                    'flex size-8 shrink-0 items-center justify-center rounded-full border text-xs font-black',
-                    step.completed && 'border-primary bg-primary text-white',
-                    step.current && !step.completed && 'border-primary bg-white text-primary',
-                    !step.completed && !step.current && 'border-slate-200 bg-white text-slate-400'
-                  )}>
-                    {index + 1}
-                  </span>
-                  <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-                    <label className="min-w-0">
-                      <span className="sr-only">Step name</span>
-                      <input
-                        type="text"
-                        value={step.label}
-                        onChange={(event) => updateTimelineStepDraft(step.id, 'label', event.target.value)}
-                        className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-black text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
-                      />
-                    </label>
-                    <label className="min-w-0">
-                      <span className="sr-only">Step time</span>
-                      <input
-                        type="text"
-                        value={step.time}
-                        onChange={(event) => updateTimelineStepDraft(step.id, 'time', event.target.value)}
-                        className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
-                      />
-                    </label>
-                    <p className="text-xs font-semibold text-slate-500 sm:col-span-2">{step.status}</p>
-                  </div>
-                  <button
+            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+              <div className="space-y-2">
+                {timelineStepDrafts.length === 0 ? (
+                  <p className="rounded-lg border border-slate-100 bg-slate-50 p-4 text-sm font-semibold text-slate-500">N/A</p>
+                ) : timelineStepDrafts.map((step, index) => (
+                  <div key={step.id} className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 p-3">
+                    <span className={cn(
+                      'flex size-8 shrink-0 items-center justify-center rounded-full border text-xs font-black',
+                      step.completed && 'border-primary bg-primary text-white',
+                      step.current && !step.completed && 'border-primary bg-white text-primary',
+                      !step.completed && !step.current && 'border-slate-200 bg-white text-slate-400'
+                    )}>
+                      {index + 1}
+                    </span>
+                    <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                      <label className="min-w-0">
+                        <span className="sr-only">Step name</span>
+                        <input
+                          type="text"
+                          value={step.label}
+                          onChange={(event) => updateTimelineStepDraft(step.id, 'label', event.target.value)}
+                          className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-black text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
+                        />
+                      </label>
+                      <label className="min-w-0">
+                        <span className="sr-only">Step due date</span>
+                        <input
+                          type="date"
+                          value={step.time}
+                          onChange={(event) => updateTimelineStepDraft(step.id, 'time', event.target.value)}
+                          className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
+                        />
+                      </label>
+                      <p className="text-xs font-semibold text-slate-500 sm:col-span-2">{step.status}</p>
+                    </div>
+                    <button
                     type="button"
                     onClick={() => deleteTimelineStepDraft(step.id)}
-                    title="Remove this step locally. Update is blocked until a suitable API exists."
-                    className="flex size-9 shrink-0 items-center justify-center rounded-full border border-rose-100 bg-white text-rose-500 transition-colors hover:bg-rose-50"
-                    aria-label={`Remove ${step.label} step`}
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-5 rounded-lg border border-amber-100 bg-amber-50 p-3 text-sm font-semibold leading-6 text-amber-800">
-              <div className="flex gap-2">
-                <ShieldAlert className="mt-0.5 size-4 shrink-0" />
-                <p>
-                  Update Timeline is blocked because v1.json does not expose a suitable API endpoint or request field for timeline step updates.
-                </p>
+                    title="Remove milestone step"
+                      className="flex size-9 shrink-0 items-center justify-center rounded-full border border-rose-100 bg-white text-rose-500 transition-colors hover:bg-rose-50"
+                      aria-label={`Remove ${step.label} step`}
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
+                ))}
               </div>
+
             </div>
 
-            <div className="mt-6 flex justify-end gap-3">
+            <div className="mt-6 flex shrink-0 justify-end gap-3">
               <Button
                 type="button"
                 variant="outline"
@@ -1535,11 +1846,12 @@ export const ProjectWorkspacePage = () => {
               </Button>
               <Button
                 type="button"
-                disabled
-                title="Blocked: no suitable current API exists for timeline step updates."
+                onClick={handleUpdateTimelineSteps}
+                disabled={updateTimelineStepsMutation.isPending || timelineStepDrafts.some((step) => !step.label.trim())}
+                title="Update milestone steps"
                 className="rounded-full font-black"
               >
-                Update Timeline
+                {updateTimelineStepsMutation.isPending ? 'Updating...' : 'Update Timeline'}
               </Button>
             </div>
           </div>

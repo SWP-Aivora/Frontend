@@ -19,9 +19,9 @@ const experienceOptions: { value: ExperienceFilter; label: string }[] = [
 
 const rateOptions: { value: RateFilter; label: string }[] = [
   { value: 'all', label: 'Any hourly rate' },
-  { value: '10-30', label: '10 - 30 Aivora Coin / hr' },
-  { value: '30-60', label: '30 - 60 Aivora Coin / hr' },
-  { value: '60+', label: '60+ Aivora Coin / hr' },
+  { value: '10-30', label: '10 - 30 Aivora Coin / hour' },
+  { value: '30-60', label: '30 - 60 Aivora Coin / hour' },
+  { value: '60+', label: '60+ Aivora Coin / hour' },
 ];
 
 const getExpertSkills = (expert: ExpertProfileResponse): string[] => (
@@ -277,7 +277,7 @@ export const SearchExpertsPage = () => {
                         <div className="flex flex-row md:flex-col items-center md:items-end w-full justify-between md:justify-start gap-2 md:gap-0 mb-4 md:mb-0">
                           <div className="text-left md:text-right">
                             <span className="text-xl font-black text-slate-900">{expert.hourlyRate || 0}</span>
-                            <span className="text-xs font-medium text-slate-500"> Aivora Coin/hr</span>
+                            <span className="text-xs font-medium text-slate-500"> Aivora Coin/hour</span>
                           </div>
                           <div className="flex items-center gap-1 text-xs font-medium text-slate-500">
                             <MapPin className="size-3" /> {location}

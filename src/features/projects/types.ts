@@ -13,6 +13,7 @@ export interface Milestone {
   title: string;
   description: string | null;
   amount: number;
+  currency?: string;
   dueDate: string | null;
   dueDays: number | null;
   acceptanceCriteria: string | null;
@@ -21,6 +22,13 @@ export interface Milestone {
   projectId: string;
   createdAt: string;
   updatedAt: string;
+  fundedAt?: string | null;
+  depositPaidAt?: string | null;
+  submittedAt?: string | null;
+  approvedAt?: string | null;
+  paidAt?: string | null;
+  releasedAt?: string | null;
+  steps?: MilestoneStep[];
 }
 
 export interface Project {

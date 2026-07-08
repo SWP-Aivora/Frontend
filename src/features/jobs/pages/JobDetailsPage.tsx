@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/components/ui/Button';
 import {
@@ -10,7 +10,6 @@ import {
   Calendar,
   FileText,
   Loader2,
-  Link as LinkIcon,
   Plus,
   Trash2,
   WalletCards,
@@ -25,6 +24,28 @@ import { jobService } from '../services';
 import { proposalService } from '../../proposals/services';
 import { useAuthStore } from '@/features/auth/store';
 import { Role } from '@/shared/types/enums';
+
+type ProposalFormMilestone = NonNullable<CreateProposalFormValues['milestones']>[number];
+
+const toSafeNumber = (value: unknown): number => {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  return 0;
+};
+
+const getProposalMilestoneTotals = (milestones: ProposalFormMilestone[] | null | undefined) => (
+  (milestones ?? []).reduce(
+    (totals, milestone) => ({
+      proposedBudget: totals.proposedBudget + toSafeNumber(milestone.amount),
+      proposedTimelineDays: totals.proposedTimelineDays + toSafeNumber(milestone.dueDays),
+    }),
+    { proposedBudget: 0, proposedTimelineDays: 0 }
+  )
+);
 
 const normalizeJobStatus = (status: unknown): string => {
   if (status === 0 || String(status).toUpperCase() === 'DRAFT') return 'draft';
@@ -80,13 +101,12 @@ export const JobDetailsPage = () => {
       || normalized === 'PENDING';
   })();
 
-  const { register, control, handleSubmit, reset, formState: { errors } } = useForm<CreateProposalFormValues>({
+  const { register, control, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<CreateProposalFormValues>({
     resolver: zodResolver(createProposalSchema),
     defaultValues: {
       coverLetter: '',
       proposedBudget: 0,
       proposedTimelineDays: 0,
-      attachments: '',
       milestones: [
         { title: 'Discovery & implementation plan', amount: 1, dueDays: 1, orderIndex: 0 }
       ],
@@ -96,21 +116,23 @@ export const JobDetailsPage = () => {
   useEffect(() => {
     if (!proposal) return;
 
+    const proposalMilestones = proposal.milestones.length > 0
+      ? proposal.milestones.map((milestone, index) => ({
+          title: milestone.title,
+          description: milestone.description,
+          amount: milestone.amount,
+          dueDays: milestone.dueDays,
+          acceptanceCriteria: milestone.acceptanceCriteria,
+          orderIndex: milestone.orderIndex ?? index,
+        }))
+      : [{ title: 'Discovery & implementation plan', amount: 1, dueDays: 1, orderIndex: 0 }];
+    const proposalTotals = getProposalMilestoneTotals(proposalMilestones);
+
     reset({
       coverLetter: proposal.coverLetter,
-      proposedBudget: proposal.proposedBudget,
-      proposedTimelineDays: proposal.proposedTimelineDays,
-      attachments: '',
-      milestones: proposal.milestones.length > 0
-        ? proposal.milestones.map((milestone, index) => ({
-            title: milestone.title,
-            description: milestone.description,
-            amount: milestone.amount,
-            dueDays: milestone.dueDays,
-            acceptanceCriteria: milestone.acceptanceCriteria,
-            orderIndex: milestone.orderIndex ?? index,
-          }))
-        : [{ title: 'Discovery & implementation plan', amount: 1, dueDays: 1, orderIndex: 0 }],
+      proposedBudget: proposalTotals.proposedBudget,
+      proposedTimelineDays: proposalTotals.proposedTimelineDays,
+      milestones: proposalMilestones,
     });
   }, [proposal, reset]);
 
@@ -118,6 +140,22 @@ export const JobDetailsPage = () => {
     control,
     name: "milestones"
   });
+  const watchedMilestones = watch('milestones');
+  const computedProposalTotals = useMemo(
+    () => getProposalMilestoneTotals(watchedMilestones),
+    [watchedMilestones]
+  );
+
+  useEffect(() => {
+    setValue('proposedBudget', computedProposalTotals.proposedBudget, {
+      shouldDirty: false,
+      shouldValidate: true,
+    });
+    setValue('proposedTimelineDays', computedProposalTotals.proposedTimelineDays, {
+      shouldDirty: false,
+      shouldValidate: true,
+    });
+  }, [computedProposalTotals.proposedBudget, computedProposalTotals.proposedTimelineDays, setValue]);
 
   const submitMutation = useMutation({
     mutationFn: (data: CreateProposalFormValues) => proposalService.submitProposal(id!, data),
@@ -146,17 +184,24 @@ export const JobDetailsPage = () => {
   });
 
   const onSubmit = (data: CreateProposalFormValues) => {
+    const milestoneTotals = getProposalMilestoneTotals(data.milestones);
+    const computedPayload: CreateProposalFormValues = {
+      ...data,
+      proposedBudget: milestoneTotals.proposedBudget,
+      proposedTimelineDays: milestoneTotals.proposedTimelineDays,
+    };
+
     if (isEditMode) {
       if (!isProposalEditable) {
         toast.error('This proposal can no longer be edited.');
         return;
       }
 
-      updateMutation.mutate(data);
+      updateMutation.mutate(computedPayload);
       return;
     }
 
-    submitMutation.mutate(data);
+    submitMutation.mutate(computedPayload);
   };
 
   const cancelJobMutation = useMutation({
@@ -395,9 +440,11 @@ export const JobDetailsPage = () => {
                             min="1"
                             step="0.01"
                             {...register('proposedBudget')}
+                            readOnly
+                            aria-readonly="true"
                             aria-label="Proposal bid"
                             data-testid="proposal-budget-input"
-                            className="h-12 rounded-lg bg-slate-50 pl-28 font-bold"
+                            className="h-12 cursor-not-allowed rounded-lg bg-slate-50 pl-28 font-bold text-slate-700"
                           />
                         </div>
                         {errors.proposedBudget && <p className="text-xs text-destructive font-bold">{errors.proposedBudget.message}</p>}
@@ -409,9 +456,11 @@ export const JobDetailsPage = () => {
                             type="number"
                             min="1"
                             {...register('proposedTimelineDays')}
+                            readOnly
+                            aria-readonly="true"
                             aria-label="Proposal delivery time"
                             data-testid="proposal-timeline-input"
-                            className="h-12 rounded-lg bg-slate-50 pr-14 font-bold"
+                            className="h-12 cursor-not-allowed rounded-lg bg-slate-50 pr-14 font-bold text-slate-700"
                           />
                           <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-black uppercase">Days</span>
                         </div>
@@ -430,29 +479,6 @@ export const JobDetailsPage = () => {
                         className="w-full min-h-[180px] p-4 rounded-lg bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-accent/20 text-sm leading-6 transition-colors"
                       />
                       {errors.coverLetter && <p className="text-xs text-destructive font-bold">{errors.coverLetter.message}</p>}
-                    </div>
-
-                    {/* Attachments */}
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Attachments / Portfolio Links</label>
-                      <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4">
-                        <div className="flex items-start gap-3">
-                          <div className="size-10 rounded-lg bg-white border border-slate-100 flex items-center justify-center shrink-0">
-                            <LinkIcon className="size-5 text-brand-accent" />
-                          </div>
-                          <div className="flex-1 space-y-3">
-                            <p className="text-sm font-bold text-slate-700">Paste portfolio, GitHub, HuggingFace, demo, or case-study links.</p>
-                            <textarea
-                              {...register('attachments')}
-                              aria-label="Proposal portfolio links"
-                              data-testid="proposal-attachments"
-                              placeholder="https://github.com/yourname/project&#10;https://huggingface.co/your-model"
-                              className="w-full min-h-[86px] p-3 rounded-lg bg-white border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-accent/20 text-sm"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      {errors.attachments && <p className="text-xs text-destructive font-bold">{errors.attachments.message}</p>}
                     </div>
 
                     {/* Milestones */}

@@ -15,11 +15,11 @@ export interface Review {
   reviewerId: string;
   revieweeId: string;
   rating: number;
-  comment: string;
-  communicationRating: number;
-  qualityRating: number;
-  deadlineRating: number;
-  requirementClarityRating: number;
+  comment: string | null;
+  communicationRating?: number | null;
+  qualityRating?: number | null;
+  deadlineRating?: number | null;
+  requirementClarityRating?: number | null;
   createdAt: string;
   reviewerName?: string;
   revieweeName?: string;

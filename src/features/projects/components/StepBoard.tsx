@@ -124,7 +124,7 @@ export const StepBoard = ({ milestoneId, isExpert, isClient }: StepBoardProps) =
           <ListChecks className="size-4 text-primary" />
           Steps
         </h3>
-        {isExpert && !isAdding && !draftSteps && (
+        {isClient && !isAdding && !draftSteps && (
           <div className="flex items-center gap-2">
             <Button size="sm" variant="outline" onClick={handleSuggestSteps} disabled={suggestSteps.isPending} className="h-8 text-xs font-black flex items-center gap-1.5">
               <Sparkles className="size-3.5" /> {suggestSteps.isPending ? 'Thinking...' : 'AI Suggest Steps'}

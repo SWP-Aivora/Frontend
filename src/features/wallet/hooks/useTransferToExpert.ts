@@ -20,12 +20,12 @@ export const useTransferToExpert = ({ recipientId, onSuccess }: UseTransferToExp
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['wallet'] });
       void queryClient.invalidateQueries({ queryKey: ['wallet-transactions'] });
-      toast.success('Chuyển tiền trực tiếp thành công!');
+      toast.success('Direct transfer completed successfully!');
       onSuccess?.();
     },
     onError: (error: unknown) => {
       const message = (() => {
-        if (typeof error !== 'object' || error === null) return 'Chuyển tiền thất bại.';
+        if (typeof error !== 'object' || error === null) return 'Direct transfer failed.';
         const err = error as { response?: { data?: unknown; status?: number } };
         const data = err.response?.data;
         if (typeof data === 'string' && data.trim()) return data;
@@ -35,7 +35,7 @@ export const useTransferToExpert = ({ recipientId, onSuccess }: UseTransferToExp
             .find((v): v is string => typeof v === 'string' && v.trim() !== '');
           if (msg) return msg;
         }
-        return error instanceof Error ? error.message : 'Chuyển tiền thất bại.';
+        return error instanceof Error ? error.message : 'Direct transfer failed.';
       })();
       toast.error(message);
     },
