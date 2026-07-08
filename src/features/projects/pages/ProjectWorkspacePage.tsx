@@ -878,16 +878,15 @@ export const ProjectWorkspacePage = () => {
   };
 
   const deleteTimelineStepDraft = (stepId: string) => {
-    setTimelineStepDrafts((currentSteps) => {
-      const deletedStep = currentSteps.find((step) => step.id === stepId);
-      if (deletedStep?.apiStepId) {
-        setDeletedTimelineStepIds((currentIds) => (
-          currentIds.includes(deletedStep.apiStepId!) ? currentIds : [...currentIds, deletedStep.apiStepId!]
-        ));
-      }
+    const deletedStep = timelineStepDrafts.find((step) => step.id === stepId);
+    const deletedApiStepId = deletedStep?.apiStepId;
+    if (deletedApiStepId) {
+      setDeletedTimelineStepIds((currentIds) => (
+        currentIds.includes(deletedApiStepId) ? currentIds : [...currentIds, deletedApiStepId]
+      ));
+    }
 
-      return currentSteps.filter((step) => step.id !== stepId);
-    });
+    setTimelineStepDrafts((currentSteps) => currentSteps.filter((step) => step.id !== stepId));
   };
 
   const handleUpdateTimelineSteps = () => {
