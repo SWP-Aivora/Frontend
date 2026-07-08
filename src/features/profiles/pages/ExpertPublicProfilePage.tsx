@@ -370,7 +370,7 @@ export const ExpertPublicProfilePage = () => {
               {/* Reviews List */}
               {displayReviews.length > 0 && (
                 <div className="space-y-6">
-                  {displayReviews.map((review: { reviewerName?: string; rating: number; comment: string }, i: number) => (
+                  {displayReviews.map((review, i: number) => (
                     <div key={i} className={`flex gap-4 ${i > 0 ? "pt-6 border-t border-slate-100" : ""}`}>
                       <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-100 to-blue-50 flex items-center justify-center text-sm font-bold text-brand-primary shrink-0 shadow-inner">
                         {review.reviewerName ? review.reviewerName.split(' ').map((n: string) => n[0]).join('').toUpperCase() : 'U'}
@@ -390,7 +390,7 @@ export const ExpertPublicProfilePage = () => {
                             ))}
                           </div>
                         </div>
-                        <p className="text-sm text-brand-secondary leading-relaxed whitespace-pre-wrap">{review.comment}</p>
+                        <p className="text-sm text-brand-secondary leading-relaxed whitespace-pre-wrap">{review.comment || ''}</p>
                       </div>
                     </div>
                   ))}
