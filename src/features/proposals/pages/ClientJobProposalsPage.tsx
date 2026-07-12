@@ -94,6 +94,9 @@ export const ClientJobProposalsPage = () => {
     queryKey: QUERY_KEYS.JOBS.PROPOSALS(id!),
     queryFn: () => proposalService.getProposalsByJobId(id!),
     enabled: !!id,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
     refetchInterval: REFETCH_INTERVALS.REALTIME_FAST,
   });
 
@@ -396,10 +399,11 @@ export const ClientJobProposalsPage = () => {
   const cancelJobMutation = useMutation({
     mutationFn: (jobId: string) => jobService.cancelJob(jobId),
     onSuccess: () => {
-      toast.success('Job post cancelled.');
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.JOBS.DETAIL(id!) });
-      queryClient.invalidateQueries({ queryKey: ['clientJobs'] });
-      queryClient.invalidateQueries({ queryKey: ['clientProjects'] });
+      toast.success('Cancel job successfully.');
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.JOBS.DETAIL(id!) });
+      void queryClient.invalidateQueries({ queryKey: ['clientJobs'] });
+      void queryClient.invalidateQueries({ queryKey: ['clientProjects'] });
+      navigate('/client/projects');
     },
     onError: () => toast.error('Failed to cancel job post.'),
   });
@@ -455,8 +459,12 @@ export const ClientJobProposalsPage = () => {
            </div>
         </div>
         <div className="flex items-center gap-3">
-           <Button variant="outline" className="rounded-full border-slate-200">Edit Job</Button>
-           {(normalizeJobStatus(job?.status) === 'published' || normalizeJobStatus(job?.status) === 'in-progress') && (
+           {id && (
+             <Button asChild variant="outline" className="rounded-full border-slate-200">
+               <Link to={`/client/post-job?editJobId=${id}`}>Edit Job</Link>
+             </Button>
+           )}
+           {normalizeJobStatus(job?.status) === 'published' && (
              <Button
                variant="outline"
                className="rounded-full border-rose-200 text-rose-600 hover:bg-rose-50"
@@ -563,6 +571,7 @@ export const ClientJobProposalsPage = () => {
                       onUnshortlist={onUnshortlist}
                       detailHref={`/client/proposals/${p.id}`}
                       aiMatchScore={aiMatchScore}
+                      status={status}
                       isAccepted={isAccepted}
                       isRefused={status === 'rejected'}
                       isShortlisted={status === 'shortlisted'}

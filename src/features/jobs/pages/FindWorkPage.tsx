@@ -172,7 +172,7 @@ export const FindWorkPage = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
         {/* Sidebar Filters */}
-        <div className="lg:col-span-1 space-y-6 sticky top-24">
+        <div className="lg:col-span-1 space-y-6">
           <div className="flex items-center justify-between mb-2">
              <h2 className="text-lg font-black text-slate-900">Filters</h2>
              <button onClick={clearFilters} className="text-xs font-bold text-primary hover:underline">Clear all</button>

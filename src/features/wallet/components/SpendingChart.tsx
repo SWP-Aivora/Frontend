@@ -1,16 +1,16 @@
 import { useMemo } from 'react';
 import { WalletTransactionType } from '../types';
 import type { Transaction } from '../types';
+import { formatCompactAxisValue, getNiceYAxisScale } from './spendingChartAxis';
 
 const CHART_WIDTH = 700;
 const CHART_HEIGHT = 220;
-const PLOT_LEFT = 56;
+const PLOT_LEFT = 76;
 const PLOT_RIGHT = 34;
 const PLOT_TOP = 44;
 const PLOT_BOTTOM = 44;
 const FIRST_POINT_OFFSET = 34;
 const AXIS_END_PADDING = 32;
-const GRID_STEP = 25;
 const NEGATIVE_COLOR = '#E11D48';
 const ZERO_COLOR = '#1F5AA6';
 const POSITIVE_COLOR = '#16A34A';
@@ -101,15 +101,11 @@ export const SpendingChart = ({ transactions, isClient }: SpendingChartProps) =>
 
     const visibleTotals = totals.slice(0, currentDayIndex + 1);
     const values = visibleTotals.map(entry => entry.total);
-    const minValue = Math.min(...values, 0);
-    const maxValue = Math.max(...values, 0);
-    const hasNegativeValue = minValue < 0;
-    const yAxisMin = hasNegativeValue ? Math.floor(minValue / GRID_STEP) * GRID_STEP : 0;
-    const yAxisMax = Math.max(hasNegativeValue ? GRID_STEP : 100, Math.ceil(maxValue / GRID_STEP) * GRID_STEP);
-    const yAxisRange = yAxisMax - yAxisMin;
+    const yAxisScale = getNiceYAxisScale(values);
+    const yAxisRange = yAxisScale.axisMax - yAxisScale.axisMin;
     const plotWidth = CHART_WIDTH - PLOT_LEFT - PLOT_RIGHT - FIRST_POINT_OFFSET - AXIS_END_PADDING;
     const plotHeight = CHART_HEIGHT - PLOT_TOP - PLOT_BOTTOM;
-    const getYPosition = (value: number): number => PLOT_TOP + ((yAxisMax - value) / yAxisRange) * plotHeight;
+    const getYPosition = (value: number): number => PLOT_TOP + ((yAxisScale.axisMax - value) / yAxisRange) * plotHeight;
     const zeroY = getYPosition(0);
     const points = totals.map((entry, index) => {
       const x = PLOT_LEFT + FIRST_POINT_OFFSET + (plotWidth / 6) * index;
@@ -154,13 +150,12 @@ export const SpendingChart = ({ transactions, isClient }: SpendingChartProps) =>
       }];
     });
 
-    const tickCount = Math.round((yAxisMax - yAxisMin) / GRID_STEP) + 1;
-    const gridValues = Array.from({ length: tickCount }, (_, index) => {
-      const value = yAxisMin + GRID_STEP * index;
+    const gridValues = yAxisScale.ticks.map(value => {
       const y = getYPosition(value);
 
       return {
-        label: Math.round(value).toLocaleString(),
+        value,
+        label: formatCompactAxisValue(value),
         y,
       };
     }).reverse();
@@ -205,7 +200,7 @@ export const SpendingChart = ({ transactions, isClient }: SpendingChartProps) =>
           </defs>
 
           {chartData.gridValues.map(gridLine => (
-            <g key={gridLine.label}>
+            <g key={gridLine.value}>
               <text
                 x={PLOT_LEFT - 16}
                 y={gridLine.y + 4}

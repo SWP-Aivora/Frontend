@@ -16,6 +16,23 @@ const buildApiUrl = (endpoint: string): string => (
   `${env.API_URL.replace(/\/$/, '')}/${endpoint.replace(/^\//, '')}`
 );
 
+const getRequestPath = (url?: string): string => {
+  if (!url) return '';
+
+  try {
+    return new URL(url, env.API_URL).pathname.replace(/\/+$/, '').toLowerCase();
+  } catch {
+    return url.split('?')[0].split('#')[0].replace(/\/+$/, '').toLowerCase();
+  }
+};
+
+const matchesEndpoint = (url: string | undefined, endpoint: string): boolean => {
+  const requestPath = getRequestPath(url);
+  const endpointPath = `/${endpoint.replace(/^\/+/, '').replace(/\/+$/, '').toLowerCase()}`;
+
+  return requestPath === endpointPath || requestPath.endsWith(endpointPath);
+};
+
 // Refresh Token Logic Variables
 let isRefreshing = false;
 let failedQueue: { resolve: (value?: unknown) => void; reject: (error: AxiosError | null) => void }[] = [];
@@ -51,8 +68,16 @@ axiosInstance.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    const requestUrl = originalRequest?.url;
+    const isLoginRequest = matchesEndpoint(requestUrl, API_ENDPOINTS.AUTH.LOGIN);
+    const isRefreshRequest = matchesEndpoint(requestUrl, API_ENDPOINTS.AUTH.REFRESH_TOKEN);
+    const isLogoutRequest = matchesEndpoint(requestUrl, API_ENDPOINTS.AUTH.LOGOUT);
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && (isLoginRequest || isRefreshRequest || isLogoutRequest)) {
+      return Promise.reject(error);
+    }
+
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { KanbanBoard } from '../components/KanbanBoard';
@@ -94,11 +94,19 @@ const getApiErrorMessage = (error: unknown, fallback: string): string => {
   return error instanceof Error ? error.message : fallback;
 };
 
+const isAccessError = (error: unknown): boolean => {
+  if (typeof error !== 'object' || error === null || !('response' in error)) return false;
+
+  const status = (error as { response?: { status?: number } }).response?.status;
+  return status === 401 || status === 403;
+};
+
 const DISPUTE_PAGE_SIZE = 100;
 type WorkspaceTab = 'overview' | 'timeline';
 type TimelineStepDraft = {
   id: string;
   apiStepId?: string;
+  isSystemDefault?: boolean;
   label: string;
   status: string;
   time: string;
@@ -107,7 +115,10 @@ type TimelineStepDraft = {
 };
 type TimelineStepItem = {
   id: string;
+  apiStepId?: string;
+  isSystemDefault?: boolean;
   label: string;
+  status: MilestoneStepStatus;
   statusLabel: string;
   time: string;
   completed: boolean;
@@ -295,27 +306,72 @@ const getMilestoneStepTimelineTime = (step: MilestoneStep): string => {
   return 'Not Yet';
 };
 
-const buildApiTimelineSteps = (steps: MilestoneStep[]): TimelineStepItem[] => (
-  [...steps]
-    .sort((a, b) => a.orderIndex - b.orderIndex)
+const isSystemDefaultTimelineStep = (title: string): boolean => (
+  ['created', 'funded', 'completed'].includes(title.trim().toLowerCase())
+);
+
+const isFinalCompletedTimelineStep = (step: MilestoneStep): boolean => {
+  const normalizedTitle = step.title.trim().toLowerCase();
+  return normalizedTitle === 'complete' || normalizedTitle === 'completed';
+};
+
+const getCompletedAtTime = (step: MilestoneStep): number | null => {
+  if (!step.completedAt) return null;
+  const time = parseDate(step.completedAt)?.getTime();
+  return typeof time === 'number' && !Number.isNaN(time) ? time : null;
+};
+
+const compareTimelineSteps = (a: MilestoneStep, b: MilestoneStep): number => {
+  const aCompletedAt = getCompletedAtTime(a);
+  const bCompletedAt = getCompletedAtTime(b);
+
+  if (aCompletedAt !== null && bCompletedAt !== null) {
+    return aCompletedAt === bCompletedAt
+      ? a.orderIndex - b.orderIndex
+      : aCompletedAt - bCompletedAt;
+  }
+
+  if (aCompletedAt !== null) return -1;
+  if (bCompletedAt !== null) return 1;
+  return a.orderIndex - b.orderIndex;
+};
+
+const buildApiTimelineSteps = (steps: MilestoneStep[], milestoneStatus: MilestoneStatus): TimelineStepItem[] => {
+  const shouldPinFinalCompletedStep = milestoneStatus === MilestoneStatus.COMPLETED || milestoneStatus === MilestoneStatus.RELEASED;
+  const sortedSteps = [...steps].sort(compareTimelineSteps);
+
+  if (shouldPinFinalCompletedStep) {
+    const finalCompletedStepIndex = sortedSteps.findIndex(isFinalCompletedTimelineStep);
+
+    if (finalCompletedStepIndex >= 0) {
+      const [finalCompletedStep] = sortedSteps.splice(finalCompletedStepIndex, 1);
+      sortedSteps.push(finalCompletedStep);
+    }
+  }
+
+  return sortedSteps
     .map((step) => {
       const timelineState = getMilestoneStepTimelineState(step);
 
       return {
         id: step.id,
+        apiStepId: step.id,
+        isSystemDefault: isSystemDefaultTimelineStep(step.title),
         label: step.title,
+        status: step.status,
         statusLabel: getMilestoneStepStatusLabel(step.status),
         time: timelineState.completed ? getMilestoneStepTimelineTime(step) : 'Not Yet',
         completed: timelineState.completed,
         current: timelineState.current,
       };
-    })
-);
+    });
+};
 
 const buildMilestoneStatusTimelineSteps = (milestone: Milestone, deliverables: Deliverable[]): TimelineStepItem[] => (
   buildTimelineSteps(milestone.status).map((step, index) => ({
     id: `${step.label}-${index}`,
     label: step.label,
+    status: step.completed ? MilestoneStepStatus.COMPLETED : MilestoneStepStatus.PENDING,
     statusLabel: getTimelineStepStatus(step),
     time: step.completed ? getTimelineStepTime(step.label, milestone, deliverables) : 'Not Yet',
     completed: step.completed,
@@ -332,6 +388,7 @@ const buildApiTimelineStepDrafts = (steps: MilestoneStep[]): TimelineStepDraft[]
       return {
         id: step.id,
         apiStepId: step.id,
+        isSystemDefault: isSystemDefaultTimelineStep(step.title),
         label: step.title,
         status: getMilestoneStepStatusLabel(step.status),
         time: formatDateInputValue(step.dueDate),
@@ -371,6 +428,7 @@ const formatDaysRemaining = (value: number | null): string => {
 const buildTimelineStepDrafts = (milestone: Milestone): TimelineStepDraft[] => (
   buildTimelineSteps(milestone.status).map((step, index) => ({
     id: `${step.label}-${index}`,
+    isSystemDefault: isSystemDefaultTimelineStep(step.label),
     label: step.label,
     status: getTimelineStepStatus(step),
     time: '',
@@ -577,22 +635,27 @@ export const ProjectWorkspacePage = () => {
     () => milestones.find((milestone) => milestone.id === viewedTimelineMilestoneId) ?? null,
     [milestones, viewedTimelineMilestoneId]
   );
+  const timelineMilestoneDetailQueryKey = ['milestone', viewedTimelineMilestoneId, 'detail'];
+  const timelineDeliverablesQueryKey = ['milestone', viewedTimelineMilestoneId, 'timeline-deliverables'];
+  const timelineStepsQueryKey = ['milestone', viewedTimelineMilestoneId, 'timeline-steps'];
   const {
     data: timelineMilestoneResponse,
     isLoading: isLoadingTimelineMilestone,
     isError: isTimelineMilestoneError,
   } = useQuery({
-    queryKey: ['milestone', viewedTimelineMilestoneId, 'detail'],
+    queryKey: timelineMilestoneDetailQueryKey,
     queryFn: () => projectService.getMilestoneById(viewedTimelineMilestoneId),
     enabled: Boolean(viewedTimelineMilestoneId),
+    staleTime: 0,
   });
   const viewedTimelineMilestoneDetail = timelineMilestoneResponse?.data ?? null;
   const {
     data: timelineDeliverablesResponse,
   } = useQuery({
-    queryKey: ['milestone', viewedTimelineMilestoneId, 'timeline-deliverables'],
+    queryKey: timelineDeliverablesQueryKey,
     queryFn: () => projectService.getDeliverables(viewedTimelineMilestoneId),
     enabled: Boolean(viewedTimelineMilestoneId),
+    staleTime: 0,
   });
   const timelineDeliverables = timelineDeliverablesResponse?.data ?? [];
   const {
@@ -600,11 +663,123 @@ export const ProjectWorkspacePage = () => {
     isLoading: isLoadingTimelineSteps,
     isError: isTimelineStepsError,
   } = useQuery({
-    queryKey: ['milestone', viewedTimelineMilestoneId, 'timeline-steps'],
+    queryKey: timelineStepsQueryKey,
     queryFn: () => projectService.getMilestoneSteps(viewedTimelineMilestoneId),
     enabled: Boolean(viewedTimelineMilestoneId),
+    staleTime: 0,
   });
   const timelineApiSteps = timelineStepsResponse?.data ?? viewedTimelineMilestoneDetail?.steps ?? [];
+  const [isDocumentVisible, setIsDocumentVisible] = useState(() => (
+    typeof document === 'undefined' || document.visibilityState === 'visible'
+  ));
+  const [timelinePollResetKey, setTimelinePollResetKey] = useState(0);
+  const timelinePollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timelinePollRunIdRef = useRef(0);
+  const timelinePollInFlightRef = useRef(false);
+
+  const fetchTimelineSnapshot = useCallback(async (milestoneId: string) => {
+    await Promise.all([
+      queryClient.fetchQuery({
+        queryKey: ['milestone', milestoneId, 'detail'],
+        queryFn: () => projectService.getMilestoneById(milestoneId),
+        staleTime: 0,
+      }),
+      queryClient.fetchQuery({
+        queryKey: ['milestone', milestoneId, 'timeline-deliverables'],
+        queryFn: () => projectService.getDeliverables(milestoneId),
+        staleTime: 0,
+      }),
+      queryClient.fetchQuery({
+        queryKey: ['milestone', milestoneId, 'timeline-steps'],
+        queryFn: () => projectService.getMilestoneSteps(milestoneId),
+        staleTime: 0,
+      }),
+    ]);
+  }, [queryClient]);
+
+  const resetTimelinePolling = useCallback((milestoneId?: string) => {
+    if (!milestoneId || milestoneId === viewedTimelineMilestoneId) {
+      setTimelinePollResetKey((currentKey) => currentKey + 1);
+    }
+  }, [viewedTimelineMilestoneId]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsDocumentVisible(document.visibilityState === 'visible');
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  useEffect(() => {
+    const clearPollTimeout = () => {
+      if (timelinePollTimeoutRef.current) {
+        clearTimeout(timelinePollTimeoutRef.current);
+        timelinePollTimeoutRef.current = null;
+      }
+    };
+
+    const shouldPoll = Boolean(
+      activeTab === 'timeline'
+        && isDocumentVisible
+        && project?.id
+        && viewedTimelineMilestoneId
+        && viewedTimelineMilestone
+    );
+
+    clearPollTimeout();
+    timelinePollRunIdRef.current += 1;
+
+    if (!shouldPoll) return;
+
+    const milestoneId = viewedTimelineMilestoneId;
+    const runId = timelinePollRunIdRef.current;
+    let isStopped = false;
+
+    const runPoll = async () => {
+      if (isStopped || timelinePollRunIdRef.current !== runId || document.visibilityState !== 'visible') return;
+      if (timelinePollInFlightRef.current) {
+        timelinePollTimeoutRef.current = setTimeout(runPoll, 100);
+        return;
+      }
+
+      timelinePollInFlightRef.current = true;
+      let shouldContinue = true;
+
+      try {
+        await fetchTimelineSnapshot(milestoneId);
+      } catch (error) {
+        shouldContinue = !isAccessError(error);
+      } finally {
+        timelinePollInFlightRef.current = false;
+
+        if (!isStopped && shouldContinue && timelinePollRunIdRef.current === runId) {
+          timelinePollTimeoutRef.current = setTimeout(runPoll, 1000);
+        }
+      }
+    };
+
+    void runPoll();
+
+    return () => {
+      isStopped = true;
+      clearPollTimeout();
+      timelinePollRunIdRef.current += 1;
+      void queryClient.cancelQueries({ queryKey: ['milestone', milestoneId, 'detail'] });
+      void queryClient.cancelQueries({ queryKey: ['milestone', milestoneId, 'timeline-deliverables'] });
+      void queryClient.cancelQueries({ queryKey: ['milestone', milestoneId, 'timeline-steps'] });
+    };
+  }, [
+    activeTab,
+    fetchTimelineSnapshot,
+    isDocumentVisible,
+    project?.id,
+    queryClient,
+    timelinePollResetKey,
+    viewedTimelineMilestone,
+    viewedTimelineMilestoneId,
+  ]);
 
   // API Nộp sản phẩm (Expert bấm Submit)
   const submitMutation = useMutation({
@@ -615,6 +790,7 @@ export const ProjectWorkspacePage = () => {
       queryClient.invalidateQueries({ queryKey: ['milestone', variables.milestoneId, 'detail'] });
       queryClient.invalidateQueries({ queryKey: ['milestone', variables.milestoneId, 'deliverables'] });
       queryClient.invalidateQueries({ queryKey: ['milestone', variables.milestoneId, 'timeline-deliverables'] });
+      resetTimelinePolling(variables.milestoneId);
       setIsSubmitModalOpen(false);
       setSelectedMilestone(null);
     }
@@ -622,18 +798,20 @@ export const ProjectWorkspacePage = () => {
 
   const approveMutation = useMutation({
     mutationFn: (milestoneId: string) => projectService.approveMilestone(milestoneId),
-    onSuccess: () => {
+    onSuccess: (_result, milestoneId) => {
       queryClient.invalidateQueries({ queryKey: ['project', id] });
       queryClient.invalidateQueries({ queryKey: ['project', id, 'milestones'] });
+      resetTimelinePolling(milestoneId);
       setSelectedMilestone(null);
     }
   });
 
   const fundMutation = useMutation({
     mutationFn: (milestoneId: string) => projectService.fundMilestone(milestoneId),
-    onSuccess: () => {
+    onSuccess: (_result, milestoneId) => {
       queryClient.invalidateQueries({ queryKey: ['project', id] });
       queryClient.invalidateQueries({ queryKey: ['project', id, 'milestones'] });
+      resetTimelinePolling(milestoneId);
       toast.success('Milestone funded successfully.');
       setSelectedMilestone(null);
     },
@@ -668,9 +846,10 @@ export const ProjectWorkspacePage = () => {
   const updateMilestoneMutation = useMutation({
     mutationFn: ({ milestoneId, data }: { milestoneId: string; data: typeof editMilestoneData }) =>
       projectService.updateMilestone(milestoneId, data),
-    onSuccess: () => {
+    onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['project', id] });
       queryClient.invalidateQueries({ queryKey: ['project', id, 'milestones'] });
+      resetTimelinePolling(variables.milestoneId);
       toast.success('Milestone updated successfully.');
       setIsEditModalOpen(false);
       setSelectedMilestone(null);
@@ -702,7 +881,11 @@ export const ProjectWorkspacePage = () => {
 
         const dueDate = draft.time.trim() || undefined;
 
-        if (draft.apiStepId) {
+        if (draft.isSystemDefault && !draft.apiStepId) {
+          continue;
+        } else if (draft.apiStepId && draft.isSystemDefault) {
+          savedStepIds.push(draft.apiStepId);
+        } else if (draft.apiStepId) {
           await projectService.updateMilestoneStep(draft.apiStepId, {
             title,
             dueDate: dueDate ?? null,
@@ -732,6 +915,7 @@ export const ProjectWorkspacePage = () => {
       queryClient.invalidateQueries({ queryKey: ['milestone', variables.milestoneId, 'detail'] });
       queryClient.invalidateQueries({ queryKey: ['project', id] });
       queryClient.invalidateQueries({ queryKey: ['project', id, 'milestones'] });
+      resetTimelinePolling(variables.milestoneId);
       setDeletedTimelineStepIds([]);
       setIsTimelineStepModalOpen(false);
       toast.success('Timeline steps updated successfully.');
@@ -741,12 +925,30 @@ export const ProjectWorkspacePage = () => {
     },
   });
 
+  const completeTimelineStepMutation = useMutation({
+    mutationFn: ({ stepId }: { stepId: string; milestoneId: string }) =>
+      projectService.updateStepStatus(stepId, MilestoneStepStatus.COMPLETED),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['milestone', variables.milestoneId, 'steps'] });
+      queryClient.invalidateQueries({ queryKey: ['milestone', variables.milestoneId, 'timeline-steps'] });
+      queryClient.invalidateQueries({ queryKey: ['milestone', variables.milestoneId, 'detail'] });
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
+      queryClient.invalidateQueries({ queryKey: ['project', id, 'milestones'] });
+      resetTimelinePolling(variables.milestoneId);
+      toast.success('Step marked complete.');
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Failed to mark step complete.'));
+    },
+  });
+
   const revisionMutation = useMutation({
     mutationFn: ({ milestoneId, reason }: { milestoneId: string; reason: string }) => projectService.requestRevision(milestoneId, reason),
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['project', id] });
       queryClient.invalidateQueries({ queryKey: ['project', id, 'milestones'] });
       queryClient.invalidateQueries({ queryKey: ['milestone', variables.milestoneId, 'detail'] });
+      resetTimelinePolling(variables.milestoneId);
       setIsRevisionModalOpen(false);
       setSelectedMilestone(null);
     },
@@ -858,7 +1060,7 @@ export const ProjectWorkspacePage = () => {
   const updateTimelineStepDraft = (stepId: string, field: 'label' | 'time', value: string) => {
     setTimelineStepDrafts((currentSteps) => (
       currentSteps.map((step) => (
-        step.id === stepId ? { ...step, [field]: value } : step
+        step.id === stepId && !step.isSystemDefault ? { ...step, [field]: value } : step
       ))
     ));
   };
@@ -879,6 +1081,8 @@ export const ProjectWorkspacePage = () => {
 
   const deleteTimelineStepDraft = (stepId: string) => {
     const deletedStep = timelineStepDrafts.find((step) => step.id === stepId);
+    if (deletedStep?.isSystemDefault) return;
+
     const deletedApiStepId = deletedStep?.apiStepId;
     if (deletedApiStepId) {
       setDeletedTimelineStepIds((currentIds) => (
@@ -926,6 +1130,7 @@ export const ProjectWorkspacePage = () => {
   };
 
   const canShowFinishProject = user?.role === Role.CLIENT && user.id === project?.clientId;
+  const canManageTimelineSteps = user?.role === Role.CLIENT && user.id === project?.clientId;
   const canReviewCompletedProject = project?.status === ProjectStatus.COMPLETED;
   const canOpenProjectDispute = Boolean(
     project
@@ -1268,10 +1473,15 @@ export const ProjectWorkspacePage = () => {
             const daysRemaining = calculateDaysRemaining(timelineMilestone.dueDate);
             const deadlineStatus = getDeadlineStatus(milestoneStartDate, timelineMilestone.dueDate, timelineMilestone.status);
             const timelineStepItems = timelineApiSteps.length > 0
-              ? buildApiTimelineSteps(timelineApiSteps)
+              ? buildApiTimelineSteps(timelineApiSteps, timelineMilestone.status)
               : buildMilestoneStatusTimelineSteps(timelineMilestone, timelineDeliverables);
             const criteriaItems = getAcceptanceCriteriaItems(timelineMilestone.acceptanceCriteria);
-            const canClientFund = timelineMilestone.status === MilestoneStatus.PENDING && user?.role === Role.CLIENT;
+            const hasCompletedFundedStep = timelineApiSteps.some((step) => (
+              isSystemDefaultTimelineStep(step.title)
+                && step.title.trim().toLowerCase() === 'funded'
+                && step.status === MilestoneStepStatus.COMPLETED
+            ));
+            const canClientFund = timelineMilestone.status === MilestoneStatus.PENDING && user?.role === Role.CLIENT && !hasCompletedFundedStep;
             const canClientReview = timelineMilestone.status === MilestoneStatus.SUBMITTED && user?.role === Role.CLIENT;
             const canExpertSubmit = canExpertSubmitMilestone(timelineMilestone);
             const summaryItems = [
@@ -1329,7 +1539,7 @@ export const ProjectWorkspacePage = () => {
                 <section className="p-5">
                   <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Milestone Timeline Chart</h3>
-                    {user?.role === Role.CLIENT && (
+                    {canManageTimelineSteps && (
                       <Button
                         type="button"
                         variant="outline"
@@ -1361,7 +1571,15 @@ export const ProjectWorkspacePage = () => {
                             style={{ gridTemplateColumns: `repeat(${timelineStepItems.length}, minmax(0, 1fr))` }}
                           >
                             <div className="absolute left-10 right-10 top-5 h-px bg-slate-200" />
-                            {timelineStepItems.map((step) => (
+                            {timelineStepItems.map((step) => {
+                              const canCompleteStep = Boolean(
+                                canManageTimelineSteps
+                                  && step.apiStepId
+                                  && !step.isSystemDefault
+                                  && (step.status === MilestoneStepStatus.PENDING || step.status === MilestoneStepStatus.IN_PROGRESS)
+                              );
+
+                              return (
                               <div key={step.id} className="relative min-w-0 pt-12">
                                 <div className={cn(
                                   'absolute left-1/2 top-2 z-10 flex size-7 -translate-x-1/2 items-center justify-center rounded-full border-2 bg-white',
@@ -1386,9 +1604,32 @@ export const ProjectWorkspacePage = () => {
                                   <p className="mt-1 truncate text-[11px] font-semibold text-slate-500" title={step.time}>
                                     {step.time}
                                   </p>
+                                  {canCompleteStep && (
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      disabled={completeTimelineStepMutation.isPending && completeTimelineStepMutation.variables?.stepId === step.apiStepId}
+                                      onClick={() => {
+                                        if (!step.apiStepId || !viewedTimelineMilestoneId) return;
+
+                                        completeTimelineStepMutation.mutate({
+                                          stepId: step.apiStepId,
+                                          milestoneId: viewedTimelineMilestoneId,
+                                        });
+                                      }}
+                                      className="mt-3 h-8 rounded-full border-emerald-100 px-3 text-[11px] font-black text-emerald-700 hover:bg-emerald-50"
+                                    >
+                                      <CheckCircle2 className="mr-1.5 size-3.5" />
+                                      {completeTimelineStepMutation.isPending && completeTimelineStepMutation.variables?.stepId === step.apiStepId
+                                        ? 'Completing...'
+                                        : 'Mark complete'}
+                                    </Button>
+                                  )}
                                 </div>
                               </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       </div>
@@ -1789,7 +2030,10 @@ export const ProjectWorkspacePage = () => {
               <div className="space-y-2">
                 {timelineStepDrafts.length === 0 ? (
                   <p className="rounded-lg border border-slate-100 bg-slate-50 p-4 text-sm font-semibold text-slate-500">N/A</p>
-                ) : timelineStepDrafts.map((step, index) => (
+                ) : timelineStepDrafts.map((step, index) => {
+                  const isLockedSystemStep = Boolean(step.isSystemDefault);
+
+                  return (
                   <div key={step.id} className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 p-3">
                     <span className={cn(
                       'flex size-8 shrink-0 items-center justify-center rounded-full border text-xs font-black',
@@ -1805,8 +2049,12 @@ export const ProjectWorkspacePage = () => {
                         <input
                           type="text"
                           value={step.label}
+                          disabled={isLockedSystemStep}
                           onChange={(event) => updateTimelineStepDraft(step.id, 'label', event.target.value)}
-                          className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-black text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
+                          className={cn(
+                            'h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-black text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10',
+                            isLockedSystemStep && 'cursor-not-allowed bg-slate-100 text-slate-500'
+                          )}
                         />
                       </label>
                       <label className="min-w-0">
@@ -1814,23 +2062,32 @@ export const ProjectWorkspacePage = () => {
                         <input
                           type="date"
                           value={step.time}
+                          disabled={isLockedSystemStep}
                           onChange={(event) => updateTimelineStepDraft(step.id, 'time', event.target.value)}
-                          className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10"
+                          className={cn(
+                            'h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/10',
+                            isLockedSystemStep && 'cursor-not-allowed bg-slate-100 text-slate-500'
+                          )}
                         />
                       </label>
                       <p className="text-xs font-semibold text-slate-500 sm:col-span-2">{step.status}</p>
                     </div>
                     <button
-                    type="button"
-                    onClick={() => deleteTimelineStepDraft(step.id)}
-                    title="Remove milestone step"
-                      className="flex size-9 shrink-0 items-center justify-center rounded-full border border-rose-100 bg-white text-rose-500 transition-colors hover:bg-rose-50"
+                      type="button"
+                      onClick={() => deleteTimelineStepDraft(step.id)}
+                      title={isLockedSystemStep ? 'Default system milestone steps cannot be removed' : 'Remove milestone step'}
+                      disabled={isLockedSystemStep}
+                      className={cn(
+                        'flex size-9 shrink-0 items-center justify-center rounded-full border border-rose-100 bg-white text-rose-500 transition-colors hover:bg-rose-50',
+                        isLockedSystemStep && 'cursor-not-allowed border-slate-100 text-slate-300 hover:bg-white'
+                      )}
                       aria-label={`Remove ${step.label} step`}
                     >
                       <Trash2 className="size-4" />
                     </button>
                   </div>
-                ))}
+                  );
+                })}
               </div>
 
             </div>

@@ -20,22 +20,22 @@ import { proposalService } from '../services';
 import { cn } from '@/lib/utils';
 
 const getStatusConfig = (status: number | string) => {
-  const normalized = String(status).toUpperCase();
+  const normalized = String(status).toUpperCase().replace(/\s+|_/g, '');
 
-  if (status === 2 || normalized === 'ACCEPTED') {
+  if (status === 2 || normalized === '2' || normalized === 'ACCEPTED') {
     return { label: 'Accepted', className: 'text-emerald-700 bg-emerald-50 border-emerald-100' };
   }
 
-  if (status === 3 || normalized === 'REJECTED' || normalized === 'DECLINED') {
+  if (status === 3 || normalized === '3' || normalized === 'REJECTED' || normalized === 'DECLINED') {
     return { label: 'Declined', className: 'text-rose-700 bg-rose-50 border-rose-100' };
   }
 
-  if (normalized === 'SHORTLISTED') {
+  if (status === 1 || normalized === '1' || normalized === 'SHORTLISTED') {
     return { label: 'Shortlisted', className: 'text-blue-700 bg-blue-50 border-blue-100' };
   }
 
-  if (normalized === 'WITHDRAWN') {
-    return { label: 'Withdrawn', className: 'text-slate-600 bg-slate-50 border-slate-100' };
+  if (status === 4 || normalized === '4' || normalized === 'WITHDRAWN' || normalized === 'CANCELLED' || normalized === 'CANCELED') {
+    return { label: 'Withdrawn', className: 'text-rose-700 bg-rose-50 border-rose-100' };
   }
 
   return { label: 'Submitted', className: 'text-amber-700 bg-amber-50 border-amber-100' };

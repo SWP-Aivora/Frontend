@@ -80,6 +80,13 @@
 }
 
 @layer utilities {
+  .login-password-input::-ms-reveal,
+  .login-password-input::-ms-clear,
+  .register-password-input::-ms-reveal,
+  .register-password-input::-ms-clear {
+    display: none;
+  }
+
   .dark .bg-white {
     background-color: var(--card) !important;
   }

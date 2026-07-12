@@ -514,7 +514,7 @@ export const JobDetailsPage = () => {
                             <Input
                               type="number"
                               min="1"
-                              step="0.01"
+                              step={1}
                               {...register(`milestones.${index}.amount`)}
                               aria-label={`Proposal milestone ${index + 1} amount`}
                               data-testid="proposal-milestone-amount"

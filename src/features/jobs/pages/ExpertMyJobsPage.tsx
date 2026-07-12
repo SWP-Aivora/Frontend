@@ -152,8 +152,17 @@ export const ExpertMyJobsPage = () => {
                   </div>
                   
                   <div>
-                    <h3 className="text-xl font-black text-slate-900 group-hover:text-primary transition-colors cursor-pointer">
-                      {project.title}
+                    <h3 className="text-xl font-black text-slate-900 group-hover:text-primary transition-colors">
+                      {project.id ? (
+                        <Link
+                          to={`/expert/projects/${project.id}/workspace`}
+                          className="inline-block hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm"
+                        >
+                          {project.title}
+                        </Link>
+                      ) : (
+                        project.title
+                      )}
                     </h3>
                     <div className="flex items-center gap-3 mt-2">
                        <span className="text-xs font-bold text-slate-500 bg-slate-50 px-2.5 py-1 rounded-md">
@@ -171,11 +180,20 @@ export const ExpertMyJobsPage = () => {
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Workspace</p>
                   </div>
                   
-                  <Button asChild variant="ghost" className="rounded-full bg-slate-50 hover:bg-primary hover:text-white group/btn">
-                    <Link to={`/expert/projects/${project.id}/workspace`}>
-                      Enter Workspace
-                      <ChevronRight className="size-4 ml-1 group-hover/btn:translate-x-1 transition-transform" />
-                    </Link>
+                  <Button
+                    asChild={!!project.id}
+                    variant="ghost"
+                    disabled={!project.id}
+                    className="rounded-full bg-slate-50 hover:bg-primary hover:text-white group/btn disabled:opacity-50"
+                  >
+                    {project.id ? (
+                      <Link to={`/expert/projects/${project.id}/workspace`}>
+                        Enter Workspace
+                        <ChevronRight className="size-4 ml-1 group-hover/btn:translate-x-1 transition-transform" />
+                      </Link>
+                    ) : (
+                      <span>Enter Workspace</span>
+                    )}
                   </Button>
                 </div>
               </div>
