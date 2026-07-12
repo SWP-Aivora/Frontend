@@ -4,6 +4,8 @@ import { DollarSign, Clock, ExternalLink, Star, CheckCircle2 } from 'lucide-reac
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 
+type ProposalCardStatus = 'submitted' | 'shortlisted' | 'accepted' | 'rejected' | 'withdrawn';
+
 interface ProposalListCardProps {
   proposal: Proposal;
   onAccept: (id: string) => void;
@@ -19,7 +21,36 @@ interface ProposalListCardProps {
   isBusy?: boolean;
   isAccepting?: boolean;
   detailHref?: string;
+  status?: ProposalCardStatus;
 }
+
+const normalizeProposalStatus = (status: unknown): ProposalCardStatus => {
+  const numericStatus = typeof status === 'number'
+    ? status
+    : typeof status === 'string' && status.trim() !== '' && !Number.isNaN(Number(status))
+      ? Number(status)
+      : null;
+
+  if (numericStatus === 1) return 'shortlisted';
+  if (numericStatus === 2) return 'accepted';
+  if (numericStatus === 3) return 'rejected';
+  if (numericStatus === 4) return 'withdrawn';
+
+  const normalized = String(status ?? '').toUpperCase().replace(/\s+|_/g, '');
+  if (normalized === 'SHORTLISTED') return 'shortlisted';
+  if (normalized === 'ACCEPTED') return 'accepted';
+  if (normalized === 'REJECTED' || normalized === 'REFUSED' || normalized === 'DECLINED') return 'rejected';
+  if (normalized === 'WITHDRAWN') return 'withdrawn';
+  return 'submitted';
+};
+
+const proposalStatusConfig: Record<ProposalCardStatus, { label: string; className: string }> = {
+  submitted: { label: 'Submitted', className: 'text-amber-700 bg-amber-50 border-amber-100' },
+  shortlisted: { label: 'Shortlisted', className: 'text-blue-700 bg-blue-50 border-blue-100' },
+  accepted: { label: 'Accepted', className: 'text-emerald-700 bg-emerald-50 border-emerald-100' },
+  rejected: { label: 'Refused', className: 'text-rose-700 bg-rose-50 border-rose-100' },
+  withdrawn: { label: 'Withdrawn', className: 'text-rose-700 bg-rose-50 border-rose-100' },
+};
 
 export const ProposalListCard = ({ 
   proposal, 
@@ -35,10 +66,13 @@ export const ProposalListCard = ({
   canChangeStatus = true,
   isBusy = false,
   isAccepting = false,
-  detailHref
+  detailHref,
+  status
 }: ProposalListCardProps) => {
   const expertName = proposal.expert?.fullName || proposal.expertName || 'Expert';
   const submittedAt = proposal.createdAt || proposal.submittedAt;
+  const normalizedStatus = status ?? normalizeProposalStatus(proposal.status);
+  const statusConfig = proposalStatusConfig[normalizedStatus];
 
   return (
     <div className={cn(
@@ -83,13 +117,16 @@ export const ProposalListCard = ({
                  <DollarSign className="size-3.5 text-emerald-600" />
                   <span className="text-sm">{proposal.proposedBudget} Aivora Coin</span>
               </div>
-              <div className="flex items-center gap-1.5 text-slate-500 font-bold bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">
-                 <Clock className="size-3.5 text-blue-600" />
-                 <span className="text-sm">{proposal.proposedTimelineDays} Days</span>
-              </div>
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-auto">
-                 {submittedAt ? `Submitted ${new Date(submittedAt).toLocaleDateString()}` : 'Submitted'}
-              </span>
+               <div className="flex items-center gap-1.5 text-slate-500 font-bold bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">
+                  <Clock className="size-3.5 text-blue-600" />
+                  <span className="text-sm">{proposal.proposedTimelineDays} Days</span>
+               </div>
+               <span className={cn('text-xs font-black px-2.5 py-1 rounded-full border uppercase tracking-wide', statusConfig.className)}>
+                 {statusConfig.label}
+               </span>
+               <span className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-auto">
+                  {submittedAt ? `Submitted ${new Date(submittedAt).toLocaleDateString()}` : 'Submitted'}
+               </span>
            </div>
 
            <div className="space-y-2">
@@ -102,18 +139,8 @@ export const ProposalListCard = ({
                      Read full proposal <ExternalLink className="size-3" />
                   </Link>
                 )}
-                {isShortlisted && (
-                  <span className="text-xs font-black text-brand-accent bg-brand-accent/10 px-2.5 py-1 rounded-full uppercase tracking-wide">
-                    Shortlisted
-                  </span>
-                )}
-                {isRefused && (
-                  <span className="text-xs font-black text-rose-600 bg-rose-50 px-2.5 py-1 rounded-full uppercase tracking-wide">
-                    Refused
-                  </span>
-                )}
-              </div>
-           </div>
+               </div>
+            </div>
 
            {/* Milestones Preview */}
            {proposal.milestones.length > 0 && (

@@ -69,11 +69,12 @@ export const ExpertMyProposalsPage = () => {
   });
 
   const getStatusKey = (status: number | string) => {
-    const normalized = String(status).toUpperCase();
+    const normalized = String(status).toUpperCase().replace(/\s+|_/g, '');
 
-    if (status === 2 || normalized === 'ACCEPTED') return 'accepted';
-    if (status === 3 || normalized === 'REJECTED' || normalized === 'DECLINED') return 'declined';
-    if (status === 1 || normalized === 'SUBMITTED' || normalized === 'SHORTLISTED') return 'pending';
+    if (status === 2 || normalized === '2' || normalized === 'ACCEPTED') return 'accepted';
+    if (status === 3 || normalized === '3' || normalized === 'REJECTED' || normalized === 'DECLINED') return 'declined';
+    if (status === 4 || normalized === '4' || normalized === 'WITHDRAWN' || normalized === 'CANCELLED' || normalized === 'CANCELED') return 'withdrawn';
+    if (status === 0 || status === 1 || normalized === '0' || normalized === '1' || normalized === 'SUBMITTED' || normalized === 'SHORTLISTED') return 'pending';
 
     return 'unknown';
   };
@@ -83,6 +84,7 @@ export const ExpertMyProposalsPage = () => {
 
     if (statusKey === 'accepted') return { label: 'Accepted', color: 'text-brand-success bg-brand-success/10', icon: CheckCircle2 };
     if (statusKey === 'declined') return { label: 'Declined', color: 'text-destructive bg-destructive/10', icon: XCircle };
+    if (statusKey === 'withdrawn') return { label: 'Withdrawn', color: 'text-rose-700 bg-rose-50 border border-rose-100', icon: XCircle };
     if (statusKey === 'pending') return { label: 'Pending', color: 'text-amber-600 bg-amber-50', icon: Clock };
 
     return { label: 'Unknown', color: 'text-slate-400 bg-slate-100', icon: Clock };
@@ -212,7 +214,12 @@ export const ExpertMyProposalsPage = () => {
 
                        <div>
                           <h3 className="text-xl font-black text-slate-900 group-hover:text-brand-accent transition-colors leading-tight mb-2">
-                             {displayJobTitle}
+                             <Link
+                               to={`/expert/proposals/${proposal.id}`}
+                               className="inline-block hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-2 rounded-sm"
+                             >
+                               {displayJobTitle}
+                             </Link>
                           </h3>
                           <p className="text-sm text-slate-500 font-medium leading-relaxed line-clamp-2">
                              {coverLetterPreview}

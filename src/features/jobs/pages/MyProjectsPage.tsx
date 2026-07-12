@@ -251,8 +251,13 @@ export const MyProjectsPage = () => {
                   </div>
                   
                   <div>
-                    <h3 className="text-xl font-black text-slate-900 group-hover:text-primary transition-colors cursor-pointer">
-                      {job.title}
+                    <h3 className="text-xl font-black text-slate-900 group-hover:text-primary transition-colors">
+                      <Link
+                        to={job.projectId ? `/client/projects/${job.projectId}/workspace` : `/client/post-job?editJobId=${job.id}`}
+                        className="inline-block hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm"
+                      >
+                        {job.title}
+                      </Link>
                     </h3>
                     <div className="flex items-center gap-3 mt-2">
                        <span className="text-xs font-bold text-slate-500 bg-slate-50 px-2.5 py-1 rounded-md">

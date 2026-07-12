@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { Role } from '@/shared/types/enums';
 import { cn } from '@/lib/utils';
 import { PolicyDialog } from './PolicyDialog';
-import { LockKeyhole, Mail, ShieldCheck, User } from 'lucide-react';
+import { Eye, EyeOff, LockKeyhole, Mail, ShieldCheck, User } from 'lucide-react';
 
 interface RegisterFormProps {
   selectedRole: typeof Role.CLIENT | typeof Role.EXPERT;
@@ -19,6 +19,8 @@ interface RegisterFormProps {
 
 export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
   
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<RegisterFormValues>({
@@ -113,14 +115,22 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
             <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
             <Input 
               id="password"
-              type="password" 
+              type={showPassword ? 'text' : 'password'} 
               placeholder="••••••••" 
               {...register('password')}
               className={cn(
-                "pl-14 h-12 bg-slate-50 border-slate-200 rounded-lg focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300",
+                "register-password-input pl-14 pr-14 h-12 bg-slate-50 border-slate-200 rounded-lg focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300",
                 errors.password ? 'border-destructive' : 'hover:border-slate-300'
               )}
             />
+            <button
+              type="button"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              onClick={() => setShowPassword((current) => !current)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
+            >
+              {showPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
+            </button>
           </div>
           {errors.password && <p className="text-xs text-destructive font-medium ml-1">{errors.password.message}</p>}
         </div>
@@ -135,14 +145,22 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
             <ShieldCheck className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
             <Input 
               id="confirmPassword"
-              type="password" 
+              type={showConfirmPassword ? 'text' : 'password'} 
               placeholder="••••••••" 
               {...register('confirmPassword')}
               className={cn(
-                "pl-14 h-12 bg-slate-50 border-slate-200 rounded-lg focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300",
+                "register-password-input pl-14 pr-14 h-12 bg-slate-50 border-slate-200 rounded-lg focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300",
                 errors.confirmPassword ? 'border-destructive' : 'hover:border-slate-300'
               )}
             />
+            <button
+              type="button"
+              aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+              onClick={() => setShowConfirmPassword((current) => !current)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
+            >
+              {showConfirmPassword ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
+            </button>
           </div>
           {errors.confirmPassword && <p className="text-xs text-destructive font-medium ml-1">{errors.confirmPassword.message}</p>}
         </div>
@@ -151,12 +169,12 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
       {/* Terms Row */}
       <div className={cn(
         "flex items-start gap-3 px-1 py-1.5 bg-slate-50/50 border border-slate-100 rounded-lg",
-        errors.termsAccepted && "border-destructive"
+        errors.termsAccepted && "border-red-500"
       )}>
         <label htmlFor="termsAccepted" className="flex items-center gap-2 cursor-pointer group mt-1 ml-2">
           <div className={cn(
             "relative size-5 rounded-md border-2 border-slate-300 bg-white group-hover:border-primary transition-colors overflow-hidden shrink-0",
-            errors.termsAccepted && "border-destructive"
+            errors.termsAccepted && "border-red-500"
           )}>
              <input
                id="termsAccepted"
@@ -193,7 +211,7 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
             </p>
             <p className="text-xs font-medium text-slate-400">Use the service responsibly and follow AIVORA platform policies.</p>
             {errors.termsAccepted && (
-              <p id="termsAccepted-error" className="text-xs text-destructive font-medium">
+              <p id="termsAccepted-error" role="alert" className="text-xs text-red-500 font-medium">
                 {errors.termsAccepted.message}
               </p>
             )}

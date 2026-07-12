@@ -98,6 +98,21 @@ describe('ProposalDetailsPage', () => {
       expect(screen.getByRole('button', { name: /withdraw proposal/i })).toBeInTheDocument();
     });
 
+    it('renders expert-specific proposal actions from the authenticated expert role', () => {
+      (vi.mocked(reactQuery.useQuery)).mockReturnValue({
+        isLoading: false,
+        data: { data: { id: 'prop-123', status: 1, jobId: 'job-123', expertId: 'exp-1', milestones: [] } }
+      } as never);
+
+      renderComponent();
+
+      expect(screen.getByRole('link', { name: /edit proposal/i })).toHaveAttribute(
+        'href',
+        '/expert/jobs/job-123/proposals/prop-123/edit'
+      );
+      expect(screen.queryByRole('link', { name: /view expert profile/i })).not.toBeInTheDocument();
+    });
+
     it('does not render Withdraw Proposal button for accepted proposals', () => {
       (vi.mocked(reactQuery.useQuery)).mockReturnValue({ 
         isLoading: false, 
@@ -140,6 +155,21 @@ describe('ProposalDetailsPage', () => {
         data: { data: { id: 'prop-123', status: 1, jobId: 'job-123', expertId: 'exp-1', milestones: [] } } 
       } as never);
       renderComponent();
+      expect(screen.queryByRole('button', { name: /withdraw proposal/i })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Proposal status badges', () => {
+    it('renders numeric withdrawn status as a red Withdrawn badge', () => {
+      (vi.mocked(reactQuery.useQuery)).mockReturnValue({
+        isLoading: false,
+        data: { data: { id: 'prop-123', status: 4, jobId: 'job-123', expertId: 'exp-1', milestones: [] } }
+      } as never);
+
+      renderComponent();
+
+      expect(screen.getByText('Withdrawn')).toHaveClass('text-rose-700', 'bg-rose-50', 'border-rose-100');
+      expect(screen.queryByText('Submitted')).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /withdraw proposal/i })).not.toBeInTheDocument();
     });
   });
