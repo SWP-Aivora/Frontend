@@ -41,13 +41,13 @@ export const ProjectDisputesPage = () => {
   const { id } = useParams();
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
-  const [editingDisputeId, setEditingDisputeId] = useState<string | null>(null);
+  const [addingEvidenceDisputeId, setAddingEvidenceDisputeId] = useState<string | null>(null);
 
   const closeDisputeMutation = useMutation({
     mutationFn: (disputeId: string) => disputeService.closeDispute(disputeId),
     onSuccess: (_response, disputeId) => {
       toast.success('Dispute closed.');
-      setEditingDisputeId(currentId => currentId === disputeId ? null : currentId);
+      setAddingEvidenceDisputeId(currentId => currentId === disputeId ? null : currentId);
       queryClient.invalidateQueries({ queryKey: ['dispute', disputeId] });
       queryClient.invalidateQueries({ queryKey: ['project-disputes', id] });
       queryClient.invalidateQueries({ queryKey: ['project', id] });
@@ -190,7 +190,7 @@ export const ProjectDisputesPage = () => {
           const isParticipant = Boolean(user?.id && (dispute.clientId === user.id || dispute.expertId === user.id || dispute.openerId === user.id));
           const canSubmitEvidence = isParticipant && !nonManageableDisputeStatuses.includes(dispute.status);
           const canCloseDispute = isOpener && !nonManageableDisputeStatuses.includes(dispute.status);
-          const isEditing = editingDisputeId === dispute.id;
+          const isAddingEvidence = addingEvidenceDisputeId === dispute.id;
           const isClosingThisDispute = closeDisputeMutation.isPending && closeDisputeMutation.variables === dispute.id;
 
           return (
@@ -224,11 +224,11 @@ export const ProjectDisputesPage = () => {
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => setEditingDisputeId(isEditing ? null : dispute.id)}
+                        onClick={() => setAddingEvidenceDisputeId(isAddingEvidence ? null : dispute.id)}
                         className="rounded-full border-slate-200 font-black"
                       >
-                        {isEditing ? <X className="mr-2 size-4" /> : <Pencil className="mr-2 size-4" />}
-                        {isEditing ? 'Close Evidence' : 'Add Evidence'}
+                        {isAddingEvidence ? <X className="mr-2 size-4" /> : <Pencil className="mr-2 size-4" />}
+                        {isAddingEvidence ? 'Close Form' : 'Add Evidence'}
                       </Button>
                       {canCloseDispute && (
                         <Button
@@ -250,7 +250,7 @@ export const ProjectDisputesPage = () => {
                 </div>
               </div>
 
-              {isEditing && (
+              {isAddingEvidence && (
                 <div className="border-b border-slate-100 bg-slate-50 p-5">
                   <EvidenceSubmitZone disputeId={dispute.id} />
                 </div>
