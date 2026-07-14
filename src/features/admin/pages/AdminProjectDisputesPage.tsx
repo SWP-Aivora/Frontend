@@ -90,8 +90,8 @@ const ResolveDisputeActions = ({ disputes, projectId }: ResolveDisputeActionsPro
   });
 
   const handleResolve = () => {
-    if (!resolutionNote.trim()) {
-      toast.error('Please provide a resolution note.');
+    if (!resolutionNote.trim() || resolutionNote.trim().length < 50) {
+      toast.error('Resolution note must be at least 50 characters.');
       return;
     }
     resolveMutation.mutate();
@@ -112,14 +112,22 @@ const ResolveDisputeActions = ({ disputes, projectId }: ResolveDisputeActionsPro
       
       {canResolve ? (
         <div className="space-y-3">
-          <Textarea
-            placeholder="Enter resolution note..."
-            value={resolutionNote}
-            onChange={(e) => setResolutionNote(e.target.value)}
-            disabled={isActionPending}
-            className="w-full bg-white"
-            rows={3}
-          />
+          <div>
+            <Textarea
+              placeholder="Enter resolution note (minimum 50 characters)..."
+              value={resolutionNote}
+              onChange={(e) => setResolutionNote(e.target.value)}
+              disabled={isActionPending}
+              className="w-full bg-white"
+              rows={3}
+            />
+            <div className="mt-1 flex justify-between text-xs font-medium text-slate-500">
+              <span>Required for admin records</span>
+              <span className={resolutionNote.trim().length < 50 ? 'text-amber-600' : 'text-green-600'}>
+                {resolutionNote.trim().length} / 50 min
+              </span>
+            </div>
+          </div>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <Button
               type="button"
