@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Calendar, FileText, MessageSquareWarning, UserRound } from 'lucide-react';
@@ -8,6 +10,7 @@ import { Textarea } from '@/shared/components/ui/Textarea';
 import { DisputeStatusBadge } from '@/features/disputes/components/DisputeStatusBadge';
 import { disputeService } from '@/features/disputes/services';
 import { DisputeStatus, type Dispute, type ResolveDisputeRequest } from '@/features/disputes/types';
+import { resolveDisputeSchema, type ResolveDisputeFormData } from '@/features/disputes/schema';
 import { AdminPageTitle } from '../components/AdminPageTitle';
 import { adminService } from '../services';
 import { toast } from 'sonner';
@@ -42,22 +45,38 @@ interface ResolveDisputeActionsProps {
 
 const ResolveDisputeActions = ({ disputes, projectId }: ResolveDisputeActionsProps) => {
   const queryClient = useQueryClient();
-  const [resolutionNote, setResolutionNote] = useState('');
   const resolvableDisputes = disputes.filter(dispute =>
     dispute.status === DisputeStatus.OPEN || dispute.status === DisputeStatus.UNDER_REVIEW
   );
   const canResolve = resolvableDisputes.length > 0;
 
+  const {
+    register,
+    watch,
+    trigger,
+    getValues,
+    reset,
+    formState: { errors },
+  } = useForm<ResolveDisputeFormData>({
+    resolver: zodResolver(resolveDisputeSchema),
+    defaultValues: {
+      resolutionNote: '',
+    },
+  });
+
+  const resolutionNote = watch('resolutionNote');
+
   const resolveMutation = useMutation({
     mutationFn: async () => {
+      const { resolutionNote: note } = getValues();
       await Promise.all(resolvableDisputes.map(dispute => {
-        const data: ResolveDisputeRequest = { resolutionNote };
+        const data: ResolveDisputeRequest = { resolutionNote: note.trim() };
         return disputeService.resolveDispute(dispute.id, data);
       }));
     },
     onSuccess: () => {
       toast.success('Dispute resolved successfully.');
-      setResolutionNote('');
+      reset();
       resolvableDisputes.forEach(dispute => {
         void queryClient.invalidateQueries({ queryKey: ['dispute', dispute.id] });
       });
@@ -71,8 +90,9 @@ const ResolveDisputeActions = ({ disputes, projectId }: ResolveDisputeActionsPro
 
   const requestEvidenceMutation = useMutation({
     mutationFn: async () => {
+      const { resolutionNote: note } = getValues();
       await Promise.all(resolvableDisputes.map(dispute => (
-        disputeService.requestEvidence(dispute.id, { note: resolutionNote.trim() })
+        disputeService.requestEvidence(dispute.id, { note: note.trim() })
       )));
     },
     onSuccess: () => {
@@ -88,19 +108,15 @@ const ResolveDisputeActions = ({ disputes, projectId }: ResolveDisputeActionsPro
     },
   });
 
-  const handleResolve = () => {
-    if (!resolutionNote.trim() || resolutionNote.trim().length < 50) {
-      toast.error('Resolution note must be at least 50 characters.');
-      return;
-    }
+  const handleResolve = async () => {
+    const isValid = await trigger();
+    if (!isValid) return;
     resolveMutation.mutate();
   };
 
-  const requestMoreEvidence = () => {
-    if (!resolutionNote.trim() || resolutionNote.trim().length < 10) {
-      toast.error('Please enter at least 10 characters to explain what evidence is needed.');
-      return;
-    }
+  const requestMoreEvidence = async () => {
+    const isValid = await trigger();
+    if (!isValid) return;
     requestEvidenceMutation.mutate();
   };
 
@@ -117,17 +133,19 @@ const ResolveDisputeActions = ({ disputes, projectId }: ResolveDisputeActionsPro
         <div className="space-y-3">
           <div>
             <Textarea
+              {...register('resolutionNote')}
               placeholder="Enter resolution note (minimum 50 characters)..."
-              value={resolutionNote}
-              onChange={(e) => setResolutionNote(e.target.value)}
               disabled={isActionPending}
-              className="w-full bg-white"
+              className={`w-full bg-white ${errors.resolutionNote ? 'border-red-500' : ''}`}
               rows={3}
             />
+            {errors.resolutionNote && (
+              <p className="mt-1 text-sm text-red-500">{errors.resolutionNote.message}</p>
+            )}
             <div className="mt-1 flex justify-between text-xs font-medium text-slate-500">
               <span>Required for admin records</span>
-              <span className={resolutionNote.trim().length < 50 ? 'text-amber-600' : 'text-green-600'}>
-                {resolutionNote.trim().length} / 50 min
+              <span className={(resolutionNote || '').trim().length < 50 ? 'text-amber-600' : 'text-green-600'}>
+                {(resolutionNote || '').trim().length} / 50 min
               </span>
             </div>
           </div>
@@ -143,7 +161,7 @@ const ResolveDisputeActions = ({ disputes, projectId }: ResolveDisputeActionsPro
             </Button>
             <Button
               type="button"
-              disabled={isActionPending || !resolutionNote.trim()}
+              disabled={isActionPending || !(resolutionNote || '').trim()}
               onClick={handleResolve}
               className="w-full rounded-lg font-black shadow-lg shadow-primary/20"
             >
