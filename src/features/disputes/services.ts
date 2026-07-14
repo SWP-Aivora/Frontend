@@ -11,8 +11,7 @@ import type {
   ResolveDisputeRequest,
 } from './types';
 import {
-  DisputeStatus,
-  DisputeResolutionType
+  DisputeStatus
 } from './types';
 import { normalizePaginatedResponse, normalizeBaseResponse } from '@/lib/api-utils';
 
@@ -81,26 +80,6 @@ export const normalizeDisputeStatus = (status: unknown): DisputeStatus => {
   return DisputeStatus.OPEN;
 };
 
-export const normalizeDisputeResolutionType = (type: unknown): DisputeResolutionType | null => {
-  if (type === null || type === undefined) return null;
-  
-  if (typeof type === 'string') {
-    const t = type.toUpperCase();
-    if (Object.values(DisputeResolutionType).includes(t as DisputeResolutionType)) return t as DisputeResolutionType;
-  }
-  
-  if (typeof type === 'number') {
-    const map: Record<number, DisputeResolutionType> = {
-      0: DisputeResolutionType.RELEASE_TO_EXPERT,
-      1: DisputeResolutionType.REFUND_TO_CLIENT,
-      2: DisputeResolutionType.SPLIT_PAYMENT,
-      3: DisputeResolutionType.REQUEST_REVISION
-    };
-    return map[type] || null;
-  }
-  
-  return null;
-};
 
 const getNumberValue = (...values: unknown[]): number | undefined => {
   for (const value of values) {
@@ -252,14 +231,11 @@ export const disputeService = {
               reason: beData.reason,
               description: beData.description,
               status: normalizeDisputeStatus(beData.status),
-              resolutionType: normalizeDisputeResolutionType(beData.resolutionType),
               resolutionNote: beData.resolutionNote,
               evidences: (beData.evidence || []).map((e) => mapEvidence(e, beData.id)),
               createdAt: beData.createdAt,
               updatedAt: beData.createdAt,
               resolvedAt: beData.resolvedAt,
-              releaseAmount: Number(beData.releaseAmount || 0),
-              refundAmount: Number(beData.refundAmount || 0),
             };
             
             return {

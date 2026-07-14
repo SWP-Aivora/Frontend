@@ -1,12 +1,13 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Calendar, FileText, MessageSquareWarning, UserRound } from 'lucide-react';
 import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
 import { Button } from '@/shared/components/ui/Button';
+import { Textarea } from '@/shared/components/ui/Textarea';
 import { DisputeStatusBadge } from '@/features/disputes/components/DisputeStatusBadge';
 import { disputeService } from '@/features/disputes/services';
-import { DisputeResolutionType, DisputeStatus, type Dispute, type ResolveDisputeRequest } from '@/features/disputes/types';
+import { DisputeStatus, type Dispute, type ResolveDisputeRequest } from '@/features/disputes/types';
 import { AdminPageTitle } from '../components/AdminPageTitle';
 import { adminService } from '../services';
 import { toast } from 'sonner';
@@ -41,6 +42,7 @@ interface ResolveDisputeActionsProps {
 
 const ResolveDisputeActions = ({ disputes, projectId }: ResolveDisputeActionsProps) => {
   const queryClient = useQueryClient();
+  const [resolutionNote, setResolutionNote] = useState('');
   const resolvableDisputes = disputes.filter(dispute =>
     dispute.status === DisputeStatus.OPEN || dispute.status === DisputeStatus.UNDER_REVIEW
   );
@@ -48,23 +50,15 @@ const ResolveDisputeActions = ({ disputes, projectId }: ResolveDisputeActionsPro
   const requestEvidenceNote = 'Please add more evidence so the admin team can continue reviewing this dispute.';
 
   const resolveMutation = useMutation({
-    mutationFn: async (resolutionType: DisputeResolutionType) => {
+    mutationFn: async () => {
       await Promise.all(resolvableDisputes.map(dispute => {
-        const data: ResolveDisputeRequest = resolutionType === DisputeResolutionType.REFUND_TO_CLIENT
-          ? {
-              resolutionType,
-              resolutionNote: 'Admin resolved this project dispute by refunding the held funds to the client.',
-            }
-          : {
-              resolutionType,
-              resolutionNote: 'Admin resolved this project dispute by releasing the held funds to the expert.',
-            };
-
+        const data: ResolveDisputeRequest = { resolutionNote };
         return disputeService.resolveDispute(dispute.id, data);
       }));
     },
     onSuccess: () => {
       toast.success('Dispute resolved successfully.');
+      setResolutionNote('');
       resolvableDisputes.forEach(dispute => {
         void queryClient.invalidateQueries({ queryKey: ['dispute', dispute.id] });
       });
@@ -95,12 +89,12 @@ const ResolveDisputeActions = ({ disputes, projectId }: ResolveDisputeActionsPro
     },
   });
 
-  const resolveToClient = () => {
-    resolveMutation.mutate(DisputeResolutionType.REFUND_TO_CLIENT);
-  };
-
-  const resolveToExpert = () => {
-    resolveMutation.mutate(DisputeResolutionType.RELEASE_TO_EXPERT);
+  const handleResolve = () => {
+    if (!resolutionNote.trim()) {
+      toast.error('Please provide a resolution note.');
+      return;
+    }
+    resolveMutation.mutate();
   };
 
   const requestMoreEvidence = () => {
@@ -115,35 +109,38 @@ const ResolveDisputeActions = ({ disputes, projectId }: ResolveDisputeActionsPro
         <p className="text-xs font-black uppercase tracking-wider text-slate-400">Resolve Dispute</p>
         <p className="text-sm font-semibold text-slate-600">Resolve all open dispute records for this project.</p>
       </div>
-      <div className="grid grid-cols-1 gap-2 xl:grid-cols-3">
-        <Button
-          type="button"
-          variant="outline"
-          disabled={!canResolve || isActionPending}
-          onClick={resolveToClient}
-          className="flex-1 rounded-lg border-emerald-200 bg-emerald-50 font-black text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800"
-        >
-          {resolveMutation.isPending ? 'Resolving...' : 'Refund All to Client'}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={!canResolve || isActionPending}
-          onClick={requestMoreEvidence}
-          className="flex-1 rounded-lg border-amber-200 bg-amber-50 font-black text-amber-700 hover:bg-amber-100 hover:text-amber-800"
-        >
-          {requestEvidenceMutation.isPending ? 'Sending...' : 'Ask for more evidence'}
-        </Button>
-        <Button
-          type="button"
-          disabled={!canResolve || isActionPending}
-          onClick={resolveToExpert}
-          className="flex-1 rounded-lg font-black shadow-lg shadow-primary/20"
-        >
-          {resolveMutation.isPending ? 'Resolving...' : 'Release All to Expert'}
-        </Button>
-      </div>
-      {!canResolve && (
+      
+      {canResolve ? (
+        <div className="space-y-3">
+          <Textarea
+            placeholder="Enter resolution note..."
+            value={resolutionNote}
+            onChange={(e) => setResolutionNote(e.target.value)}
+            disabled={isActionPending}
+            className="w-full bg-white"
+            rows={3}
+          />
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isActionPending}
+              onClick={requestMoreEvidence}
+              className="w-full rounded-lg border-amber-200 bg-amber-50 font-black text-amber-700 hover:bg-amber-100 hover:text-amber-800"
+            >
+              {requestEvidenceMutation.isPending ? 'Sending...' : 'Ask for more evidence'}
+            </Button>
+            <Button
+              type="button"
+              disabled={isActionPending || !resolutionNote.trim()}
+              onClick={handleResolve}
+              className="w-full rounded-lg font-black shadow-lg shadow-primary/20"
+            >
+              {resolveMutation.isPending ? 'Resolving...' : 'Submit Decision'}
+            </Button>
+          </div>
+        </div>
+      ) : (
         <p className="mt-3 text-xs font-semibold text-slate-400">
           All disputes for this project are already resolved or closed.
         </p>

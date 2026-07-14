@@ -17,23 +17,6 @@ export const DisputeStatus = {
  */
 export type DisputeStatus = typeof DisputeStatus[keyof typeof DisputeStatus];
 
-/**
- * Final action options an admin can choose when resolving a dispute.
- *
- * These values control whether escrowed milestone funds are released, refunded,
- * split between parties, or held while the expert is asked to revise the work.
- */
-export const DisputeResolutionType = {
-  RELEASE_TO_EXPERT: 'RELEASE_TO_EXPERT',
-  REFUND_TO_CLIENT: 'REFUND_TO_CLIENT',
-  SPLIT_PAYMENT: 'SPLIT_PAYMENT',
-  REQUEST_REVISION: 'REQUEST_REVISION',
-} as const;
-
-/**
- * Union of valid resolution action values sent to the dispute resolution API.
- */
-export type DisputeResolutionType = typeof DisputeResolutionType[keyof typeof DisputeResolutionType];
 
 /**
  * Evidence submitted by a dispute participant.
@@ -98,14 +81,8 @@ export interface Dispute {
   description?: string | null;
   /** Current dispute lifecycle state. */
   status: DisputeStatus;
-  /** Admin-selected final resolution action, once available. */
-  resolutionType?: DisputeResolutionType | null;
   /** Admin explanation for the resolution decision. */
   resolutionNote?: string | null;
-  /** Amount released to the expert when the resolution allocates funds. */
-  releaseAmount?: number | null;
-  /** Amount refunded to the client when the resolution allocates funds. */
-  refundAmount?: number | null;
   /** Evidence and rebuttals submitted by dispute participants. */
   evidences: Evidence[];
   /** Timestamp when the dispute was opened. */
@@ -153,12 +130,6 @@ export interface RequestEvidenceRequest {
  * release or refund resolutions typically provide only the relevant amount.
  */
 export interface ResolveDisputeRequest {
-  /** Final resolution action selected by the admin. */
-  resolutionType: DisputeResolutionType;
   /** Admin-facing explanation of the decision. */
   resolutionNote: string;
-  /** Amount to release to the expert, when applicable. */
-  releaseAmount?: number | null;
-  /** Amount to refund to the client, when applicable. */
-  refundAmount?: number | null;
 }

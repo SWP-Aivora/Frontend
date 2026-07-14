@@ -5,7 +5,7 @@ import { useOpenDispute } from '../../../../features/disputes/hooks/useOpenDispu
 import { useResolveDispute } from '../../../../features/disputes/hooks/useResolveDispute';
 import { useSubmitEvidence } from '../../../../features/disputes/hooks/useSubmitEvidence';
 import { disputeService } from '../../../../features/disputes/services';
-import { DisputeResolutionType, DisputeStatus, type Dispute } from '../../../../features/disputes/types';
+import { DisputeStatus, type Dispute } from '../../../../features/disputes/types';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
@@ -142,9 +142,8 @@ describe('useDisputes', () => {
     expect(disputeService.addEvidence).toHaveBeenCalledWith('d1', payload);
   });
 
-  it('resolves dispute through mutation hook using string resolution type', async () => {
+  it('resolves dispute through mutation hook', async () => {
     const payload = {
-      resolutionType: DisputeResolutionType.RELEASE_TO_EXPERT,
       resolutionNote: 'The resolution note must also be at least 50 characters long to satisfy the validation rules.'
     };
     (vi.mocked(disputeService.resolveDispute)).mockResolvedValue({
