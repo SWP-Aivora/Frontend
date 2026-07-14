@@ -81,15 +81,17 @@ class ChatService extends BaseService<Conversation> {
   // Conversations currently joined; re-joined after a reconnect since a new
   // ConnectionId loses all server-side group membership.
   private readonly activeConversations = new Set<string>();
-private messageIdCounter = 0;
+  private messageIdCounter = 0;
   private typingIdCounter = 0;
   private jobIdCounter = 0;
+  private newJobPublishedIdCounter = 0;
   private listenersSetup = new Set<string>();
 
   // Separate callback registries to prevent interference between components
   private messageCallbacks = new Map<string, (message: NewMessagePayload) => void>();
   private typingCallbacks = new Map<string, (data: { conversationId: string; userId: string; isTyping: boolean }) => void>();
   private jobStatusCallbacks = new Map<string, (data: { jobId: string; status: string; title?: string }) => void>();
+  private newJobPublishedCallbacks = new Map<string, (data: { jobId: string; title?: string }) => void>();
   private readCallbacks = new Map<string, (data: { conversationId: string; userId: string }) => void>();
   private readIdCounter = 0;
 
@@ -143,6 +145,18 @@ private messageIdCounter = 0;
 
     return () => {
       this.jobStatusCallbacks.delete(id);
+    };
+  }
+
+  /**
+   * Listen to new job published
+   */
+  onNewJobPublished(callback: (data: { jobId: string; title?: string }) => void): () => void {
+    const id = `new_job_${++this.newJobPublishedIdCounter}`;
+    this.newJobPublishedCallbacks.set(id, callback);
+
+    return () => {
+      this.newJobPublishedCallbacks.delete(id);
     };
   }
 
@@ -256,10 +270,16 @@ private messageIdCounter = 0;
 
   private setupJobStatusListeners(connection: signalR.HubConnection): void {
     connection.off('JobStatusUpdated');
+    connection.off('NewJobPublished');
 
     // Listen for job status updates
     connection.on('JobStatusUpdated', (data: { jobId: string; status: string; title?: string }) => {
       this.jobStatusCallbacks.forEach(callback => callback(data));
+    });
+
+    // Listen for new job published
+    connection.on('NewJobPublished', (data: { jobId: string; title?: string }) => {
+      this.newJobPublishedCallbacks.forEach(callback => callback(data));
     });
   }
 

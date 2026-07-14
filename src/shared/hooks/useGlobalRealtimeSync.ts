@@ -64,8 +64,15 @@ export const useGlobalRealtimeSync = () => {
       toast.info(`Job "${data.title ?? data.jobId}" status updated to: ${statusText}`);
     });
 
+    const unsubscribeNewJob = chatService.onNewJobPublished((data) => {
+      console.log('[RealtimeSync] New job published:', data);
+      void queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      toast.info(`New job published: ${data.title ?? data.jobId}`);
+    });
+
     return () => {
       unsubscribeJobStatus();
+      unsubscribeNewJob();
     };
   }, [queryClient]);
 };
