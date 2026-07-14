@@ -41,13 +41,13 @@ export const ProjectDisputesPage = () => {
   const { id } = useParams();
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
-  const [editingDisputeId, setEditingDisputeId] = useState<string | null>(null);
+  const [addingEvidenceDisputeId, setAddingEvidenceDisputeId] = useState<string | null>(null);
 
   const closeDisputeMutation = useMutation({
     mutationFn: (disputeId: string) => disputeService.closeDispute(disputeId),
     onSuccess: (_response, disputeId) => {
       toast.success('Dispute closed.');
-      setEditingDisputeId(currentId => currentId === disputeId ? null : currentId);
+      setAddingEvidenceDisputeId(currentId => currentId === disputeId ? null : currentId);
       queryClient.invalidateQueries({ queryKey: ['dispute', disputeId] });
       queryClient.invalidateQueries({ queryKey: ['project-disputes', id] });
       queryClient.invalidateQueries({ queryKey: ['project', id] });
@@ -187,8 +187,10 @@ export const ProjectDisputesPage = () => {
       <div className="space-y-4">
         {disputes.map(dispute => {
           const isOpener = Boolean(user?.id && dispute.openerId === user.id);
-          const canManageDispute = isOpener && !nonManageableDisputeStatuses.includes(dispute.status);
-          const isEditing = editingDisputeId === dispute.id;
+          const isParticipant = Boolean(user?.id && (dispute.clientId === user.id || dispute.expertId === user.id || dispute.openerId === user.id));
+          const canSubmitEvidence = isParticipant && !nonManageableDisputeStatuses.includes(dispute.status);
+          const canCloseDispute = isOpener && !nonManageableDisputeStatuses.includes(dispute.status);
+          const isAddingEvidence = addingEvidenceDisputeId === dispute.id;
           const isClosingThisDispute = closeDisputeMutation.isPending && closeDisputeMutation.variables === dispute.id;
 
           return (
@@ -217,36 +219,38 @@ export const ProjectDisputesPage = () => {
                       </div>
                     </div>
                   </div>
-                  {canManageDispute && (
+                  {canSubmitEvidence && (
                     <div className="flex flex-wrap gap-2">
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => setEditingDisputeId(isEditing ? null : dispute.id)}
+                        onClick={() => setAddingEvidenceDisputeId(isAddingEvidence ? null : dispute.id)}
                         className="rounded-full border-slate-200 font-black"
                       >
-                        {isEditing ? <X className="mr-2 size-4" /> : <Pencil className="mr-2 size-4" />}
-                        {isEditing ? 'Close Evidence' : 'Edit Evidence'}
+                        {isAddingEvidence ? <X className="mr-2 size-4" /> : <Pencil className="mr-2 size-4" />}
+                        {isAddingEvidence ? 'Close Form' : 'Add Evidence'}
                       </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        disabled={isClosingThisDispute}
-                        onClick={() => {
-                          if (window.confirm('Close this dispute?')) {
-                            closeDisputeMutation.mutate(dispute.id);
-                          }
-                        }}
-                        className="rounded-full border-rose-200 bg-rose-50 font-black text-rose-700 hover:bg-rose-100 hover:text-rose-800"
-                      >
-                        {isClosingThisDispute ? 'Closing...' : 'Close Dispute'}
-                      </Button>
+                      {canCloseDispute && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={isClosingThisDispute}
+                          onClick={() => {
+                            if (window.confirm('Close this dispute?')) {
+                              closeDisputeMutation.mutate(dispute.id);
+                            }
+                          }}
+                          className="rounded-full border-rose-200 bg-rose-50 font-black text-rose-700 hover:bg-rose-100 hover:text-rose-800"
+                        >
+                          {isClosingThisDispute ? 'Closing...' : 'Close Dispute'}
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>
               </div>
 
-              {isEditing && (
+              {isAddingEvidence && (
                 <div className="border-b border-slate-100 bg-slate-50 p-5">
                   <EvidenceSubmitZone disputeId={dispute.id} />
                 </div>
@@ -266,7 +270,7 @@ export const ProjectDisputesPage = () => {
                           <p className="text-xs font-black uppercase tracking-wider text-slate-500">{evidence.submitterName}</p>
                           <div className="flex flex-wrap items-center gap-2">
                             <p className="text-[11px] font-semibold text-slate-400">{formatDate(evidence.createdAt)}</p>
-                            {canManageDispute && evidence.id && (
+                            {canCloseDispute && evidence.id && (
                               <Button
                                 type="button"
                                 variant="ghost"
