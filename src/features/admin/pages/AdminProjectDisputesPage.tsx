@@ -47,7 +47,6 @@ const ResolveDisputeActions = ({ disputes, projectId }: ResolveDisputeActionsPro
     dispute.status === DisputeStatus.OPEN || dispute.status === DisputeStatus.UNDER_REVIEW
   );
   const canResolve = resolvableDisputes.length > 0;
-  const requestEvidenceNote = 'Please add more evidence so the admin team can continue reviewing this dispute.';
 
   const resolveMutation = useMutation({
     mutationFn: async () => {
@@ -73,7 +72,7 @@ const ResolveDisputeActions = ({ disputes, projectId }: ResolveDisputeActionsPro
   const requestEvidenceMutation = useMutation({
     mutationFn: async () => {
       await Promise.all(resolvableDisputes.map(dispute => (
-        disputeService.requestEvidence(dispute.id, { note: requestEvidenceNote })
+        disputeService.requestEvidence(dispute.id, { note: resolutionNote.trim() })
       )));
     },
     onSuccess: () => {
@@ -98,6 +97,10 @@ const ResolveDisputeActions = ({ disputes, projectId }: ResolveDisputeActionsPro
   };
 
   const requestMoreEvidence = () => {
+    if (!resolutionNote.trim() || resolutionNote.trim().length < 10) {
+      toast.error('Please enter at least 10 characters to explain what evidence is needed.');
+      return;
+    }
     requestEvidenceMutation.mutate();
   };
 
