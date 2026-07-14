@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { disputeService } from '../../../features/disputes/services';
 import apiClient from '../../../lib/axios';
-import { DisputeResolutionType } from '../../../features/disputes/types';
+
 
 vi.mock('../../../lib/axios');
 
@@ -199,7 +199,7 @@ describe('disputeService', () => {
   describe('resolveDispute', () => {
     it('calls resolve endpoint with correct data', async () => {
       (vi.mocked(apiClient.put)).mockResolvedValue({ data: { success: true } });
-      const payload = { resolutionType: DisputeResolutionType.RELEASE_TO_EXPERT, resolutionNote: 'Done' };
+      const payload = { resolutionNote: 'Done' };
       
       const result = await disputeService.resolveDispute('d1', payload);
       expect(result.success).toBe(true);

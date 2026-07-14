@@ -27,10 +27,7 @@ export type AddEvidenceFormData = z.infer<typeof addEvidenceSchema>;
  * Zod Schema for Resolving a Dispute (Admin)
  */
 export const resolveDisputeSchema = z.object({
-  resolutionType: z.string({ required_error: 'Please select a resolution type' }),
   resolutionNote: z.string().min(50, 'Resolution note must be at least 50 characters'),
-  releaseAmount: z.number().min(0).optional().nullable(),
-  refundAmount: z.number().min(0).optional().nullable(),
 });
 
 export type ResolveDisputeFormData = z.infer<typeof resolveDisputeSchema>;
