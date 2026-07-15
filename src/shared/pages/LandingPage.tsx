@@ -399,7 +399,8 @@ const Experts: React.FC = () => {
             ))
           ) : experts.length > 0 ? (
             experts.map((expert) => (
-              <div key={expert.userId} className="flex flex-col p-6 rounded-lg border border-slate-100 bg-white shadow-sm hover:shadow-aivora-large hover:border-blue-100 transition-all duration-500 hover:-translate-y-1 h-full">
+              <Link to={`/experts/${expert.userId}`} className="block">
+                <div key={expert.userId} className="flex flex-col p-6 rounded-lg border border-slate-100 bg-white shadow-sm hover:shadow-aivora-large hover:border-blue-100 transition-all duration-500 hover:-translate-y-1 h-full">
                 <div className="flex items-start justify-between mb-6">
                   <div className="flex items-center gap-3">
                     <div className="size-12 rounded-lg bg-brand-blue-dark flex items-center justify-center text-white font-bold text-lg overflow-hidden shrink-0 shadow-sm border border-blue-900/10">
@@ -434,6 +435,7 @@ const Experts: React.FC = () => {
                   {expert.bio}
                 </p>
               </div>
+              </Link>
             ))
           ) : (
             <div className="col-span-full py-20 text-center flex flex-col items-center gap-4">
@@ -649,7 +651,7 @@ const AboutSection: React.FC = () => {
               {[
                 { title: 'Trusted Network', desc: 'Every expert on AIVORA undergoes a verification process to ensure technical capability.' },
                 { title: 'Scoped Success', desc: 'Our AI-assisted job builder helps turn vague ideas into structured, executable project descriptions.' },
-                { title: 'Escrow Protection', desc: 'Payments are held securely and only released when milestones are successfully delivered.' }
+                { title: 'Staged Milestone Payments', desc: 'Payments are split into two installments - 30% upfront when work begins, 70% after delivery approval.' }
               ].map((item, i) => (
                 <div key={i} className="flex gap-4">
                   <div className="size-6 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 mt-1">

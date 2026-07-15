@@ -2024,6 +2024,7 @@ export const ProjectWorkspacePage = () => {
 
               {/* Action Buttons based on status and role */}
               <div className="pt-8 border-t border-slate-100 space-y-3">
+<<<<<<< HEAD
                  {drawerMilestone.status === MilestoneStatus.PENDING && user?.role === Role.CLIENT && (
                    <div className="flex gap-3">
                      <Button
@@ -2043,6 +2044,17 @@ export const ProjectWorkspacePage = () => {
                         {fundMutation.isPending ? 'Funding...' : isLoadingWallet ? 'Checking Wallet...' : 'Fund Milestone'}
                      </Button>
                    </div>
+=======
+                 {selectedMilestone.status === MilestoneStatus.PENDING && user?.role === Role.CLIENT && (
+                   <Button
+                     onClick={handleFundMilestone}
+                     disabled={fundMutation.isPending || isLoadingWallet}
+                     title="Bấm nút này sẽ chuyển ngay 30% cho Expert"
+                     className="w-full h-14 rounded-full font-black text-base shadow-xl shadow-primary/20"
+                   >
+                      {fundMutation.isPending ? 'Funding...' : isLoadingWallet ? 'Checking Wallet...' : 'Fund Milestone'}
+                   </Button>
+>>>>>>> e9bf890 (feat: Fix expert card UX and update escrow copy)
                  )}
                  {canExpertSubmitMilestone(drawerMilestone) && (
                     <Button 
