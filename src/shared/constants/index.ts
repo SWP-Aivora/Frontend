@@ -65,10 +65,7 @@ export const API_ENDPOINTS = {
   DISPUTES: {
     BASE: 'disputes',
     ID: (id: string | number) => `disputes/${id}`,
-    EVIDENCE: (id: string | number) => `disputes/${id}/evidence`,
-    DELETE_EVIDENCE: (disputeId: string | number, evidenceId: string | number) => `disputes/${disputeId}/evidence/${evidenceId}`,
     CLOSE: (id: string | number) => `disputes/${id}/close`,
-    REQUEST_EVIDENCE: (id: string | number) => `disputes/${id}/request-evidence`,
     RESOLVE: (id: string | number) => `disputes/${id}/resolve`,
   },
   MESSAGES: {

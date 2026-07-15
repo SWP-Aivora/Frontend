@@ -102,7 +102,7 @@ export const ExpertVerificationsTab = () => {
       <div className="mb-6">
         <h3 className="text-xl font-black text-slate-900">Skill Verifications</h3>
         <p className="text-sm text-slate-500 font-medium mt-1">
-          Upload certificates or evidence for your skills to receive the Verified badge.
+          Upload certificates or proofs for your skills to receive the Verified badge.
         </p>
       </div>
 
@@ -153,7 +153,7 @@ export const ExpertVerificationsTab = () => {
                       className="bg-brand-blue-dark hover:bg-brand-blue-dark/90"
                     >
                       <Upload className="size-4 mr-1.5" />
-                      Upload Evidence
+                      Upload Document
                     </Button>
                   )}
                 </div>

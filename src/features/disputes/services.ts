@@ -4,10 +4,7 @@ import { API_ENDPOINTS } from '@/shared/constants';
 import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
 import type { 
   Dispute, 
-  Evidence,
-  OpenDisputeRequest, 
-  AddEvidenceRequest, 
-  RequestEvidenceRequest,
+  OpenDisputeRequest,
   ResolveDisputeRequest,
 } from './types';
 import {
@@ -15,26 +12,7 @@ import {
 } from './types';
 import { normalizePaginatedResponse, normalizeBaseResponse } from '@/lib/api-utils';
 
-interface BEDisputeEvidenceResponse {
-  id?: string;
-  Id?: string;
-  disputeId?: string;
-  DisputeId?: string;
-  submittedBy?: string;
-  SubmittedBy?: string;
-  submitterId?: string;
-  SubmitterId?: string;
-  submittedByName?: string;
-  SubmittedByName?: string;
-  submitterName?: string;
-  SubmitterName?: string;
-  content?: string;
-  Content?: string;
-  fileUrl?: string | null;
-  FileUrl?: string | null;
-  createdAt?: string;
-  CreatedAt?: string;
-}
+
 
 interface BEDisputeResponse {
   id: string;
@@ -52,7 +30,7 @@ interface BEDisputeResponse {
   resolutionType?: string | null;
   resolutionNote?: string | null;
   resolvedAt?: string | null;
-  evidence: BEDisputeEvidenceResponse[];
+
   createdAt: string;
   releaseAmount?: number | null;
   refundAmount?: number | null;
@@ -93,38 +71,8 @@ const getNumberValue = (...values: unknown[]): number | undefined => {
   return undefined;
 };
 
-const getStringValue = (...values: unknown[]): string => {
-  for (const value of values) {
-    if (typeof value === 'string') return value;
-    if (typeof value === 'number') return String(value);
-  }
 
-  return '';
-};
 
-const getNullableStringValue = (...values: unknown[]): string | null => {
-  for (const value of values) {
-    if (typeof value === 'string') return value;
-  }
-
-  return null;
-};
-
-const mapEvidence = (evidence: BEDisputeEvidenceResponse, disputeId: string): Evidence => ({
-  id: getStringValue(evidence.id, evidence.Id),
-  disputeId: getStringValue(evidence.disputeId, evidence.DisputeId, disputeId),
-  submitterId: getStringValue(evidence.submittedBy, evidence.SubmittedBy, evidence.submitterId, evidence.SubmitterId),
-  submitterName: getStringValue(
-    evidence.submittedByName,
-    evidence.SubmittedByName,
-    evidence.submitterName,
-    evidence.SubmitterName,
-    'Unknown'
-  ),
-  content: getStringValue(evidence.content, evidence.Content),
-  fileUrl: getNullableStringValue(evidence.fileUrl, evidence.FileUrl),
-  createdAt: getStringValue(evidence.createdAt, evidence.CreatedAt),
-});
 
 /**
  * Dispute Services
@@ -163,7 +111,7 @@ export const disputeService = {
         openerId: beData.openedBy || '',
         openerName: beData.openerName,
         againstUserName: beData.againstUserName,
-        evidences: [], // List view doesn't need evidence
+
       } as Dispute));
 
       return {
@@ -232,7 +180,7 @@ export const disputeService = {
               description: beData.description,
               status: normalizeDisputeStatus(beData.status),
               resolutionNote: beData.resolutionNote,
-              evidences: (beData.evidence || []).map((e) => mapEvidence(e, beData.id)),
+
               createdAt: beData.createdAt,
               updatedAt: beData.createdAt,
               resolvedAt: beData.resolvedAt,
@@ -276,34 +224,10 @@ export const disputeService = {
   },
 
   /**
-   * Add evidence to an existing dispute
-   */
-  async addEvidence(disputeId: string, data: AddEvidenceRequest): Promise<BaseResponse<void>> {
-    const response = await apiClient.post(API_ENDPOINTS.DISPUTES.EVIDENCE(disputeId), data);
-    return normalizeBaseResponse<void>(response);
-  },
-
-  /**
    * Close an open dispute.
    */
   async closeDispute(disputeId: string): Promise<BaseResponse<void>> {
     const response = await apiClient.put(API_ENDPOINTS.DISPUTES.CLOSE(disputeId));
-    return normalizeBaseResponse<void>(response);
-  },
-
-  /**
-   * Remove an existing evidence item from a dispute.
-   */
-  async deleteEvidence(disputeId: string, evidenceId: string): Promise<BaseResponse<void>> {
-    const response = await apiClient.delete(API_ENDPOINTS.DISPUTES.DELETE_EVIDENCE(disputeId, evidenceId));
-    return normalizeBaseResponse<void>(response);
-  },
-
-  /**
-   * Ask the dispute opener to provide more evidence.
-   */
-  async requestEvidence(disputeId: string, data: RequestEvidenceRequest): Promise<BaseResponse<void>> {
-    const response = await apiClient.put(API_ENDPOINTS.DISPUTES.REQUEST_EVIDENCE(disputeId), data);
     return normalizeBaseResponse<void>(response);
   },
 

@@ -63,14 +63,12 @@ describe('ProposalDetailsPage', () => {
   });
 
   it('renders loading state', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (vi.mocked(reactQuery.useQuery)).mockReturnValue({ isLoading: true } as never);
     renderComponent();
     expect(screen.getByRole('status', { hidden: true }) || screen.getByText(/Loading/i)).toBeDefined();
   });
 
   it('configures refetchInterval: 10000 and refetchOnWindowFocus: true for the proposal query', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (vi.mocked(reactQuery.useQuery)).mockReturnValue({ isLoading: false, data: { data: { id: 'prop-123', status: 1, jobId: 'job-123', jobTitle: 'Test Job', expertId: 'exp-1', proposedBudget: 100, proposedTimelineDays: 5, coverLetter: 'Hello', milestones: [] } } } as never);
     renderComponent();
     expect(reactQuery.useQuery).toHaveBeenCalledWith(

@@ -53,8 +53,7 @@ export const CreateDisputeModal: React.FC<CreateDisputeModalProps> = ({
       projectId: '',
       milestoneId: '',
       reason: '',
-      description: '',
-      evidenceUrl: ''
+      description: ''
     }
   });
 
