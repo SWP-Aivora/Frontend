@@ -231,7 +231,7 @@ export const ADMIN_USER_MANAGEMENT_PREVIEW_DATA: AdminUserManagementData = {
       type: 'info'
     },
     {
-      title: 'Rejected evidence',
+      title: 'Rejected proof',
       description: 'Profile proof did not match skills',
       type: 'alert'
     }
