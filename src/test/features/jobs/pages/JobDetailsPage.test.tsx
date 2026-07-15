@@ -308,5 +308,6 @@ describe('JobDetailsPage', () => {
         expect(input).toHaveAttribute('step', '1');
       });
     });
+
   });
 });

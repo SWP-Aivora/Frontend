@@ -32,6 +32,10 @@ function isAxiosError(error: unknown): error is AxiosErrorShape {
   return typeof error === 'object' && error !== null && 'response' in error;
 }
 
+const getBackendFullName = (data: { fullName?: string; FullName?: string }) => (
+  (data.fullName || data.FullName || '').trim()
+);
+
 export const authService = {
   login: async (data: LoginFormValues): Promise<BaseResponse<AuthResponse | null>> => {
     try {
@@ -57,7 +61,7 @@ export const authService = {
       const email = backendData.email || backendData.Email;
       const accessToken = backendData.accessToken || backendData.AccessToken;
       const refreshToken = backendData.refreshToken || backendData.RefreshToken;
-      const fullName = backendData.fullName || backendData.FullName || email?.split('@')[0] || 'User';
+      const fullName = getBackendFullName(backendData);
       const roleRaw = backendData.role || backendData.Role || '';
 
       // Strict Validation
@@ -162,7 +166,7 @@ export const authService = {
       const user: User = {
         id: backendData.id || backendData.Id || backendData.userId || backendData.UserId || '',
         email: backendData.email || backendData.Email || '',
-        fullName: backendData.fullName || backendData.FullName || (backendData.email || backendData.Email || '').split('@')[0] || 'User',
+        fullName: getBackendFullName(backendData),
         role: mappedRole as Role,
       };
 

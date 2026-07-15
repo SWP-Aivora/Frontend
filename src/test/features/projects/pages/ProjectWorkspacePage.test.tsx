@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import * as reactQuery from '@tanstack/react-query';
 import { ProjectWorkspacePage } from '../../../../features/projects/pages/ProjectWorkspacePage';
 import { BrowserRouter } from 'react-router-dom';
+import { MilestoneStatus, ProjectStatus, Role } from '../../../../shared/types/enums';
 
 vi.mock('@tanstack/react-query', async () => {
   const actual = await vi.importActual('@tanstack/react-query');
@@ -39,7 +40,36 @@ vi.mock('../../../../features/projects/services', () => ({
     getProjectById: vi.fn().mockResolvedValue({ data: null }),
     getProjects: vi.fn().mockResolvedValue({ data: [] }),
     getDeliverables: vi.fn().mockResolvedValue({ data: [] }),
+    approveMilestone: vi.fn(),
+    fundMilestone: vi.fn(),
+    requestRevision: vi.fn(),
+    submitDeliverable: vi.fn(),
+    updateMilestone: vi.fn(),
+    getMilestoneById: vi.fn(),
+    getMilestoneSteps: vi.fn(),
+    getMilestonesByProject: vi.fn(),
   },
+}));
+
+vi.mock('@/features/auth/store', () => ({
+  useAuthStore: () => ({
+    user: { id: 'client-1', role: Role.CLIENT },
+  }),
+}));
+
+vi.mock('../../../../features/projects/components/KanbanBoard', () => ({
+  KanbanBoard: ({ milestones, onMilestoneClick }: {
+    milestones: Array<{ id: string; title: string }>;
+    onMilestoneClick: (milestone: unknown) => void;
+  }) => (
+    <div>
+      {milestones.map((milestone) => (
+        <button key={milestone.id} type="button" onClick={() => onMilestoneClick(milestone)}>
+          {milestone.title}
+        </button>
+      ))}
+    </div>
+  ),
 }));
 
 vi.mock('@/features/wallet/services', () => ({
@@ -63,6 +93,13 @@ vi.mock('@/features/chat/services', () => ({
 describe('ProjectWorkspacePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(reactQuery.useMutation).mockReturnValue({
+      mutate: vi.fn(),
+      mutateAsync: vi.fn(),
+      isPending: false,
+      isError: false,
+      isSuccess: false,
+    } as unknown as reactQuery.UseMutationResult<unknown, unknown, unknown, unknown>);
   });
 
   const renderComponent = () => {
@@ -72,6 +109,138 @@ describe('ProjectWorkspacePage', () => {
       </BrowserRouter>
     );
   };
+
+  const submittedMilestone = {
+    id: 'ms-submitted',
+    projectId: 'project-101',
+    title: 'Submitted milestone',
+    description: 'Ready for review',
+    amount: 500,
+    currency: 'AICOIN',
+    status: MilestoneStatus.SUBMITTED,
+    dueDate: null,
+    orderIndex: 0,
+    createdAt: '2026-07-14T10:00:00Z',
+    updatedAt: '2026-07-14T10:00:00Z',
+    milestones: [],
+  };
+
+  const setupSubmittedMilestoneQueries = ({
+    deliverables = [],
+    isLoadingDeliverables = false,
+    isDeliverablesError = false,
+  }: {
+    deliverables?: unknown[];
+    isLoadingDeliverables?: boolean;
+    isDeliverablesError?: boolean;
+  }) => {
+    (vi.mocked(reactQuery.useQuery)).mockImplementation((options: { queryKey?: readonly unknown[] }) => {
+      const queryKey = options.queryKey as unknown[];
+      if (queryKey?.[0] === 'project' && queryKey?.[1] === 'project-101' && !queryKey?.[2]) {
+        return {
+          data: {
+            data: {
+              id: 'project-101',
+              title: 'Submitted Project',
+              status: ProjectStatus.ACTIVE,
+              clientId: 'client-1',
+              expertId: 'expert-1',
+              milestones: [submittedMilestone],
+              totalBudget: 1000,
+            },
+          },
+          isLoading: false,
+        } as unknown as reactQuery.UseQueryResult;
+      }
+      if (queryKey?.[0] === 'project' && queryKey?.[1] === 'project-101' && queryKey?.[2] === 'milestones') {
+        return { data: { data: [submittedMilestone] }, isLoading: false } as unknown as reactQuery.UseQueryResult;
+      }
+      if (queryKey?.[0] === 'project' && queryKey?.[1] === 'project-101' && queryKey?.[2] === 'active-disputes') {
+        return { data: [], isSuccess: true, isLoading: false } as unknown as reactQuery.UseQueryResult;
+      }
+      if (queryKey?.[0] === 'milestone' && queryKey?.[1] === 'ms-submitted' && queryKey?.[2] === 'detail') {
+        return { data: { data: submittedMilestone }, isLoading: false } as unknown as reactQuery.UseQueryResult;
+      }
+      if (queryKey?.[0] === 'milestone' && queryKey?.[1] === 'ms-submitted' && queryKey?.[2] === 'deliverables') {
+        return {
+          data: { data: deliverables },
+          isLoading: isLoadingDeliverables,
+          isError: isDeliverablesError,
+        } as unknown as reactQuery.UseQueryResult;
+      }
+      if (queryKey?.[0] === 'wallet') {
+        return { data: { data: { balance: 1000 } }, isLoading: false } as unknown as reactQuery.UseQueryResult;
+      }
+      return { isLoading: false, data: { data: [] } } as unknown as reactQuery.UseQueryResult;
+    });
+  };
+
+  const openSubmittedMilestoneDrawer = () => {
+    renderComponent();
+    fireEvent.click(screen.getByRole('button', { name: 'Submitted milestone' }));
+  };
+
+  describe('Approve and pay deliverable safety guard', () => {
+    it('hides Approve & Pay and shows a waiting message when SUBMITTED has no deliverable', () => {
+      const approveMutate = vi.fn();
+      vi.mocked(reactQuery.useMutation).mockImplementation((options: unknown) => {
+        const mutationOptions = options as { mutationFn?: (...args: unknown[]) => unknown };
+        return {
+          mutate: mutationOptions.mutationFn?.length ? vi.fn() : approveMutate,
+          mutateAsync: vi.fn(),
+          isPending: false,
+          isError: false,
+          isSuccess: false,
+        } as unknown as reactQuery.UseMutationResult<unknown, unknown, unknown, unknown>;
+      });
+      setupSubmittedMilestoneQueries({ deliverables: [] });
+
+      openSubmittedMilestoneDrawer();
+
+      expect(screen.queryByRole('button', { name: /approve & pay/i })).not.toBeInTheDocument();
+      expect(screen.getByText('Waiting for the Expert to submit a deliverable.')).toBeInTheDocument();
+      expect(approveMutate).not.toHaveBeenCalled();
+    });
+
+    it('shows Approve & Pay when SUBMITTED has a submitted deliverable', () => {
+      const mutationMocks = Array.from({ length: 8 }, () => vi.fn());
+      vi.mocked(reactQuery.useMutation).mockImplementation(() => {
+        const mutate = mutationMocks.shift() ?? vi.fn();
+        return {
+          mutate,
+          mutateAsync: vi.fn(),
+          isPending: false,
+          isError: false,
+          isSuccess: false,
+        } as unknown as reactQuery.UseMutationResult<unknown, unknown, unknown, unknown>;
+      });
+      setupSubmittedMilestoneQueries({
+        deliverables: [{
+          id: 'deliverable-1',
+          milestoneId: 'ms-submitted',
+          expertId: 'expert-1',
+          description: 'Completed work',
+          status: 'SUBMITTED',
+          submittedAt: '2026-07-14T11:00:00Z',
+          revisionNumber: 1,
+        }],
+      });
+
+      openSubmittedMilestoneDrawer();
+
+      expect(screen.getByRole('button', { name: /approve & pay/i })).toBeInTheDocument();
+      expect(screen.queryByText('Waiting for the Expert to submit a deliverable.')).not.toBeInTheDocument();
+    });
+
+    it('does not enable approval while deliverables are loading', () => {
+      setupSubmittedMilestoneQueries({ isLoadingDeliverables: true });
+
+      openSubmittedMilestoneDrawer();
+
+      expect(screen.queryByRole('button', { name: /approve & pay/i })).not.toBeInTheDocument();
+      expect(screen.getByText('Checking submitted deliverables before approval.')).toBeInTheDocument();
+    });
+  });
 
   it('configures refetchInterval: 5000 and refetchOnWindowFocus: true for project and active-disputes queries', () => {
     (vi.mocked(reactQuery.useQuery)).mockImplementation((options: { queryKey?: readonly unknown[] }) => {

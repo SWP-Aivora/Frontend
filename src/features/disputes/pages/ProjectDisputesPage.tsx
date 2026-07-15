@@ -1,13 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, ArrowLeft, Calendar, FileText, MessageSquareWarning, Pencil, Trash2, UserRound, X } from 'lucide-react';
+import { AlertCircle, ArrowLeft, FileText, MessageSquareWarning, UserRound } from 'lucide-react';
 import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
 import { Button } from '@/shared/components/ui/Button';
 import { useAuthStore } from '@/features/auth/store';
 import { Role } from '@/shared/types/enums';
 import { DisputeStatusBadge } from '../components/DisputeStatusBadge';
-import { EvidenceSubmitZone } from '../components/EvidenceSubmitZone';
 import { disputeService } from '../services';
 import type { Dispute } from '../types';
 import { DisputeStatus } from '../types';
@@ -41,13 +40,11 @@ export const ProjectDisputesPage = () => {
   const { id } = useParams();
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
-  const [addingEvidenceDisputeId, setAddingEvidenceDisputeId] = useState<string | null>(null);
 
   const closeDisputeMutation = useMutation({
     mutationFn: (disputeId: string) => disputeService.closeDispute(disputeId),
     onSuccess: (_response, disputeId) => {
       toast.success('Dispute closed.');
-      setAddingEvidenceDisputeId(currentId => currentId === disputeId ? null : currentId);
       queryClient.invalidateQueries({ queryKey: ['dispute', disputeId] });
       queryClient.invalidateQueries({ queryKey: ['project-disputes', id] });
       queryClient.invalidateQueries({ queryKey: ['project', id] });
@@ -56,19 +53,6 @@ export const ProjectDisputesPage = () => {
     },
     onError: (mutationError) => {
       toast.error(getErrorMessage(mutationError, 'Could not close this dispute.'));
-    },
-  });
-
-  const deleteEvidenceMutation = useMutation({
-    mutationFn: ({ disputeId, evidenceId }: { disputeId: string; evidenceId: string }) => (
-      disputeService.deleteEvidence(disputeId, evidenceId)
-    ),
-    onSuccess: (_response, variables) => {
-      toast.success('Evidence removed.');
-      queryClient.invalidateQueries({ queryKey: ['dispute', variables.disputeId] });
-    },
-    onError: (mutationError) => {
-      toast.error(getErrorMessage(mutationError, 'Could not remove this evidence.'));
     },
   });
 
@@ -187,10 +171,7 @@ export const ProjectDisputesPage = () => {
       <div className="space-y-4">
         {disputes.map(dispute => {
           const isOpener = Boolean(user?.id && dispute.openerId === user.id);
-          const isParticipant = Boolean(user?.id && (dispute.clientId === user.id || dispute.expertId === user.id || dispute.openerId === user.id));
-          const canSubmitEvidence = isParticipant && !nonManageableDisputeStatuses.includes(dispute.status);
           const canCloseDispute = isOpener && !nonManageableDisputeStatuses.includes(dispute.status);
-          const isAddingEvidence = addingEvidenceDisputeId === dispute.id;
           const isClosingThisDispute = closeDisputeMutation.isPending && closeDisputeMutation.variables === dispute.id;
 
           return (
@@ -219,90 +200,24 @@ export const ProjectDisputesPage = () => {
                       </div>
                     </div>
                   </div>
-                  {canSubmitEvidence && (
+                  {canCloseDispute && (
                     <div className="flex flex-wrap gap-2">
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => setAddingEvidenceDisputeId(isAddingEvidence ? null : dispute.id)}
-                        className="rounded-full border-slate-200 font-black"
+                        disabled={isClosingThisDispute}
+                        onClick={() => {
+                          if (window.confirm('Close this dispute?')) {
+                            closeDisputeMutation.mutate(dispute.id);
+                          }
+                        }}
+                        className="rounded-full border-rose-200 bg-rose-50 font-black text-rose-700 hover:bg-rose-100 hover:text-rose-800"
                       >
-                        {isAddingEvidence ? <X className="mr-2 size-4" /> : <Pencil className="mr-2 size-4" />}
-                        {isAddingEvidence ? 'Close Form' : 'Add Evidence'}
+                        {isClosingThisDispute ? 'Closing...' : 'Close Dispute'}
                       </Button>
-                      {canCloseDispute && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          disabled={isClosingThisDispute}
-                          onClick={() => {
-                            if (window.confirm('Close this dispute?')) {
-                              closeDisputeMutation.mutate(dispute.id);
-                            }
-                          }}
-                          className="rounded-full border-rose-200 bg-rose-50 font-black text-rose-700 hover:bg-rose-100 hover:text-rose-800"
-                        >
-                          {isClosingThisDispute ? 'Closing...' : 'Close Dispute'}
-                        </Button>
-                      )}
                     </div>
                   )}
                 </div>
-              </div>
-
-              {isAddingEvidence && (
-                <div className="border-b border-slate-100 bg-slate-50 p-5">
-                  <EvidenceSubmitZone disputeId={dispute.id} />
-                </div>
-              )}
-
-              <div className="p-5">
-                <div className="mb-3 flex items-center gap-2">
-                  <Calendar className="size-4 text-slate-400" />
-                  <h3 className="text-sm font-black text-slate-900">Evidence</h3>
-                  <span className="text-xs font-bold text-slate-400">{dispute.evidences.length} item(s)</span>
-                </div>
-                {dispute.evidences.length > 0 ? (
-                  <div className="space-y-3">
-                    {dispute.evidences.map(evidence => (
-                      <div key={evidence.id} className="rounded-lg border border-slate-100 bg-slate-50 p-4">
-                        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                          <p className="text-xs font-black uppercase tracking-wider text-slate-500">{evidence.submitterName}</p>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="text-[11px] font-semibold text-slate-400">{formatDate(evidence.createdAt)}</p>
-                            {canCloseDispute && evidence.id && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                disabled={deleteEvidenceMutation.isPending && deleteEvidenceMutation.variables?.evidenceId === evidence.id}
-                                onClick={() => {
-                                  if (window.confirm('Remove this evidence?')) {
-                                    deleteEvidenceMutation.mutate({ disputeId: dispute.id, evidenceId: evidence.id });
-                                  }
-                                }}
-                                className="h-7 rounded-full px-2 text-xs font-black text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                              >
-                                <Trash2 className="mr-1 size-3.5" />
-                                Remove
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                        <p className="whitespace-pre-wrap text-sm font-medium leading-6 text-slate-600">{evidence.content}</p>
-                        {evidence.fileUrl && (
-                          <a href={evidence.fileUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex text-xs font-black text-primary hover:underline">
-                            View attachment
-                          </a>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-xs font-bold uppercase tracking-widest text-slate-400">
-                    No evidence returned by the dispute detail API
-                  </p>
-                )}
               </div>
             </section>
           );

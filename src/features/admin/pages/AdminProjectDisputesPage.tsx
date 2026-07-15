@@ -1,19 +1,14 @@
 import { useMemo } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useParams } from 'react-router-dom';
-import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, Calendar, FileText, MessageSquareWarning, UserRound } from 'lucide-react';
+import { useQueries, useQuery } from '@tanstack/react-query';
+import { AlertCircle, FileText, MessageSquareWarning, UserRound } from 'lucide-react';
 import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
 import { Button } from '@/shared/components/ui/Button';
-import { Textarea } from '@/shared/components/ui/Textarea';
 import { DisputeStatusBadge } from '@/features/disputes/components/DisputeStatusBadge';
 import { disputeService } from '@/features/disputes/services';
-import { DisputeStatus, type Dispute, type ResolveDisputeRequest } from '@/features/disputes/types';
-import { resolveDisputeSchema, type ResolveDisputeFormData } from '@/features/disputes/schema';
+import type { Dispute } from '@/features/disputes/types';
 import { AdminPageTitle } from '../components/AdminPageTitle';
 import { adminService } from '../services';
-import { toast } from 'sonner';
 
 const DISPUTE_PAGE_SIZE = 100;
 
@@ -36,146 +31,6 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
   }
 
   return error instanceof Error ? error.message : fallback;
-};
-
-interface ResolveDisputeActionsProps {
-  disputes: Dispute[];
-  projectId: string;
-}
-
-const ResolveDisputeActions = ({ disputes, projectId }: ResolveDisputeActionsProps) => {
-  const queryClient = useQueryClient();
-  const resolvableDisputes = disputes.filter(dispute =>
-    dispute.status === DisputeStatus.OPEN || dispute.status === DisputeStatus.UNDER_REVIEW
-  );
-  const canResolve = resolvableDisputes.length > 0;
-
-  const {
-    register,
-    watch,
-    trigger,
-    getValues,
-    reset,
-    formState: { errors },
-  } = useForm<ResolveDisputeFormData>({
-    resolver: zodResolver(resolveDisputeSchema),
-    defaultValues: {
-      resolutionNote: '',
-    },
-  });
-
-  const resolutionNote = watch('resolutionNote');
-
-  const resolveMutation = useMutation({
-    mutationFn: async () => {
-      const { resolutionNote: note } = getValues();
-      await Promise.all(resolvableDisputes.map(dispute => {
-        const data: ResolveDisputeRequest = { resolutionNote: note.trim() };
-        return disputeService.resolveDispute(dispute.id, data);
-      }));
-    },
-    onSuccess: () => {
-      toast.success('Dispute resolved successfully.');
-      reset();
-      resolvableDisputes.forEach(dispute => {
-        void queryClient.invalidateQueries({ queryKey: ['dispute', dispute.id] });
-      });
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'project-disputes', projectId] });
-      void queryClient.invalidateQueries({ queryKey: ['disputes'] });
-    },
-    onError: (error) => {
-      toast.error(getErrorMessage(error, 'Failed to resolve dispute.'));
-    },
-  });
-
-  const requestEvidenceMutation = useMutation({
-    mutationFn: async () => {
-      const { resolutionNote: note } = getValues();
-      await Promise.all(resolvableDisputes.map(dispute => (
-        disputeService.requestEvidence(dispute.id, { note: note.trim() })
-      )));
-    },
-    onSuccess: () => {
-      toast.success('Evidence request sent.');
-      resolvableDisputes.forEach(dispute => {
-        void queryClient.invalidateQueries({ queryKey: ['dispute', dispute.id] });
-      });
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'project-disputes', projectId] });
-      void queryClient.invalidateQueries({ queryKey: ['disputes'] });
-    },
-    onError: (error) => {
-      toast.error(getErrorMessage(error, 'Failed to request more evidence.'));
-    },
-  });
-
-  const handleResolve = async () => {
-    const isValid = await trigger();
-    if (!isValid) return;
-    resolveMutation.mutate();
-  };
-
-  const requestMoreEvidence = async () => {
-    const isValid = await trigger();
-    if (!isValid) return;
-    requestEvidenceMutation.mutate();
-  };
-
-  const isActionPending = resolveMutation.isPending || requestEvidenceMutation.isPending;
-
-  return (
-    <div className="rounded-lg border border-slate-100 bg-slate-50 p-4">
-      <div className="mb-3 flex flex-col gap-1">
-        <p className="text-xs font-black uppercase tracking-wider text-slate-400">Resolve Dispute</p>
-        <p className="text-sm font-semibold text-slate-600">Resolve all open dispute records for this project.</p>
-      </div>
-      
-      {canResolve ? (
-        <div className="space-y-3">
-          <div>
-            <Textarea
-              {...register('resolutionNote')}
-              placeholder="Enter resolution note (minimum 50 characters)..."
-              disabled={isActionPending}
-              className={`w-full bg-white ${errors.resolutionNote ? 'border-red-500' : ''}`}
-              rows={3}
-            />
-            {errors.resolutionNote && (
-              <p className="mt-1 text-sm text-red-500">{errors.resolutionNote.message}</p>
-            )}
-            <div className="mt-1 flex justify-between text-xs font-medium text-slate-500">
-              <span>Required for admin records</span>
-              <span className={(resolutionNote || '').trim().length < 50 ? 'text-amber-600' : 'text-green-600'}>
-                {(resolutionNote || '').trim().length} / 50 min
-              </span>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={isActionPending}
-              onClick={requestMoreEvidence}
-              className="w-full rounded-lg border-amber-200 bg-amber-50 font-black text-amber-700 hover:bg-amber-100 hover:text-amber-800"
-            >
-              {requestEvidenceMutation.isPending ? 'Sending...' : 'Ask for more evidence'}
-            </Button>
-            <Button
-              type="button"
-              disabled={isActionPending || !(resolutionNote || '').trim()}
-              onClick={handleResolve}
-              className="w-full rounded-lg font-black shadow-lg shadow-primary/20"
-            >
-              {resolveMutation.isPending ? 'Resolving...' : 'Submit Decision'}
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <p className="mt-3 text-xs font-semibold text-slate-400">
-          All disputes for this project are already resolved or closed.
-        </p>
-      )}
-    </div>
-  );
 };
 
 export const AdminProjectDisputesPage = () => {
@@ -274,14 +129,8 @@ export const AdminProjectDisputesPage = () => {
     <div className="space-y-6 pb-10">
       <AdminPageTitle
         title={project?.title ?? 'Project dispute details'}
-        description="Review dispute records, submitted evidence, and resolution details for this project."
+        description="Review dispute records for this project."
       />
-
-      {disputes.length > 0 && (
-        <div className="rounded-lg border border-slate-100 bg-white p-5 shadow-sm">
-          <ResolveDisputeActions disputes={disputes} projectId={projectId} />
-        </div>
-      )}
 
       {isProjectError && (
         <div className="rounded-lg border border-amber-100 bg-amber-50 p-4 text-sm font-semibold text-amber-700">
@@ -303,7 +152,7 @@ export const AdminProjectDisputesPage = () => {
 
       {isLoadingDetails && (
         <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm font-semibold text-blue-700">
-          Loading detailed dispute evidence...
+          Loading detailed dispute records...
         </div>
       )}
 
@@ -345,41 +194,6 @@ export const AdminProjectDisputesPage = () => {
                   </div>
                 </div>
               </div>
-            </div>
-
-            <div className="border-t border-slate-100 p-5">
-              <div className="mb-3 flex items-center gap-2">
-                <Calendar className="size-4 text-slate-400" />
-                <h3 className="text-sm font-black text-slate-900">Evidence</h3>
-                <span className="text-xs font-bold text-slate-400">{dispute.evidences.length} item(s)</span>
-              </div>
-              {dispute.evidences.length > 0 ? (
-                <div className="space-y-3">
-                  {dispute.evidences.map(evidence => (
-                    <div key={evidence.id} className="rounded-lg border border-slate-100 bg-slate-50 p-4">
-                      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-xs font-black uppercase tracking-wider text-slate-500">{evidence.submitterName}</p>
-                        <p className="text-[11px] font-semibold text-slate-400">{formatDate(evidence.createdAt)}</p>
-                      </div>
-                      <p className="whitespace-pre-wrap text-sm font-medium leading-6 text-slate-600">{evidence.content}</p>
-                      {evidence.fileUrl && (
-                        <a
-                          href={evidence.fileUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="mt-3 inline-flex text-xs font-black text-primary hover:underline"
-                        >
-                          View attachment
-                        </a>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-xs font-bold uppercase tracking-widest text-slate-400">
-                  No evidence returned by the dispute evidence API
-                </p>
-              )}
             </div>
           </section>
         ))}

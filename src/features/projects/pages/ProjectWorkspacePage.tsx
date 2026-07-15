@@ -460,6 +460,23 @@ const EXPERT_SUBMITTABLE_MILESTONE_STATUSES: MilestoneStatus[] = [
   MilestoneStatus.REVISION_REQUESTED,
 ];
 
+const normalizeDeliverableStatus = (status: Deliverable['status']): string => (
+  String(status ?? '').trim().toUpperCase()
+);
+
+const isSubmittedDeliverable = (deliverable: Deliverable, milestoneId?: string): boolean => {
+  if (!deliverable.id) return false;
+  if (milestoneId && deliverable.milestoneId !== milestoneId) return false;
+
+  const status = normalizeDeliverableStatus(deliverable.status);
+  return status === 'SUBMITTED' || status === '0';
+};
+
+const hasSubmittedDeliverableForMilestone = (
+  deliverables: Deliverable[],
+  milestoneId?: string
+): boolean => deliverables.some((deliverable) => isSubmittedDeliverable(deliverable, milestoneId));
+
 export const ProjectWorkspacePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -651,6 +668,8 @@ export const ProjectWorkspacePage = () => {
   const viewedTimelineMilestoneDetail = timelineMilestoneResponse?.data ?? null;
   const {
     data: timelineDeliverablesResponse,
+    isLoading: isLoadingTimelineDeliverables,
+    isError: isTimelineDeliverablesError,
   } = useQuery({
     queryKey: timelineDeliverablesQueryKey,
     queryFn: () => projectService.getDeliverables(viewedTimelineMilestoneId),
@@ -1130,7 +1149,7 @@ export const ProjectWorkspacePage = () => {
   };
 
   const canShowFinishProject = user?.role === Role.CLIENT && user.id === project?.clientId;
-  const canManageTimelineSteps = user?.role === Role.CLIENT && user.id === project?.clientId;
+  const canManageTimelineSteps = user?.role === Role.EXPERT && user.id === project?.expertId;
   const canReviewCompletedProject = project?.status === ProjectStatus.COMPLETED;
   const canOpenProjectDispute = Boolean(
     project
@@ -1141,6 +1160,65 @@ export const ProjectWorkspacePage = () => {
   const canExpertSubmitMilestone = (milestone?: Milestone | null): boolean => (
     Boolean(milestone && isCurrentUserProjectExpert && EXPERT_SUBMITTABLE_MILESTONE_STATUSES.includes(milestone.status))
   );
+
+  const getCanApproveAndPay = ({
+    milestone,
+    milestoneDeliverables,
+    isLoading,
+    isError,
+  }: {
+    milestone?: Milestone | null;
+    milestoneDeliverables: Deliverable[];
+    isLoading: boolean;
+    isError: boolean;
+  }): boolean => (
+    Boolean(
+      milestone
+        && milestone.status === MilestoneStatus.SUBMITTED
+        && user?.role === Role.CLIENT
+        && user.id === project?.clientId
+        && !isLoading
+        && !isError
+        && hasSubmittedDeliverableForMilestone(milestoneDeliverables, milestone.id)
+    )
+  );
+
+  const getApprovalBlockedMessage = (isLoading: boolean, isError: boolean): string => {
+    if (isLoading) return 'Checking submitted deliverables before approval.';
+    if (isError) return 'Unable to confirm submitted deliverables. Please try again.';
+    return 'Waiting for the Expert to submit a deliverable.';
+  };
+
+  const handleApproveMilestone = ({
+    milestone,
+    milestoneDeliverables,
+    isLoading,
+    isError,
+  }: {
+    milestone?: Milestone | null;
+    milestoneDeliverables: Deliverable[];
+    isLoading: boolean;
+    isError: boolean;
+  }) => {
+    if (!milestone?.id) {
+      toast.error('Cannot approve this milestone because its id is missing.');
+      return;
+    }
+
+    if (!getCanApproveAndPay({ milestone, milestoneDeliverables, isLoading, isError })) {
+      toast.error(getApprovalBlockedMessage(isLoading, isError));
+      return;
+    }
+
+    approveMutation.mutate(milestone.id);
+  };
+
+  const canApproveDrawerMilestone = getCanApproveAndPay({
+    milestone: drawerMilestone,
+    milestoneDeliverables: deliverables,
+    isLoading: isLoadingDeliverables,
+    isError: isDeliverablesError,
+  });
 
   const resetDeliverableForm = () => {
     setSubmitData({ description: '', fileUrl: '', demoUrl: '', sourceCodeUrl: '', note: '' });
@@ -1483,6 +1561,12 @@ export const ProjectWorkspacePage = () => {
             ));
             const canClientFund = timelineMilestone.status === MilestoneStatus.PENDING && user?.role === Role.CLIENT && !hasCompletedFundedStep;
             const canClientReview = timelineMilestone.status === MilestoneStatus.SUBMITTED && user?.role === Role.CLIENT;
+            const canApproveTimelineMilestone = getCanApproveAndPay({
+              milestone: timelineMilestone,
+              milestoneDeliverables: timelineDeliverables,
+              isLoading: isLoadingTimelineDeliverables,
+              isError: isTimelineDeliverablesError,
+            });
             const canExpertSubmit = canExpertSubmitMilestone(timelineMilestone);
             const summaryItems = [
               { label: 'Budget', value: `${formatNumberValue(timelineMilestone.amount)} Aivora Coin` },
@@ -1740,12 +1824,22 @@ export const ProjectWorkspacePage = () => {
                         </Button>
                         <Button
                           type="button"
-                          onClick={() => approveMutation.mutate(timelineMilestone.id)}
-                          disabled={approveMutation.isPending}
+                          onClick={() => handleApproveMilestone({
+                            milestone: timelineMilestone,
+                            milestoneDeliverables: timelineDeliverables,
+                            isLoading: isLoadingTimelineDeliverables,
+                            isError: isTimelineDeliverablesError,
+                          })}
+                          disabled={!canApproveTimelineMilestone || approveMutation.isPending}
                           className="rounded-full font-black"
                         >
                           {approveMutation.isPending ? 'Approving...' : 'Approve Milestone'}
                         </Button>
+                        {!canApproveTimelineMilestone && (
+                          <p className="w-full rounded-lg bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500">
+                            {getApprovalBlockedMessage(isLoadingTimelineDeliverables, isTimelineDeliverablesError)}
+                          </p>
+                        )}
                       </>
                     )}
                     {canExpertSubmit && (
@@ -1968,13 +2062,25 @@ export const ProjectWorkspacePage = () => {
                       >
                         Revision
                       </Button>
-                      <Button 
-                        onClick={() => approveMutation.mutate(drawerMilestone.id)}
-                        disabled={approveMutation.isPending}
-                        className="flex-[2] h-14 rounded-full font-black shadow-xl shadow-primary/20"
-                      >
-                        {approveMutation.isPending ? 'Approving...' : 'Approve & Pay'}
-                      </Button>
+                      {canApproveDrawerMilestone && (
+                        <Button
+                          onClick={() => handleApproveMilestone({
+                            milestone: drawerMilestone,
+                            milestoneDeliverables: deliverables,
+                            isLoading: isLoadingDeliverables,
+                            isError: isDeliverablesError,
+                          })}
+                          disabled={approveMutation.isPending}
+                          className="flex-[2] h-14 rounded-full font-black shadow-xl shadow-primary/20"
+                        >
+                          {approveMutation.isPending ? 'Approving...' : 'Approve & Pay'}
+                        </Button>
+                      )}
+                   </div>
+                 )}
+                 {drawerMilestone.status === MilestoneStatus.SUBMITTED && user?.role === Role.CLIENT && !canApproveDrawerMilestone && (
+                   <div className="rounded-lg border border-slate-100 bg-slate-50 p-4 text-sm font-semibold text-slate-500">
+                     {getApprovalBlockedMessage(isLoadingDeliverables, isDeliverablesError)}
                    </div>
                  )}
                  {drawerMilestone.status === MilestoneStatus.COMPLETED && (
