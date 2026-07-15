@@ -10,7 +10,7 @@ import { WithdrawModal } from '../components/WithdrawModal';
 import { TransactionTable } from '../components/TransactionTable';
 import { WalletBalanceCard } from '../components/WalletBalanceCard';
 import { SpendingChart } from '../components/SpendingChart';
-import { EscrowInfoCard } from '../components/EscrowInfoCard';
+import { StagedPaymentInfoCard } from '../components/EscrowInfoCard';
 import { ErrorBoundary } from '@/shared/components/common';
 
 const toNumber = (value: unknown): number | null => {
@@ -159,7 +159,7 @@ export const WalletPage = () => {
         </div>
 
         <div className="space-y-6">
-           <EscrowInfoCard />
+           <StagedPaymentInfoCard />
         </div>
       </div>
 

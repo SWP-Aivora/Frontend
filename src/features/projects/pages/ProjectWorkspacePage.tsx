@@ -724,6 +724,7 @@ export const ProjectWorkspacePage = () => {
                    <Button
                      onClick={handleFundMilestone}
                      disabled={fundMutation.isPending || isLoadingWallet}
+                     title="Bấm nút này sẽ chuyển ngay 30% cho Expert"
                      className="w-full h-14 rounded-full font-black text-base shadow-xl shadow-primary/20"
                    >
                       {fundMutation.isPending ? 'Funding...' : isLoadingWallet ? 'Checking Wallet...' : 'Fund Milestone'}
