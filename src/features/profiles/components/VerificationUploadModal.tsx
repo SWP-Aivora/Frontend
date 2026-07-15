@@ -38,7 +38,7 @@ export const VerificationUploadModal = ({
     try {
       setIsUploading(true);
       await expertVerificationService.uploadVerification(expertSkillId, file);
-      toast.success('Evidence uploaded successfully. It is now under AI review.');
+      toast.success('Document uploaded successfully. It is now under AI review.');
       onSuccess();
       onClose();
     } catch (error) {
@@ -54,7 +54,7 @@ export const VerificationUploadModal = ({
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
         <div className="p-6 border-b border-slate-100 flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-black text-slate-900">Upload Verification Evidence</h3>
+            <h3 className="text-lg font-black text-slate-900">Upload Verification Document</h3>
             <p className="text-xs text-slate-500 font-medium mt-1">Upload a certificate or portfolio for this skill.</p>
           </div>
           <button
@@ -103,7 +103,7 @@ export const VerificationUploadModal = ({
             </Button>
             <Button onClick={handleUpload} disabled={!file || isUploading} className="bg-brand-blue-dark hover:bg-brand-blue-dark/90">
               {isUploading && <Loader2 className="size-4 animate-spin mr-2" />}
-              Upload Evidence
+              Upload Document
             </Button>
           </div>
         </div>

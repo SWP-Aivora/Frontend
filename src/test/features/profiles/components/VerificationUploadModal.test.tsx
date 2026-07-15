@@ -27,7 +27,7 @@ describe('VerificationUploadModal', () => {
         onSuccess={() => {}} 
       />
     );
-    expect(screen.getByText('Upload Verification Evidence')).toBeInTheDocument();
+    expect(screen.getByText('Upload Verification Document')).toBeInTheDocument();
   });
 
   it('should not render when closed', () => {
@@ -39,7 +39,7 @@ describe('VerificationUploadModal', () => {
         onSuccess={() => {}} 
       />
     );
-    expect(screen.queryByText('Upload Verification Evidence')).not.toBeInTheDocument();
+    expect(screen.queryByText('Upload Verification Document')).not.toBeInTheDocument();
   });
 
   it('should handle file upload and call service', async () => {

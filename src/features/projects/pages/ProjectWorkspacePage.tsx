@@ -2189,7 +2189,7 @@ export const ProjectWorkspacePage = () => {
                 disabled={
                   submitMutation.isPending
                   || !submitData.description.trim()
-                  // BE requires at least one evidence field (Description alone is rejected)
+                  // BE requires at least one proof field (Description alone is rejected)
                   || ![submitData.fileUrl, submitData.demoUrl, submitData.sourceCodeUrl, submitData.note].some(v => (v ?? '').trim())
                 }
                 className="rounded-full shadow-lg shadow-primary/20 font-black"

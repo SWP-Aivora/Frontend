@@ -147,20 +147,7 @@ describe('disputeService', () => {
     });
   });
 
-  describe('addEvidence', () => {
-    it('posts evidence payload to dispute evidence endpoint', async () => {
-      const payload = {
-        content: 'This evidence explains the dispute context in enough detail.',
-        fileUrl: 'https://example.com/evidence.png'
-      };
-      (vi.mocked(apiClient.post)).mockResolvedValue({ data: { success: true } });
 
-      const result = await disputeService.addEvidence('d1', payload);
-
-      expect(result.success).toBe(true);
-      expect(apiClient.post).toHaveBeenCalledWith(expect.stringContaining('/d1/evidence'), payload);
-    });
-  });
 
   describe('closeDispute', () => {
     it('calls close dispute endpoint with PUT and no payload', async () => {
@@ -173,28 +160,9 @@ describe('disputeService', () => {
     });
   });
 
-  describe('deleteEvidence', () => {
-    it('calls delete evidence endpoint with DELETE and no payload', async () => {
-      (vi.mocked(apiClient.delete)).mockResolvedValue({ data: { success: true } });
 
-      const result = await disputeService.deleteEvidence('d1', 'e1');
 
-      expect(result.success).toBe(true);
-      expect(apiClient.delete).toHaveBeenCalledWith(expect.stringContaining('/d1/evidence/e1'));
-    });
-  });
 
-  describe('requestEvidence', () => {
-    it('calls request evidence endpoint with PUT and note payload', async () => {
-      const payload = { note: 'Please add supporting screenshots.' };
-      (vi.mocked(apiClient.put)).mockResolvedValue({ data: { success: true } });
-
-      const result = await disputeService.requestEvidence('d1', payload);
-
-      expect(result.success).toBe(true);
-      expect(apiClient.put).toHaveBeenCalledWith(expect.stringContaining('/d1/request-evidence'), payload);
-    });
-  });
 
   describe('resolveDispute', () => {
     it('calls resolve endpoint with correct data', async () => {

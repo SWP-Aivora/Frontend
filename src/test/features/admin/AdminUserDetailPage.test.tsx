@@ -397,11 +397,11 @@ describe('AdminUserDetailPage', () => {
 
     // Enter rejection reason in text area in modal
     const reasonTextarea = screen.getByPlaceholderText(/portfolio links are broken/i);
-    fireEvent.change(reasonTextarea, { target: { value: 'Incomplete evidence' } });
+    fireEvent.change(reasonTextarea, { target: { value: 'Incomplete document' } });
 
     const confirmRejectBtn = screen.getByRole('button', { name: /confirm reject/i });
     fireEvent.click(confirmRejectBtn);
 
-    expect(processMock).toHaveBeenCalledWith({ id: 'r-1', status: 'Rejected', note: 'Incomplete evidence' });
+    expect(processMock).toHaveBeenCalledWith({ id: 'r-1', status: 'Rejected', note: 'Incomplete document' });
   });
 });

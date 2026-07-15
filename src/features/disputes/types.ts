@@ -18,31 +18,9 @@ export const DisputeStatus = {
 export type DisputeStatus = typeof DisputeStatus[keyof typeof DisputeStatus];
 
 
-/**
- * Evidence submitted by a dispute participant.
- *
- * Evidence is attached to one dispute, records which user submitted it, stores
- * the written explanation, and may include a supporting file URL.
- */
-export interface Evidence {
-  /** Unique evidence entry identifier. */
-  id: string;
-  /** Dispute case this evidence belongs to. */
-  disputeId: string;
-  /** User identifier for the participant who submitted the evidence. */
-  submitterId: string;
-  /** Display name of the submitting participant. */
-  submitterName: string;
-  /** Written evidence or rebuttal content. */
-  content: string;
-  /** Optional uploaded attachment URL associated with the evidence. */
-  fileUrl?: string | null;
-  /** Timestamp when the evidence was submitted. */
-  createdAt: string;
-}
 
 /**
- * Frontend dispute domain model used by list, detail, evidence, and resolution views.
+ * Frontend dispute domain model used by list, detail, and resolution views.
  *
  * A dispute connects a project milestone to the client and expert involved in
  * the conflict, includes the opener's reason and description, tracks lifecycle
@@ -83,8 +61,6 @@ export interface Dispute {
   status: DisputeStatus;
   /** Admin explanation for the resolution decision. */
   resolutionNote?: string | null;
-  /** Evidence and rebuttals submitted by dispute participants. */
-  evidences: Evidence[];
   /** Timestamp when the dispute was opened. */
   createdAt: string;
   /** Timestamp when the dispute record was last updated. */
@@ -105,23 +81,6 @@ export interface OpenDisputeRequest {
   description?: string | null;
 }
 
-/**
- * API payload used by a participant to add evidence or a rebuttal to a dispute.
- */
-export interface AddEvidenceRequest {
-  /** Written evidence or rebuttal content. */
-  content: string;
-  /** Optional uploaded file URL supporting the evidence. */
-  fileUrl?: string | null;
-}
-
-/**
- * API payload used by an admin to request more evidence from the dispute opener.
- */
-export interface RequestEvidenceRequest {
-  /** Admin note shown in the evidence request notification. */
-  note: string;
-}
 
 /**
  * API payload used by an admin to resolve a dispute.

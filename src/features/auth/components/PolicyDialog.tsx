@@ -66,7 +66,7 @@ The funded amount remains held until the milestone is submitted by the Expert an
 
 6. Deliverables, Review, and Payment Release
 
-Experts may submit deliverables for funded milestones through the platform. Deliverables may include descriptions, file links, evidence URLs, or other submitted work.
+Experts may submit deliverables for funded milestones through the platform. Deliverables may include descriptions, file links, or other submitted work.
 
 Clients are responsible for reviewing submitted deliverables against the agreed milestone scope and acceptance criteria.
 
@@ -82,7 +82,7 @@ Revision requests should be specific, reasonable, and related to the agreed mile
 
 Experts should respond to reasonable revision requests in good faith and within agreed project timelines where possible.
 
-8. Disputes and Evidence
+8. Disputes
 
 A dispute may be opened only when the relevant project or milestone is still active, funded, submitted, under review, disputed, or otherwise not finally completed.
 
@@ -90,7 +90,7 @@ A dispute generally cannot be opened after the milestone has already been approv
 
 Disputes should be used only when there is a genuine disagreement about the milestone scope, acceptance criteria, submitted deliverable, payment release, refund, or performance of the agreed work.
 
-During a dispute, AIVORA may review relevant account information, project records, milestone details, payment records, deliverables, dispute reasons, descriptions, evidence, messages, notifications, and other platform records.
+During a dispute, AIVORA may review relevant account information, project records, milestone details, payment records, deliverables, dispute reasons, descriptions, messages, notifications, and other platform records.
 
 AIVORA administrators may resolve a dispute by releasing all or part of the held funds to the Expert, refunding all or part of the held funds to the Client, splitting the funds, requesting revision, closing the dispute, or taking another action supported by the platform and applicable rules.
 
@@ -108,7 +108,7 @@ If a payment is reversed, charged back, cancelled, suspected to be fraudulent, o
 
 10. Messages, Files, and External Links
 
-AIVORA may provide messaging, notifications, file upload, and evidence submission features. You are responsible for the content you send, upload, or link through the platform.
+AIVORA may provide messaging, notifications, and file upload features. You are responsible for the content you send, upload, or link through the platform.
 
 You must not upload malicious files, harmful links, illegal content, infringing content, confidential information you are not authorized to share, or content that violates another person's rights.
 
@@ -206,7 +206,7 @@ Wallet, payment, and transaction information may include wallet balances, availa
 
 AIVORA may use third-party payment providers, including VNPay or other supported services, to process deposits, withdrawals, payment confirmations, callbacks, and transaction status updates. Those providers may process payment information under their own policies.
 
-Deliverables, files, messages, and dispute evidence may include deliverables, file URLs, evidence URLs, dispute reasons, dispute descriptions, resolution notes, messages, read receipts, notifications, and communication records created through the platform.
+Deliverables, files, and messages may include deliverables, file URLs, dispute reasons, dispute descriptions, resolution notes, messages, read receipts, notifications, and communication records created through the platform.
 
 Files and media may be stored or processed by third-party providers such as Cloudinary or other supported storage services.
 
@@ -232,7 +232,7 @@ Support deliverable submission, Client approval, revision requests, and project 
 
 Provide messages, notifications, chat, read confirmations, and project communication features.
 
-Handle disputes between Clients and Experts, including evidence review and administrative decisions.
+Handle disputes between Clients and Experts, including administrative decisions.
 
 Review Expert profiles, moderate content, enforce platform rules, and manage platform safety.
 
@@ -264,7 +264,7 @@ AIVORA keeps records of milestone funding, held payments, payment releases, refu
 
 When a milestone is funded, the system records that the amount is held for that milestone. When the Client approves the Expert's deliverable, the system records the milestone approval, completion, and payment release.
 
-Dispute records may include dispute reasons, descriptions, evidence, related messages, project information, milestone status, payment records, administrative decisions, resolution type, resolution notes, and timestamps.
+Dispute records may include dispute reasons, descriptions, related messages, project information, milestone status, payment records, administrative decisions, resolution type, resolution notes, and timestamps.
 
 Disputes are generally available only while a milestone or project is not finally completed. Once a milestone has been approved by the Client and the held payment has been released, a new dispute for that completed milestone is generally not available through the standard dispute process.
 

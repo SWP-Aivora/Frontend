@@ -3,7 +3,7 @@ import { useDisputes } from '../../../../features/disputes/hooks/useDisputes';
 import { useDisputeDetails } from '../../../../features/disputes/hooks/useDisputeDetails';
 import { useOpenDispute } from '../../../../features/disputes/hooks/useOpenDispute';
 import { useResolveDispute } from '../../../../features/disputes/hooks/useResolveDispute';
-import { useSubmitEvidence } from '../../../../features/disputes/hooks/useSubmitEvidence';
+
 import { disputeService } from '../../../../features/disputes/services';
 import { DisputeStatus, type Dispute } from '../../../../features/disputes/types';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -16,7 +16,7 @@ vi.mock('../../../../features/disputes/services', () => ({
     getDisputeById: vi.fn(),
     openDispute: vi.fn(),
     resolveDispute: vi.fn(),
-    addEvidence: vi.fn(),
+
   },
 }));
 
@@ -46,7 +46,7 @@ const dispute: Dispute = {
   reason: 'Work not delivered',
   description: 'The submitted work was not delivered as agreed.',
   status: DisputeStatus.OPEN,
-  evidences: [],
+
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-01T00:00:00.000Z'
 };
@@ -120,27 +120,7 @@ describe('useDisputes', () => {
     expect(disputeService.openDispute).toHaveBeenCalledWith(payload);
   });
 
-  it('submits evidence through mutation hook', async () => {
-    const payload = {
-      content: 'This evidence explains the dispute context in enough detail.',
-      fileUrl: 'https://example.com/evidence.png'
-    };
-    (vi.mocked(disputeService.addEvidence)).mockResolvedValue({
-      data: null,
-      success: true,
-      message: '',
-      statusCode: 200
-    });
 
-    const { result } = renderHook(() => useSubmitEvidence('d1'), { wrapper });
-
-    act(() => {
-      result.current.mutate(payload);
-    });
-
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(disputeService.addEvidence).toHaveBeenCalledWith('d1', payload);
-  });
 
   it('resolves dispute through mutation hook', async () => {
     const payload = {

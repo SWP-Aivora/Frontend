@@ -10,9 +10,9 @@ import type {
 
 class ExpertVerificationService {
   /**
-   * Uploads evidence (certificate/portfolio) for an expert's skill verification
+   * Uploads document (certificate/portfolio) for an expert's skill verification
    * @param expertSkillId The ID of the expert skill being verified
-   * @param file The evidence file
+   * @param file The document file
    */
   async uploadVerification(expertSkillId: string, file: File): Promise<ExpertVerification> {
     const formData = new FormData();

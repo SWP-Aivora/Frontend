@@ -46,7 +46,7 @@ export const AdminVerificationReviewModal = ({
         <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
           <div>
             <h3 className="text-lg font-black text-slate-900">Review Skill Verification</h3>
-            <p className="text-xs text-slate-500 font-medium mt-1">Review evidence and AI score to make a final decision.</p>
+            <p className="text-xs text-slate-500 font-medium mt-1">Review document and AI score to make a final decision.</p>
           </div>
           <button
             onClick={onClose}
@@ -77,7 +77,7 @@ export const AdminVerificationReviewModal = ({
           </div>
 
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Evidence Document</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Verification Document</p>
             <a 
               href={verification.certificateUrl} 
               target="_blank" 

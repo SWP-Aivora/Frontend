@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, Calendar, FileText, MessageSquareWarning, UserRound } from 'lucide-react';
+import { AlertCircle, FileText, MessageSquareWarning, UserRound } from 'lucide-react';
 import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
 import { Button } from '@/shared/components/ui/Button';
 import { Textarea } from '@/shared/components/ui/Textarea';
@@ -88,25 +88,6 @@ const ResolveDisputeActions = ({ disputes, projectId }: ResolveDisputeActionsPro
     },
   });
 
-  const requestEvidenceMutation = useMutation({
-    mutationFn: async () => {
-      const { resolutionNote: note } = getValues();
-      await Promise.all(resolvableDisputes.map(dispute => (
-        disputeService.requestEvidence(dispute.id, { note: note.trim() })
-      )));
-    },
-    onSuccess: () => {
-      toast.success('Evidence request sent.');
-      resolvableDisputes.forEach(dispute => {
-        void queryClient.invalidateQueries({ queryKey: ['dispute', dispute.id] });
-      });
-      void queryClient.invalidateQueries({ queryKey: ['admin', 'project-disputes', projectId] });
-      void queryClient.invalidateQueries({ queryKey: ['disputes'] });
-    },
-    onError: (error) => {
-      toast.error(getErrorMessage(error, 'Failed to request more evidence.'));
-    },
-  });
 
   const handleResolve = async () => {
     const isValid = await trigger();
@@ -114,13 +95,7 @@ const ResolveDisputeActions = ({ disputes, projectId }: ResolveDisputeActionsPro
     resolveMutation.mutate();
   };
 
-  const requestMoreEvidence = async () => {
-    const isValid = await trigger();
-    if (!isValid) return;
-    requestEvidenceMutation.mutate();
-  };
-
-  const isActionPending = resolveMutation.isPending || requestEvidenceMutation.isPending;
+  const isActionPending = resolveMutation.isPending;
 
   return (
     <div className="rounded-lg border border-slate-100 bg-slate-50 p-4">
@@ -149,16 +124,7 @@ const ResolveDisputeActions = ({ disputes, projectId }: ResolveDisputeActionsPro
               </span>
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={isActionPending}
-              onClick={requestMoreEvidence}
-              className="w-full rounded-lg border-amber-200 bg-amber-50 font-black text-amber-700 hover:bg-amber-100 hover:text-amber-800"
-            >
-              {requestEvidenceMutation.isPending ? 'Sending...' : 'Ask for more evidence'}
-            </Button>
+          <div className="grid grid-cols-1 gap-2">
             <Button
               type="button"
               disabled={isActionPending || !(resolutionNote || '').trim()}
@@ -274,7 +240,7 @@ export const AdminProjectDisputesPage = () => {
     <div className="space-y-6 pb-10">
       <AdminPageTitle
         title={project?.title ?? 'Project dispute details'}
-        description="Review dispute records, submitted evidence, and resolution details for this project."
+        description="Review dispute records and resolution details for this project."
       />
 
       {disputes.length > 0 && (
@@ -303,7 +269,7 @@ export const AdminProjectDisputesPage = () => {
 
       {isLoadingDetails && (
         <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm font-semibold text-blue-700">
-          Loading detailed dispute evidence...
+          Loading detailed dispute data...
         </div>
       )}
 
@@ -347,40 +313,7 @@ export const AdminProjectDisputesPage = () => {
               </div>
             </div>
 
-            <div className="border-t border-slate-100 p-5">
-              <div className="mb-3 flex items-center gap-2">
-                <Calendar className="size-4 text-slate-400" />
-                <h3 className="text-sm font-black text-slate-900">Evidence</h3>
-                <span className="text-xs font-bold text-slate-400">{dispute.evidences.length} item(s)</span>
-              </div>
-              {dispute.evidences.length > 0 ? (
-                <div className="space-y-3">
-                  {dispute.evidences.map(evidence => (
-                    <div key={evidence.id} className="rounded-lg border border-slate-100 bg-slate-50 p-4">
-                      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-xs font-black uppercase tracking-wider text-slate-500">{evidence.submitterName}</p>
-                        <p className="text-[11px] font-semibold text-slate-400">{formatDate(evidence.createdAt)}</p>
-                      </div>
-                      <p className="whitespace-pre-wrap text-sm font-medium leading-6 text-slate-600">{evidence.content}</p>
-                      {evidence.fileUrl && (
-                        <a
-                          href={evidence.fileUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="mt-3 inline-flex text-xs font-black text-primary hover:underline"
-                        >
-                          View attachment
-                        </a>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-xs font-bold uppercase tracking-widest text-slate-400">
-                  No evidence returned by the dispute evidence API
-                </p>
-              )}
-            </div>
+
           </section>
         ))}
       </div>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { addEvidenceSchema, openDisputeSchema, resolveDisputeSchema } from '../../../features/disputes/schema';
+import { openDisputeSchema, resolveDisputeSchema } from '../../../features/disputes/schema';
 
 describe('dispute schemas', () => {
   describe('openDisputeSchema', () => {
@@ -53,47 +53,10 @@ describe('dispute schemas', () => {
       }
     });
 
-    it('validates optional evidence URL when provided', () => {
-      const validData = {
-        projectId: 'p1',
-        milestoneId: 'm1',
-        reason: 'This is a valid reason that is long enough',
-        description: 'This is a detailed description that should be at least 50 characters long to pass validation.',
-        evidenceUrl: 'https://example.com/evidence.pdf'
-      };
-      const invalidData = {
-        ...validData,
-        evidenceUrl: 'not-a-url'
-      };
 
-      expect(openDisputeSchema.safeParse(validData).success).toBe(true);
-      expect(openDisputeSchema.safeParse(invalidData).success).toBe(false);
-    });
   });
 
-  describe('addEvidenceSchema', () => {
-    it('validates correct evidence data', () => {
-      const data = {
-        content: 'This evidence explains the dispute context in enough detail.',
-        fileUrl: 'https://example.com/evidence.png'
-      };
 
-      const result = addEvidenceSchema.safeParse(data);
-
-      expect(result.success).toBe(true);
-    });
-
-    it('fails if evidence content is too short or file URL is invalid', () => {
-      const data = {
-        content: 'Too short',
-        fileUrl: 'invalid-url'
-      };
-
-      const result = addEvidenceSchema.safeParse(data);
-
-      expect(result.success).toBe(false);
-    });
-  });
 
   describe('resolveDisputeSchema', () => {
     it('validates correct data', () => {
