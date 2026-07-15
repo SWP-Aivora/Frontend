@@ -31,6 +31,10 @@ export const UserMenu = ({ className, showNotifications = true }: UserMenuProps)
 
   if (!user) return null;
 
+  const fullName = user.fullName?.trim();
+  const emailName = user.email?.split('@')[0]?.trim().toLowerCase();
+  const displayName = fullName && fullName.toLowerCase() !== emailName ? fullName : 'User';
+
   return (
     <div className={cn("flex items-center gap-2 lg:gap-5", className)}>
       {/* Notifications */}
@@ -45,14 +49,12 @@ export const UserMenu = ({ className, showNotifications = true }: UserMenuProps)
           className="flex items-center gap-3 pl-2 group cursor-pointer"
         >
           <div className="text-right hidden sm:block">
-            <p className="text-sm font-black text-slate-900 leading-none group-hover:text-primary transition-colors">{user.fullName || user.email || 'User'}</p>
+            <p className="text-sm font-black text-slate-900 leading-none group-hover:text-primary transition-colors">{displayName}</p>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mt-1">{user.role}</p>
           </div>
           <div className="size-10 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/10 flex items-center justify-center group-hover:scale-105 group-hover:border-primary/20 transition-all duration-300 overflow-hidden shadow-sm">
-            {user.fullName ? (
-              <span className="text-sm font-black text-primary uppercase">{user.fullName.charAt(0)}</span>
-            ) : user.email ? (
-              <span className="text-sm font-black text-primary uppercase">{user.email.charAt(0)}</span>
+            {displayName !== 'User' ? (
+              <span className="text-sm font-black text-primary uppercase">{displayName.charAt(0)}</span>
             ) : (
               <User className="size-5 text-primary" />
             )}

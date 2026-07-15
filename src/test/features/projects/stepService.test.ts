@@ -1,8 +1,60 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { projectService } from '../../../features/projects/services';
 import apiClient from '../../../lib/axios';
+import { ProjectStatus } from '../../../shared/types/enums';
 
 vi.mock('../../../lib/axios');
+
+describe('projectService.getExpertCompletedProjects', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('unwraps the profile completed-projects response and maps summary fields for profile cards', async () => {
+    (vi.mocked(apiClient.get)).mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          projects: [
+            {
+              projectId: 'project-1',
+              title: 'AI training assistant',
+              summary: 'Built a tutor workflow.',
+              completedAt: '2026-07-14T10:00:00Z',
+              totalBudget: 120,
+              currency: 'AICOIN',
+              clientDisplayName: 'Client One',
+              clientAvatarUrl: 'https://example.com/client.png',
+            },
+          ],
+          totalCount: 3,
+          page: 1,
+          pageSize: 100,
+          totalPages: 1,
+        },
+        message: 'Completed projects retrieved successfully',
+      },
+    });
+
+    const result = await projectService.getExpertCompletedProjects('expert-1');
+
+    expect(apiClient.get).toHaveBeenCalledWith('profiles/expert/expert-1/completed-projects', {
+      params: { page: 1, pageSize: 100 },
+    });
+    expect(result.metadata.totalCount).toBe(3);
+    expect(result.data).toHaveLength(1);
+    expect(result.data?.[0]).toMatchObject({
+      id: 'project-1',
+      title: 'AI training assistant',
+      description: 'Built a tutor workflow.',
+      status: ProjectStatus.COMPLETED,
+      totalBudget: 120,
+      currency: 'AICOIN',
+      clientName: 'Client One',
+      endDate: '2026-07-14T10:00:00Z',
+    });
+  });
+});
 
 describe('projectService.getMilestoneSteps', () => {
   beforeEach(() => {

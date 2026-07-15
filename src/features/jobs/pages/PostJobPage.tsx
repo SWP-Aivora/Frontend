@@ -110,6 +110,7 @@ export const PostJobPage = () => {
   const [createdJobId, setJobId] = useState<string | null>(null);
   const [isDraftSaved, setIsDraftSaved] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
 
@@ -769,36 +770,42 @@ export const PostJobPage = () => {
     return true;
   };
 
-  const handlePublishClick = async () => {
-    if (!validateRequiredFields()) return;
+  const isPublishing = acceptMutation.isPending || publishMutation.isPending || updateDraftJobMutation.isPending || patchMutation.isPending;
 
-    if (window.confirm('Are you sure you want to publish this project to the marketplace?')) {
-      try {
-        await flushPendingSuggestionChanges();
-      } catch {
-        toast.error('Failed to save the latest changes');
+  const handlePublishClick = () => {
+    if (!validateRequiredFields()) return;
+    setIsPublishModalOpen(true);
+  };
+
+  const handleConfirmPublish = async () => {
+    if (isPublishing) return;
+    setIsPublishModalOpen(false);
+
+    try {
+      await flushPendingSuggestionChanges();
+    } catch {
+      toast.error('Failed to save the latest changes');
+      return;
+    }
+
+    let jobId = createdJobId;
+
+    if (!jobId) {
+      const job = await ensureDraftJob();
+      jobId = job?.id ?? null;
+    }
+
+    if (jobId) {
+      const updateData = buildDraftJobUpdateData(JobVisibility.PUBLIC);
+      if (!updateData) {
         return;
       }
 
-      let jobId = createdJobId;
-
-      if (!jobId) {
-        const job = await ensureDraftJob();
-        jobId = job?.id ?? null;
-      }
-
-      if (jobId) {
-        const updateData = buildDraftJobUpdateData(JobVisibility.PUBLIC);
-        if (!updateData) {
-          return;
-        }
-
-        await updateDraftJobMutation.mutateAsync({
-          jobId,
-          data: updateData,
-        });
-        publishMutation.mutate(jobId);
-      }
+      await updateDraftJobMutation.mutateAsync({
+        jobId,
+        data: updateData,
+      });
+      publishMutation.mutate(jobId);
     }
   };
 
@@ -886,7 +893,6 @@ export const PostJobPage = () => {
   }
 
   if (step === 'REVIEWING' && suggestion) {
-    const isPublishing = acceptMutation.isPending || publishMutation.isPending || updateDraftJobMutation.isPending;
     const missingRequiredFields = getMissingRequiredFields();
     const skillNameById = new Map<string, string>();
     existingJobResponse?.data?.skills.forEach(skill => {
@@ -1059,6 +1065,45 @@ export const PostJobPage = () => {
             </Button>
           </div>
         </div>
+        {isPublishModalOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center">
+            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => !isPublishing && setIsPublishModalOpen(false)} />
+            <div className="relative z-10 w-[90%] max-w-lg rounded-2xl bg-white p-8 shadow-2xl animate-in zoom-in-95 duration-200">
+              <h3 className="mb-2 text-2xl font-black text-slate-900">Publish this project?</h3>
+              <p className="mb-6 text-sm text-slate-500">
+                Your project will be published to the marketplace for experts to review and apply.
+              </p>
+
+              <div className="flex justify-end gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsPublishModalOpen(false)}
+                  disabled={isPublishing}
+                  className="rounded-full font-bold"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleConfirmPublish}
+                  disabled={isPublishing}
+                  className="rounded-full font-black shadow-lg shadow-primary/20"
+                >
+                  {isPublishing ? (
+                    <>
+                      <Loader2 className="mr-2 size-4 animate-spin" />
+                      Publishing...
+                    </>
+                  ) : (
+                    <>
+                      <Rocket className="mr-2 size-4" />
+                      Publish
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

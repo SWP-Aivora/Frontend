@@ -41,6 +41,12 @@ const getClientFeaturePath = (targetPath: string, isAuthenticated: boolean, role
   return '/';
 };
 
+const needsFullNameHydration = (user: ReturnType<typeof useAuthStore.getState>['user']) => {
+  if (!user?.fullName) return true;
+  const emailName = user.email?.split('@')[0]?.trim().toLowerCase();
+  return Boolean(emailName && user.fullName.trim().toLowerCase() === emailName);
+};
+
 const Navbar: React.FC = () => {
   const { isAuthenticated, user, setUser } = useAuthStore();
   const theme = useAppStore((state) => state.theme);
@@ -49,7 +55,7 @@ const Navbar: React.FC = () => {
   // Hydrate user data if authenticated but user details are missing
   useEffect(() => {
     const hydrateUser = async () => {
-      if (isAuthenticated && !user?.fullName) {
+      if (isAuthenticated && needsFullNameHydration(user)) {
         try {
           const response = await authService.getMe();
           if (response.success && response.data) {

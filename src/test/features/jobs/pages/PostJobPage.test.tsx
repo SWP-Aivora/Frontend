@@ -1,9 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, act, fireEvent } from '@testing-library/react';
+import { render, act, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PostJobPage } from '../../../../features/jobs/pages/PostJobPage';
+import { jobService } from '../../../../features/jobs/services';
+import { JobVisibility } from '../../../../shared/types/enums';
 import { toast } from 'sonner';
 
 // Mock sonner toast
@@ -37,14 +39,23 @@ vi.mock('@/shared/services/categoryService', () => ({
   },
 }));
 
+vi.mock('@/shared/services/skillService', () => ({
+  skillService: {
+    getSkills: vi.fn().mockResolvedValue({ data: [] }),
+  },
+}));
+
 // Mock components to simplify rendering
 vi.mock('../../../../features/jobs/components/AiChatPanel', () => ({
   AiChatPanel: () => <div data-testid="ai-chat-panel">AiChatPanel</div>,
 }));
 vi.mock('../../../../features/jobs/components/JobDraftForm', () => ({
-  JobDraftForm: ({ onReject }: any) => (
+  JobDraftForm: ({ onAccept, onReject }: any) => (
     <div data-testid="job-draft-form">
       JobDraftForm
+      <button data-testid="mock-accept-btn" onClick={onAccept}>
+        Continue to Review
+      </button>
       {onReject && (
         <button data-testid="mock-reject-btn" onClick={onReject}>
           Reject
@@ -80,6 +91,35 @@ const findMutation = (identifier: string) => {
     throw new Error(`Mutation with identifier "${identifier}" not found among ${mutationCalls.length} calls`);
   }
   return found;
+};
+
+const publishReadySuggestion = {
+  id: 'suggest-123',
+  rawInput: 'Build a marketplace project',
+  suggestedTitle: 'Build a marketplace project',
+  suggestedDescription: 'A detailed project description with enough context for experts.',
+  businessDomain: 'Marketplace',
+  expectedOutcome: 'A published marketplace job',
+  budgetType: 'FIXED',
+  suggestedBudgetMin: 100,
+  suggestedBudgetMax: 200,
+  currency: 'Xu',
+  suggestedTimelineDays: 30,
+  experienceLevel: 'EXPERT',
+  categoryId: 'cat-1',
+  categoryName: 'Software Development',
+  suggestedSkills: ['React'],
+  suggestedMilestones: [
+    {
+      title: 'Discovery',
+      description: 'Confirm project scope',
+      acceptanceCriteria: 'Scope approved',
+      amount: 100,
+      dueDays: 7,
+      orderIndex: 0,
+    },
+  ],
+  createdAt: '2026-07-15T00:00:00.000Z',
 };
 
 describe('PostJobPage query invalidation on mutation success', () => {
@@ -237,3 +277,118 @@ describe('PostJobPage AI suggestion rejection flow', () => {
   });
 });
 
+describe('PostJobPage publish confirmation flow', () => {
+  let queryClient: QueryClient;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mutationCalls = [];
+    queryClient = new QueryClient();
+    vi.mocked(jobService.acceptAiJobSuggestion).mockResolvedValue({
+      data: {
+        job: {
+          id: 'job-123',
+          categoryId: 'cat-1',
+          milestones: [],
+        },
+      },
+      message: 'Success',
+      success: true,
+      statusCode: 200,
+    } as any);
+    vi.mocked(jobService.updateJob).mockResolvedValue({
+      data: { id: 'job-123' },
+      message: 'Success',
+      success: true,
+      statusCode: 200,
+    } as any);
+    vi.mocked(jobService.publishJob).mockResolvedValue({
+      data: { id: 'job-123' },
+      message: 'Success',
+      success: true,
+      statusCode: 200,
+    } as any);
+  });
+
+  const renderComponent = () => {
+    return render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <PostJobPage />
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+  };
+
+  const moveToReviewStep = (view: ReturnType<typeof renderComponent>) => {
+    const initMutationCall = findMutation('initAiJobAssistant');
+    act(() => {
+      initMutationCall.onSuccess({ data: publishReadySuggestion });
+    });
+
+    act(() => {
+      view.getByTestId('mock-accept-btn').click();
+    });
+  };
+
+  it('opens a custom publish modal instead of the native browser confirm', () => {
+    const confirmSpy = vi.spyOn(window, 'confirm');
+    const view = renderComponent();
+    moveToReviewStep(view);
+
+    act(() => {
+      fireEvent.click(view.getByText('Publish Project'));
+    });
+
+    expect(view.getByText('Publish this project?')).toBeDefined();
+    expect(view.getByText('Cancel')).toBeDefined();
+    expect(view.getByText('Publish')).toBeDefined();
+    expect(confirmSpy).not.toHaveBeenCalled();
+
+    confirmSpy.mockRestore();
+  });
+
+  it('does not publish when the custom publish modal is cancelled', () => {
+    const view = renderComponent();
+    moveToReviewStep(view);
+
+    act(() => {
+      fireEvent.click(view.getByText('Publish Project'));
+    });
+    act(() => {
+      fireEvent.click(view.getByText('Cancel'));
+    });
+
+    expect(view.queryByText('Publish this project?')).toBeNull();
+    expect(jobService.publishJob).not.toHaveBeenCalled();
+    expect(jobService.updateJob).not.toHaveBeenCalled();
+  });
+
+  it('preserves the existing publish sequence after custom confirmation', async () => {
+    const view = renderComponent();
+    moveToReviewStep(view);
+
+    act(() => {
+      fireEvent.click(view.getByText('Publish Project'));
+    });
+    act(() => {
+      fireEvent.click(view.getByText('Publish'));
+    });
+
+    await waitFor(() => {
+      expect(jobService.acceptAiJobSuggestion).toHaveBeenCalledWith('suggest-123', {
+        categoryId: 'cat-1',
+        selectedSkillIds: [],
+      });
+      expect(jobService.updateJob).toHaveBeenCalledWith(
+        'job-123',
+        expect.objectContaining({
+          visibility: JobVisibility.PUBLIC,
+          categoryId: 'cat-1',
+          title: 'Build a marketplace project',
+        })
+      );
+      expect(jobService.publishJob).toHaveBeenCalledWith('job-123');
+    });
+  });
+});

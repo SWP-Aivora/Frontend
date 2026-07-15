@@ -49,6 +49,7 @@ export const API_ENDPOINTS = {
     CLIENT: 'profiles/client',
     EXPERT: 'profiles/expert',
     EXPERT_BY_ID: (id: string) => `profiles/expert/${id}`,
+    EXPERT_COMPLETED_PROJECTS: (id: string) => `profiles/expert/${id}/completed-projects`,
     FEATURED_EXPERTS: 'profiles/experts/featured',
     SEARCH_EXPERTS: 'profiles/experts/search',
   },
@@ -81,6 +82,7 @@ export const API_ENDPOINTS = {
     SHORTLIST: (id: string) => `proposals/${id}/shortlist`,
     UNSHORTLIST: (id: string) => `proposals/${id}/unshortlist`,
     WITHDRAW: (id: string) => `proposals/${id}/withdraw`,
+    RESUBMIT: (id: string) => `proposals/${id}/resubmit`,
     ME: 'proposals/me',
   },
   NOTIFICATIONS: {

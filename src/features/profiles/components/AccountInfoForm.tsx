@@ -98,7 +98,7 @@ export const AccountInfoForm = ({ mode = 'account' }: AccountInfoFormProps) => {
           setUser({
             id: userData.id,
             email: userData.email,
-            fullName: userData.fullName || user?.fullName || userData.email.split('@')[0],
+            fullName: userData.fullName || user?.fullName || '',
             role: normalizedUserRole
           });
           

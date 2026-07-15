@@ -74,6 +74,34 @@ describe('proposalService', () => {
     });
   });
 
+  describe('resubmitProposal', () => {
+    it('calls the resubmit endpoint with the update proposal payload and normalizes the response', async () => {
+      (vi.mocked(apiClient.put)).mockResolvedValue({
+        data: {
+          success: true,
+          data: { id: 'p1', status: 0 },
+          message: 'Proposal resubmitted'
+        }
+      });
+
+      const result = await proposalService.resubmitProposal('p1', {
+        coverLetter: 'Updated pitch',
+        proposedBudget: 100,
+        proposedTimelineDays: 7,
+        milestones: [{ title: 'Milestone', amount: 100, dueDays: 7, orderIndex: 0 }],
+      });
+
+      expect(apiClient.put).toHaveBeenCalledWith('proposals/p1/resubmit', {
+        coverLetter: 'Updated pitch',
+        proposedBudget: 100,
+        proposedTimelineDays: 7,
+        milestones: [{ title: 'Milestone', amount: 100, dueDays: 7, orderIndex: 0 }],
+      });
+      expect(result.success).toBe(true);
+      expect(result.data?.id).toBe('p1');
+    });
+  });
+
   describe('getMyProposals', () => {
     it('normalizes paginated response successfully', async () => {
       (vi.mocked(apiClient.get)).mockResolvedValue({

@@ -14,6 +14,12 @@ interface DashboardLayoutProps {
   role: Role;
 }
 
+const needsFullNameHydration = (user: ReturnType<typeof useAuthStore.getState>['user']) => {
+  if (!user?.fullName) return true;
+  const emailName = user.email?.split('@')[0]?.trim().toLowerCase();
+  return Boolean(emailName && user.fullName.trim().toLowerCase() === emailName);
+};
+
 export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
   const [collapsed, setCollapsed] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -37,7 +43,7 @@ export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
     const controller = new AbortController();
     
     const fetchUser = async () => {
-      if (isAuthenticated && !user?.fullName && !isHydrating.current) {
+      if (isAuthenticated && needsFullNameHydration(user) && !isHydrating.current) {
         isHydrating.current = true;
         try {
           const response = await authService.getMe();

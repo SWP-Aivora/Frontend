@@ -40,6 +40,7 @@ export const ProjectDisputesPage = () => {
   const { id } = useParams();
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
+
   const closeDisputeMutation = useMutation({
     mutationFn: (disputeId: string) => disputeService.closeDispute(disputeId),
     onSuccess: (_response, disputeId) => {

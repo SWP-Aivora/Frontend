@@ -12,7 +12,7 @@ import { reviewService } from '@/features/reviews/services';
 import { projectService } from '@/features/projects/services';
 import type { Project } from '@/features/projects/types';
 import { chatService } from '@/features/chat/services';
-import { AvailabilityStatus, ProjectStatus, Role } from '@/shared/types/enums';
+import { AvailabilityStatus, Role } from '@/shared/types/enums';
 import { useAuthStore } from '@/features/auth/store';
 import { DirectTransferModal } from '@/features/wallet';
 
@@ -25,6 +25,12 @@ const formatProjectDate = (value?: string | null): string => {
 const formatProjectBudget = (project?: Project | null): string => {
   if (!project || typeof project.totalBudget !== 'number') return 'N/A';
   return `${project.totalBudget.toLocaleString()} ${project.currency || 'Aivora Coin'}`;
+};
+
+const formatSuccessRate = (value?: number | null): number => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 0;
+  const percent = value > 0 && value <= 1 ? value * 100 : value;
+  return Math.round(Math.max(0, Math.min(100, percent)));
 };
 
 export const ExpertPublicProfilePage = () => {
@@ -60,16 +66,11 @@ export const ExpertPublicProfilePage = () => {
 
   // 3. Fetch Expert Projects
   const { data: projectsResponse, isLoading: isProjectsLoading } = useQuery({
-    queryKey: ['expertProjects'],
-    queryFn: () => projectService.getProjects({ PageSize: 100, PageIndex: 1 }),
+    queryKey: ['expertCompletedProjects', expertId],
+    queryFn: () => projectService.getExpertCompletedProjects(expertId),
+    enabled: !!expertId,
   });
-  // Project completion rate is based on all projects returned by the Project API for this expert.
-  const expertProjects = (projectsResponse?.data || []).filter(
-    p => p.expertId === profile?.userId
-  );
-  const completedProjects = expertProjects.filter(
-    p => p.status === ProjectStatus.COMPLETED
-  );
+  const completedProjects = projectsResponse?.data || [];
 
   const { data: selectedProjectResponse, isLoading: isLoadingSelectedProject } = useQuery({
     queryKey: ['expertProfile', expertId, 'completedProject', selectedCompletedProject?.id],
@@ -122,11 +123,9 @@ export const ExpertPublicProfilePage = () => {
   const displayReviews = reviews;
   const displayProjects = completedProjects;
   const modalProject = selectedProjectResponse?.data ?? selectedCompletedProject;
-  const completedProjectCount = profile?.completedProjects ?? displayProjects.length;
+  const completedProjectCount = projectsResponse?.metadata?.totalCount || profile?.completedProjects || displayProjects.length;
   const totalReviewCount = profile?.totalReviews ?? displayReviews.length;
-  const projectCompletionRate = expertProjects.length > 0
-    ? Math.round((completedProjects.length / expertProjects.length) * 100)
-    : 0;
+  const projectCompletionRate = formatSuccessRate(profile?.successRate);
   const availabilityStatus = profile?.availabilityStatus;
   const availabilityLabel = availabilityStatus === AvailabilityStatus.BUSY
     ? 'Busy'
@@ -362,7 +361,7 @@ export const ExpertPublicProfilePage = () => {
                     </div>
                   </div>
                   <p className="text-xs text-brand-secondary leading-relaxed">
-                    The completion rate represents completed projects divided by all projects returned for this expert, including active, in-review, disputed, completed, and cancelled projects.
+                    The completion rate represents this expert's completed project success rate from their profile record.
                   </p>
                 </div>
               </div>

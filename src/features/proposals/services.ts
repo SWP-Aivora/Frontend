@@ -72,6 +72,13 @@ const normalizeAcceptProposalResult = (data: AcceptProposalResultRecord): Accept
   status: getString(data.status ?? data.Status),
 });
 
+const buildUpdateProposalPayload = (data: CreateProposalFormValues) => ({
+  coverLetter: data.coverLetter,
+  proposedBudget: data.proposedBudget,
+  proposedTimelineDays: data.proposedTimelineDays,
+  milestones: data.milestones,
+});
+
 export const proposalService = {
   /**
    * Submit a proposal for a job
@@ -91,13 +98,17 @@ export const proposalService = {
   },
 
   updateProposal: async (proposalId: string, data: CreateProposalFormValues): Promise<BaseResponse<Proposal>> => {
-    const payload = {
-      coverLetter: data.coverLetter,
-      proposedBudget: data.proposedBudget,
-      proposedTimelineDays: data.proposedTimelineDays,
-      milestones: data.milestones,
+    const response = await apiClient.put(API_ENDPOINTS.PROPOSALS.ID(proposalId), buildUpdateProposalPayload(data));
+    const normalized = normalizeBaseResponse<ProposalApiRecord>(response);
+
+    return {
+      ...normalized,
+      data: normalized.data ? normalizeProposal(normalized.data) : null,
     };
-    const response = await apiClient.put(API_ENDPOINTS.PROPOSALS.ID(proposalId), payload);
+  },
+
+  resubmitProposal: async (proposalId: string, data: CreateProposalFormValues): Promise<BaseResponse<Proposal>> => {
+    const response = await apiClient.put(API_ENDPOINTS.PROPOSALS.RESUBMIT(proposalId), buildUpdateProposalPayload(data));
     const normalized = normalizeBaseResponse<ProposalApiRecord>(response);
 
     return {

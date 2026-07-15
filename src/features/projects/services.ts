@@ -2,7 +2,7 @@
 import apiClient from '@/lib/axios';
 import type { Project, Milestone, Deliverable, MilestoneStep, SuggestedMilestoneStep } from './types';
 import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
-import { MilestoneStepStatus } from '@/shared/types/enums';
+import { MilestoneStepStatus, ProjectStatus } from '@/shared/types/enums';
 import { API_ENDPOINTS } from '@/shared/constants';
 import { normalizePaginatedResponse, normalizeBaseResponse } from '@/lib/api-utils';
 import { normalizeMilestoneStatus, normalizeProjectStatus } from './utils';
@@ -11,6 +11,19 @@ type ProjectRecord = Project & Record<string, unknown>;
 type MilestoneRecord = Milestone & Record<string, unknown>;
 type DeliverableRecord = Deliverable & Record<string, unknown>;
 type MilestoneStepRecord = MilestoneStep & Record<string, unknown>;
+type CompletedProjectSummaryRecord = Record<string, unknown>;
+type CompletedProjectsEnvelope = {
+  projects?: CompletedProjectSummaryRecord[];
+  Projects?: CompletedProjectSummaryRecord[];
+  totalCount?: number;
+  TotalCount?: number;
+  page?: number;
+  Page?: number;
+  pageSize?: number;
+  PageSize?: number;
+  totalPages?: number;
+  TotalPages?: number;
+};
 
 const getString = (value: unknown, fallback = ''): string => (
   typeof value === 'string' ? value : fallback
@@ -18,6 +31,19 @@ const getString = (value: unknown, fallback = ''): string => (
 
 const getStringOrNumber = (value: unknown): string | number | undefined => (
   typeof value === 'string' || typeof value === 'number' ? value : undefined
+);
+
+const getNumber = (value: unknown, fallback = 0): number => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+  return fallback;
+};
+
+const getArray = <T>(value: unknown): T[] => (
+  Array.isArray(value) ? value as T[] : []
 );
 
 const normalizeMilestone = (milestone: Milestone): Milestone => {
@@ -96,6 +122,75 @@ const normalizeProject = (project: Project): Project => {
   };
 };
 
+const normalizeCompletedProjectSummary = (summary: CompletedProjectSummaryRecord): Project => {
+  const id = getString(summary.projectId ?? summary.ProjectId);
+  const clientName = getString(summary.clientDisplayName ?? summary.ClientDisplayName, 'Client');
+  const completedAt = getString(summary.completedAt ?? summary.CompletedAt);
+  const endDate = getString(summary.endDate ?? summary.EndDate) || completedAt || null;
+
+  return {
+    id,
+    title: getString(summary.title ?? summary.Title, 'Untitled project'),
+    description: getString(summary.summary ?? summary.Summary),
+    status: ProjectStatus.COMPLETED,
+    clientId: '',
+    expertId: '',
+    clientName,
+    expertName: 'Expert',
+    currency: getString(summary.currency ?? summary.Currency, 'AICOIN'),
+    client: {
+      id: '',
+      fullName: clientName,
+      avatarUrl: getString(summary.clientAvatarUrl ?? summary.ClientAvatarUrl) || null,
+      role: 'CLIENT',
+    },
+    expert: {
+      id: '',
+      fullName: 'Expert',
+      avatarUrl: null,
+      role: 'EXPERT',
+    },
+    totalBudget: getNumber(summary.totalBudget ?? summary.TotalBudget),
+    remainingBudget: 0,
+    startDate: '',
+    endDate,
+    createdAt: completedAt,
+    updatedAt: completedAt,
+    milestones: [],
+  };
+};
+
+const normalizeCompletedProjectsResponse = (
+  response: unknown,
+  pageSize: number
+): PaginatedResponse<Project> => {
+  const base = normalizeBaseResponse<CompletedProjectsEnvelope>(response);
+  const payload = base.data;
+  const projects = getArray<CompletedProjectSummaryRecord>(payload?.projects ?? payload?.Projects);
+  const pageIndex = getNumber(payload?.page ?? payload?.Page, 1);
+  const resolvedPageSize = getNumber(payload?.pageSize ?? payload?.PageSize, pageSize);
+  const totalCount = getNumber(payload?.totalCount ?? payload?.TotalCount, projects.length);
+  const totalPages = getNumber(
+    payload?.totalPages ?? payload?.TotalPages,
+    resolvedPageSize > 0 ? Math.ceil(totalCount / resolvedPageSize) : 0
+  );
+
+  return {
+    success: base.success,
+    message: base.message,
+    statusCode: base.statusCode,
+    data: projects.map(normalizeCompletedProjectSummary),
+    metadata: {
+      pageIndex,
+      pageSize: resolvedPageSize,
+      totalCount,
+      totalPages,
+      hasPreviousPage: pageIndex > 1,
+      hasNextPage: pageIndex < totalPages,
+    },
+  };
+};
+
 const STEP_STATUS_VALUES = Object.values(MilestoneStepStatus);
 const normalizeMilestoneStepStatus = (status: unknown): MilestoneStepStatus => (
   STEP_STATUS_VALUES.includes(status as MilestoneStepStatus) ? (status as MilestoneStepStatus) : MilestoneStepStatus.PENDING
@@ -157,6 +252,14 @@ export const projectService = {
       ...normalized,
       data: normalized.data ? normalizeProject(normalized.data) : null,
     };
+  },
+
+  getExpertCompletedProjects: async (
+    expertId: string,
+    params: Record<string, string | number | boolean> = { page: 1, pageSize: 100 }
+  ): Promise<PaginatedResponse<Project>> => {
+    const response = await apiClient.get(API_ENDPOINTS.PROFILES.EXPERT_COMPLETED_PROJECTS(expertId), { params });
+    return normalizeCompletedProjectsResponse(response, Number(params.pageSize) || 100);
   },
 
   cancelProject: async (id: string, reason: string): Promise<BaseResponse<void>> => {

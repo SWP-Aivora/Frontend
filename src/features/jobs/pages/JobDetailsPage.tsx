@@ -56,6 +56,33 @@ const normalizeJobStatus = (status: unknown): string => {
   return 'draft';
 };
 
+const normalizeProposalStatus = (status: unknown): string => String(status).trim().toUpperCase();
+
+const isProposalStatusEditable = (status: unknown): boolean => {
+  const normalized = normalizeProposalStatus(status);
+  return status === 0
+    || status === 1
+    || normalized === '0'
+    || normalized === '1'
+    || normalized === 'SUBMITTED'
+    || normalized === 'SHORTLISTED'
+    || normalized === 'PENDING';
+};
+
+const isProposalStatusResubmittable = (status: unknown): boolean => {
+  const normalized = normalizeProposalStatus(status);
+  return status === 3
+    || status === 4
+    || normalized === '3'
+    || normalized === '4'
+    || normalized === 'REJECTED'
+    || normalized === 'REFUSED'
+    || normalized === 'DECLINED'
+    || normalized === 'WITHDRAWN'
+    || normalized === 'CANCELLED'
+    || normalized === 'CANCELED';
+};
+
 export const JobDetailsPage = () => {
   const { id, proposalId } = useParams();
   const navigate = useNavigate();
@@ -93,13 +120,9 @@ export const JobDetailsPage = () => {
   const isProposalEditable = (() => {
     if (!isEditMode || !proposal) return true;
 
-    const normalized = String(proposal.status).toUpperCase();
-    return proposal.status === 0
-      || proposal.status === 1
-      || normalized === 'SUBMITTED'
-      || normalized === 'SHORTLISTED'
-      || normalized === 'PENDING';
+    return isProposalStatusEditable(proposal.status) || isProposalStatusResubmittable(proposal.status);
   })();
+  const isProposalResubmission = Boolean(isEditMode && proposal && isProposalStatusResubmittable(proposal.status));
 
   const { register, control, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<CreateProposalFormValues>({
     resolver: zodResolver(createProposalSchema),
@@ -183,6 +206,22 @@ export const JobDetailsPage = () => {
     }
   });
 
+  const resubmitMutation = useMutation({
+    mutationFn: (data: CreateProposalFormValues) => proposalService.resubmitProposal(proposalId!, data),
+    onSuccess: async () => {
+      localStorage.setItem(`submitted_proposal_${id}`, 'true');
+      setHasSubmitted(true);
+      toast.success('Proposal resubmitted successfully!');
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['proposal', proposalId] }),
+        queryClient.invalidateQueries({ queryKey: ['proposals'] }),
+      ]);
+    },
+    onError: () => {
+      toast.error('Failed to resubmit proposal');
+    }
+  });
+
   const onSubmit = (data: CreateProposalFormValues) => {
     const milestoneTotals = getProposalMilestoneTotals(data.milestones);
     const computedPayload: CreateProposalFormValues = {
@@ -194,6 +233,11 @@ export const JobDetailsPage = () => {
     if (isEditMode) {
       if (!isProposalEditable) {
         toast.error('This proposal can no longer be edited.');
+        return;
+      }
+
+      if (isProposalResubmission) {
+        resubmitMutation.mutate(computedPayload);
         return;
       }
 
@@ -555,13 +599,13 @@ export const JobDetailsPage = () => {
                       )}
                     </div>
 
-                    <Button type="submit" disabled={submitMutation.isPending || updateMutation.isPending || (isEditMode && !isProposalEditable)} className="w-full rounded-full h-14 font-bold text-base bg-brand-accent hover:bg-brand-accent/90 shadow-lg shadow-brand-accent/20">
-                      {submitMutation.isPending || updateMutation.isPending ? (
+                    <Button type="submit" disabled={submitMutation.isPending || updateMutation.isPending || resubmitMutation.isPending || (isEditMode && !isProposalEditable)} className="w-full rounded-full h-14 font-bold text-base bg-brand-accent hover:bg-brand-accent/90 shadow-lg shadow-brand-accent/20">
+                      {submitMutation.isPending || updateMutation.isPending || resubmitMutation.isPending ? (
                         <span className="inline-flex items-center gap-2">
                           <Loader2 className="size-4 animate-spin" />
-                          {isEditMode ? 'Saving Proposal...' : 'Submitting Proposal...'}
+                          {isProposalResubmission ? 'Resubmitting Proposal...' : isEditMode ? 'Saving Proposal...' : 'Submitting Proposal...'}
                         </span>
-                      ) : isEditMode ? (isProposalEditable ? 'Save Proposal' : 'Proposal Cannot Be Edited') : 'Submit Proposal'}
+                      ) : isEditMode ? (isProposalEditable ? (isProposalResubmission ? 'Resubmit Proposal' : 'Save Proposal') : 'Proposal Cannot Be Edited') : 'Submit Proposal'}
                     </Button>
                   </form>
                 )}
