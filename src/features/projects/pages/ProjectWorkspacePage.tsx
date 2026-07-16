@@ -22,6 +22,7 @@ import { Button } from '@/shared/components/ui/Button';
 import { useAuthStore } from '@/features/auth/store';
 import { Role, ProjectStatus, MilestoneStatus } from '@/shared/types/enums';
 import { cn } from '@/lib/utils';
+import { formatDate } from '@/shared/utils/date';
 import { ProjectDisputeStatusBadge } from '../components/ProjectDisputeStatusBadge';
 import { getDefaultNonDisputeProjectStatus, isProjectDisputed } from '../utils';
 import { useProjectMilestones } from '../hooks/useProjectMilestones';
@@ -414,16 +415,7 @@ export const ProjectWorkspacePage = () => {
     ].some(value => value && value.length > 0);
   };
 
-  const formatDate = (dateString: string | null | undefined) => {
-    if (!dateString) return 'N/A';
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    } catch {
-      return 'N/A';
-    }
-  };
-
+  
   const handleSubmitDeliverable = () => {
     if (!selectedMilestone) {
       toast.error('Cannot submit deliverable: No milestone selected.');
