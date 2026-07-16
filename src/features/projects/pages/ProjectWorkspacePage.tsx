@@ -389,7 +389,7 @@ export const ProjectWorkspacePage = () => {
   };
 
   const canShowFinishProject = user?.role === Role.CLIENT && user.id === project?.clientId;
-  const canRequestFinishProject = !!id && project?.status !== ProjectStatus.CANCELLED;
+  const canRequestFinishProject = !!id && project?.status !== ProjectStatus.CANCELLED && !hasProjectDispute;
   const canReviewCompletedProject = project?.status === ProjectStatus.COMPLETED;
   const canOpenProjectDispute = Boolean(
     project
@@ -401,6 +401,15 @@ export const ProjectWorkspacePage = () => {
     setSubmitData({ description: '', fileUrl: '', demoUrl: '', sourceCodeUrl: '', note: '' });
   };
 
+  const hasProofFields = () => {
+    return [
+      submitData.fileUrl?.trim(),
+      submitData.demoUrl?.trim(),
+      submitData.sourceCodeUrl?.trim(),
+      submitData.note?.trim()
+    ].some(value => value && value.length > 0);
+  };
+
   const handleSubmitDeliverable = () => {
     if (!selectedMilestone?.id) {
       toast.error('Cannot submit deliverable: Invalid milestone selection.');
@@ -410,6 +419,11 @@ export const ProjectWorkspacePage = () => {
 
     if (!submitData.description.trim()) {
       toast.error('Description is required.');
+      return;
+    }
+
+    if (!hasProofFields()) {
+      toast.error('At least one proof field (File URL, Demo URL, Source Code URL, or Note) is required.');
       return;
     }
 
@@ -875,7 +889,7 @@ export const ProjectWorkspacePage = () => {
               <Button variant="outline" onClick={() => setIsSubmitModalOpen(false)} className="rounded-full font-bold">Cancel</Button>
               <Button
                 onClick={handleSubmitDeliverable}
-                disabled={submitMutation.isPending || !submitData.description.trim()}
+                disabled={submitMutation.isPending || !submitData.description.trim() || !hasProofFields()}
                 className="rounded-full shadow-lg shadow-primary/20 font-black"
               >
                 {submitMutation.isPending
