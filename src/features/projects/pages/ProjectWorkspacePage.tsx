@@ -4,7 +4,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { KanbanBoard } from '../components/KanbanBoard';
 import type { Milestone } from '../types';
 import { projectService } from '../services';
-import type { BaseResponse } from '@/shared/types/api';
 import {
   ChevronLeft,
   MessageSquare,
@@ -26,9 +25,9 @@ import { cn } from '@/lib/utils';
 import { ProjectDisputeStatusBadge } from '../components/ProjectDisputeStatusBadge';
 import { getDefaultNonDisputeProjectStatus, isProjectDisputed } from '../utils';
 import { useProjectMilestones } from '../hooks/useProjectMilestones';
-import { chatService } from '../../chat/services';
+import { chatService } from '@/features/chat';
 import { walletService } from '@/features/wallet';
-import { CreateDisputeModal } from '../../disputes/components/CreateDisputeModal';
+import { CreateDisputeModal } from '@/features/disputes';
 import { disputeService } from '../../disputes/services';
 import { DisputeStatus } from '../../disputes/types';
 import { toast } from 'sonner';
@@ -277,20 +276,26 @@ export const ProjectWorkspacePage = () => {
 
   const finishProjectMutation = useMutation({
     mutationFn: () => projectService.completeProject(id!),
-    onSuccess: () => {
+    onSuccess: (response) => {
       // Invalidate queries to get fresh data from server
       queryClient.invalidateQueries({ queryKey: ['project', id] });
 
       // Close modal first
       setIsFinishModalOpen(false);
 
-      // Get updated project data from cache or fallback
-      const updatedProjectResponse = queryClient.getQueryData<BaseResponse<typeof project>>(['project', id]);
-      const updatedProject = updatedProjectResponse?.data ?? project;
+      // Use the response data from the mutation if available, otherwise fall back to project data
+      const updatedProject = response?.data ?? project;
 
-      if (!updatedProject) return;
+      if (!updatedProject) {
+        toast.error('Project data not available for review.');
+        return;
+      }
+
       const reviewState = buildReviewState(updatedProject);
-      if (!reviewState) return;
+      if (!reviewState) {
+        toast.error('Unable to prepare review state. Please try again.');
+        return;
+      }
 
       navigate('/reviews', {
         state: reviewState,
