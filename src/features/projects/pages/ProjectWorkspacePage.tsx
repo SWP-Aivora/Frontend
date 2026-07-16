@@ -389,7 +389,7 @@ export const ProjectWorkspacePage = () => {
   };
 
   const canShowFinishProject = user?.role === Role.CLIENT && user.id === project?.clientId;
-  const canRequestFinishProject = !!id && project?.status !== ProjectStatus.CANCELLED && !hasProjectDispute;
+  const canRequestFinishProject = !!id && project && project.status !== ProjectStatus.CANCELLED && !hasProjectDispute;
   const canReviewCompletedProject = project?.status === ProjectStatus.COMPLETED;
   const canOpenProjectDispute = Boolean(
     project
@@ -561,7 +561,7 @@ export const ProjectWorkspacePage = () => {
                 View Disputes
              </Button>
            )}
-           {canShowFinishProject && (
+           {canShowFinishProject && project && (
              <Button
                variant="outline"
                onClick={handleFinishProject}
