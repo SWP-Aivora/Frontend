@@ -735,7 +735,7 @@ export const ProjectWorkspacePage = () => {
                        className="h-14 rounded-full font-black border-slate-200 px-6 flex items-center gap-2"
                      >
                        <Pencil className="size-4" />
-                       {false ? 'Loading...' : 'Edit'}
+                       Edit
                      </Button>
                      <Button
                        onClick={handleFundMilestone}

@@ -70,7 +70,7 @@ const Navbar: React.FC = () => {
       }
     };
     hydrateUser();
-  }, [isAuthenticated, user?.fullName, setUser]);
+  }, [isAuthenticated, user?.fullName, user, setUser]);
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-slate-100 bg-white/90 backdrop-blur-xl shadow-sm">
