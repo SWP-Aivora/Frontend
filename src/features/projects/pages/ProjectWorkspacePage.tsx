@@ -4,19 +4,20 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { KanbanBoard } from '../components/KanbanBoard';
 import type { Milestone } from '../types';
 import { projectService } from '../services';
-import { 
-  ChevronLeft, 
-  MessageSquare, 
-  Calendar, 
-  DollarSign, 
-  X, 
-  Upload, 
+import {
+  ChevronLeft,
+  MessageSquare,
+  Calendar,
+  DollarSign,
+  X,
+  Upload,
   CheckCircle2,
   Clock,
   ShieldAlert,
   Users,
   ExternalLink,
   FileText,
+  Pencil,
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { useAuthStore } from '@/features/auth/store';
@@ -358,6 +359,12 @@ export const ProjectWorkspacePage = () => {
     }
 
     fundMutation.mutate();
+  };
+
+  const openEditMilestoneModal = () => {
+    if (!selectedMilestone) return;
+
+    toast.info('Edit milestone functionality coming soon!');
   };
 
   const getStatusLabel = (status: ProjectStatus) => {
@@ -720,16 +727,15 @@ export const ProjectWorkspacePage = () => {
 
               {/* Action Buttons based on status and role */}
               <div className="pt-8 border-t border-slate-100 space-y-3">
-                 {drawerMilestone.status === MilestoneStatus.PENDING && user?.role === Role.CLIENT && (
+                 {selectedMilestone.status === MilestoneStatus.PENDING && user?.role === Role.CLIENT && (
                    <div className="flex gap-3">
                      <Button
                        onClick={openEditMilestoneModal}
-                       disabled={loadMilestoneForEditMutation.isPending}
                        variant="outline"
                        className="h-14 rounded-full font-black border-slate-200 px-6 flex items-center gap-2"
                      >
                        <Pencil className="size-4" />
-                       {loadMilestoneForEditMutation.isPending ? 'Loading...' : 'Edit'}
+                       Edit
                      </Button>
                      <Button
                        onClick={handleFundMilestone}
