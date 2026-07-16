@@ -26,11 +26,11 @@ import { cn } from '@/lib/utils';
 import { ProjectDisputeStatusBadge } from '../components/ProjectDisputeStatusBadge';
 import { getDefaultNonDisputeProjectStatus, isProjectDisputed } from '../utils';
 import { useProjectMilestones } from '../hooks/useProjectMilestones';
-import { chatService } from '@/features/chat/services';
-import { walletService } from '@/features/wallet/services';
-import { CreateDisputeModal } from '@/features/disputes/components/CreateDisputeModal';
-import { disputeService } from '@/features/disputes/services';
-import { DisputeStatus } from '@/features/disputes/types';
+import { chatService } from '@/features/chat';
+import { walletService } from '@/features/wallet';
+import { CreateDisputeModal } from '@/features/disputes';
+import { disputeService } from '@/features/disputes';
+import { DisputeStatus } from '@/features/disputes';
 import { toast } from 'sonner';
 
 const toNumber = (value: unknown): number | null => {
@@ -463,17 +463,21 @@ export const ProjectWorkspacePage = () => {
   };
 
   const handleFinishProject = () => {
-    if (!project) return;
-
-    if (canReviewCompletedProject) {
-      const reviewState = buildReviewState(project);
-      if (reviewState) {
-        navigate('/reviews', { state: reviewState });
-      }
+    if (!project) {
+      toast.error('Project data not available.');
       return;
     }
 
-    setIsFinishModalOpen(true);
+    if (canReviewCompletedProject) {
+      const reviewState = buildReviewState(project);
+      if (!reviewState) {
+        toast.error('Unable to prepare review state. Please try again.');
+        return;
+      }
+      navigate('/reviews', { state: reviewState });
+    } else {
+      setIsFinishModalOpen(true);
+    }
   };
 
   const handleDisputeCreated = () => {
@@ -569,7 +573,11 @@ export const ProjectWorkspacePage = () => {
                className="rounded-full px-6 border-slate-200 font-black"
                title={!canRequestFinishProject ? 'This project cannot be finished from this state.' : undefined}
              >
-                {finishProjectMutation.isPending ? 'Finishing...' : 'Finish Project'}
+                {finishProjectMutation.isPending
+                  ? 'Finishing...'
+                  : canReviewCompletedProject
+                    ? 'Leave a Review'
+                    : 'Finish Project'}
              </Button>
            )}
            <Button
