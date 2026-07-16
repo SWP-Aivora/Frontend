@@ -28,8 +28,7 @@ import { useProjectMilestones } from '../hooks/useProjectMilestones';
 import { chatService } from '@/features/chat';
 import { walletService } from '@/features/wallet';
 import { CreateDisputeModal } from '@/features/disputes';
-import { disputeService } from '../../disputes/services';
-import { DisputeStatus } from '../../disputes/types';
+import { disputeService, DisputeStatus } from '@/features/disputes';
 import { toast } from 'sonner';
 
 const toNumber = (value: unknown): number | null => {
