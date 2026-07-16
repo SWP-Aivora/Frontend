@@ -401,8 +401,28 @@ export const ProjectWorkspacePage = () => {
     setSubmitData({ description: '', fileUrl: '', demoUrl: '', sourceCodeUrl: '', note: '' });
   };
 
+  const handleSubmitDeliverable = () => {
+    if (!selectedMilestone?.id) {
+      toast.error('Cannot submit deliverable: Invalid milestone selection.');
+      setIsSubmitModalOpen(false);
+      return;
+    }
+
+    if (!submitData.description.trim()) {
+      toast.error('Description is required.');
+      return;
+    }
+
+    submitMutation.mutate({ milestoneId: selectedMilestone.id, data: submitData });
+  };
+
   const openDeliverableModal = () => {
-    if (selectedMilestone?.status === MilestoneStatus.REVISION_REQUESTED && deliverables.length > 0) {
+    if (!selectedMilestone) {
+      toast.error('Cannot open deliverable modal: No milestone selected.');
+      return;
+    }
+
+    if (selectedMilestone.status === MilestoneStatus.REVISION_REQUESTED && deliverables.length > 0) {
       const latestDeliverable = deliverables[0];
       setSubmitData({
         description: latestDeliverable.description ?? '',
@@ -853,9 +873,9 @@ export const ProjectWorkspacePage = () => {
 
             <div className="flex justify-end gap-3">
               <Button variant="outline" onClick={() => setIsSubmitModalOpen(false)} className="rounded-full font-bold">Cancel</Button>
-              <Button
-                onClick={() => selectedMilestone?.id && submitMutation.mutate({ milestoneId: selectedMilestone.id, data: submitData })}
-                disabled={submitMutation.isPending || !submitData.description.trim() || !selectedMilestone?.id}
+              Button
+                onClick={handleSubmitDeliverable}
+                disabled={submitMutation.isPending || !submitData.description.trim()}
                 className="rounded-full shadow-lg shadow-primary/20 font-black"
               >
                 {submitMutation.isPending
