@@ -873,7 +873,7 @@ export const ProjectWorkspacePage = () => {
 
             <div className="flex justify-end gap-3">
               <Button variant="outline" onClick={() => setIsSubmitModalOpen(false)} className="rounded-full font-bold">Cancel</Button>
-              Button
+              <Button
                 onClick={handleSubmitDeliverable}
                 disabled={submitMutation.isPending || !submitData.description.trim()}
                 className="rounded-full shadow-lg shadow-primary/20 font-black"
