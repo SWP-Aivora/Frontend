@@ -155,6 +155,7 @@ export const WalletPage = () => {
         </div>
         <div className="space-y-6">
            <SpendingChart transactions={validTx} isClient={isClient} />
+           <StagedPaymentInfoCard />
         </div>
       </div>
 
