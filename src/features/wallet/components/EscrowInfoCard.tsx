@@ -1,4 +1,38 @@
-import { ShieldCheck, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, Lock } from 'lucide-react';
+
+export const EscrowInfoCard = () => {
+  return (
+    <div className="bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 rounded-lg p-8">
+      <div className="size-12 rounded-lg bg-white flex items-center justify-center mb-6 shadow-sm">
+        <Lock className="size-6 text-slate-600" />
+      </div>
+      <h3 className="text-lg font-black text-slate-900 mb-2">Escrow Protection</h3>
+      <p className="text-sm text-slate-600/70 font-medium leading-relaxed mb-4">
+        All payments are held securely in escrow until work is completed and approved.
+      </p>
+      <div className="space-y-3">
+        <div className="flex items-center gap-3 bg-white/60 rounded-lg p-3">
+          <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+            <span className="text-sm font-bold text-green-700">✓</span>
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-slate-900">Secure Payments</p>
+            <p className="text-xs text-slate-600">Funds protected until milestone approval</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 bg-white/60 rounded-lg p-3">
+          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+            <span className="text-sm font-bold text-blue-700">↔</span>
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-slate-900">Dispute Resolution</p>
+            <p className="text-xs text-slate-600">Expert mediation for payment disputes</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const StagedPaymentInfoCard = () => {
   return (

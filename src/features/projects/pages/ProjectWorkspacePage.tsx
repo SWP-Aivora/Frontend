@@ -277,7 +277,7 @@ export const ProjectWorkspacePage = () => {
 
   const finishProjectMutation = useMutation({
     mutationFn: () => projectService.completeProject(id!),
-    onSuccess: (response) => {
+    onSuccess: (response: any) => {
       const completedProject = response.data ?? project;
       queryClient.setQueryData<typeof projectResponse>(['project', id], (current) => {
         if (!current) return current;

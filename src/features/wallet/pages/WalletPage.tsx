@@ -10,7 +10,7 @@ import { WithdrawModal } from '../components/WithdrawModal';
 import { TransactionTable } from '../components/TransactionTable';
 import { WalletBalanceCard } from '../components/WalletBalanceCard';
 import { SpendingChart } from '../components/SpendingChart';
-import { StagedPaymentInfoCard } from '../components/EscrowInfoCard';
+import { EscrowInfoCard, StagedPaymentInfoCard } from '../components/EscrowInfoCard';
 import { ErrorBoundary } from '@/shared/components/common';
 
 const TRANSACTIONS_PER_PAGE = 10;

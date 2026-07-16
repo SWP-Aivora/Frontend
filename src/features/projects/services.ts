@@ -426,4 +426,9 @@ export const projectService = {
     const response = await apiClient.post(API_ENDPOINTS.MILESTONES.DELIVERABLES(milestoneId), data);
     return normalizeBaseResponse<Deliverable>(response);
   },
+
+  completeProject: async (id: string): Promise<BaseResponse<void>> => {
+    const response = await apiClient.put(API_ENDPOINTS.PROJECTS.ID(id) + '/complete');
+    return normalizeBaseResponse<void>(response);
+  },
 };
