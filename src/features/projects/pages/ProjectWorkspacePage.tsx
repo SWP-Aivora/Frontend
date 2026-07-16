@@ -358,7 +358,7 @@ export const ProjectWorkspacePage = () => {
       return;
     }
 
-    fundMutation.mutate(selectedMilestone!.id);
+    fundMutation.mutate(selectedMilestone.id);
   };
 
   
@@ -429,7 +429,7 @@ export const ProjectWorkspacePage = () => {
       return;
     }
 
-    finishProjectMutation.mutate();
+    setIsFinishModalOpen(true);
   };
 
   const handleDisputeCreated = () => {
@@ -761,9 +761,9 @@ export const ProjectWorkspacePage = () => {
                       >
                         Revision
                       </Button>
-                      <Button 
-                        onClick={() => approveMutation.mutate(selectedMilestone!.id)}
-                        disabled={approveMutation.isPending}
+                      <Button
+                        onClick={() => selectedMilestone?.id && approveMutation.mutate(selectedMilestone.id)}
+                        disabled={approveMutation.isPending || !selectedMilestone?.id}
                         className="flex-[2] h-14 rounded-full font-black shadow-xl shadow-primary/20"
                       >
                         {approveMutation.isPending ? 'Approving...' : 'Approve & Pay'}
@@ -853,9 +853,9 @@ export const ProjectWorkspacePage = () => {
 
             <div className="flex justify-end gap-3">
               <Button variant="outline" onClick={() => setIsSubmitModalOpen(false)} className="rounded-full font-bold">Cancel</Button>
-              <Button 
-                onClick={() => submitMutation.mutate({ milestoneId: selectedMilestone!.id, data: submitData })} 
-                disabled={submitMutation.isPending || !submitData.description.trim()}
+              <Button
+                onClick={() => selectedMilestone?.id && submitMutation.mutate({ milestoneId: selectedMilestone.id, data: submitData })}
+                disabled={submitMutation.isPending || !submitData.description.trim() || !selectedMilestone?.id}
                 className="rounded-full shadow-lg shadow-primary/20 font-black"
               >
                 {submitMutation.isPending
@@ -892,9 +892,9 @@ export const ProjectWorkspacePage = () => {
 
             <div className="flex justify-end gap-3">
               <Button variant="outline" onClick={() => setIsRevisionModalOpen(false)} className="rounded-full font-bold">Cancel</Button>
-              <Button 
-                onClick={() => revisionMutation.mutate({ milestoneId: selectedMilestone!.id, reason: revisionReason })} 
-                disabled={revisionMutation.isPending || !revisionReason.trim()}
+              <Button
+                onClick={() => selectedMilestone?.id && revisionMutation.mutate({ milestoneId: selectedMilestone.id, reason: revisionReason })}
+                disabled={revisionMutation.isPending || !revisionReason.trim() || !selectedMilestone?.id}
                 className="rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-600/20 font-black border-none"
               >
                 {revisionMutation.isPending ? 'Requesting...' : 'Request Revision'}
