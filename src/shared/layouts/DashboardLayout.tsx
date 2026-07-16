@@ -84,7 +84,7 @@ export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
     return () => {
       controller.abort();
     };
-  }, [isAuthenticated, user?.fullName, setUser]);
+  }, [isAuthenticated, user?.fullName, user, setUser]);
 
   return (
     <div className="h-screen bg-slate-50 flex flex-col overflow-hidden">

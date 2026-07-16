@@ -30,3 +30,20 @@ Chạy kiểm tra linter:
 ```bash
 npm run lint
 ```
+
+## 📋 Checklist Trước Commit
+
+Luôn kiểm tra kỹ trước khi commit để tránh lỗi syntax và CI/CD fails:
+
+1. **Chạy linter**: `npm run lint` - không lỗi
+2. **Build project**: `npm run build` - build thành công  
+3. **Check JSX syntax**: Đảm bảo mọi thẻ đều có opening/closing tag
+4. **Test functionality**: Chạy thử trên local environment
+
+Xem chi tiết: [README-CHECKLIST.md](README-CHECKLIST.md)
+
+## ⚠️ Lưu Ý Quan Trọng
+
+- "Check twice, commit once!" - Luôn verify syntax trước khi commit
+- "Better safe than sorry" - Đảm bảo build thành công trên cả local và production
+- Ghi nhớ bài học từ các lỗi thực tế để tránh lặp lại
