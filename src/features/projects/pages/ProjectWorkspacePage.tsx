@@ -720,15 +720,26 @@ export const ProjectWorkspacePage = () => {
 
               {/* Action Buttons based on status and role */}
               <div className="pt-8 border-t border-slate-100 space-y-3">
-                 {selectedMilestone.status === MilestoneStatus.PENDING && user?.role === Role.CLIENT && (
-                   <Button
-                     onClick={handleFundMilestone}
-                     disabled={fundMutation.isPending || isLoadingWallet}
-                     title="Bấm nút này sẽ chuyển ngay 30% cho Expert"
-                     className="w-full h-14 rounded-full font-black text-base shadow-xl shadow-primary/20"
-                   >
-                      {fundMutation.isPending ? 'Funding...' : isLoadingWallet ? 'Checking Wallet...' : 'Fund Milestone'}
-                   </Button>
+                 {drawerMilestone.status === MilestoneStatus.PENDING && user?.role === Role.CLIENT && (
+                   <div className="flex gap-3">
+                     <Button
+                       onClick={openEditMilestoneModal}
+                       disabled={loadMilestoneForEditMutation.isPending}
+                       variant="outline"
+                       className="h-14 rounded-full font-black border-slate-200 px-6 flex items-center gap-2"
+                     >
+                       <Pencil className="size-4" />
+                       {loadMilestoneForEditMutation.isPending ? 'Loading...' : 'Edit'}
+                     </Button>
+                     <Button
+                       onClick={handleFundMilestone}
+                       disabled={fundMutation.isPending || isLoadingWallet}
+                       title="Bấm nút này sẽ chuyển ngay 30% cho Expert"
+                       className="flex-1 h-14 rounded-full font-black text-base shadow-xl shadow-primary/20"
+                     >
+                        {fundMutation.isPending ? 'Funding...' : isLoadingWallet ? 'Checking Wallet...' : 'Fund Milestone'}
+                     </Button>
+                   </div>
                  )}
                  {([MilestoneStatus.FUNDED, MilestoneStatus.IN_PROGRESS, MilestoneStatus.REVISION_REQUESTED] as MilestoneStatus[]).includes(selectedMilestone.status) && user?.role === Role.EXPERT && (
                     <Button 
