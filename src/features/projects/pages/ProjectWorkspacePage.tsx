@@ -26,11 +26,11 @@ import { cn } from '@/lib/utils';
 import { ProjectDisputeStatusBadge } from '../components/ProjectDisputeStatusBadge';
 import { getDefaultNonDisputeProjectStatus, isProjectDisputed } from '../utils';
 import { useProjectMilestones } from '../hooks/useProjectMilestones';
-import { chatService } from '@/features/chat';
+import { chatService } from '../../chat/services';
 import { walletService } from '@/features/wallet';
-import { CreateDisputeModal } from '@/features/disputes';
-import { disputeService } from '@/features/disputes';
-import { DisputeStatus } from '@/features/disputes';
+import { CreateDisputeModal } from '../../disputes/components/CreateDisputeModal';
+import { disputeService } from '../../disputes/services';
+import { DisputeStatus } from '../../disputes/types';
 import { toast } from 'sonner';
 
 const toNumber = (value: unknown): number | null => {
@@ -421,8 +421,13 @@ export const ProjectWorkspacePage = () => {
   };
 
   const handleSubmitDeliverable = () => {
-    if (!selectedMilestone?.id) {
-      toast.error('Cannot submit deliverable: Invalid milestone selection.');
+    if (!selectedMilestone) {
+      toast.error('Cannot submit deliverable: No milestone selected.');
+      setIsSubmitModalOpen(false);
+      return;
+    }
+    if (!selectedMilestone.id) {
+      toast.error('Cannot submit deliverable: Invalid milestone ID.');
       setIsSubmitModalOpen(false);
       return;
     }
@@ -907,7 +912,7 @@ export const ProjectWorkspacePage = () => {
               <Button variant="outline" onClick={() => setIsSubmitModalOpen(false)} className="rounded-full font-bold">Cancel</Button>
               <Button
                 onClick={handleSubmitDeliverable}
-                disabled={submitMutation.isPending || !submitData.description.trim() || !hasProofFields()}
+                disabled={submitMutation.isPending}
                 className="rounded-full shadow-lg shadow-primary/20 font-black"
               >
                 {submitMutation.isPending
