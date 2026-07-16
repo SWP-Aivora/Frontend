@@ -477,9 +477,9 @@ export const ProjectWorkspacePage = () => {
             Back to Dashboard
           </button>
           <div className="flex flex-wrap items-center gap-4">
-             <h1 className="text-3xl font-black text-slate-900 tracking-tight">{project.title}</h1>
+             <h1 className="text-3xl font-black text-slate-900 tracking-tight">{project?.title}</h1>
              <div className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-black uppercase tracking-wider border border-blue-100">
-                {getStatusLabel(displayProjectStatus ?? project.status)}
+                {getStatusLabel(displayProjectStatus ?? project?.status)}
              </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -489,7 +489,7 @@ export const ProjectWorkspacePage = () => {
               {project.clientName || project.client?.fullName || 'Client'} / {project.expertName || project.expert?.fullName || 'Expert'}
             </span>
           </div>
-          <p className="text-sm text-slate-500 font-medium max-w-2xl">{project.description || 'No project description provided.'}</p>
+          <p className="text-sm text-slate-500 font-medium max-w-2xl">{project?.description || 'No project description provided.'}</p>
         </div>
 
         <div className="flex flex-row flex-nowrap items-center gap-2">
@@ -510,7 +510,7 @@ export const ProjectWorkspacePage = () => {
            {(user?.role === Role.CLIENT || user?.role === Role.EXPERT) && (
              <Button
                variant="outline"
-               onClick={() => navigate(user.role === Role.EXPERT ? `/expert/projects/${project.id}/disputes` : `/client/projects/${project.id}/disputes`)}
+               onClick={() => navigate(user.role === Role.EXPERT ? `/expert/projects/${project?.id}/disputes` : `/client/projects/${project?.id}/disputes`)}
                className="rounded-full px-5 border-slate-200 font-black flex items-center gap-2"
              >
                 <ShieldAlert className="size-4" />
@@ -550,7 +550,7 @@ export const ProjectWorkspacePage = () => {
                      <DollarSign className="size-5 text-emerald-600" />
                   </div>
                   <div>
-                     <p className="text-lg font-black text-slate-900 leading-none">{project.totalBudget?.toLocaleString()} Aivora Coin</p>
+                     <p className="text-lg font-black text-slate-900 leading-none">{project?.totalBudget?.toLocaleString()} Aivora Coin</p>
                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Total Contract</p>
                   </div>
                </div>
@@ -560,7 +560,7 @@ export const ProjectWorkspacePage = () => {
                   </div>
                   <div>
                      <p className="text-lg font-black text-slate-900 leading-none">
-                        {project.endDate ? new Date(project.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'}
+                        {project?.endDate ? new Date(project.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'}
                      </p>
                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Target Deadline</p>
                   </div>
@@ -568,7 +568,7 @@ export const ProjectWorkspacePage = () => {
             </div>
 
             <div className="flex -space-x-3">
-               {[project.client, project.expert].filter(Boolean).map((u, i) => (
+               {[project?.client, project?.expert].filter(Boolean).map((u, i) => (
                  <div key={i} className="size-10 rounded-full border-4 border-slate-50 bg-slate-200 flex items-center justify-center overflow-hidden shadow-sm" title={u?.fullName}>
                     {u?.avatarUrl ? <img src={u.avatarUrl} className="size-full object-cover" /> : <span className="text-xs font-black">{u?.fullName?.charAt(0)}</span>}
                  </div>
@@ -932,7 +932,7 @@ export const ProjectWorkspacePage = () => {
         isOpen={isDisputeModalOpen}
         onClose={() => setIsDisputeModalOpen(false)}
         onSuccess={handleDisputeCreated}
-        initialProjectId={project.id}
+        initialProjectId={project?.id}
         lockProjectSelection
       />
 
