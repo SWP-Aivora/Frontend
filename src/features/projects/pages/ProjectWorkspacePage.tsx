@@ -277,19 +277,19 @@ export const ProjectWorkspacePage = () => {
 
   const finishProjectMutation = useMutation({
     mutationFn: () => projectService.completeProject(id!),
-    onSuccess: (response: BaseResponse<void>) => {
-      const completedProject = response.data ?? project;
-      queryClient.setQueryData<typeof projectResponse>(['project', id], (current) => {
-        if (!current) return current;
-        return {
-          ...current,
-          data: completedProject ?? current.data,
-        };
-      });
+    onSuccess: () => {
+      // Invalidate queries to get fresh data from server
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
+
+      // Close modal first
       setIsFinishModalOpen(false);
 
-      if (!completedProject) return;
-      const reviewState = buildReviewState(completedProject);
+      // Get updated project data from cache or fallback
+      const updatedProjectResponse = queryClient.getQueryData<BaseResponse<typeof project>>(['project', id]);
+      const updatedProject = updatedProjectResponse?.data ?? project;
+
+      if (!updatedProject) return;
+      const reviewState = buildReviewState(updatedProject);
       if (!reviewState) return;
 
       navigate('/reviews', {
@@ -408,6 +408,16 @@ export const ProjectWorkspacePage = () => {
       submitData.sourceCodeUrl?.trim(),
       submitData.note?.trim()
     ].some(value => value && value.length > 0);
+  };
+
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } catch {
+      return 'N/A';
+    }
   };
 
   const handleSubmitDeliverable = () => {
@@ -594,7 +604,7 @@ export const ProjectWorkspacePage = () => {
                   </div>
                   <div>
                      <p className="text-lg font-black text-slate-900 leading-none">
-                        {project?.endDate ? new Date(project.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'}
+                        {formatDate(project?.endDate)}
                      </p>
                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Target Deadline</p>
                   </div>
