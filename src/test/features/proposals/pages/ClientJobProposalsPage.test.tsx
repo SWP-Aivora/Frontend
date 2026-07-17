@@ -18,7 +18,7 @@ vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return {
     ...actual,
-    useParams: () => ({ id: 'job-123' }),
+    useParams: () => ({ jobId: 'job-123' }),
     useNavigate: () => vi.fn(),
   };
 });
@@ -168,10 +168,10 @@ describe('ClientJobProposalsPage', () => {
       expect(screen.getByRole('button', { name: /cancel job/i })).toBeInTheDocument();
     });
 
-    it('shows Cancel Job button for in-progress jobs', () => {
+    it('does not show Cancel Job button for in-progress jobs', () => {
       mockJob(2); // 2 = in-progress
       renderComponent();
-      expect(screen.getByRole('button', { name: /cancel job/i })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /cancel job/i })).not.toBeInTheDocument();
     });
 
     it('does not show Cancel Job button for draft jobs', () => {

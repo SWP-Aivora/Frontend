@@ -40,9 +40,28 @@ const getString = (value: unknown, fallback = ''): string => (
   typeof value === 'string' ? value : fallback
 );
 
+const getOptionalNumber = (value: unknown): number | undefined => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return undefined;
+    const parsed = Number(trimmed);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
+};
+
 const getNumber = (value: unknown, fallback = 0): number => (
-  typeof value === 'number' ? value : fallback
+  getOptionalNumber(value) ?? fallback
 );
+
+const getFirstNumber = (...values: unknown[]): number => {
+  for (const value of values) {
+    const normalized = getOptionalNumber(value);
+    if (normalized !== undefined) return normalized;
+  }
+  return 0;
+};
 
 const normalizeAvailabilityStatus = (value: unknown): AvailabilityStatus => {
   if (typeof value === 'string') {
@@ -90,13 +109,31 @@ const normalizeExpertProfileResponse = (expert: ExpertProfileResponse): ExpertPr
     avatarUrl: expert.avatarUrl ?? getString(raw.AvatarUrl, ''),
     title: expert.title ?? getString(raw.Title),
     bio: expert.bio ?? getString(raw.Bio, ''),
-    hourlyRate: expert.hourlyRate ?? getNumber(raw.HourlyRate, 0),
-    experienceYears: expert.experienceYears ?? getNumber(raw.ExperienceYears, 0),
+    hourlyRate: getNumber(expert.hourlyRate ?? raw.HourlyRate, 0),
+    experienceYears: getNumber(expert.experienceYears ?? raw.ExperienceYears, 0),
     availabilityStatus: normalizeAvailabilityStatus(expert.availabilityStatus ?? raw.AvailabilityStatus),
-    rating: expert.rating ?? getNumber(raw.Rating, 0),
-    totalReviews: expert.totalReviews ?? getNumber(raw.TotalReviews, 0),
-    completedProjects: expert.completedProjects ?? getNumber(raw.CompletedProjects, 0),
-    successRate: expert.successRate ?? getNumber(raw.SuccessRate, 0),
+    rating: getNumber(expert.rating ?? raw.Rating, 0),
+    totalReviews: getNumber(expert.totalReviews ?? raw.TotalReviews, 0),
+    completedProjects: getFirstNumber(
+      expert.completedProjects,
+      raw.CompletedProjects,
+      raw.completedProjectCount,
+      raw.CompletedProjectCount
+    ),
+    successRate: getFirstNumber(
+      expert.successRate,
+      raw.SuccessRate,
+      raw.completionRate,
+      raw.CompletionRate,
+      raw.projectCompletionRate,
+      raw.ProjectCompletionRate,
+      raw.completedProjectRate,
+      raw.CompletedProjectRate,
+      raw.completedProjectsRate,
+      raw.CompletedProjectsRate,
+      raw.successRatePercent,
+      raw.SuccessRatePercent
+    ),
     skills: rawSkills.map((skill) => {
       const rawSkill = skill as Record<string, unknown>;
       return {

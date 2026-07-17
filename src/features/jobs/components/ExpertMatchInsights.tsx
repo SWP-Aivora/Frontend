@@ -17,13 +17,13 @@ export const ExpertMatchInsights = ({ experts }: ExpertMatchInsightsProps) => {
           <Search className="size-10 text-slate-300" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Your Project is Live!</h2>
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Your Job Post is Live!</h2>
           <p className="text-lg text-slate-500 font-medium max-w-lg mx-auto">
             No immediate matches found yet. Don't worry, the best experts will see your post and submit proposals soon!
           </p>
         </div>
         <Button asChild variant="outline" className="rounded-full px-10 h-14 border-slate-200 font-black text-slate-600 mt-8">
-          <Link to="/client/projects">Go to My Projects</Link>
+          <Link to="/client/job-posts">Go to My Job Posts</Link>
         </Button>
       </div>
     );
@@ -35,9 +35,9 @@ export const ExpertMatchInsights = ({ experts }: ExpertMatchInsightsProps) => {
         <div className="size-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-200/50">
           <CheckCircle2 className="size-10 text-emerald-600" />
         </div>
-        <h2 className="text-4xl font-black text-slate-900 tracking-tight">Your Project is Live!</h2>
+        <h2 className="text-4xl font-black text-slate-900 tracking-tight">Your Job Post is Live!</h2>
         <p className="text-lg text-slate-500 font-medium">
-          AIVORA AI has analyzed your project and found the top experts matching your specific requirements.
+          AIVORA AI has analyzed your job post and found the top experts matching your specific requirements.
         </p>
       </div>
 
@@ -88,7 +88,7 @@ export const ExpertMatchInsights = ({ experts }: ExpertMatchInsightsProps) => {
                   onClick={() => toast.success('Invitation sent! The expert will be notified.')}
                   className="w-full rounded-xl font-black shadow-lg shadow-primary/20"
                 >
-                  Invite to Project
+                  Invite to Job Post
                 </Button>
                 <Button variant="ghost" asChild className="w-full rounded-xl font-bold text-slate-500 hover:text-primary">
                   <Link to={`/client/experts/${expert.id}`}>
@@ -103,7 +103,7 @@ export const ExpertMatchInsights = ({ experts }: ExpertMatchInsightsProps) => {
 
       <div className="flex justify-center pt-8">
         <Button asChild variant="outline" className="rounded-full px-10 h-14 border-slate-200 font-black text-slate-600">
-          <Link to="/client/projects">Manage Your Projects</Link>
+          <Link to="/client/job-posts">Manage Your Job Posts</Link>
         </Button>
       </div>
     </div>

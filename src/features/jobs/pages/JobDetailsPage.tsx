@@ -26,6 +26,7 @@ import { useAuthStore } from '@/features/auth/store';
 import { Role } from '@/shared/types/enums';
 
 type ProposalFormMilestone = NonNullable<CreateProposalFormValues['milestones']>[number];
+type PendingJobAction = 'cancel' | 'delete' | null;
 
 const toSafeNumber = (value: unknown): number => {
   if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
@@ -90,6 +91,7 @@ export const JobDetailsPage = () => {
   const { user } = useAuthStore();
   const isEditMode = Boolean(proposalId);
   const [hasSubmitted, setHasSubmitted] = useState(() => localStorage.getItem(`submitted_proposal_${id}`) === 'true');
+  const [pendingJobAction, setPendingJobAction] = useState<PendingJobAction>(null);
 
   const { data: jobResponse, isLoading } = useQuery({
     queryKey: ['job', id],
@@ -254,6 +256,7 @@ export const JobDetailsPage = () => {
       toast.success('Job post cancelled.');
       queryClient.invalidateQueries({ queryKey: ['job', id] });
       queryClient.invalidateQueries({ queryKey: ['expertJobs'] });
+      setPendingJobAction(null);
     },
     onError: () => toast.error('Failed to cancel job post.'),
   });
@@ -270,17 +273,38 @@ export const JobDetailsPage = () => {
 
   const handleCancelJob = () => {
     if (!canCancelJob) return;
-
-    if (window.confirm('Cancel this job post? Experts will no longer be able to apply.')) {
-      if (id) cancelJobMutation.mutate(id);
-    }
+    setPendingJobAction('cancel');
   };
 
   const handleDeleteJob = () => {
-    if (window.confirm('Delete this draft job post? This action cannot be undone.')) {
-      if (id) deleteJobMutation.mutate(id);
-    }
+    if (normalizeJobStatus(job?.status) !== 'draft') return;
+    setPendingJobAction('delete');
   };
+
+  const isJobActionPending = cancelJobMutation.isPending || deleteJobMutation.isPending;
+  const pendingJobActionContent = pendingJobAction === 'cancel'
+    ? {
+        title: 'Cancel this job post?',
+        description: 'Experts will no longer be able to apply.',
+        confirmLabel: 'Cancel Job',
+        pendingLabel: 'Cancelling...',
+        onConfirm: () => {
+          if (!id || !canCancelJob || cancelJobMutation.isPending) return;
+          cancelJobMutation.mutate(id);
+        },
+      }
+    : pendingJobAction === 'delete'
+      ? {
+          title: 'Delete this draft job post?',
+          description: 'This action cannot be undone.',
+          confirmLabel: 'Delete Job',
+          pendingLabel: 'Deleting...',
+          onConfirm: () => {
+            if (!id || normalizeJobStatus(job?.status) !== 'draft' || deleteJobMutation.isPending) return;
+            deleteJobMutation.mutate(id);
+          },
+        }
+      : null;
 
   const budgetMin = job?.budgetMin ?? 0;
   const budgetMax = job?.budgetMax ?? 0;
@@ -654,6 +678,37 @@ export const JobDetailsPage = () => {
           </div>
         </aside>
       </div>
+
+      {pendingJobActionContent && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => !isJobActionPending && setPendingJobAction(null)}
+          />
+          <div className="relative z-10 w-[90%] max-w-lg rounded-2xl bg-white p-8 shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="mb-2 text-2xl font-black text-slate-900">{pendingJobActionContent.title}</h3>
+            <p className="mb-6 text-sm text-slate-500">{pendingJobActionContent.description}</p>
+
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setPendingJobAction(null)}
+                disabled={isJobActionPending}
+                className="rounded-full font-bold"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={pendingJobActionContent.onConfirm}
+                disabled={isJobActionPending}
+                className="rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-600/20 font-black border-none"
+              >
+                {isJobActionPending ? pendingJobActionContent.pendingLabel : pendingJobActionContent.confirmLabel}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

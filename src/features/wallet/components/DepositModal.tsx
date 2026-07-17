@@ -87,7 +87,8 @@ export const DepositModal = () => {
   };
 
   const isPending = depositMutation.isPending || demoDepositMutation.isPending;
-  const isInvalid = amountStr.trim() === '' || isNaN(Number(amountStr)) || Number(amountStr) <= 0;
+  const amountValue = Number(amountStr);
+  const isInvalid = amountStr.trim() === '' || isNaN(amountValue) || amountValue <= 0 || amountValue > 100000;
 
   return (
     <Dialog.Root open={open} onOpenChange={(o: boolean) => {

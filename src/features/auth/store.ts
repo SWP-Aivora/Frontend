@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { chatService } from '@/features/chat/services';
+import { queryClient } from '@/lib/queryClient';
 import type { User } from './types';
 
 interface AuthState {
@@ -46,6 +47,8 @@ export const useAuthStore = create<AuthState>()(
       logout: () => {
         // Tokens are stored in HttpOnly cookies, so we don't need to manually clear them from localStorage here
         // The backend /logout endpoint handles clearing the cookies
+        void queryClient.cancelQueries();
+        queryClient.clear();
         void chatService.resetChatConnection();
         set({
           user: null,
@@ -71,4 +74,3 @@ export const useAuthStore = create<AuthState>()(
     }
   )
 );
-

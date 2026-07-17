@@ -36,6 +36,57 @@ const getBackendFullName = (data: { fullName?: string; FullName?: string }) => (
   (data.fullName || data.FullName || '').trim()
 );
 
+let getMeRequest: Promise<BaseResponse<User | null>> | null = null;
+
+const fetchCurrentUser = async (): Promise<BaseResponse<User | null>> => {
+  const response = await apiClient.get<BaseResponse<MeBackendResponse>>(API_ENDPOINTS.AUTH.ME);
+  const normalized = normalizeBaseResponse<MeBackendResponse>(response);
+
+  if (!normalized.success) {
+     return {
+      success: false,
+      message: normalized.message || 'Failed to fetch user data',
+      statusCode: normalized.statusCode || 400,
+      data: null
+    };
+  }
+
+  const backendData = normalized.data;
+  if (backendData) {
+    const roleStr = (backendData.role || backendData.Role || '').toUpperCase();
+    const mappedRole = Object.values(Role).find(r => r === roleStr);
+
+    if (!mappedRole) {
+      console.error('[authService] Unknown or missing role from backend during getMe:', roleStr);
+      return {
+        success: false,
+        message: 'Invalid user role returned from server',
+        statusCode: 403,
+        data: null
+      };
+    }
+
+    const user: User = {
+      id: backendData.id || backendData.Id || backendData.userId || backendData.UserId || '',
+      email: backendData.email || backendData.Email || '',
+      fullName: getBackendFullName(backendData),
+      role: mappedRole as Role,
+    };
+
+    return {
+      ...normalized,
+      data: user
+    };
+  }
+
+  return {
+    success: false,
+    message: 'Invalid response format from server',
+    statusCode: 500,
+    data: null
+  };
+};
+
 export const authService = {
   login: async (data: LoginFormValues): Promise<BaseResponse<AuthResponse | null>> => {
     try {
@@ -136,52 +187,13 @@ export const authService = {
   },
 
   getMe: async (): Promise<BaseResponse<User | null>> => {
-    const response = await apiClient.get<BaseResponse<MeBackendResponse>>(API_ENDPOINTS.AUTH.ME);
-    const normalized = normalizeBaseResponse<MeBackendResponse>(response);
-
-    if (!normalized.success) {
-       return {
-        success: false,
-        message: normalized.message || 'Failed to fetch user data',
-        statusCode: normalized.statusCode || 400,
-        data: null
-      };
+    if (!getMeRequest) {
+      getMeRequest = fetchCurrentUser().finally(() => {
+        getMeRequest = null;
+      });
     }
 
-    const backendData = normalized.data;
-    if (backendData) {
-      const roleStr = (backendData.role || backendData.Role || '').toUpperCase();
-      const mappedRole = Object.values(Role).find(r => r === roleStr);
-
-      if (!mappedRole) {
-        console.error('[authService] Unknown or missing role from backend during getMe:', roleStr);
-        return {
-          success: false,
-          message: 'Invalid user role returned from server',
-          statusCode: 403,
-          data: null
-        };
-      }
-
-      const user: User = {
-        id: backendData.id || backendData.Id || backendData.userId || backendData.UserId || '',
-        email: backendData.email || backendData.Email || '',
-        fullName: getBackendFullName(backendData),
-        role: mappedRole as Role,
-      };
-
-      return {
-        ...normalized,
-        data: user
-      };
-    }
-
-    return {
-      success: false,
-      message: 'Invalid response format from server',
-      statusCode: 500,
-      data: null
-    };
+    return getMeRequest;
   },
 
   logout: async (): Promise<void> => {

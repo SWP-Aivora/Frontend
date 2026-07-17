@@ -30,3 +30,11 @@ export const useUserReviews = (userId: string, pageSize?: number, pageIndex?: nu
     enabled: !!userId,
   });
 };
+
+export const useProjectReviews = (projectId: string, pageSize?: number, pageIndex?: number, enabled = true) => {
+  return useQuery({
+    queryKey: ['reviews', 'project', projectId, pageSize, pageIndex],
+    queryFn: () => reviewService.getProjectReviews(projectId, pageSize, pageIndex),
+    enabled: enabled && !!projectId,
+  });
+};

@@ -59,6 +59,7 @@ interface JobDraftFormProps {
   skills?: Skill[];
   selectedSkillIds?: string[];
   onSkillChange?: (skillId: string) => void;
+  skillError?: string;
   onUpdate: (data: Partial<AiJobSuggestion>) => void;
   onCategoryChange: (categoryId: string) => void;
   onAccept: () => void;
@@ -76,6 +77,7 @@ export const JobDraftForm = ({
   skills = [],
   selectedSkillIds = [],
   onSkillChange,
+  skillError,
   onUpdate, 
   onCategoryChange,
   onAccept,
@@ -294,6 +296,11 @@ export const JobDraftForm = ({
                     );
                   })}
                 </div>
+                {skillError && (
+                  <p className="text-xs text-rose-500 font-bold ml-1" role="alert">
+                    {skillError}
+                  </p>
+                )}
               </div>
             )}
           </section>
@@ -427,6 +434,7 @@ export const JobDraftForm = ({
                           <Input
                             id={`milestone-title-${idx}`}
                             value={ms.title}
+                            title={ms.title}
                             onChange={(e) => handleMilestoneChange(idx, 'title', e.target.value)}
                             className="h-10 rounded-lg bg-white border-slate-200 text-sm font-bold text-slate-900"
                           />

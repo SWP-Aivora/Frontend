@@ -70,4 +70,35 @@ describe('profileService', () => {
       });
     });
   });
+
+  describe('getExpertProfileById', () => {
+    it('normalizes numeric profile metrics returned by the expert profile API', async () => {
+      vi.mocked(apiClient.get).mockResolvedValue({
+        data: {
+          success: true,
+          data: {
+            UserId: 'expert-user-1',
+            FullName: 'DNQA Expert',
+            Rating: '4.3',
+            TotalReviews: '4',
+            CompletedProjects: '8',
+            CompletionRate: '75',
+            Skills: [],
+          },
+        },
+      });
+
+      const response = await profileService.getExpertProfileById('expert-user-1');
+
+      expect(apiClient.get).toHaveBeenCalledWith('profiles/expert/expert-user-1');
+      expect(response.data).toMatchObject({
+        userId: 'expert-user-1',
+        fullName: 'DNQA Expert',
+        rating: 4.3,
+        totalReviews: 4,
+        completedProjects: 8,
+        successRate: 75,
+      });
+    });
+  });
 });

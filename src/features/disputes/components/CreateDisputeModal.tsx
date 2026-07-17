@@ -178,8 +178,8 @@ export const CreateDisputeModal: React.FC<CreateDisputeModalProps> = ({
                 <option disabled>No milestones found for this project</option>
               ) : (
                 milestones.map((milestone: Milestone) => (
-                  <option key={milestone.id} value={milestone.id}>
-                    {milestone.title} - {milestone.amount} Aivora Coin{isCompletedMilestone(milestone) ? ' - Completed' : ''}
+                  <option key={milestone.id} value={milestone.id} disabled={isCompletedMilestone(milestone)}>
+                    {milestone.title} - {milestone.amount} Aivora Coin{isCompletedMilestone(milestone) ? ' - Not disputable' : ''}
                   </option>
                 ))
               )}

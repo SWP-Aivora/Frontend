@@ -36,7 +36,7 @@ export const NotificationStats = ({ unreadCount, totalCount }: NotificationStats
         icon={<CreditCard className="size-5 text-primary" />} 
         value="--" 
         label="Payment Updates" 
-        subtext="Escrow and releases" 
+        subtext="Staged payments"
       />
     </div>
   );

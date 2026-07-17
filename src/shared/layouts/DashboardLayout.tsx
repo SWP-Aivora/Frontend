@@ -14,10 +14,10 @@ interface DashboardLayoutProps {
   role: Role;
 }
 
-const needsFullNameHydration = (user: ReturnType<typeof useAuthStore.getState>['user']) => {
-  if (!user?.fullName) return true;
-  const emailName = user.email?.split('@')[0]?.trim().toLowerCase();
-  return Boolean(emailName && user.fullName.trim().toLowerCase() === emailName);
+const needsFullNameHydration = (email?: string, fullName?: string) => {
+  if (!fullName) return true;
+  const emailName = email?.split('@')[0]?.trim().toLowerCase();
+  return Boolean(emailName && fullName.trim().toLowerCase() === emailName);
 };
 
 export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
@@ -27,12 +27,16 @@ export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
   const location = useLocation();
   const mainRef = useRef<HTMLElement | null>(null);
   const items = NAV_ITEMS[role] || [];
+  const userId = user?.id;
+  const userEmail = user?.email;
+  const userFullName = user?.fullName;
 
   // Global real-time sync: maintains SignalR connection and listens for backend events
   useGlobalRealtimeSync();
 
   const isMessagePage = location.pathname.endsWith('/messages');
   const isHydrating = useRef(false);
+  const lastHydrationKey = useRef<string | null>(null);
 
   useEffect(() => {
     mainRef.current?.scrollTo({ top: 0, left: 0 });
@@ -41,10 +45,17 @@ export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
   // Hydrate user data on mount
   useEffect(() => {
     const controller = new AbortController();
+    const hydrationKey = `${userId ?? ''}:${userEmail ?? ''}:${userFullName ?? ''}`;
     
     const fetchUser = async () => {
-      if (isAuthenticated && needsFullNameHydration(user) && !isHydrating.current) {
+      if (
+        isAuthenticated &&
+        needsFullNameHydration(userEmail, userFullName) &&
+        !isHydrating.current &&
+        lastHydrationKey.current !== hydrationKey
+      ) {
         isHydrating.current = true;
+        lastHydrationKey.current = hydrationKey;
         try {
           const response = await authService.getMe();
           if (response.success && response.data) {
@@ -56,8 +67,10 @@ export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
                 useAuthStore.getState().logout();
                 toast.error('Session expired. Please log in again.');
                 // Redirection will be handled by ProtectedRoute once isAuthenticated becomes false
-              } else {
+              } else if (response.statusCode !== 429) {
                 toast.error(response.message || 'Failed to sync account data');
+              } else {
+                console.warn('Current user profile request was rate limited. Keeping existing session data.');
               }
             }
           }
@@ -68,6 +81,8 @@ export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
             if (status === 401 || status === 403) {
               useAuthStore.getState().logout();
               toast.error('Session expired. Please log in again.');
+            } else if (status === 429) {
+              console.warn('Current user profile request was rate limited. Keeping existing session data.', error);
             } else {
               toast.error('Session error: Unable to load profile data');
               console.error('Failed to fetch current user:', error);
@@ -84,7 +99,7 @@ export const DashboardLayout = ({ role }: DashboardLayoutProps) => {
     return () => {
       controller.abort();
     };
-  }, [isAuthenticated, user?.fullName, user, setUser]);
+  }, [isAuthenticated, userId, userEmail, userFullName, setUser]);
 
   return (
     <div className="h-screen bg-slate-50 flex flex-col overflow-hidden">

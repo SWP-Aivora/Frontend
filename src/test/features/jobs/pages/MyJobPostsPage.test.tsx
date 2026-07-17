@@ -4,9 +4,9 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider, type UseQueryResult } from '@tanstack/react-query';
 import * as reactQuery from '@tanstack/react-query';
-import { MyProjectsPage } from '../../../../features/jobs/pages/MyProjectsPage';
+import { MyJobPostsPage } from '../../../../features/jobs/pages/MyJobPostsPage';
 import { QUERY_KEYS, REFETCH_INTERVALS } from '@/shared/constants';
-import { BudgetType, ProjectStatus } from '@/shared/types/enums';
+import { BudgetType } from '@/shared/types/enums';
 
 vi.mock('@tanstack/react-query', async () => {
   const actual = await vi.importActual('@tanstack/react-query');
@@ -16,12 +16,6 @@ vi.mock('@tanstack/react-query', async () => {
     useQueries: vi.fn(),
   };
 });
-
-vi.mock('../../../../features/projects/services', () => ({
-  projectService: {
-    getProjects: vi.fn().mockResolvedValue({ data: [] }),
-  },
-}));
 
 vi.mock('../../../../features/jobs/services', () => ({
   jobService: {
@@ -54,17 +48,7 @@ const createJob = (overrides: Record<string, unknown>) => ({
   ...overrides,
 });
 
-const createProject = (overrides: Record<string, unknown>) => ({
-  id: 'project-1',
-  jobId: 'job-1',
-  title: 'Project 1',
-  status: ProjectStatus.ACTIVE,
-  createdAt: '2026-07-11T00:00:00.000Z',
-  expertName: 'Expert User',
-  ...overrides,
-});
-
-describe('MyProjectsPage', () => {
+describe('MyJobPostsPage', () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
@@ -75,8 +59,8 @@ describe('MyProjectsPage', () => {
   const renderComponent = () => {
     return render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={['/client/projects']}>
-          <MyProjectsPage />
+        <MemoryRouter initialEntries={['/client/job-posts']}>
+          <MyJobPostsPage />
           <LocationProbe />
         </MemoryRouter>
       </QueryClientProvider>
@@ -85,20 +69,15 @@ describe('MyProjectsPage', () => {
 
   const mockPageData = ({
     jobs = [],
-    projects = [],
     proposalCounts = [],
   }: {
     jobs?: Array<Record<string, unknown>>;
-    projects?: Array<Record<string, unknown>>;
     proposalCounts?: number[];
   }) => {
     (vi.mocked(reactQuery.useQuery)).mockImplementation((options: { queryKey?: readonly unknown[] }) => {
       const queryKey = options.queryKey as unknown[];
       if (queryKey?.[0] === 'clientJobs') {
         return { data: { data: jobs }, isLoading: false } as unknown as UseQueryResult;
-      }
-      if (queryKey?.[0] === 'clientProjects') {
-        return { data: { data: projects }, isLoading: false } as unknown as UseQueryResult;
       }
       return { isLoading: false } as unknown as UseQueryResult;
     });
@@ -140,20 +119,6 @@ describe('MyProjectsPage', () => {
   });
 
   describe('Title navigation', () => {
-    it('navigates to the project workspace when a valid associated project ID exists', async () => {
-      const user = userEvent.setup();
-      mockPageData({
-        jobs: [createJob({ id: 'job-with-project', title: 'Accepted Job', status: 1 })],
-        projects: [createProject({ id: 'project-123', jobId: 'job-with-project', status: ProjectStatus.ACTIVE })],
-      });
-
-      renderComponent();
-
-      await user.click(screen.getByRole('link', { name: 'Accepted Job' }));
-
-      expect(currentPath()).toBe('/client/projects/project-123/workspace');
-    });
-
     it('navigates to the job post editor for a draft job without a project ID', async () => {
       const user = userEvent.setup();
       mockPageData({
@@ -180,32 +145,30 @@ describe('MyProjectsPage', () => {
       expect(currentPath()).toBe('/client/post-job?editJobId=open-job');
     });
 
-    it('navigates to the project workspace for an in-progress item with a valid project ID', async () => {
+    it('navigates to the proposal list for an in-progress job post', async () => {
       const user = userEvent.setup();
       mockPageData({
-        jobs: [createJob({ id: 'progress-job', title: 'In Progress Job', status: 1 })],
-        projects: [createProject({ id: 'project-progress', jobId: 'progress-job', status: ProjectStatus.ACTIVE })],
+        jobs: [createJob({ id: 'progress-job', title: 'In Progress Job', status: 2 })],
       });
 
       renderComponent();
 
       await user.click(screen.getByRole('link', { name: 'In Progress Job' }));
 
-      expect(currentPath()).toBe('/client/projects/project-progress/workspace');
+      expect(currentPath()).toBe('/client/job-posts/progress-job/proposals');
     });
 
-    it('navigates to the project workspace for a completed item with a valid project ID', async () => {
+    it('navigates to the proposal list for a completed job post', async () => {
       const user = userEvent.setup();
       mockPageData({
-        jobs: [createJob({ id: 'completed-job', title: 'Completed Job', status: 1 })],
-        projects: [createProject({ id: 'project-completed', jobId: 'completed-job', status: ProjectStatus.COMPLETED })],
+        jobs: [createJob({ id: 'completed-job', title: 'Completed Job', status: 3 })],
       });
 
       renderComponent();
 
       await user.click(screen.getByRole('link', { name: 'Completed Job' }));
 
-      expect(currentPath()).toBe('/client/projects/project-completed/workspace');
+      expect(currentPath()).toBe('/client/job-posts/completed-job/proposals');
     });
 
     it('does not navigate when clicking outside the title', async () => {
@@ -218,7 +181,7 @@ describe('MyProjectsPage', () => {
 
       await user.click(screen.getByText('General'));
 
-      expect(currentPath()).toBe('/client/projects');
+      expect(currentPath()).toBe('/client/job-posts');
     });
   });
 
@@ -233,21 +196,7 @@ describe('MyProjectsPage', () => {
 
       await user.click(screen.getByRole('link', { name: /view proposals/i }));
 
-      expect(currentPath()).toBe('/client/projects/job-1/proposals');
-    });
-
-    it('preserves Enter Workspace navigation', async () => {
-      const user = userEvent.setup();
-      mockPageData({
-        jobs: [createJob({ id: 'job-1', title: 'Job with Workspace', status: 1 })],
-        projects: [createProject({ id: 'project-1', jobId: 'job-1', status: ProjectStatus.ACTIVE })],
-      });
-
-      renderComponent();
-
-      await user.click(screen.getByRole('link', { name: /enter workspace/i }));
-
-      expect(currentPath()).toBe('/client/projects/project-1/workspace');
+      expect(currentPath()).toBe('/client/job-posts/job-1/proposals');
     });
 
     it('shows Delete button for draft jobs', () => {

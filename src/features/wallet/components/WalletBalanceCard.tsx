@@ -36,12 +36,12 @@ export const WalletBalanceCard = ({ balance }: WalletBalanceCardProps) => {
               <p className="mt-0.5 text-[11px] font-black text-white">Aivora Coin</p>
             </div>
             <div className="rounded-md border border-white/10 bg-white/10 px-2.5 py-2 backdrop-blur-md">
-              <p className="text-[9px] font-black uppercase tracking-widest text-blue-100/60">Protection</p>
-              <p className="mt-0.5 text-[11px] font-black text-white">Escrow protected</p>
+              <p className="text-[9px] font-black uppercase tracking-widest text-blue-100/60">Payment Flow</p>
+              <p className="mt-0.5 text-[11px] font-black text-white">30/70 staged</p>
             </div>
             <div className="rounded-md border border-white/10 bg-white/10 px-2.5 py-2 backdrop-blur-md">
               <p className="text-[9px] font-black uppercase tracking-widest text-blue-100/60">Release</p>
-              <p className="mt-0.5 text-[11px] font-black text-white">Milestone approved</p>
+              <p className="mt-0.5 text-[11px] font-black text-white">Approval pays 70%</p>
             </div>
           </div>
         </div>

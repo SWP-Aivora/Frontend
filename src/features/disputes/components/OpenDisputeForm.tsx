@@ -41,7 +41,7 @@ export const OpenDisputeForm: React.FC<OpenDisputeFormProps> = ({
     <div className="space-y-4">
       <div className="bg-blue-50 p-4 rounded-md border border-blue-200">
         <p className="text-sm text-blue-800">
-          <strong>Note:</strong> When opening a dispute, payment for this milestone will be held until a decision is made by the administrator. Please ensure you have attempted to communicate with your partner beforehand.
+          <strong>Note:</strong> Opening a dispute pauses eligible remaining payment processing until an administrator makes a decision. Please ensure you have attempted to communicate with your partner beforehand.
         </p>
       </div>
 

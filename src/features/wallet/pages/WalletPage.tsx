@@ -10,7 +10,7 @@ import { WithdrawModal } from '../components/WithdrawModal';
 import { TransactionTable } from '../components/TransactionTable';
 import { WalletBalanceCard } from '../components/WalletBalanceCard';
 import { SpendingChart } from '../components/SpendingChart';
-import { EscrowInfoCard, StagedPaymentInfoCard } from '../components/EscrowInfoCard';
+import { StagedPaymentInfoCard } from '../components/EscrowInfoCard';
 import { ErrorBoundary } from '@/shared/components/common';
 
 const TRANSACTIONS_PER_PAGE = 10;
@@ -144,8 +144,6 @@ export const WalletPage = () => {
            {isExpert && <WithdrawModal maxBalance={walletBalance} />}
         </div>
       </div>
-
-      <EscrowInfoCard />
 
       <div className="grid w-full grid-cols-1 items-stretch gap-6 xl:grid-cols-[minmax(280px,420px)_minmax(0,1fr)]">
         <div className="min-w-0">
