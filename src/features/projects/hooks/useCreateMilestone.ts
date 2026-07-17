@@ -28,12 +28,12 @@ export const useCreateMilestone = ({ projectId, onSuccess }: UseCreateMilestoneO
       // và milestone list trên Kanban board
       void queryClient.invalidateQueries({ queryKey: ['project', projectId] });
       void queryClient.invalidateQueries({ queryKey: ['project', projectId, 'milestones'] });
-      toast.success('Milestone đã được tạo thành công!');
+      toast.success('Milestone created successfully!');
       onSuccess?.();
     },
     onError: (error: unknown) => {
       const message = (() => {
-        if (typeof error !== 'object' || error === null) return 'Tạo milestone thất bại.';
+        if (typeof error !== 'object' || error === null) return 'Failed to create milestone.';
         const err = error as { response?: { data?: unknown; status?: number } };
         const data = err.response?.data;
         if (typeof data === 'string' && data.trim()) return data;
@@ -43,7 +43,7 @@ export const useCreateMilestone = ({ projectId, onSuccess }: UseCreateMilestoneO
             .find((v): v is string => typeof v === 'string' && v.trim() !== '');
           if (msg) return msg;
         }
-        return error instanceof Error ? error.message : 'Tạo milestone thất bại.';
+        return error instanceof Error ? error.message : 'Failed to create milestone.';
       })();
       toast.error(message);
     },

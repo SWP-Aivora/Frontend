@@ -183,8 +183,8 @@ export const ClientDashboardPage = () => {
                       </div>
                     </div>
                     <Button asChild variant="outline" size="sm" className="rounded-full border-slate-200">
-                      <Link to={project.status === ProjectStatus.PENDING_FUNDING ? `/client/projects/${project.id}/proposals` : `/client/projects/${project.id}/workspace`}>
-                        {project.status === ProjectStatus.PENDING_FUNDING ? 'View Proposals' : 'Workspace'}
+                      <Link to={`/client/projects/${project.id}/workspace`}>
+                        Workspace
                       </Link>
                     </Button>
                   </div>

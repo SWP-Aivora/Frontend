@@ -773,7 +773,7 @@ export const adminService = {
         ),
         status: getStatusLabel(displayStatus),
         amount: getNumberOr(project, 0, 'totalBudget', 'TotalBudget'),
-        paymentStatus: hasZeroNumericValue(getValue(project, 'remainingBudget', 'RemainingBudget')) ? 'Paid' : 'Escrow'
+        paymentStatus: hasZeroNumericValue(getValue(project, 'remainingBudget', 'RemainingBudget')) ? 'Paid' : 'Staged payment'
       };
     });
 

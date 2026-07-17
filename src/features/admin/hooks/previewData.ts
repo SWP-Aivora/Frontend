@@ -26,7 +26,7 @@ export const ADMIN_DASHBOARD_PREVIEW_DATA: DashboardSummary = {
     { role: 'Admin', count: 940, fillPercentage: 8 },
   ],
   transactionSummary: [
-    { type: 'Escrow Funded', amount: 280500 },
+    { type: 'Milestone Funded', amount: 280500 },
     { type: 'Released to Experts', amount: 145000 },
     { type: 'Frozen/Disputed', amount: 25300 },
   ],

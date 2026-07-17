@@ -50,9 +50,9 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
       revieweeId: projectInfo.revieweeId,
       rating: 0,
       comment: '',
-      communicationRating: 5,
-      qualityRating: 5,
-      deadlineRating: 5,
+      communicationRating: null,
+      qualityRating: null,
+      deadlineRating: null,
     },
   });
 
@@ -288,23 +288,28 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
                     { name: 'qualityRating' as const, label: 'Collaboration' },
                     { name: 'deadlineRating' as const, label: 'Timeline' },
                   ].map((item) => (
-                    <div key={item.name} className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-[#4f637d]">{item.label}</span>
-                      <div className="flex items-center gap-3">
-                        <Controller
-                          name={item.name}
-                          control={control}
-                          render={({ field }) => (
-                            <DotRating
-                              value={field.value || 0}
-                              onChange={field.onChange}
-                            />
-                          )}
-                        />
-                        <span className="text-xs font-semibold text-[#123b9e] w-6 text-right">
-                          {watchedValues[item.name]?.toFixed(1) || '0.0'}
-                        </span>
+                    <div key={item.name} className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-[#4f637d]">{item.label}</span>
+                        <div className="flex items-center gap-3">
+                          <Controller
+                            name={item.name}
+                            control={control}
+                            render={({ field }) => (
+                              <DotRating
+                                value={field.value ?? 0}
+                                onChange={field.onChange}
+                              />
+                            )}
+                          />
+                          <span className="text-xs font-semibold text-[#123b9e] w-6 text-right">
+                            {typeof watchedValues[item.name] === 'number' ? watchedValues[item.name]?.toFixed(1) : '--'}
+                          </span>
+                        </div>
                       </div>
+                      {errors[item.name] && (
+                        <p className="text-xs text-red-500">{errors[item.name]?.message}</p>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -327,7 +332,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, proje
                   <div className="space-y-2">
                     <Textarea
                       {...field}
-                      placeholder="The expert delivered a high-quality chatbot and communicated clearly throughout the project..."
+                      placeholder="Share specific feedback about the completed project, collaboration, deliverables, and overall experience..."
                       className="min-h-[116px] rounded-[10px] border-[#c7dbf5] text-[12px] p-4 focus:ring-[#1f6eeb]"
                     />
                     {errors.comment && (

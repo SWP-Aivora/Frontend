@@ -72,7 +72,8 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 };
 
 export const ClientJobProposalsPage = () => {
-  const { id } = useParams();
+  const { jobId, id } = useParams();
+  const resolvedJobId = jobId ?? id;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -83,17 +84,17 @@ export const ClientJobProposalsPage = () => {
   const [acceptedProposalId, setAcceptedProposalId] = useState<string | null>(null);
   // Lấy chi tiết Job hiện tại
   const { data: jobResponse, isLoading: isJobLoading } = useQuery({
-    queryKey: QUERY_KEYS.JOBS.DETAIL(id!),
-    queryFn: () => jobService.getJobById(id!),
-    enabled: !!id,
+    queryKey: QUERY_KEYS.JOBS.DETAIL(resolvedJobId!),
+    queryFn: () => jobService.getJobById(resolvedJobId!),
+    enabled: !!resolvedJobId,
     refetchInterval: REFETCH_INTERVALS.REALTIME_SLOW,
   });
 
   // Lấy danh sách toàn bộ Proposal (Đơn báo giá) của Job này
   const { data: proposalsResponse, isLoading: isProposalsLoading } = useQuery({
-    queryKey: QUERY_KEYS.JOBS.PROPOSALS(id!),
-    queryFn: () => proposalService.getProposalsByJobId(id!),
-    enabled: !!id,
+    queryKey: QUERY_KEYS.JOBS.PROPOSALS(resolvedJobId!),
+    queryFn: () => proposalService.getProposalsByJobId(resolvedJobId!),
+    enabled: !!resolvedJobId,
     staleTime: 0,
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
@@ -105,9 +106,9 @@ export const ClientJobProposalsPage = () => {
     refetch: refetchRecommendations,
     isFetching: isFetchingRecommendations,
   } = useQuery({
-    queryKey: ['jobRecommendations', id],
-    queryFn: () => jobService.getRecommendations(id!),
-    enabled: !!id,
+    queryKey: ['jobRecommendations', resolvedJobId],
+    queryFn: () => jobService.getRecommendations(resolvedJobId!),
+    enabled: !!resolvedJobId,
   });
 
   const job = jobResponse?.data;
@@ -182,11 +183,11 @@ export const ClientJobProposalsPage = () => {
 
   const generateRecommendationsMutation = useMutation({
     mutationFn: () => {
-      if (!id) {
+      if (!resolvedJobId) {
         throw new Error('Job ID is missing');
       }
 
-      return jobService.generateRecommendations(id);
+      return jobService.generateRecommendations(resolvedJobId);
     },
     onSuccess: async () => {
       await refetchRecommendations();
@@ -223,11 +224,11 @@ export const ClientJobProposalsPage = () => {
   >({
     mutationFn: (pid: string) => proposalService.acceptProposal(pid),
     onMutate: async (pid) => {
-      await queryClient.cancelQueries({ queryKey: QUERY_KEYS.JOBS.PROPOSALS(id!) });
-      const previousProposals = queryClient.getQueryData<PaginatedResponse<Proposal>>(QUERY_KEYS.JOBS.PROPOSALS(id!));
+      await queryClient.cancelQueries({ queryKey: QUERY_KEYS.JOBS.PROPOSALS(resolvedJobId!) });
+      const previousProposals = queryClient.getQueryData<PaginatedResponse<Proposal>>(QUERY_KEYS.JOBS.PROPOSALS(resolvedJobId!));
 
       if (previousProposals) {
-        queryClient.setQueryData<PaginatedResponse<Proposal>>(QUERY_KEYS.JOBS.PROPOSALS(id!), {
+        queryClient.setQueryData<PaginatedResponse<Proposal>>(QUERY_KEYS.JOBS.PROPOSALS(resolvedJobId!), {
           ...previousProposals,
           data: (previousProposals.data ?? []).map(proposal =>
             proposal.id === pid
@@ -245,8 +246,8 @@ export const ClientJobProposalsPage = () => {
       setAcceptedProposalId(pid);
 
       void Promise.all([
-        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.JOBS.DETAIL(id!) }),
-        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.JOBS.PROPOSALS(id!) }),
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.JOBS.DETAIL(resolvedJobId!) }),
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.JOBS.PROPOSALS(resolvedJobId!) }),
         queryClient.invalidateQueries({ queryKey: ['clientJobs'] }),
         queryClient.invalidateQueries({ queryKey: ['clientProjects'] }),
       ]);
@@ -260,7 +261,7 @@ export const ClientJobProposalsPage = () => {
     },
     onError: (error, _pid, context) => {
       if (context?.previousProposals) {
-        queryClient.setQueryData(QUERY_KEYS.JOBS.PROPOSALS(id!), context.previousProposals);
+        queryClient.setQueryData(QUERY_KEYS.JOBS.PROPOSALS(resolvedJobId!), context.previousProposals);
       }
       toast.error(getErrorMessage(error, 'Failed to accept proposal'));
     },
@@ -274,11 +275,11 @@ export const ClientJobProposalsPage = () => {
   >({
     mutationFn: (pid: string) => proposalService.rejectProposal(pid),
     onMutate: async (pid) => {
-      await queryClient.cancelQueries({ queryKey: QUERY_KEYS.JOBS.PROPOSALS(id!) });
-      const previousProposals = queryClient.getQueryData<PaginatedResponse<Proposal>>(QUERY_KEYS.JOBS.PROPOSALS(id!));
+      await queryClient.cancelQueries({ queryKey: QUERY_KEYS.JOBS.PROPOSALS(resolvedJobId!) });
+      const previousProposals = queryClient.getQueryData<PaginatedResponse<Proposal>>(QUERY_KEYS.JOBS.PROPOSALS(resolvedJobId!));
 
       if (previousProposals) {
-        queryClient.setQueryData<PaginatedResponse<Proposal>>(QUERY_KEYS.JOBS.PROPOSALS(id!), {
+        queryClient.setQueryData<PaginatedResponse<Proposal>>(QUERY_KEYS.JOBS.PROPOSALS(resolvedJobId!), {
           ...previousProposals,
           data: (previousProposals.data ?? []).map(proposal =>
             proposal.id === pid ? { ...proposal, status: 3 } : proposal // 3 is REJECTED
@@ -290,7 +291,7 @@ export const ClientJobProposalsPage = () => {
     },
     onError: (_err, _pid, context) => {
       if (context?.previousProposals) {
-        queryClient.setQueryData(QUERY_KEYS.JOBS.PROPOSALS(id!), context.previousProposals);
+        queryClient.setQueryData(QUERY_KEYS.JOBS.PROPOSALS(resolvedJobId!), context.previousProposals);
       }
       toast.error('Failed to decline proposal');
     },
@@ -298,7 +299,7 @@ export const ClientJobProposalsPage = () => {
       toast.success('Proposal refused.');
     },
     onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.JOBS.PROPOSALS(id!) });
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.JOBS.PROPOSALS(resolvedJobId!) });
     },
   });
 
@@ -310,11 +311,11 @@ export const ClientJobProposalsPage = () => {
   >({
     mutationFn: (pid: string) => proposalService.shortlistProposal(pid),
     onMutate: async (pid) => {
-      await queryClient.cancelQueries({ queryKey: QUERY_KEYS.JOBS.PROPOSALS(id!) });
-      const previousProposals = queryClient.getQueryData<PaginatedResponse<Proposal>>(QUERY_KEYS.JOBS.PROPOSALS(id!));
+      await queryClient.cancelQueries({ queryKey: QUERY_KEYS.JOBS.PROPOSALS(resolvedJobId!) });
+      const previousProposals = queryClient.getQueryData<PaginatedResponse<Proposal>>(QUERY_KEYS.JOBS.PROPOSALS(resolvedJobId!));
 
       if (previousProposals) {
-        queryClient.setQueryData<PaginatedResponse<Proposal>>(QUERY_KEYS.JOBS.PROPOSALS(id!), {
+        queryClient.setQueryData<PaginatedResponse<Proposal>>(QUERY_KEYS.JOBS.PROPOSALS(resolvedJobId!), {
           ...previousProposals,
           data: (previousProposals.data ?? []).map(proposal =>
             proposal.id === pid ? { ...proposal, status: 1 } : proposal // 1 is SHORTLISTED
@@ -326,7 +327,7 @@ export const ClientJobProposalsPage = () => {
     },
     onError: (_err, _pid, context) => {
       if (context?.previousProposals) {
-        queryClient.setQueryData(QUERY_KEYS.JOBS.PROPOSALS(id!), context.previousProposals);
+        queryClient.setQueryData(QUERY_KEYS.JOBS.PROPOSALS(resolvedJobId!), context.previousProposals);
       }
       toast.error('Failed to shortlist proposal');
     },
@@ -334,7 +335,7 @@ export const ClientJobProposalsPage = () => {
       toast.success('Proposal shortlisted.');
     },
     onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.JOBS.PROPOSALS(id!) });
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.JOBS.PROPOSALS(resolvedJobId!) });
     },
   });
 
@@ -345,11 +346,11 @@ export const ClientJobProposalsPage = () => {
   >({
     mutationFn: (pid: string) => proposalService.unshortlistProposal(pid),
     onMutate: async (pid) => {
-      await queryClient.cancelQueries({ queryKey: QUERY_KEYS.JOBS.PROPOSALS(id!) });
-      const previousProposals = queryClient.getQueryData<PaginatedResponse<Proposal>>(QUERY_KEYS.JOBS.PROPOSALS(id!));
+      await queryClient.cancelQueries({ queryKey: QUERY_KEYS.JOBS.PROPOSALS(resolvedJobId!) });
+      const previousProposals = queryClient.getQueryData<PaginatedResponse<Proposal>>(QUERY_KEYS.JOBS.PROPOSALS(resolvedJobId!));
 
       if (previousProposals) {
-        queryClient.setQueryData<PaginatedResponse<Proposal>>(QUERY_KEYS.JOBS.PROPOSALS(id!), {
+        queryClient.setQueryData<PaginatedResponse<Proposal>>(QUERY_KEYS.JOBS.PROPOSALS(resolvedJobId!), {
           ...previousProposals,
           data: (previousProposals.data ?? []).map(proposal =>
             proposal.id === pid ? { ...proposal, status: 0 } : proposal // 0 is SUBMITTED
@@ -364,7 +365,7 @@ export const ClientJobProposalsPage = () => {
       toast.success('Proposal returned to submitted status.');
     },
     onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.JOBS.PROPOSALS(id!) });
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.JOBS.PROPOSALS(resolvedJobId!) });
     },
   });
 
@@ -400,10 +401,10 @@ export const ClientJobProposalsPage = () => {
     mutationFn: (jobId: string) => jobService.cancelJob(jobId),
     onSuccess: () => {
       toast.success('Cancel job successfully.');
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.JOBS.DETAIL(id!) });
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.JOBS.DETAIL(resolvedJobId!) });
       void queryClient.invalidateQueries({ queryKey: ['clientJobs'] });
       void queryClient.invalidateQueries({ queryKey: ['clientProjects'] });
-      navigate('/client/projects');
+      navigate('/client/job-posts');
     },
     onError: () => toast.error('Failed to cancel job post.'),
   });
@@ -414,20 +415,20 @@ export const ClientJobProposalsPage = () => {
       toast.success('Job post deleted.');
       queryClient.invalidateQueries({ queryKey: ['clientJobs'] });
       queryClient.invalidateQueries({ queryKey: ['clientProjects'] });
-      navigate('/client/projects');
+      navigate('/client/job-posts');
     },
     onError: () => toast.error('Failed to delete job post.'),
   });
 
   const handleCancelJob = () => {
     if (window.confirm('Cancel this job post? Experts will no longer be able to apply.')) {
-      if (id) cancelJobMutation.mutate(id);
+      if (resolvedJobId) cancelJobMutation.mutate(resolvedJobId);
     }
   };
 
   const handleDeleteJob = () => {
     if (window.confirm('Delete this draft job post? This action cannot be undone.')) {
-      if (id) deleteJobMutation.mutate(id);
+      if (resolvedJobId) deleteJobMutation.mutate(resolvedJobId);
     }
   };
 
@@ -445,9 +446,9 @@ export const ClientJobProposalsPage = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="space-y-2">
-           <Link to="/client/projects" className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-primary transition-colors group mb-2">
+           <Link to="/client/job-posts" className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-primary transition-colors group mb-2">
              <ChevronLeft className="size-3 group-hover:-translate-x-1 transition-transform" />
-             My Projects
+             My Job Posts
            </Link>
            <h1 className="text-3xl font-black text-slate-900 tracking-tight">{job?.title}</h1>
            <div className="flex items-center gap-4 text-sm font-medium text-slate-500">
@@ -459,9 +460,9 @@ export const ClientJobProposalsPage = () => {
            </div>
         </div>
         <div className="flex items-center gap-3">
-           {id && (
+           {resolvedJobId && (
              <Button asChild variant="outline" className="rounded-full border-slate-200">
-               <Link to={`/client/post-job?editJobId=${id}`}>Edit Job</Link>
+               <Link to={`/client/post-job?editJobId=${resolvedJobId}`}>Edit Job Post</Link>
              </Button>
            )}
            {normalizeJobStatus(job?.status) === 'published' && (
@@ -603,7 +604,7 @@ export const ClientJobProposalsPage = () => {
                  <div>
                     <h3 className="text-xl font-black mb-2">AI Expert Matching</h3>
                     <p className="text-sm text-blue-100/70 font-medium leading-relaxed">
-                       AIVORA AI can scan submitted proposals and rank experts based on your project requirements and their past performance.
+                       AIVORA AI can scan submitted proposals and rank experts based on your job post requirements and their past performance.
                     </p>
                  </div>
                  
@@ -655,7 +656,7 @@ export const ClientJobProposalsPage = () => {
                 <p className="text-xs font-black uppercase tracking-widest text-primary">AI Expert Matching</p>
                 <h2 id="expert-recommendations-heading" className="mt-1 text-2xl font-black text-slate-900">Expert Recommendations</h2>
                 <p className="mt-2 text-sm font-medium text-slate-500">
-                  Results returned from the job recommendation API for this project.
+                  Results returned from the job recommendation API for this job post.
                 </p>
               </div>
               <Button

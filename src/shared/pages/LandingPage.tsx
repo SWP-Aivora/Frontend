@@ -17,6 +17,19 @@ import { Role, type Role as UserRole } from '@/shared/types/enums';
 const CLIENT_EXPERTS_PATH = '/client/experts';
 const CLIENT_POST_JOB_PATH = '/client/post-job';
 
+const getExpertInitials = (name: string) => {
+  const initials = name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(part => part[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase();
+
+  return initials || 'U';
+};
+
 const getClientFeaturePath = (targetPath: string, isAuthenticated: boolean, role?: UserRole) => {
   if (!isAuthenticated) {
     return '/login';
@@ -39,6 +52,21 @@ const getClientFeaturePath = (targetPath: string, isAuthenticated: boolean, role
   }
 
   return '/';
+};
+
+const LandingFeatureLink: React.FC<{
+  anchor: string;
+  children: React.ReactNode;
+  className?: string;
+  targetPath: string;
+}> = ({ anchor, children, className, targetPath }) => {
+  const { isAuthenticated, user } = useAuthStore();
+
+  if (!isAuthenticated) {
+    return <a href={anchor} className={className}>{children}</a>;
+  }
+
+  return <Link to={getClientFeaturePath(targetPath, isAuthenticated, user?.role)} className={className}>{children}</Link>;
 };
 
 const needsFullNameHydration = (user: ReturnType<typeof useAuthStore.getState>['user']) => {
@@ -87,8 +115,8 @@ const Navbar: React.FC = () => {
           </Link>
           <div className="hidden md:flex items-center gap-5">
             <a href="#top" className="text-[15px] font-medium text-slate-900">Home</a>
-            <a href="#explore-experts" className="text-[15px] font-medium text-slate-600 hover:text-brand-blue-dark transition-colors">Explore Experts</a>
-            <a href="#post-job" className="text-[15px] font-medium text-slate-600 hover:text-brand-blue-dark transition-colors">Post a Job</a>
+            <LandingFeatureLink anchor="#explore-experts" targetPath={CLIENT_EXPERTS_PATH} className="text-[15px] font-medium text-slate-600 hover:text-brand-blue-dark transition-colors">Explore Experts</LandingFeatureLink>
+            <LandingFeatureLink anchor="#post-job" targetPath={CLIENT_POST_JOB_PATH} className="text-[15px] font-medium text-slate-600 hover:text-brand-blue-dark transition-colors">Post a Job</LandingFeatureLink>
             <a href="#about" className="text-[15px] font-medium text-slate-600 hover:text-brand-blue-dark transition-colors">About</a>
           </div>
         </div>
@@ -407,7 +435,7 @@ const Experts: React.FC = () => {
                       {expert.avatarUrl ? (
                         <img src={expert.avatarUrl} alt={expert.fullName} className="w-full h-full object-cover" />
                       ) : (
-                        (expert.fullName || 'U').split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
+                        getExpertInitials(expert.fullName)
                       )}
                     </div>
                     <div className="min-w-0">
@@ -583,8 +611,8 @@ const Footer: React.FC = () => {
             </h4>
             <ul className="space-y-4">
               <li><a href="#top" className="text-slate-500 text-[15px] hover:text-brand-blue-dark transition-colors">Home</a></li>
-              <li><a href="#explore-experts" className="text-slate-500 text-[15px] hover:text-brand-blue-dark transition-colors">Explore Experts</a></li>
-              <li><a href="#post-job" className="text-slate-500 text-[15px] hover:text-brand-blue-dark transition-colors">Post a Job</a></li>
+              <li><LandingFeatureLink anchor="#explore-experts" targetPath={CLIENT_EXPERTS_PATH} className="text-slate-500 text-[15px] hover:text-brand-blue-dark transition-colors">Explore Experts</LandingFeatureLink></li>
+              <li><LandingFeatureLink anchor="#post-job" targetPath={CLIENT_POST_JOB_PATH} className="text-slate-500 text-[15px] hover:text-brand-blue-dark transition-colors">Post a Job</LandingFeatureLink></li>
               <li><a href="#about" className="text-slate-500 text-[15px] hover:text-brand-blue-dark transition-colors">About</a></li>
             </ul>
           </div>
@@ -651,7 +679,7 @@ const AboutSection: React.FC = () => {
               {[
                 { title: 'Trusted Network', desc: 'Every expert on AIVORA undergoes a verification process to ensure technical capability.' },
                 { title: 'Scoped Success', desc: 'Our AI-assisted job builder helps turn vague ideas into structured, executable project descriptions.' },
-                { title: 'Staged Milestone Payments', desc: 'Payments are split into two installments - 30% upfront when work begins, 70% after delivery approval.' }
+                { title: 'Staged Milestone Payments', desc: 'Milestones pay 30% at funding and process the remaining 70% at approval, with a 10% platform commission applied.' }
               ].map((item, i) => (
                 <div key={i} className="flex gap-4">
                   <div className="size-6 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 mt-1">

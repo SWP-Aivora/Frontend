@@ -30,6 +30,7 @@ import { chatService } from '@/features/chat';
 import { walletService } from '@/features/wallet';
 import { CreateDisputeModal } from '@/features/disputes';
 import { disputeService, DisputeStatus } from '@/features/disputes';
+import { useProjectReviews } from '@/features/reviews';
 import { toast } from 'sonner';
 
 const toNumber = (value: unknown): number | null => {
@@ -145,6 +146,17 @@ export const ProjectWorkspacePage = () => {
   const project = projectResponse?.data ?? fallbackProjectsResponse?.data?.find((item) => item.id === id);
   const walletBalance = getWalletBalance(walletResponse?.data);
   const { data: milestonesResponse, isLoading: isLoadingMilestones } = useProjectMilestones(id || '');
+  const shouldLoadProjectReviews = Boolean(
+    id &&
+    project?.status === ProjectStatus.COMPLETED &&
+    user?.role === Role.CLIENT &&
+    user.id === project?.clientId
+  );
+  const {
+    data: projectReviewsResponse,
+    isLoading: isLoadingProjectReviews,
+    isSuccess: isProjectReviewsLoaded,
+  } = useProjectReviews(id || '', 20, 1, shouldLoadProjectReviews);
   const projectMilestones = project?.milestones ?? [];
   const milestones = milestonesResponse?.success === false
     ? projectMilestones
@@ -396,6 +408,15 @@ export const ProjectWorkspacePage = () => {
   const canShowFinishProject = user?.role === Role.CLIENT && user.id === project?.clientId;
   const canRequestFinishProject = !!id && project && project.status !== ProjectStatus.CANCELLED && !hasProjectDispute;
   const canReviewCompletedProject = project?.status === ProjectStatus.COMPLETED;
+  const hasClientReviewedProject = Boolean(
+    isProjectReviewsLoaded &&
+    projectReviewsResponse?.data?.some(review => review.reviewerId === user?.id)
+  );
+  const canOpenCompletedReview = Boolean(
+    canReviewCompletedProject &&
+    isProjectReviewsLoaded &&
+    !hasClientReviewedProject
+  );
   const canOpenProjectDispute = Boolean(
     project
       && (user?.role === Role.CLIENT || user?.role === Role.EXPERT)
@@ -470,6 +491,8 @@ export const ProjectWorkspacePage = () => {
     }
 
     if (canReviewCompletedProject) {
+      if (!canOpenCompletedReview) return;
+
       const reviewState = buildReviewState(project);
       if (!reviewState) {
         toast.error('Unable to prepare review state. Please try again.');
@@ -567,20 +590,30 @@ export const ProjectWorkspacePage = () => {
              </Button>
            )}
            {canShowFinishProject && project && (
-             <Button
-               variant="outline"
-               onClick={handleFinishProject}
-               disabled={!canRequestFinishProject || finishProjectMutation.isPending}
-               className="rounded-full px-6 border-slate-200 font-black"
-               title={!canRequestFinishProject ? 'This project cannot be finished from this state.' : undefined}
-             >
-                {finishProjectMutation.isPending
-                  ? 'Finishing...'
-                  : canReviewCompletedProject
-                    ? 'Leave a Review'
-                    : 'Finish Project'}
-             </Button>
-           )}
+              <Button
+                variant="outline"
+                onClick={handleFinishProject}
+                disabled={
+                  !canRequestFinishProject ||
+                  finishProjectMutation.isPending ||
+                  (canReviewCompletedProject && !canOpenCompletedReview)
+                }
+                className="rounded-full px-6 border-slate-200 font-black"
+                title={!canRequestFinishProject ? 'This project cannot be finished from this state.' : undefined}
+              >
+                 {finishProjectMutation.isPending
+                   ? 'Finishing...'
+                   : canReviewCompletedProject
+                     ? isLoadingProjectReviews
+                       ? 'Checking...'
+                       : hasClientReviewedProject
+                         ? 'Reviewed'
+                         : isProjectReviewsLoaded
+                           ? 'Leave a Review'
+                           : 'Review unavailable'
+                     : 'Finish Project'}
+              </Button>
+            )}
            <Button
              onClick={handleOpenChat}
              disabled={openChatMutation.isPending}
@@ -789,7 +822,7 @@ export const ProjectWorkspacePage = () => {
                      <Button
                        onClick={handleFundMilestone}
                        disabled={fundMutation.isPending || isLoadingWallet}
-                       title="Bấm nút này sẽ chuyển ngay 30% cho Expert"
+                       title="Funding transfers 30% to the Expert immediately"
                        className="flex-1 h-14 rounded-full font-black text-base shadow-xl shadow-primary/20"
                      >
                         {fundMutation.isPending ? 'Funding...' : isLoadingWallet ? 'Checking Wallet...' : 'Fund Milestone'}
@@ -828,7 +861,7 @@ export const ProjectWorkspacePage = () => {
                       <CheckCircle2 className="size-6 shrink-0" />
                       <div>
                          <p className="font-black text-sm uppercase">Milestone Completed</p>
-                         <p className="text-xs font-bold opacity-80">Payment of {selectedMilestone.amount?.toLocaleString()} Aivora Coin has been released.</p>
+                         <p className="text-xs font-bold opacity-80">30% was transferred at funding; approval processed the remaining 70% with the 10% platform commission applied.</p>
                       </div>
                    </div>
                  )}

@@ -5,14 +5,12 @@ import { cn } from '@/lib/utils';
 import { useMemo, useState } from 'react';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { projectService } from '@/features/projects/services';
 import { jobService } from '@/features/jobs/services';
 import { proposalService } from '@/features/proposals/services';
 import type { Job } from '@/features/jobs/types';
-import { ProjectStatus } from '@/shared/types/enums';
 import { QUERY_KEYS, REFETCH_INTERVALS } from '@/shared/constants';
 
-type StatusFilter = 'all' | 'draft' | 'open' | 'in-progress' | 'completed';
+type StatusFilter = 'all' | 'draft' | 'open' | 'in-progress' | 'completed' | 'cancelled';
 type SortOrder = 'newest' | 'oldest';
 
 const normalizeJobStatus = (status: unknown): StatusFilter | 'cancelled' => {
@@ -33,10 +31,7 @@ const normalizeJobStatus = (status: unknown): StatusFilter | 'cancelled' => {
 };
 
 const canEditJobPost = (status: StatusFilter | 'cancelled') => status === 'draft' || status === 'open';
-
-const normalizeProjectStatusForJobCard = (status: ProjectStatus): Extract<StatusFilter, 'in-progress' | 'completed'> => (
-  status === ProjectStatus.COMPLETED ? 'completed' : 'in-progress'
-);
+const isProposalOnlyJobPost = (status: StatusFilter | 'cancelled') => status === 'in-progress' || status === 'completed';
 
 const getJobBudgetLabel = (job: Job) => {
   const min = job.budgetMin ?? 0;
@@ -49,9 +44,10 @@ const getJobBudgetLabel = (job: Job) => {
   return `${min.toLocaleString()} - ${max.toLocaleString()} Aivora Coin`;
 };
 
-export const MyProjectsPage = () => {
+export const MyJobPostsPage = () => {
   const [filter, setFilter] = useState<StatusFilter>('all');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
   const queryClient = useQueryClient();
 
@@ -85,18 +81,12 @@ export const MyProjectsPage = () => {
     }
   };
 
-  const { data: projectsResponse, isLoading: isLoadingProjects } = useQuery({
-    queryKey: ['clientProjects'],
-    queryFn: () => projectService.getProjects({ PageSize: 100 }),
-  });
-
   const { data: jobsResponse, isLoading: isLoadingJobs } = useQuery({
     queryKey: ['clientJobs'],
     queryFn: () => jobService.getMyJobs({ PageSize: 100 }),
   });
 
   const jobs = useMemo(() => jobsResponse?.data || [], [jobsResponse?.data]);
-  const projects = useMemo(() => projectsResponse?.data || [], [projectsResponse?.data]);
 
   const proposalCountQueries = useQueries({
     queries: jobs.map(job => ({
@@ -108,37 +98,33 @@ export const MyProjectsPage = () => {
     })),
   });
 
-  const isLoading = isLoadingProjects || isLoadingJobs;
+  const isLoading = isLoadingJobs;
 
   const displayJobs = useMemo(() => {
     return jobs.map((job, index) => {
-      const project = projects.find(item => item.jobId === job.id);
-      const status = project ? normalizeProjectStatusForJobCard(project.status) : normalizeJobStatus(job.status);
+      const status = normalizeJobStatus(job.status);
       const proposalCount = proposalCountQueries[index]?.data?.data?.length ?? 0;
 
       return {
         id: job.id,
         title: job.title,
         status,
-        createdAt: project?.createdAt || job.createdAt,
-        createdAtLabel: new Date(project?.createdAt || job.createdAt).toLocaleDateString(),
+        createdAt: job.createdAt,
+        createdAtLabel: new Date(job.createdAt).toLocaleDateString(),
         budget: getJobBudgetLabel(job),
         proposals: proposalCount,
         domain: job.businessDomain || 'General',
-        expertName: project?.expertName || project?.expert?.fullName || '',
-        projectId: project?.id,
       };
-    })
-    .filter(job => job.status !== 'cancelled');
-  }, [jobs, projects, proposalCountQueries]);
+    });
+  }, [jobs, proposalCountQueries]);
 
-  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const normalizedSearch = appliedSearchTerm.trim().toLowerCase();
   const filteredJobs = useMemo(() => (
     displayJobs
       .filter(job => filter === 'all' || job.status === filter)
       .filter(job => (
         normalizedSearch.length === 0 ||
-        [job.title, job.expertName].some(value => value.toLowerCase().includes(normalizedSearch))
+        [job.title, job.domain].some(value => value.toLowerCase().includes(normalizedSearch))
       ))
       .sort((a, b) => {
         const aTime = new Date(a.createdAt).getTime();
@@ -157,6 +143,8 @@ export const MyProjectsPage = () => {
         return { label: 'In Progress', color: 'text-amber-600 bg-amber-50', icon: Clock3 };
       case 'completed':
         return { label: 'Completed', color: 'text-brand-success bg-brand-success/10', icon: CheckCircle2 };
+      case 'cancelled':
+        return { label: 'Cancelled', color: 'text-rose-600 bg-rose-50', icon: FileText };
       default:
         return { label: 'Unknown', color: 'text-slate-500 bg-slate-100', icon: FileText };
     }
@@ -175,8 +163,8 @@ export const MyProjectsPage = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">My Projects</h1>
-          <p className="text-slate-500 font-medium mt-1">Manage your job postings, proposals, and active contracts.</p>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">My Job Posts</h1>
+          <p className="text-slate-500 font-medium mt-1">Manage your drafts, open job posts, and proposal activity.</p>
         </div>
         <Button asChild className="rounded-full px-6 shadow-lg shadow-primary/20">
           <Link to="/client/post-job" className="flex items-center gap-2">
@@ -189,7 +177,7 @@ export const MyProjectsPage = () => {
       {/* Toolbar */}
       <div className="bg-white border border-slate-100 rounded-lg p-2 flex flex-col md:flex-row gap-4 justify-between items-center shadow-sm relative z-10">
         <div className="flex items-center gap-2 p-1 overflow-x-auto w-full md:w-auto scrollbar-hide">
-          {(['all', 'draft', 'open', 'in-progress', 'completed'] as StatusFilter[]).map((status) => (
+          {(['all', 'draft', 'open', 'in-progress', 'completed', 'cancelled'] as StatusFilter[]).map((status) => (
             <button
               key={status}
               onClick={() => setFilter(status)}
@@ -209,12 +197,20 @@ export const MyProjectsPage = () => {
              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
              <input 
                type="text" 
-               placeholder="Search by project or expert..." 
-               value={searchTerm}
-               onChange={(event) => setSearchTerm(event.target.value)}
+               placeholder="Search by job post or domain..." 
+               value={searchInput}
+               onChange={(event) => setSearchInput(event.target.value)}
                className="w-full h-10 pl-9 pr-4 rounded-lg bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm transition-all"
              />
           </div>
+          <Button
+            type="button"
+            onClick={() => setAppliedSearchTerm(searchInput)}
+            className="h-10 rounded-lg px-5 font-black"
+          >
+            <Search className="mr-2 size-4" />
+            Search
+          </Button>
           <select
             value={sortOrder}
             onChange={(event) => setSortOrder(event.target.value as SortOrder)}
@@ -253,7 +249,7 @@ export const MyProjectsPage = () => {
                   <div>
                     <h3 className="text-xl font-black text-slate-900 group-hover:text-primary transition-colors">
                       <Link
-                        to={job.projectId ? `/client/projects/${job.projectId}/workspace` : `/client/post-job?editJobId=${job.id}`}
+                        to={isProposalOnlyJobPost(job.status) ? `/client/job-posts/${job.id}/proposals` : `/client/post-job?editJobId=${job.id}`}
                         className="inline-block hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm"
                       >
                         {job.title}
@@ -286,28 +282,11 @@ export const MyProjectsPage = () => {
                   </div>
                   <div className="flex flex-col gap-2 w-full md:w-auto">
                     <Button asChild variant="ghost" className="rounded-full bg-slate-50 hover:bg-primary hover:text-white group/btn">
-                      <Link to={`/client/projects/${job.id}/proposals`}>
+                      <Link to={`/client/job-posts/${job.id}/proposals`}>
                         View Proposals
                         <Eye className="size-4 ml-1" />
                       </Link>
                     </Button>
-                    {(job.status === 'in-progress' || job.status === 'completed') && (
-                      <Button
-                        asChild={!!job.projectId}
-                        variant="ghost"
-                        disabled={!job.projectId}
-                        className="rounded-full bg-slate-50 hover:bg-primary hover:text-white group/btn disabled:opacity-50"
-                      >
-                        {job.projectId ? (
-                          <Link to={`/client/projects/${job.projectId}/workspace`}>
-                            Enter Workspace
-                            <ChevronRight className="size-4 ml-1 group-hover/btn:translate-x-1 transition-transform" />
-                          </Link>
-                        ) : (
-                          <span>Workspace Pending</span>
-                        )}
-                      </Button>
-                    )}
                     {job.status === 'draft' && (
                       <Button
                         variant="ghost"
@@ -341,7 +320,7 @@ export const MyProjectsPage = () => {
                <FileText className="size-8 text-slate-300" />
             </div>
             <h3 className="text-xl font-black text-slate-900 mb-2">No job posts found</h3>
-            <p className="text-slate-500 font-medium max-w-sm mb-6">You don't have any job posts matching this status.</p>
+            <p className="text-slate-500 font-medium max-w-sm mb-6">You don't have any job posts matching this view.</p>
             <Button asChild className="rounded-full shadow-lg shadow-primary/20">
               <Link to="/client/post-job">Post Your First Job</Link>
             </Button>
@@ -351,3 +330,5 @@ export const MyProjectsPage = () => {
     </div>
   );
 };
+
+export const MyProjectsPage = MyJobPostsPage;

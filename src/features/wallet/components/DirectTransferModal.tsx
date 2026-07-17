@@ -120,7 +120,7 @@ export const DirectTransferModal = ({ recipientId, recipientName }: DirectTransf
                   Direct Transfer
                 </Dialog.Title>
                 <Dialog.Description className="text-xs text-slate-500">
-                  Send Aivora Coin directly to the expert outside Escrow.
+                  Send Aivora Coin directly to the expert outside the normal milestone workflow.
                 </Dialog.Description>
               </div>
             </div>
@@ -136,7 +136,7 @@ export const DirectTransferModal = ({ recipientId, recipientName }: DirectTransf
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3 text-xs text-amber-800 my-2">
             <AlertTriangle className="size-5 text-amber-600 shrink-0 mt-0.5" />
             <div>
-              <span className="font-bold">Escrow Protection Warning:</span> This transfer sends funds directly and bypasses AIVORA Escrow protection. The funds will be credited to the expert's wallet immediately and <span className="font-bold underline">cannot be refunded through a dispute</span>.
+              <span className="font-bold">Direct Transfer Notice:</span> This transfer is separate from milestone tracking, Client approval, disputes, and staged-payment protections. The funds will be credited to the expert's wallet immediately and <span className="font-bold underline">cannot be refunded through a milestone dispute</span>.
             </div>
           </div>
 

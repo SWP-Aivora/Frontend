@@ -28,6 +28,19 @@ const getExpertSkills = (expert: ExpertProfileResponse): string[] => (
   expert.skills?.map((skill) => skill.skillName).filter(Boolean) ?? []
 );
 
+const getExpertInitials = (name: string) => {
+  const initials = name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(part => part[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase();
+
+  return initials || 'U';
+};
+
 const matchesExperience = (years: number, filter: ExperienceFilter) => {
   if (filter === 'all') return true;
   if (filter === '1-2') return years >= 1 && years <= 2;
@@ -235,7 +248,7 @@ export const SearchExpertsPage = () => {
                           {expert.avatarUrl ? (
                             <img src={expert.avatarUrl} alt={name} className="size-full object-cover" />
                           ) : (
-                            <span className="text-xl font-black text-primary">{name.charAt(0)}</span>
+                            <span className="text-xl font-black text-primary">{getExpertInitials(name)}</span>
                           )}
                         </div>
                         <div>

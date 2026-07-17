@@ -28,7 +28,8 @@ export interface NavItem {
 export const NAV_ITEMS: Record<string, NavItem[]> = {
   [Role.CLIENT]: [
     { label: 'Dashboard', href: '/client', icon: LayoutDashboard },
-    { label: 'My Projects', href: '/client/projects', icon: FileText },
+    { label: 'My Job Posts', href: '/client/job-posts', icon: FileText },
+    { label: 'My Projects', href: '/client/projects', icon: Briefcase },
     { label: 'Find Experts', href: '/client/experts', icon: Search },
     { label: 'Post a Job', href: '/client/post-job', icon: PlusCircle },
     { label: 'Messages', href: '/client/messages', icon: MessageSquare },

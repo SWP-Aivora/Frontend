@@ -50,9 +50,15 @@ vi.mock('../../../../features/jobs/components/AiChatPanel', () => ({
   AiChatPanel: () => <div data-testid="ai-chat-panel">AiChatPanel</div>,
 }));
 vi.mock('../../../../features/jobs/components/JobDraftForm', () => ({
-  JobDraftForm: ({ onAccept, onReject }: any) => (
+  JobDraftForm: ({ onAccept, onReject, onSaveDraft, onSkillChange }: any) => (
     <div data-testid="job-draft-form">
       JobDraftForm
+      <button data-testid="mock-skill-btn" onClick={() => onSkillChange('skill-1')}>
+        Select Skill
+      </button>
+      <button data-testid="mock-save-btn" onClick={onSaveDraft}>
+        Save
+      </button>
       <button data-testid="mock-accept-btn" onClick={onAccept}>
         Continue to Review
       </button>
@@ -133,10 +139,10 @@ describe('PostJobPage query invalidation on mutation success', () => {
     invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
   });
 
-  const renderComponent = () => {
+  const renderComponent = (initialEntries: string[] = ['/client/post-job']) => {
     return render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
+        <MemoryRouter initialEntries={initialEntries}>
           <PostJobPage />
         </MemoryRouter>
       </QueryClientProvider>
@@ -205,10 +211,10 @@ describe('PostJobPage AI suggestion rejection flow', () => {
     queryClient = new QueryClient();
   });
 
-  const renderComponent = () => {
+  const renderComponent = (initialEntries: string[] = ['/client/post-job']) => {
     return render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
+        <MemoryRouter initialEntries={initialEntries}>
           <PostJobPage />
         </MemoryRouter>
       </QueryClientProvider>
@@ -310,10 +316,10 @@ describe('PostJobPage publish confirmation flow', () => {
     } as any);
   });
 
-  const renderComponent = () => {
+  const renderComponent = (initialEntries: string[] = ['/client/post-job']) => {
     return render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
+        <MemoryRouter initialEntries={initialEntries}>
           <PostJobPage />
         </MemoryRouter>
       </QueryClientProvider>
@@ -327,9 +333,50 @@ describe('PostJobPage publish confirmation flow', () => {
     });
 
     act(() => {
+      view.getByTestId('mock-skill-btn').click();
+    });
+
+    act(() => {
       view.getByTestId('mock-accept-btn').click();
     });
   };
+
+  it('blocks saving an in-progress job post opened directly in the editor', async () => {
+    vi.mocked(jobService.getJobById).mockResolvedValue({
+      data: {
+        id: 'locked-job',
+        clientId: 'client-1',
+        title: 'Locked Job Post',
+        originalDescription: 'Original requirements',
+        finalDescription: 'Final requirements',
+        businessDomain: 'Education',
+        expectedOutcome: 'Delivered content',
+        categoryId: 'cat-1',
+        categoryName: 'Education',
+        budgetType: 0,
+        budgetMin: 100,
+        budgetMax: 200,
+        currency: 'Xu',
+        timelineDays: 14,
+        experienceLevel: 3,
+        status: 2,
+        skills: [{ id: 'skill-1', name: 'Writing' }],
+        milestones: [],
+        createdAt: '2026-07-15T00:00:00.000Z',
+      },
+      message: 'Success',
+      success: true,
+      statusCode: 200,
+    } as any);
+
+    const view = renderComponent(['/client/post-job?editJobId=locked-job']);
+
+    const saveButton = await view.findByTestId('mock-save-btn');
+    fireEvent.click(saveButton);
+
+    expect(toast.error).toHaveBeenCalledWith("This job post can't be edited in its current status.");
+    expect(jobService.updateJob).not.toHaveBeenCalled();
+  });
 
   it('opens a custom publish modal instead of the native browser confirm', () => {
     const confirmSpy = vi.spyOn(window, 'confirm');
@@ -337,10 +384,10 @@ describe('PostJobPage publish confirmation flow', () => {
     moveToReviewStep(view);
 
     act(() => {
-      fireEvent.click(view.getByText('Publish Project'));
+      fireEvent.click(view.getByText('Publish Job Post'));
     });
 
-    expect(view.getByText('Publish this project?')).toBeDefined();
+    expect(view.getByText('Publish this job post?')).toBeDefined();
     expect(view.getByText('Cancel')).toBeDefined();
     expect(view.getByText('Publish')).toBeDefined();
     expect(confirmSpy).not.toHaveBeenCalled();
@@ -353,13 +400,13 @@ describe('PostJobPage publish confirmation flow', () => {
     moveToReviewStep(view);
 
     act(() => {
-      fireEvent.click(view.getByText('Publish Project'));
+      fireEvent.click(view.getByText('Publish Job Post'));
     });
     act(() => {
       fireEvent.click(view.getByText('Cancel'));
     });
 
-    expect(view.queryByText('Publish this project?')).toBeNull();
+    expect(view.queryByText('Publish this job post?')).toBeNull();
     expect(jobService.publishJob).not.toHaveBeenCalled();
     expect(jobService.updateJob).not.toHaveBeenCalled();
   });
@@ -369,7 +416,7 @@ describe('PostJobPage publish confirmation flow', () => {
     moveToReviewStep(view);
 
     act(() => {
-      fireEvent.click(view.getByText('Publish Project'));
+      fireEvent.click(view.getByText('Publish Job Post'));
     });
     act(() => {
       fireEvent.click(view.getByText('Publish'));
@@ -378,7 +425,7 @@ describe('PostJobPage publish confirmation flow', () => {
     await waitFor(() => {
       expect(jobService.acceptAiJobSuggestion).toHaveBeenCalledWith('suggest-123', {
         categoryId: 'cat-1',
-        selectedSkillIds: [],
+        selectedSkillIds: ['skill-1'],
       });
       expect(jobService.updateJob).toHaveBeenCalledWith(
         'job-123',

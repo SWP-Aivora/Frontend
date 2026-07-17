@@ -4,7 +4,8 @@ import { RegisterPage } from '../features/auth/pages/RegisterPage';
 import { ProfilePage } from '../features/profiles/pages/ProfilePage';
 import { ServiceGeneratorPage } from '../features/profiles/pages/ServiceGeneratorPage';
 import { PostJobPage } from '../features/jobs/pages/PostJobPage';
-import { MyProjectsPage } from '../features/jobs/pages/MyProjectsPage';
+import { MyJobPostsPage } from '../features/jobs/pages/MyJobPostsPage';
+import { ClientProjectsPage } from '../features/projects/pages/ClientProjectsPage';
 import { ClientJobProposalsPage } from '../features/proposals/pages/ClientJobProposalsPage';
 import { ProposalDetailsPage } from '../features/proposals/pages/ProposalDetailsPage';
 import { FindWorkPage } from '../features/jobs/pages/FindWorkPage';
@@ -27,6 +28,7 @@ import { AdminCategoriesPage } from '../features/admin/pages/AdminCategoriesPage
 import { AdminSkillsPage } from '../features/admin/pages/AdminSkillsPage';
 import { NotificationsPage } from '../features/notifications';
 import { LandingPage } from '../shared/pages/LandingPage';
+import { NotFoundPage } from '../shared/pages/NotFoundPage';
 import ReviewPage from '../features/reviews/pages/ReviewPage';
 import { ExpertPublicProfilePage } from '../features/profiles/pages/ExpertPublicProfilePage';
 import { SearchExpertsPage } from '../features/profiles/pages/SearchExpertsPage';
@@ -46,6 +48,12 @@ import { Role } from '../shared/types/enums';
 const ProposalCreateRouteRedirect = () => {
   const { jobId } = useParams();
   return <Navigate to={`/expert/jobs/${jobId ?? ''}`} replace />;
+};
+
+// eslint-disable-next-line react-refresh/only-export-components
+const LegacyClientJobProposalsRedirect = () => {
+  const { id } = useParams();
+  return <Navigate to={`/client/job-posts/${id ?? ''}/proposals`} replace />;
 };
 
 export const router = createBrowserRouter([
@@ -93,8 +101,10 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <ClientDashboardPage /> },
       { path: 'profile', element: <ProfilePage /> },
-      { path: 'projects', element: <MyProjectsPage /> },
-      { path: 'projects/:id/proposals', element: <ClientJobProposalsPage /> },
+      { path: 'job-posts', element: <MyJobPostsPage /> },
+      { path: 'job-posts/:jobId/proposals', element: <ClientJobProposalsPage /> },
+      { path: 'projects', element: <ClientProjectsPage /> },
+      { path: 'projects/:id/proposals', element: <LegacyClientJobProposalsRedirect /> },
       { path: 'proposals/:proposalId', element: <ProposalDetailsPage /> },
       { path: 'projects/:id/workspace', element: <ProjectWorkspacePage /> },
       { path: 'projects/:id/disputes', element: <ProjectDisputesPage /> },
@@ -169,6 +179,6 @@ export const router = createBrowserRouter([
   },
   {
     path: '*',
-    element: <Navigate to="/" replace />,
+    element: <NotFoundPage />,
   },
 ]);

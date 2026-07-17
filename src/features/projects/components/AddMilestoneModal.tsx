@@ -71,16 +71,16 @@ export const AddMilestoneModal = ({ isOpen, projectId, onClose }: AddMilestoneMo
         <div className="flex items-center justify-between mb-6">
           <div>
             <h3 id="add-milestone-modal-title" className="text-2xl font-black text-slate-900">
-              Thêm Milestone Mới
+              Add New Milestone
             </h3>
             <p className="text-sm text-slate-500 mt-1">
-              Milestone mới sẽ được thêm vào dự án ở trạng thái <span className="font-bold">Backlog</span>.
+              The new milestone will be added to the project in <span className="font-bold">Backlog</span>.
             </p>
           </div>
           <button
             type="button"
             onClick={handleClose}
-            aria-label="Đóng modal"
+            aria-label="Close modal"
             className="size-10 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 hover:text-slate-900 transition-colors shrink-0"
           >
             <X className="size-5" />
@@ -92,12 +92,12 @@ export const AddMilestoneModal = ({ isOpen, projectId, onClose }: AddMilestoneMo
             {/* Title */}
             <div>
               <label htmlFor="milestone-title" className="block text-xs font-bold text-slate-700 mb-1">
-                Tên Milestone <span className="text-rose-500">*</span>
+                Milestone Title <span className="text-rose-500">*</span>
               </label>
               <input
                 id="milestone-title"
                 type="text"
-                placeholder="VD: Xây dựng module đăng nhập"
+                placeholder="Example: Build login module"
                 className="w-full rounded-lg border border-slate-200 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition"
                 {...register('title')}
               />
@@ -111,12 +111,12 @@ export const AddMilestoneModal = ({ isOpen, projectId, onClose }: AddMilestoneMo
             {/* Description */}
             <div>
               <label htmlFor="milestone-description" className="block text-xs font-bold text-slate-700 mb-1">
-                Mô tả
+                Description
               </label>
               <textarea
                 id="milestone-description"
                 rows={3}
-                placeholder="Mô tả ngắn về milestone này..."
+                placeholder="Briefly describe this milestone..."
                 className="w-full rounded-lg border border-slate-200 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition resize-none"
                 {...register('description')}
               />
@@ -128,7 +128,7 @@ export const AddMilestoneModal = ({ isOpen, projectId, onClose }: AddMilestoneMo
                 <label htmlFor="milestone-amount" className="block text-xs font-bold text-slate-700 mb-1">
                   <span className="flex items-center gap-1">
                     <DollarSign className="size-3 text-emerald-600" />
-                    Số tiền (Aivora Coin) <span className="text-rose-500">*</span>
+                    Amount (Aivora Coin) <span className="text-rose-500">*</span>
                   </span>
                 </label>
                 <input
@@ -136,7 +136,7 @@ export const AddMilestoneModal = ({ isOpen, projectId, onClose }: AddMilestoneMo
                   type="number"
                   min={1}
                   step="any"
-                  placeholder="VD: 500"
+                  placeholder="Example: 500"
                   className="w-full rounded-lg border border-slate-200 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition"
                   {...register('amount', { valueAsNumber: true })}
                 />
@@ -166,12 +166,12 @@ export const AddMilestoneModal = ({ isOpen, projectId, onClose }: AddMilestoneMo
             {/* Acceptance Criteria */}
             <div>
               <label htmlFor="milestone-criteria" className="block text-xs font-bold text-slate-700 mb-1">
-                Tiêu chí hoàn thành
+                Acceptance Criteria
               </label>
               <textarea
                 id="milestone-criteria"
                 rows={3}
-                placeholder="Mỗi tiêu chí trên một dòng, VD:&#10;Login thành công&#10;Session được lưu trữ&#10;Không có bug P1"
+                placeholder="One criterion per line, for example:&#10;Login works successfully&#10;Session is persisted&#10;No P1 bugs"
                 className="w-full rounded-lg border border-slate-200 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition resize-none"
                 {...register('acceptanceCriteria')}
               />
@@ -187,7 +187,7 @@ export const AddMilestoneModal = ({ isOpen, projectId, onClose }: AddMilestoneMo
               disabled={isPending}
               className="rounded-full font-bold px-5"
             >
-              Hủy
+              Cancel
             </Button>
             <Button
               type="submit"
@@ -195,7 +195,7 @@ export const AddMilestoneModal = ({ isOpen, projectId, onClose }: AddMilestoneMo
               className="rounded-full font-black px-6 shadow-lg shadow-primary/20 flex items-center gap-2"
             >
               <PlusCircle className="size-4" />
-              {isPending ? 'Đang tạo...' : 'Tạo Milestone'}
+              {isPending ? 'Creating...' : 'Create Milestone'}
             </Button>
           </div>
         </form>

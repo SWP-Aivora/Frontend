@@ -27,12 +27,6 @@ const formatProjectBudget = (project?: Project | null): string => {
   return `${project.totalBudget.toLocaleString()} ${project.currency || 'Aivora Coin'}`;
 };
 
-const formatSuccessRate = (value?: number | null): number => {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return 0;
-  const percent = value > 0 && value <= 1 ? value * 100 : value;
-  return Math.round(Math.max(0, Math.min(100, percent)));
-};
-
 export const ExpertPublicProfilePage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -125,7 +119,6 @@ export const ExpertPublicProfilePage = () => {
   const modalProject = selectedProjectResponse?.data ?? selectedCompletedProject;
   const completedProjectCount = projectsResponse?.metadata?.totalCount || profile?.completedProjects || displayProjects.length;
   const totalReviewCount = profile?.totalReviews ?? displayReviews.length;
-  const projectCompletionRate = formatSuccessRate(profile?.successRate);
   const availabilityStatus = profile?.availabilityStatus;
   const availabilityLabel = availabilityStatus === AvailabilityStatus.BUSY
     ? 'Busy'
@@ -219,7 +212,7 @@ export const ExpertPublicProfilePage = () => {
           <div className="h-px w-full bg-gradient-to-r from-transparent via-blue-200/50 to-transparent my-8" />
           
           {/* Stats Block */}
-          <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-blue-100/50 relative z-10">
+          <div className="grid grid-cols-2 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-blue-100/50 relative z-10">
             <div className="p-4 md:p-6 text-center">
               <div className="flex items-center justify-center gap-1 text-2xl font-bold text-brand-dark mb-1">
                 <Star className="w-5 h-5 text-amber-400 fill-amber-400" /> {rating.toFixed(1)}
@@ -233,10 +226,6 @@ export const ExpertPublicProfilePage = () => {
             <div className="p-4 md:p-6 text-center">
               <div className="text-2xl font-bold text-brand-dark mb-1">{totalReviewCount}</div>
               <div className="text-xs font-medium text-brand-muted uppercase tracking-wider">Reviews</div>
-            </div>
-            <div className="p-4 md:p-6 text-center">
-              <div className="text-2xl font-bold text-brand-dark mb-1">{projectCompletionRate}%</div>
-              <div className="text-xs font-medium text-brand-muted uppercase tracking-wider">Project Completion</div>
             </div>
           </div>
         </div>
@@ -327,7 +316,7 @@ export const ExpertPublicProfilePage = () => {
               <h3 className="text-xs font-bold text-brand-primary uppercase tracking-wider mb-6">Client Reviews & Rating Summary</h3>
               
               {/* Rating Overview Grid */}
-              <div className={`grid grid-cols-1 md:grid-cols-3 gap-6 ${displayReviews.length > 0 ? 'pb-6 border-b border-slate-100 mb-6' : ''}`}>
+              <div className={`grid grid-cols-1 gap-6 ${displayReviews.length > 0 ? 'pb-6 border-b border-slate-100 mb-6' : ''}`}>
                 <div className="flex flex-col items-center md:items-start justify-center p-5 bg-slate-50/50 rounded-xl border border-slate-100/60 shrink-0">
                   <div className="flex items-baseline gap-1.5 mb-1">
                     <span className="text-4xl font-extrabold text-slate-900">{rating.toFixed(1)}</span>
@@ -345,24 +334,6 @@ export const ExpertPublicProfilePage = () => {
                     })}
                   </div>
                   <span className="text-xs text-brand-secondary font-medium">Based on {totalReviewCount} reviews</span>
-                </div>
-
-                <div className="col-span-2 flex flex-col justify-center space-y-4">
-                  <div>
-                    <div className="flex justify-between items-center mb-1.5">
-                      <span className="text-xs font-bold text-slate-700">Project Completion Rate</span>
-                      <span className="text-xs font-bold text-brand-primary">{projectCompletionRate}%</span>
-                    </div>
-                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-brand-primary rounded-full transition-all duration-500" 
-                        style={{ width: `${Math.max(0, Math.min(100, projectCompletionRate))}%` }} 
-                      />
-                    </div>
-                  </div>
-                  <p className="text-xs text-brand-secondary leading-relaxed">
-                    The completion rate represents this expert's completed project success rate from their profile record.
-                  </p>
                 </div>
               </div>
 

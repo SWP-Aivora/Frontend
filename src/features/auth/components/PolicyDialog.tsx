@@ -54,15 +54,15 @@ AIVORA may record payment provider callback data, transaction references, paymen
 
 Wallet credits, demo deposits, or test balances may be limited to platform testing or demonstration purposes and may not represent withdrawable cash value unless AIVORA expressly states otherwise.
 
-5. Milestone Funding and Held Payments
+5. Milestone Funding and Staged Payments
 
 AIVORA allows Clients to create and fund project milestones. Each milestone may include a title, description, acceptance criteria, amount, currency, due date, order, and status.
 
-When a Client funds a milestone, the funded amount is held for that milestone. The amount is not immediately released to the Expert.
+When a Client funds a milestone, 30% of the milestone amount is transferred to the Expert immediately so work can begin.
 
-Held funds help confirm that the Client has reserved the required amount and that the Expert can work with payment security.
+The remaining 70% is processed when the Client approves the submitted deliverable, subject to the platform commission model.
 
-The funded amount remains held until the milestone is submitted by the Expert and approved by the Client, released by an authorized platform process, refunded, split, returned for revision, or otherwise resolved through the dispute process.
+A platform commission equal to 10% of the total milestone amount is applied, so the Expert receives 90% of the total milestone amount overall.
 
 6. Deliverables, Review, and Payment Release
 
@@ -70,7 +70,7 @@ Experts may submit deliverables for funded milestones through the platform. Deli
 
 Clients are responsible for reviewing submitted deliverables against the agreed milestone scope and acceptance criteria.
 
-If the Client approves the deliverable, the milestone may be marked approved or completed, and AIVORA may release the held milestone amount to the Expert.
+If the Client approves the deliverable, the milestone may be marked approved or completed, and AIVORA processes the remaining milestone payment according to the staged-payment model.
 
 Once a milestone has been approved and payment has been released, the release is generally final for that milestone, except where applicable law, payment provider rules, fraud review, chargeback handling, or platform administrative review requires otherwise.
 
@@ -86,19 +86,19 @@ Experts should respond to reasonable revision requests in good faith and within 
 
 A dispute may be opened only when the relevant project or milestone is still active, funded, submitted, under review, disputed, or otherwise not finally completed.
 
-A dispute generally cannot be opened after the milestone has already been approved by the Client and the held payment has been released to the Expert through the normal completion process.
+A dispute generally cannot be opened after the milestone has already been approved by the Client and the remaining milestone payment has been processed through the normal completion process.
 
 Disputes should be used only when there is a genuine disagreement about the milestone scope, acceptance criteria, submitted deliverable, payment release, refund, or performance of the agreed work.
 
 During a dispute, AIVORA may review relevant account information, project records, milestone details, payment records, deliverables, dispute reasons, descriptions, messages, notifications, and other platform records.
 
-AIVORA administrators may resolve a dispute by releasing all or part of the held funds to the Expert, refunding all or part of the held funds to the Client, splitting the funds, requesting revision, closing the dispute, or taking another action supported by the platform and applicable rules.
+AIVORA administrators may resolve a dispute by processing all or part of the remaining milestone balance, refunding all or part of an eligible balance to the Client, splitting funds, requesting revision, closing the dispute, or taking another action supported by the platform and applicable rules.
 
 9. Refunds, Withdrawals, and Chargebacks
 
-Refunds may be available when funds are still held and have not yet been released to the Expert.
+Refunds may be available for eligible milestone balances that have not yet been processed to the Expert.
 
-If a dispute results in a refund decision, AIVORA may return all or part of the held milestone amount to the Client depending on the dispute outcome.
+If a dispute results in a refund decision, AIVORA may return all or part of an eligible milestone balance to the Client depending on the dispute outcome.
 
 After a milestone has been approved and payment has been released to the Expert, refunds for that milestone are generally not available through the standard dispute process.
 
@@ -260,13 +260,13 @@ AIVORA may disclose information if required by law, regulation, legal process, p
 
 4. Milestone Payments and Dispute Records
 
-AIVORA keeps records of milestone funding, held payments, payment releases, refunds, split payments, revision decisions, frozen funds, and dispute outcomes.
+AIVORA keeps records of milestone funding, staged payments, payment releases, refunds, split payments, revision decisions, frozen funds, and dispute outcomes.
 
-When a milestone is funded, the system records that the amount is held for that milestone. When the Client approves the Expert's deliverable, the system records the milestone approval, completion, and payment release.
+When a milestone is funded, the system records the 30% transfer to the Expert. When the Client approves the Expert's deliverable, the system records the milestone approval, completion, remaining payment processing, and platform commission.
 
 Dispute records may include dispute reasons, descriptions, related messages, project information, milestone status, payment records, administrative decisions, resolution type, resolution notes, and timestamps.
 
-Disputes are generally available only while a milestone or project is not finally completed. Once a milestone has been approved by the Client and the held payment has been released, a new dispute for that completed milestone is generally not available through the standard dispute process.
+Disputes are generally available only while a milestone or project is not finally completed. Once a milestone has been approved by the Client and the remaining payment has been processed, a new dispute for that completed milestone is generally not available through the standard dispute process.
 
 5. Data Storage and Security
 
