@@ -27,6 +27,14 @@ const getDateAfterDays = (days: number | null | undefined): string | null => {
   return date.toISOString().slice(0, 10);
 };
 
+const createMessageId = (): string => {
+  if (globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+};
+
 const toCreateJobBudgetType = (value: AiJobSuggestion['budgetType']): CreateJobRequest['budgetType'] => (
   value === BudgetType.HOURLY ? 'HOURLY' : 'FIXED'
 );
@@ -523,7 +531,7 @@ export const PostJobPage = () => {
   // --- Handlers ---
 
   const handleInitialSend = async (text: string) => {
-    setMessages(prev => [...prev, { id: `user-${crypto.randomUUID()}`, role: 'user', content: text, createdAt: new Date().toISOString() }]);
+    setMessages(prev => [...prev, { id: `user-${createMessageId()}`, role: 'user', content: text, createdAt: new Date().toISOString() }]);
     return initMutation.mutateAsync(text);
   };
 
@@ -533,7 +541,7 @@ export const PostJobPage = () => {
       return;
     }
 
-    setMessages(prev => [...prev, { id: `user-${crypto.randomUUID()}`, role: 'user', content: text, createdAt: new Date().toISOString() }]);
+    setMessages(prev => [...prev, { id: `user-${createMessageId()}`, role: 'user', content: text, createdAt: new Date().toISOString() }]);
 
     if (isEditingExistingJob) {
       if (!createdJobId) throw new Error('Job ID is missing');

@@ -94,6 +94,62 @@ const isActiveDisputeStatus = (status: DisputeStatus): boolean => (
   status === DisputeStatus.OPEN || status === DisputeStatus.UNDER_REVIEW
 );
 
+type FinishProjectButtonState = {
+  disabled: boolean;
+  label: string;
+  title?: string;
+};
+
+const getFinishProjectButtonState = ({
+  canRequestFinishProject,
+  isFinishingProject,
+  canReviewCompletedProject,
+  canOpenCompletedReview,
+  isLoadingProjectReviews,
+  hasClientReviewedProject,
+  isProjectReviewsLoaded,
+}: {
+  canRequestFinishProject: boolean;
+  isFinishingProject: boolean;
+  canReviewCompletedProject: boolean;
+  canOpenCompletedReview: boolean;
+  isLoadingProjectReviews: boolean;
+  hasClientReviewedProject: boolean;
+  isProjectReviewsLoaded: boolean;
+}): FinishProjectButtonState => {
+  const disabled = (
+    !canRequestFinishProject ||
+    isFinishingProject ||
+    (canReviewCompletedProject && !canOpenCompletedReview)
+  );
+
+  if (isFinishingProject) {
+    return { disabled, label: 'Finishing...' };
+  }
+
+  if (!canReviewCompletedProject) {
+    return {
+      disabled,
+      label: 'Finish Project',
+      title: !canRequestFinishProject ? 'This project cannot be finished from this state.' : undefined,
+    };
+  }
+
+  if (isLoadingProjectReviews) {
+    return { disabled, label: 'Checking...' };
+  }
+
+  if (hasClientReviewedProject) {
+    return { disabled, label: 'Reviewed' };
+  }
+
+  if (isProjectReviewsLoaded) {
+    return { disabled, label: 'Leave a Review' };
+  }
+
+  return { disabled, label: 'Review unavailable' };
+};
+
 export const ProjectWorkspacePage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -422,6 +478,15 @@ export const ProjectWorkspacePage = () => {
       && (user?.role === Role.CLIENT || user?.role === Role.EXPERT)
       && (user.id === project.clientId || user.id === project.expertId)
   );
+  const finishProjectButtonState = getFinishProjectButtonState({
+    canRequestFinishProject: Boolean(canRequestFinishProject),
+    isFinishingProject: finishProjectMutation.isPending,
+    canReviewCompletedProject,
+    canOpenCompletedReview,
+    isLoadingProjectReviews,
+    hasClientReviewedProject,
+    isProjectReviewsLoaded,
+  });
 
   const resetDeliverableForm = () => {
     setSubmitData({ description: '', fileUrl: '', demoUrl: '', sourceCodeUrl: '', note: '' });
@@ -593,25 +658,11 @@ export const ProjectWorkspacePage = () => {
               <Button
                 variant="outline"
                 onClick={handleFinishProject}
-                disabled={
-                  !canRequestFinishProject ||
-                  finishProjectMutation.isPending ||
-                  (canReviewCompletedProject && !canOpenCompletedReview)
-                }
+                disabled={finishProjectButtonState.disabled}
                 className="rounded-full px-6 border-slate-200 font-black"
-                title={!canRequestFinishProject ? 'This project cannot be finished from this state.' : undefined}
+                title={finishProjectButtonState.title}
               >
-                 {finishProjectMutation.isPending
-                   ? 'Finishing...'
-                   : canReviewCompletedProject
-                     ? isLoadingProjectReviews
-                       ? 'Checking...'
-                       : hasClientReviewedProject
-                         ? 'Reviewed'
-                         : isProjectReviewsLoaded
-                           ? 'Leave a Review'
-                           : 'Review unavailable'
-                     : 'Finish Project'}
+                 {finishProjectButtonState.label}
               </Button>
             )}
            <Button
