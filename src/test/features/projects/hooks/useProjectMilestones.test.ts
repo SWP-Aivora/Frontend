@@ -23,7 +23,7 @@ describe('useProjectMilestones', () => {
     vi.clearAllMocks();
   });
 
-  it('passes refetchInterval: 5000 and refetchOnWindowFocus: true to React Query options', () => {
+  it('passes focus and reconnect refetch options without polling to React Query options', () => {
     (vi.mocked(reactQuery.useQuery)).mockReturnValue({
       data: undefined,
       isLoading: false,
@@ -36,15 +36,16 @@ describe('useProjectMilestones', () => {
     const queryOptions = vi.mocked(reactQuery.useQuery).mock.calls[0][0] as {
       queryKey?: unknown[];
       enabled?: boolean;
-      refetchInterval?: number;
       refetchOnWindowFocus?: boolean;
+      refetchOnReconnect?: boolean;
       queryFn?: () => unknown;
     };
 
     expect(queryOptions.queryKey).toEqual(['project', 'project-123', 'milestones']);
     expect(queryOptions.enabled).toBe(true);
-    expect(queryOptions.refetchInterval).toBe(5000);
+    expect(queryOptions).not.toHaveProperty('refetchInterval');
     expect(queryOptions.refetchOnWindowFocus).toBe(true);
+    expect(queryOptions.refetchOnReconnect).toBe(true);
 
     if (queryOptions.queryFn) {
       queryOptions.queryFn();

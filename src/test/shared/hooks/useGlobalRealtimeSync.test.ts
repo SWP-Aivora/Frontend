@@ -8,11 +8,15 @@ import React from 'react';
 // Mock chatService
 const mockConnect = vi.fn().mockResolvedValue(undefined);
 const mockOnJobStatusUpdate = vi.fn().mockReturnValue(vi.fn()); // returns unsubscribe
+const mockOnNewJobPublished = vi.fn().mockReturnValue(vi.fn()); // returns unsubscribe
 
 vi.mock('@/features/chat/services', () => ({
+  configureChatAccessTokenProvider: vi.fn(),
   chatService: {
     connect: (...args: unknown[]) => mockConnect(...args),
     onJobStatusUpdate: (...args: unknown[]) => mockOnJobStatusUpdate(...args),
+    onNewJobPublished: (...args: unknown[]) => mockOnNewJobPublished(...args),
+    resetChatConnection: vi.fn(),
   },
 }));
 
@@ -101,6 +105,12 @@ describe('useGlobalRealtimeSync', () => {
 
     // Spy on queryClient.invalidateQueries
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+    queryClient.setQueryData(['project', 'project-1'], {
+      data: {
+        id: 'project-1',
+        jobId: 'job-1',
+      },
+    });
 
     renderHook(() => useGlobalRealtimeSync(), {
       wrapper: createWrapper(queryClient),
@@ -128,6 +138,9 @@ describe('useGlobalRealtimeSync', () => {
       ['myProposals'],
       ['expertProjects'],
       ['clientProjects'],
+      ['project', 'project-1'],
+      ['project', 'project-1', 'milestones'],
+      ['project', 'project-1', 'active-disputes'],
       ['wallet'],
       ['notifications'],
     ];
@@ -137,6 +150,12 @@ describe('useGlobalRealtimeSync', () => {
         expect.objectContaining({ queryKey: key })
       );
     }
+    expect(invalidateSpy).not.toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ['project'] })
+    );
+    expect(invalidateSpy).not.toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ['milestone'] })
+    );
   });
 
   it('cleans up (unsubscribes) on unmount', async () => {
