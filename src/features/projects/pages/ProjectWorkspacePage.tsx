@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { KanbanBoard } from '../components/KanbanBoard';
@@ -32,6 +32,7 @@ import { ProjectDisputeStatusBadge } from '../components/ProjectDisputeStatusBad
 import { getDefaultNonDisputeProjectStatus, getMilestoneStatusText, isProjectDisputed } from '../utils';
 import { useProjectMilestones } from '../hooks/useProjectMilestones';
 import { useMilestoneSteps } from '../hooks/useMilestoneSteps';
+import { useProjectTimeline } from '../hooks/useProjectTimeline';
 import type { EditMilestoneFormValues } from '../schema';
 import { chatService } from '@/features/chat';
 import { walletService } from '@/features/wallet';
@@ -96,7 +97,6 @@ const getApiErrorMessage = (error: unknown, fallback: string): string => {
 };
 
 const DISPUTE_PAGE_SIZE = 100;
-type ProjectWorkspaceView = 'overview' | 'timeline';
 
 const isActiveDisputeStatus = (status: DisputeStatus): boolean => (
   status === DisputeStatus.OPEN || status === DisputeStatus.UNDER_REVIEW
@@ -163,11 +163,7 @@ export const ProjectWorkspacePage = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [selectedMilestone, setSelectedMilestone] = useState<Milestone | null>(null);
-  const [workspaceView, setWorkspaceView] = useState<ProjectWorkspaceView>('overview');
-  const [timelineMilestoneId, setTimelineMilestoneId] = useState('');
-  const [viewedTimelineMilestoneId, setViewedTimelineMilestoneId] = useState('');
   const [isStepEditorOpen, setIsStepEditorOpen] = useState(false);
-  const [stepEditorMilestoneId, setStepEditorMilestoneId] = useState('');
   const [isMilestoneEditOpen, setIsMilestoneEditOpen] = useState(false);
   const [isFinishModalOpen, setIsFinishModalOpen] = useState(false);
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
@@ -235,52 +231,29 @@ export const ProjectWorkspacePage = () => {
   const milestones = milestonesResponse?.success === false
     ? projectMilestones
     : milestonesResponse?.data ?? projectMilestones;
-  const sortedMilestones = useMemo(
-    () => milestones.slice().sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0)),
-    [milestones]
-  );
-  const viewedTimelineMilestone = useMemo(
-    () => sortedMilestones.find((milestone) => milestone.id === viewedTimelineMilestoneId) ?? null,
-    [sortedMilestones, viewedTimelineMilestoneId]
-  );
-  const stepEditorMilestone = useMemo(
-    () => sortedMilestones.find((milestone) => milestone.id === stepEditorMilestoneId) ?? selectedMilestone,
-    [selectedMilestone, sortedMilestones, stepEditorMilestoneId]
-  );
-  const timelineInfoCards = useMemo(() => {
-    if (!viewedTimelineMilestone) return [];
+  const {
+    workspaceView,
+    setWorkspaceView,
+    timelineMilestoneId,
+    setTimelineMilestoneId,
+    viewedTimelineMilestoneId,
+    setViewedTimelineMilestoneId,
+    setStepEditorMilestoneId,
+    sortedMilestones,
+    viewedTimelineMilestone,
+    stepEditorMilestone,
+    timelineInfoCards,
+    resetTimeline,
+  } = useProjectTimeline({ milestones, selectedMilestone });
 
-    const cards: Array<{ label: string; value: string }> = [];
-    if (viewedTimelineMilestone.amount !== null && viewedTimelineMilestone.amount !== undefined) {
-      cards.push({ label: 'Budget', value: `${viewedTimelineMilestone.amount.toLocaleString()} Aivora Coin` });
-    }
-    if (viewedTimelineMilestone.createdAt) {
-      cards.push({ label: 'Created At', value: formatDate(viewedTimelineMilestone.createdAt) });
-    }
-    if (viewedTimelineMilestone.dueDate) {
-      cards.push({ label: 'Due Date', value: formatDate(viewedTimelineMilestone.dueDate) });
-    }
-    if (viewedTimelineMilestone.dueDays !== null && viewedTimelineMilestone.dueDays !== undefined) {
-      cards.push({ label: 'Due Days', value: `${viewedTimelineMilestone.dueDays} Days` });
-    }
-    if (viewedTimelineMilestone.fundedAt) {
-      cards.push({ label: 'Funded At', value: formatDate(viewedTimelineMilestone.fundedAt) });
-    }
-    if (viewedTimelineMilestone.submittedAt) {
-      cards.push({ label: 'Submitted At', value: formatDate(viewedTimelineMilestone.submittedAt) });
-    }
-    if (viewedTimelineMilestone.approvedAt) {
-      cards.push({ label: 'Approved At', value: formatDate(viewedTimelineMilestone.approvedAt) });
-    }
-    if (viewedTimelineMilestone.paidAt) {
-      cards.push({ label: 'Paid At', value: formatDate(viewedTimelineMilestone.paidAt) });
-    }
-    if (viewedTimelineMilestone.releasedAt) {
-      cards.push({ label: 'Released At', value: formatDate(viewedTimelineMilestone.releasedAt) });
-    }
-
-    return cards;
-  }, [viewedTimelineMilestone]);
+  useEffect(() => {
+    setSelectedMilestone(null);
+    setIsStepEditorOpen(false);
+    setIsMilestoneEditOpen(false);
+    setIsFinishModalOpen(false);
+    setIsDisputeModalOpen(false);
+    resetTimeline();
+  }, [id, resetTimeline]);
   const isLoading = isLoadingProject || isLoadingMilestones || (!projectResponse?.data && isLoadingFallbackProjects);
   const activeProjectDisputes = activeProjectDisputesResponse ?? [];
   const hasProjectDispute = isActiveDisputesLoaded
