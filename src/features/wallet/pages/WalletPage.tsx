@@ -130,7 +130,7 @@ export const WalletPage = () => {
   }
 
   return (
-    <div className="space-y-10 animate-in fade-in duration-700 pb-20">
+    <div className="space-y-8 animate-in fade-in duration-700 pb-20">
       {/* Header Area */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
@@ -145,15 +145,16 @@ export const WalletPage = () => {
         </div>
       </div>
 
-      <div className="grid w-full grid-cols-1 items-stretch gap-6 xl:grid-cols-[minmax(280px,420px)_minmax(0,1fr)]">
+      <StagedPaymentInfoCard />
+
+      <div className="grid w-full grid-cols-1 items-stretch gap-6 xl:grid-cols-[minmax(280px,380px)_minmax(0,1fr)]">
         <div className="min-w-0">
           <WalletBalanceCard
             balance={walletBalance}
           />
         </div>
-        <div className="space-y-6">
+        <div className="grid min-w-0">
            <SpendingChart transactions={validTx} isClient={isClient} />
-           <StagedPaymentInfoCard />
         </div>
       </div>
 
@@ -199,7 +200,9 @@ export const WalletPage = () => {
                   Loading transactions...
                 </div>
               ) : (
-                <TransactionTable transactions={paginatedTx} isClient={isClient} />
+                <div className="overflow-x-auto">
+                  <TransactionTable transactions={paginatedTx} isClient={isClient} />
+                </div>
               )}
             </ErrorBoundary>
             {isFetchingHistory && !isLoadingHistory && (
