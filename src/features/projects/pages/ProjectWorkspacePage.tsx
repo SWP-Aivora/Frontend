@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { KanbanBoard } from '../components/KanbanBoard';
 import { StepBoard } from '../components/StepBoard';
+import { EditMilestoneModal } from '../components/EditMilestoneModal';
+import { StepEditorModal } from '../components/StepEditorModal';
 import type { Milestone } from '../types';
 import { projectService } from '../services';
 import {
@@ -27,9 +29,10 @@ import { Role, ProjectStatus, MilestoneStatus, MilestoneStepStatus } from '@/sha
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/shared/utils/date';
 import { ProjectDisputeStatusBadge } from '../components/ProjectDisputeStatusBadge';
-import { getDefaultNonDisputeProjectStatus, isProjectDisputed } from '../utils';
+import { getDefaultNonDisputeProjectStatus, getMilestoneStatusText, isProjectDisputed } from '../utils';
 import { useProjectMilestones } from '../hooks/useProjectMilestones';
 import { useMilestoneSteps } from '../hooks/useMilestoneSteps';
+import type { EditMilestoneFormValues } from '../schema';
 import { chatService } from '@/features/chat';
 import { walletService } from '@/features/wallet';
 import { CreateDisputeModal } from '@/features/disputes';
@@ -99,32 +102,6 @@ const isActiveDisputeStatus = (status: DisputeStatus): boolean => (
   status === DisputeStatus.OPEN || status === DisputeStatus.UNDER_REVIEW
 );
 
-const getMilestoneStatusText = (status: MilestoneStatus): string => {
-  switch (status) {
-    case MilestoneStatus.CREATED:
-      return 'Created';
-    case MilestoneStatus.FUNDED:
-      return 'Funded';
-    case MilestoneStatus.IN_PROGRESS:
-      return 'In Progress';
-    case MilestoneStatus.SUBMITTED:
-      return 'Submitted';
-    case MilestoneStatus.REVISION_REQUESTED:
-      return 'Revision Requested';
-    case MilestoneStatus.APPROVED:
-      return 'Approved';
-    case MilestoneStatus.DISPUTED:
-      return 'Disputed';
-    case MilestoneStatus.COMPLETED:
-    case MilestoneStatus.RELEASED:
-      return 'Completed';
-    case MilestoneStatus.REFUNDED:
-      return 'Refunded';
-    default:
-      return 'N/A';
-  }
-};
-
 type FinishProjectButtonState = {
   disabled: boolean;
   label: string;
@@ -192,13 +169,6 @@ export const ProjectWorkspacePage = () => {
   const [isStepEditorOpen, setIsStepEditorOpen] = useState(false);
   const [stepEditorMilestoneId, setStepEditorMilestoneId] = useState('');
   const [isMilestoneEditOpen, setIsMilestoneEditOpen] = useState(false);
-  const [milestoneEditData, setMilestoneEditData] = useState({
-    title: '',
-    description: '',
-    acceptanceCriteria: '',
-    amount: 0,
-    dueDate: '',
-  });
   const [isFinishModalOpen, setIsFinishModalOpen] = useState(false);
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
 
@@ -208,6 +178,8 @@ export const ProjectWorkspacePage = () => {
     queryFn: () => projectService.getProjectById(id!),
     retry: false,
     enabled: !!id,
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: fallbackProjectsResponse, isLoading: isLoadingFallbackProjects } = useQuery({
@@ -241,6 +213,8 @@ export const ProjectWorkspacePage = () => {
     },
     enabled: Boolean(id) && (user?.role === Role.CLIENT || user?.role === Role.EXPERT),
     retry: false,
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
   });
 
   const project = projectResponse?.data ?? fallbackProjectsResponse?.data?.find((item) => item.id === id);
@@ -571,19 +545,31 @@ export const ProjectWorkspacePage = () => {
 
   const openMilestoneEditModal = (milestone: Milestone) => {
     setSelectedMilestone(milestone);
-    setMilestoneEditData({
-      title: milestone.title ?? '',
-      description: milestone.description ?? '',
-      acceptanceCriteria: milestone.acceptanceCriteria ?? '',
-      amount: Number(milestone.amount ?? 0),
-      dueDate: milestone.dueDate ? milestone.dueDate.slice(0, 10) : '',
-    });
     setIsMilestoneEditOpen(true);
   };
 
   const openStepEditor = (milestone: Milestone) => {
     setStepEditorMilestoneId(milestone.id);
     setIsStepEditorOpen(true);
+  };
+
+  const closeMilestoneEditModal = () => {
+    setIsMilestoneEditOpen(false);
+  };
+
+  const handleSaveMilestoneEdit = (data: EditMilestoneFormValues) => {
+    if (!selectedMilestone) return;
+
+    updateMilestoneMutation.mutate({
+      milestoneId: selectedMilestone.id,
+      data: {
+        title: data.title.trim(),
+        description: data.description?.trim() ?? '',
+        acceptanceCriteria: data.acceptanceCriteria?.trim() ?? '',
+        amount: data.amount,
+        dueDate: data.dueDate || undefined,
+      },
+    });
   };
 
   const handleFundMilestone = (milestone = selectedMilestone) => {
@@ -1147,25 +1133,35 @@ export const ProjectWorkspacePage = () => {
                   )}
 
                   {viewedTimelineMilestone.status === MilestoneStatus.SUBMITTED && user?.role === Role.CLIENT && (
-                    <>
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedMilestone(viewedTimelineMilestone);
-                          setIsRevisionModalOpen(true);
-                        }}
-                        className="rounded-full px-5 font-black"
-                      >
-                        Revision
-                      </Button>
-                      <Button
-                        onClick={() => approveMutation.mutate(viewedTimelineMilestone.id)}
-                        disabled={approveMutation.isPending || !viewedTimelineMilestone.id}
-                        className="rounded-full px-5 font-black shadow-lg shadow-primary/20"
-                      >
-                        {approveMutation.isPending ? 'Approving...' : 'Approve & Pay'}
-                      </Button>
-                    </>
+                    isLoadingTimelineDeliverables ? (
+                      <p className="text-xs font-medium text-slate-500">
+                        Checking submitted deliverables before approval.
+                      </p>
+                    ) : timelineDeliverables.length === 0 ? (
+                      <p className="text-xs font-medium text-slate-500">
+                        Waiting for the Expert to submit a deliverable.
+                      </p>
+                    ) : (
+                      <>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedMilestone(viewedTimelineMilestone);
+                            setIsRevisionModalOpen(true);
+                          }}
+                          className="rounded-full px-5 font-black"
+                        >
+                          Revision
+                        </Button>
+                        <Button
+                          onClick={() => approveMutation.mutate(viewedTimelineMilestone.id)}
+                          disabled={approveMutation.isPending || !viewedTimelineMilestone.id}
+                          className="rounded-full px-5 font-black shadow-lg shadow-primary/20"
+                        >
+                          {approveMutation.isPending ? 'Approving...' : 'Approve & Pay'}
+                        </Button>
+                      </>
+                    )
                   )}
 
                   {viewedTimelineMilestone.status === MilestoneStatus.COMPLETED && (
@@ -1194,140 +1190,20 @@ export const ProjectWorkspacePage = () => {
         </div>
       )}
 
-      {isStepEditorOpen && stepEditorMilestone && canEditTimelineSteps && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-            onClick={() => setIsStepEditorOpen(false)}
-          />
-          <div className="relative z-10 flex max-h-[86vh] w-full max-w-3xl flex-col overflow-hidden rounded-lg bg-white shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="flex items-start justify-between gap-4 border-b border-slate-100 p-6">
-              <div>
-                <p className="text-[11px] font-black uppercase tracking-widest text-primary">Edit timeline steps</p>
-                <h3 className="mt-1 text-xl font-black text-slate-900">{stepEditorMilestone.title}</h3>
-                <p className="mt-1 text-sm font-medium text-slate-500">
-                  Add, edit, delete, reorder, or update milestone steps through the live milestone step API.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsStepEditorOpen(false)}
-                className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-400 transition-colors hover:text-slate-900"
-                aria-label="Close step editor"
-              >
-                <X className="size-5" />
-              </button>
-            </div>
-            <div className="overflow-y-auto p-6">
-              <StepBoard
-                milestoneId={stepEditorMilestone.id}
-                isExpert={canEditTimelineSteps}
-                isClient={false}
-              />
-            </div>
-          </div>
-        </div>
-      )}
+      <StepEditorModal
+        isOpen={isStepEditorOpen}
+        milestone={stepEditorMilestone}
+        canEditSteps={canEditTimelineSteps}
+        onClose={() => setIsStepEditorOpen(false)}
+      />
 
-      {isMilestoneEditOpen && selectedMilestone && canEditMilestoneGeneralInfo && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-            onClick={() => setIsMilestoneEditOpen(false)}
-          />
-          <div className="relative z-10 w-full max-w-xl rounded-lg bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="mb-6 flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[11px] font-black uppercase tracking-widest text-primary">Edit milestone</p>
-                <h3 className="mt-1 text-xl font-black text-slate-900">{selectedMilestone.title}</h3>
-                <p className="mt-1 text-sm font-medium text-slate-500">
-                  Update milestone title, description, criteria, amount, and due date.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsMilestoneEditOpen(false)}
-                className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-400 transition-colors hover:text-slate-900"
-                aria-label="Close milestone editor"
-              >
-                <X className="size-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="mb-1 block text-xs font-black uppercase tracking-widest text-slate-500">Title</label>
-                <input
-                  value={milestoneEditData.title}
-                  onChange={(event) => setMilestoneEditData({ ...milestoneEditData, title: event.target.value })}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold outline-none focus:border-primary"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-black uppercase tracking-widest text-slate-500">Description</label>
-                <textarea
-                  value={milestoneEditData.description}
-                  onChange={(event) => setMilestoneEditData({ ...milestoneEditData, description: event.target.value })}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-primary"
-                  rows={3}
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-black uppercase tracking-widest text-slate-500">Acceptance Criteria</label>
-                <textarea
-                  value={milestoneEditData.acceptanceCriteria}
-                  onChange={(event) => setMilestoneEditData({ ...milestoneEditData, acceptanceCriteria: event.target.value })}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-primary"
-                  rows={4}
-                />
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-xs font-black uppercase tracking-widest text-slate-500">Amount</label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={milestoneEditData.amount}
-                    onChange={(event) => setMilestoneEditData({ ...milestoneEditData, amount: Number(event.target.value) })}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold outline-none focus:border-primary"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-black uppercase tracking-widest text-slate-500">Due Date</label>
-                  <input
-                    type="date"
-                    value={milestoneEditData.dueDate}
-                    onChange={(event) => setMilestoneEditData({ ...milestoneEditData, dueDate: event.target.value })}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold outline-none focus:border-primary"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setIsMilestoneEditOpen(false)} className="rounded-full font-bold">
-                Cancel
-              </Button>
-              <Button
-                onClick={() => updateMilestoneMutation.mutate({
-                  milestoneId: selectedMilestone.id,
-                  data: {
-                    title: milestoneEditData.title.trim(),
-                    description: milestoneEditData.description.trim(),
-                    acceptanceCriteria: milestoneEditData.acceptanceCriteria.trim(),
-                    amount: milestoneEditData.amount,
-                    dueDate: milestoneEditData.dueDate || undefined,
-                  },
-                })}
-                disabled={updateMilestoneMutation.isPending || !milestoneEditData.title.trim()}
-                className="rounded-full font-black shadow-lg shadow-primary/20"
-              >
-                {updateMilestoneMutation.isPending ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <EditMilestoneModal
+        isOpen={isMilestoneEditOpen && canEditMilestoneGeneralInfo}
+        milestone={selectedMilestone}
+        isSaving={updateMilestoneMutation.isPending}
+        onClose={closeMilestoneEditModal}
+        onSave={handleSaveMilestoneEdit}
+      />
 
       {/* Side Detail Panel (Overlay) */}
       <div className={cn(
@@ -1527,24 +1403,34 @@ export const ProjectWorkspacePage = () => {
                        <Upload className="size-5" />
                        {selectedMilestone.status === MilestoneStatus.REVISION_REQUESTED ? 'Edit Deliverables' : 'Submit Deliverables'}
                     </Button>
-                  )}
+                 )}
                  {selectedMilestone.status === MilestoneStatus.SUBMITTED && user?.role === Role.CLIENT && (
-                   <div className="flex gap-3">
-                      <Button 
-                        onClick={() => setIsRevisionModalOpen(true)}
-                        variant="outline" 
-                        className="flex-1 h-14 rounded-full font-black border-slate-200"
-                      >
-                        Revision
-                      </Button>
-                      <Button
-                        onClick={() => selectedMilestone?.id && approveMutation.mutate(selectedMilestone.id)}
-                        disabled={approveMutation.isPending || !selectedMilestone?.id}
-                        className="flex-[2] h-14 rounded-full font-black shadow-xl shadow-primary/20"
-                      >
-                        {approveMutation.isPending ? 'Approving...' : 'Approve & Pay'}
-                      </Button>
-                   </div>
+                   isLoadingDeliverables ? (
+                     <p className="rounded-lg bg-slate-50 p-4 text-sm font-semibold text-slate-500">
+                       Checking submitted deliverables before approval.
+                     </p>
+                   ) : deliverables.length === 0 ? (
+                     <p className="rounded-lg bg-slate-50 p-4 text-sm font-semibold text-slate-500">
+                       Waiting for the Expert to submit a deliverable.
+                     </p>
+                   ) : (
+                     <div className="flex gap-3">
+                        <Button 
+                          onClick={() => setIsRevisionModalOpen(true)}
+                          variant="outline" 
+                          className="flex-1 h-14 rounded-full font-black border-slate-200"
+                        >
+                          Revision
+                        </Button>
+                        <Button
+                          onClick={() => selectedMilestone?.id && approveMutation.mutate(selectedMilestone.id)}
+                          disabled={approveMutation.isPending || !selectedMilestone?.id}
+                          className="flex-[2] h-14 rounded-full font-black shadow-xl shadow-primary/20"
+                        >
+                          {approveMutation.isPending ? 'Approving...' : 'Approve & Pay'}
+                        </Button>
+                     </div>
+                   )
                  )}
                  {selectedMilestone.status === MilestoneStatus.COMPLETED && (
                    <div className="bg-emerald-50 text-emerald-700 p-4 rounded-lg border border-emerald-100 flex items-center gap-3">

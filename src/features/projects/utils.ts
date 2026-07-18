@@ -112,3 +112,29 @@ export const normalizeMilestoneStatus = (status: unknown): MilestoneStatus => {
       return MilestoneStatus.CREATED;
   }
 };
+
+export const getMilestoneStatusText = (status: MilestoneStatus): string => {
+  switch (status) {
+    case MilestoneStatus.CREATED:
+      return 'Created';
+    case MilestoneStatus.FUNDED:
+      return 'Funded';
+    case MilestoneStatus.IN_PROGRESS:
+      return 'In Progress';
+    case MilestoneStatus.SUBMITTED:
+      return 'Submitted';
+    case MilestoneStatus.REVISION_REQUESTED:
+      return 'Revision Requested';
+    case MilestoneStatus.APPROVED:
+      return 'Approved';
+    case MilestoneStatus.DISPUTED:
+      return 'Disputed';
+    case MilestoneStatus.COMPLETED:
+    case MilestoneStatus.RELEASED:
+      return 'Completed';
+    case MilestoneStatus.REFUNDED:
+      return 'Refunded';
+    default:
+      return 'N/A';
+  }
+};

@@ -28,3 +28,7 @@ export const createMilestoneSchema = z.object({
 });
 
 export type CreateMilestoneFormValues = z.infer<typeof createMilestoneSchema>;
+
+export const editMilestoneSchema = createMilestoneSchema;
+
+export type EditMilestoneFormValues = z.infer<typeof editMilestoneSchema>;
