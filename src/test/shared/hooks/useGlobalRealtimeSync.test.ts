@@ -8,11 +8,15 @@ import React from 'react';
 // Mock chatService
 const mockConnect = vi.fn().mockResolvedValue(undefined);
 const mockOnJobStatusUpdate = vi.fn().mockReturnValue(vi.fn()); // returns unsubscribe
+const mockOnNewJobPublished = vi.fn().mockReturnValue(vi.fn()); // returns unsubscribe
 
 vi.mock('@/features/chat/services', () => ({
+  configureChatAccessTokenProvider: vi.fn(),
   chatService: {
     connect: (...args: unknown[]) => mockConnect(...args),
     onJobStatusUpdate: (...args: unknown[]) => mockOnJobStatusUpdate(...args),
+    onNewJobPublished: (...args: unknown[]) => mockOnNewJobPublished(...args),
+    resetChatConnection: vi.fn(),
   },
 }));
 
@@ -128,6 +132,9 @@ describe('useGlobalRealtimeSync', () => {
       ['myProposals'],
       ['expertProjects'],
       ['clientProjects'],
+      ['project'],
+      ['milestone'],
+      ['disputes'],
       ['wallet'],
       ['notifications'],
     ];

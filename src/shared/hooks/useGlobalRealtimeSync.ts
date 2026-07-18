@@ -50,6 +50,9 @@ export const useGlobalRealtimeSync = () => {
       void queryClient.invalidateQueries({ queryKey: ['myProposals'] });
       void queryClient.invalidateQueries({ queryKey: ['expertProjects'] });
       void queryClient.invalidateQueries({ queryKey: ['clientProjects'] });
+      void queryClient.invalidateQueries({ queryKey: ['project'] });
+      void queryClient.invalidateQueries({ queryKey: ['milestone'] });
+      void queryClient.invalidateQueries({ queryKey: ['disputes'] });
       void queryClient.invalidateQueries({ queryKey: ['wallet'] });
       void queryClient.invalidateQueries({ queryKey: ['notifications'] });
 

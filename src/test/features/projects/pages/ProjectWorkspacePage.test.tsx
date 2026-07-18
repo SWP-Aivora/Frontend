@@ -242,7 +242,7 @@ describe('ProjectWorkspacePage', () => {
     });
   });
 
-  it('configures refetchInterval: 5000 and refetchOnWindowFocus: true for project and active-disputes queries', () => {
+  it('configures focus and reconnect refetch without polling for project and active-disputes queries', () => {
     (vi.mocked(reactQuery.useQuery)).mockImplementation((options: { queryKey?: readonly unknown[] }) => {
       const queryKey = options.queryKey as unknown[];
       if (queryKey?.[0] === 'project' && queryKey?.[1] === 'project-101' && !queryKey?.[2]) {
@@ -285,8 +285,9 @@ describe('ProjectWorkspacePage', () => {
       );
     });
     expect(projectQueryCall).toBeDefined();
-    expect(projectQueryCall![0]).toHaveProperty('refetchInterval', 5000);
+    expect(projectQueryCall![0]).not.toHaveProperty('refetchInterval');
     expect(projectQueryCall![0]).toHaveProperty('refetchOnWindowFocus', true);
+    expect(projectQueryCall![0]).toHaveProperty('refetchOnReconnect', true);
 
     const activeDisputesQueryCall = calls.find((call) => {
       const options = call[0] as { queryKey?: unknown[] };
@@ -298,8 +299,9 @@ describe('ProjectWorkspacePage', () => {
       );
     });
     expect(activeDisputesQueryCall).toBeDefined();
-    expect(activeDisputesQueryCall![0]).toHaveProperty('refetchInterval', 5000);
+    expect(activeDisputesQueryCall![0]).not.toHaveProperty('refetchInterval');
     expect(activeDisputesQueryCall![0]).toHaveProperty('refetchOnWindowFocus', true);
+    expect(activeDisputesQueryCall![0]).toHaveProperty('refetchOnReconnect', true);
   });
 
   describe('Mutation stale closure prevention', () => {

@@ -6,7 +6,7 @@ export const useProjectMilestones = (projectId: string) => {
     queryKey: ['project', projectId, 'milestones'],
     queryFn: () => projectService.getMilestonesByProject(projectId),
     enabled: !!projectId,
-    refetchInterval: 5000,
     refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 };

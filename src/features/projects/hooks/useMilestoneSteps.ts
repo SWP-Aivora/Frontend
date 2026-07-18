@@ -6,7 +6,7 @@ export const useMilestoneSteps = (milestoneId: string) => {
     queryKey: ['milestone', milestoneId, 'steps'],
     queryFn: () => projectService.getMilestoneSteps(milestoneId),
     enabled: !!milestoneId,
-    refetchInterval: 5000,
     refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 };

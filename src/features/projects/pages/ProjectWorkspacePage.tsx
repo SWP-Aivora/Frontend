@@ -178,8 +178,8 @@ export const ProjectWorkspacePage = () => {
     queryFn: () => projectService.getProjectById(id!),
     retry: false,
     enabled: !!id,
-    refetchInterval: 5000,
     refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 
   const { data: fallbackProjectsResponse, isLoading: isLoadingFallbackProjects } = useQuery({
@@ -213,8 +213,8 @@ export const ProjectWorkspacePage = () => {
     },
     enabled: Boolean(id) && (user?.role === Role.CLIENT || user?.role === Role.EXPERT),
     retry: false,
-    refetchInterval: 5000,
     refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 
   const project = projectResponse?.data ?? fallbackProjectsResponse?.data?.find((item) => item.id === id);
@@ -372,7 +372,7 @@ export const ProjectWorkspacePage = () => {
       const bCompleted = b.status === MilestoneStepStatus.COMPLETED ? 0 : 1;
       if (aCompleted !== bCompleted) return aCompleted - bCompleted;
 
-      return a.orderIndex - b.orderIndex;
+      return (a.orderIndex ?? 0) - (b.orderIndex ?? 0);
     }),
     [timelineStepsResponse?.data]
   );

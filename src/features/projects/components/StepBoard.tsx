@@ -38,6 +38,8 @@ const STATUS_SECTION_LABEL: Record<MilestoneStepStatus, string> = {
   [MilestoneStepStatus.SKIPPED]: 'Skipped',
 };
 
+const getStepOrderIndex = (step: MilestoneStep): number => step.orderIndex ?? 0;
+
 export const StepBoard = ({ milestoneId, isExpert, isClient }: StepBoardProps) => {
   const [isAdding, setIsAdding] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -54,12 +56,12 @@ export const StepBoard = ({ milestoneId, isExpert, isClient }: StepBoardProps) =
   const reorderSteps = useReorderMilestoneSteps(milestoneId);
   const suggestSteps = useSuggestMilestoneSteps(milestoneId);
 
-  const steps = (stepsResponse?.data ?? []).slice().sort((a, b) => a.orderIndex - b.orderIndex);
+  const steps = (stepsResponse?.data ?? []).slice().sort((a, b) => getStepOrderIndex(a) - getStepOrderIndex(b));
 
   const handleAddStep = () => {
     if (!newTitle.trim()) return;
     createStep.mutate(
-      { title: newTitle.trim(), description: newDescription.trim() || undefined, dueDate: newDueDate || undefined, orderIndex: Math.max(0, ...steps.map((s) => s.orderIndex)) + 1 },
+      { title: newTitle.trim(), description: newDescription.trim() || undefined, dueDate: newDueDate || undefined, orderIndex: Math.max(0, ...steps.map(getStepOrderIndex)) + 1 },
       { onSuccess: () => { setIsAdding(false); setNewTitle(''); setNewDescription(''); setNewDueDate(''); } }
     );
   };
@@ -99,7 +101,7 @@ export const StepBoard = ({ milestoneId, isExpert, isClient }: StepBoardProps) =
     const kept = draftSteps.filter((s) => s.title.trim());
     setIsSavingDraft(true);
     try {
-      let orderIndex = Math.max(0, ...steps.map((s) => s.orderIndex));
+      let orderIndex = Math.max(0, ...steps.map(getStepOrderIndex));
       for (const step of kept) {
         orderIndex += 1;
         await createStep.mutateAsync({ title: step.title.trim(), description: step.description.trim() || undefined, orderIndex });
