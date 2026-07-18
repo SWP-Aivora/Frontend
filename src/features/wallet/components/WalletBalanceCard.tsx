@@ -6,7 +6,7 @@ interface WalletBalanceCardProps {
 
 export const WalletBalanceCard = ({ balance }: WalletBalanceCardProps) => {
   return (
-    <div className="relative h-full min-h-[300px] overflow-hidden rounded-lg bg-brand-blue-dark p-6 text-white shadow-2xl lg:p-7">
+    <div className="relative h-full min-h-[320px] overflow-hidden rounded-lg bg-brand-blue-dark p-6 text-white shadow-2xl lg:p-7">
       <div className="absolute -top-28 -right-20 size-80 rounded-full bg-blue-400/20 blur-[100px]" />
       <div className="absolute -bottom-24 -left-20 size-72 rounded-full bg-primary/20 blur-[80px]" />
       <div className="absolute right-8 bottom-6 opacity-[0.08]">
@@ -14,13 +14,13 @@ export const WalletBalanceCard = ({ balance }: WalletBalanceCardProps) => {
       </div>
       <div className="absolute inset-x-7 top-20 h-px bg-white/10" />
 
-      <div className="relative z-10 flex h-full min-h-[248px] flex-col justify-between gap-6">
+      <div className="relative z-10 flex min-h-[268px] flex-col justify-between gap-6">
         <div className="flex items-start justify-between gap-4">
           <p className="text-[11px] font-black uppercase tracking-widest text-blue-100/70">Available Balance</p>
         </div>
 
         <div className="min-w-0">
-          <h2 className="max-w-full break-words text-[clamp(1.65rem,3.25vw,2.9rem)] font-black leading-[1.02] tracking-tight">
+          <h2 className="max-w-full break-words text-[clamp(1.85rem,2.4vw,2.75rem)] font-black leading-[1.05] tracking-tight">
             {balance?.toLocaleString() || '0'} Aivora Coin
           </h2>
           <p className="mt-2.5 max-w-sm text-[11px] font-semibold leading-relaxed text-blue-100/75">

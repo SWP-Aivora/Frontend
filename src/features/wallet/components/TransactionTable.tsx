@@ -40,13 +40,13 @@ export const TransactionTable = ({ transactions, isClient }: TransactionTablePro
   };
 
   return (
-    <table className="w-full text-left">
+    <table className="min-w-[880px] w-full text-left">
       <thead>
-        <tr className="bg-slate-50/50 border-bottom border-slate-100">
-          <th className="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">Transaction</th>
-          <th className="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">Date</th>
-          <th className="px-8 py-5 text-[11px] font-black uppercase tracking-widest text-slate-400">Status</th>
-          <th className="px-8 py-5 text-right text-[11px] font-black uppercase tracking-widest text-slate-400">Amount</th>
+        <tr className="border-b border-slate-100 bg-slate-50/50">
+          <th className="px-6 py-4 text-[11px] font-black uppercase tracking-widest text-slate-400">Transaction</th>
+          <th className="px-6 py-4 text-[11px] font-black uppercase tracking-widest text-slate-400">Date</th>
+          <th className="px-6 py-4 text-[11px] font-black uppercase tracking-widest text-slate-400">Status</th>
+          <th className="px-6 py-4 text-right text-[11px] font-black uppercase tracking-widest text-slate-400">Amount</th>
         </tr>
       </thead>
       <tbody className="divide-y divide-slate-50">
@@ -56,7 +56,7 @@ export const TransactionTable = ({ transactions, isClient }: TransactionTablePro
           const isIncoming = isIncomingTransaction(t);
           return (
             <tr key={t.id || Math.random()} className="group hover:bg-slate-50/50 transition-colors">
-              <td className="px-8 py-6">
+              <td className="px-6 py-5">
                 <div className="flex items-center gap-4">
                   <div className={cn(
                     "flex size-9 items-center justify-center rounded-md shadow-sm",
@@ -65,20 +65,20 @@ export const TransactionTable = ({ transactions, isClient }: TransactionTablePro
                   )}>
                     <typeInfo.icon className="size-4" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-xs font-black leading-tight text-slate-900">
                       {t.description || typeInfo.label}
                     </p>
-                    <p className="mt-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">ID: {t.id?.toUpperCase() ?? 'N/A'}</p>
+                    <p className="mt-1 max-w-[420px] truncate text-[11px] font-bold uppercase tracking-wide text-slate-400">ID: {t.id?.toUpperCase() ?? 'N/A'}</p>
                   </div>
                 </div>
               </td>
-              <td className="px-8 py-6">
+              <td className="px-6 py-5">
                 <span className="text-[11px] font-bold text-slate-500">
                   {formatDate(t.createdAt)}
                 </span>
               </td>
-              <td className="px-8 py-6">
+              <td className="px-6 py-5">
                 <div className={cn(
                   "inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-[11px] font-black uppercase",
                   statusInfo.color
@@ -87,9 +87,9 @@ export const TransactionTable = ({ transactions, isClient }: TransactionTablePro
                   {statusInfo.label}
                 </div>
               </td>
-              <td className="px-8 py-6 text-right">
+              <td className="px-6 py-5 text-right">
                 <span className={cn(
-                  "text-sm font-black",
+                  "whitespace-nowrap text-sm font-black",
                   isIncoming ? "text-emerald-600" : "text-slate-900"
                 )}>
                   {isIncoming ? '+' : '-'}{t.amount?.toLocaleString() ?? '0'} Aivora Coin
