@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { KanbanBoard } from '../components/KanbanBoard';
+import { StepBoard } from '../components/StepBoard';
 import type { Milestone } from '../types';
 import { projectService } from '../services';
 import {
@@ -13,19 +14,22 @@ import {
   Upload,
   CheckCircle2,
   Clock,
+  Pencil,
   ShieldAlert,
   Users,
   ExternalLink,
   FileText,
+  ListChecks,
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { useAuthStore } from '@/features/auth/store';
-import { Role, ProjectStatus, MilestoneStatus } from '@/shared/types/enums';
+import { Role, ProjectStatus, MilestoneStatus, MilestoneStepStatus } from '@/shared/types/enums';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/shared/utils/date';
 import { ProjectDisputeStatusBadge } from '../components/ProjectDisputeStatusBadge';
 import { getDefaultNonDisputeProjectStatus, isProjectDisputed } from '../utils';
 import { useProjectMilestones } from '../hooks/useProjectMilestones';
+import { useMilestoneSteps } from '../hooks/useMilestoneSteps';
 import { chatService } from '@/features/chat';
 import { walletService } from '@/features/wallet';
 import { CreateDisputeModal } from '@/features/disputes';
@@ -89,10 +93,37 @@ const getApiErrorMessage = (error: unknown, fallback: string): string => {
 };
 
 const DISPUTE_PAGE_SIZE = 100;
+type ProjectWorkspaceView = 'overview' | 'timeline';
 
 const isActiveDisputeStatus = (status: DisputeStatus): boolean => (
   status === DisputeStatus.OPEN || status === DisputeStatus.UNDER_REVIEW
 );
+
+const getMilestoneStatusText = (status: MilestoneStatus): string => {
+  switch (status) {
+    case MilestoneStatus.CREATED:
+      return 'Created';
+    case MilestoneStatus.FUNDED:
+      return 'Funded';
+    case MilestoneStatus.IN_PROGRESS:
+      return 'In Progress';
+    case MilestoneStatus.SUBMITTED:
+      return 'Submitted';
+    case MilestoneStatus.REVISION_REQUESTED:
+      return 'Revision Requested';
+    case MilestoneStatus.APPROVED:
+      return 'Approved';
+    case MilestoneStatus.DISPUTED:
+      return 'Disputed';
+    case MilestoneStatus.COMPLETED:
+    case MilestoneStatus.RELEASED:
+      return 'Completed';
+    case MilestoneStatus.REFUNDED:
+      return 'Refunded';
+    default:
+      return 'N/A';
+  }
+};
 
 type FinishProjectButtonState = {
   disabled: boolean;
@@ -155,6 +186,19 @@ export const ProjectWorkspacePage = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const [selectedMilestone, setSelectedMilestone] = useState<Milestone | null>(null);
+  const [workspaceView, setWorkspaceView] = useState<ProjectWorkspaceView>('overview');
+  const [timelineMilestoneId, setTimelineMilestoneId] = useState('');
+  const [viewedTimelineMilestoneId, setViewedTimelineMilestoneId] = useState('');
+  const [isStepEditorOpen, setIsStepEditorOpen] = useState(false);
+  const [stepEditorMilestoneId, setStepEditorMilestoneId] = useState('');
+  const [isMilestoneEditOpen, setIsMilestoneEditOpen] = useState(false);
+  const [milestoneEditData, setMilestoneEditData] = useState({
+    title: '',
+    description: '',
+    acceptanceCriteria: '',
+    amount: 0,
+    dueDate: '',
+  });
   const [isFinishModalOpen, setIsFinishModalOpen] = useState(false);
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
 
@@ -217,6 +261,52 @@ export const ProjectWorkspacePage = () => {
   const milestones = milestonesResponse?.success === false
     ? projectMilestones
     : milestonesResponse?.data ?? projectMilestones;
+  const sortedMilestones = useMemo(
+    () => milestones.slice().sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0)),
+    [milestones]
+  );
+  const viewedTimelineMilestone = useMemo(
+    () => sortedMilestones.find((milestone) => milestone.id === viewedTimelineMilestoneId) ?? null,
+    [sortedMilestones, viewedTimelineMilestoneId]
+  );
+  const stepEditorMilestone = useMemo(
+    () => sortedMilestones.find((milestone) => milestone.id === stepEditorMilestoneId) ?? selectedMilestone,
+    [selectedMilestone, sortedMilestones, stepEditorMilestoneId]
+  );
+  const timelineInfoCards = useMemo(() => {
+    if (!viewedTimelineMilestone) return [];
+
+    const cards: Array<{ label: string; value: string }> = [];
+    if (viewedTimelineMilestone.amount !== null && viewedTimelineMilestone.amount !== undefined) {
+      cards.push({ label: 'Budget', value: `${viewedTimelineMilestone.amount.toLocaleString()} Aivora Coin` });
+    }
+    if (viewedTimelineMilestone.createdAt) {
+      cards.push({ label: 'Created At', value: formatDate(viewedTimelineMilestone.createdAt) });
+    }
+    if (viewedTimelineMilestone.dueDate) {
+      cards.push({ label: 'Due Date', value: formatDate(viewedTimelineMilestone.dueDate) });
+    }
+    if (viewedTimelineMilestone.dueDays !== null && viewedTimelineMilestone.dueDays !== undefined) {
+      cards.push({ label: 'Due Days', value: `${viewedTimelineMilestone.dueDays} Days` });
+    }
+    if (viewedTimelineMilestone.fundedAt) {
+      cards.push({ label: 'Funded At', value: formatDate(viewedTimelineMilestone.fundedAt) });
+    }
+    if (viewedTimelineMilestone.submittedAt) {
+      cards.push({ label: 'Submitted At', value: formatDate(viewedTimelineMilestone.submittedAt) });
+    }
+    if (viewedTimelineMilestone.approvedAt) {
+      cards.push({ label: 'Approved At', value: formatDate(viewedTimelineMilestone.approvedAt) });
+    }
+    if (viewedTimelineMilestone.paidAt) {
+      cards.push({ label: 'Paid At', value: formatDate(viewedTimelineMilestone.paidAt) });
+    }
+    if (viewedTimelineMilestone.releasedAt) {
+      cards.push({ label: 'Released At', value: formatDate(viewedTimelineMilestone.releasedAt) });
+    }
+
+    return cards;
+  }, [viewedTimelineMilestone]);
   const isLoading = isLoadingProject || isLoadingMilestones || (!projectResponse?.data && isLoadingFallbackProjects);
   const activeProjectDisputes = activeProjectDisputesResponse ?? [];
   const hasProjectDispute = isActiveDisputesLoaded
@@ -288,12 +378,49 @@ export const ProjectWorkspacePage = () => {
 
   const deliverables = deliverablesResponse?.data ?? [];
 
+  const {
+    data: timelineDeliverablesResponse,
+    isLoading: isLoadingTimelineDeliverables,
+  } = useQuery({
+    queryKey: ['milestone', viewedTimelineMilestoneId, 'timeline-deliverables'],
+    queryFn: () => projectService.getDeliverables(viewedTimelineMilestoneId),
+    enabled: !!viewedTimelineMilestoneId,
+  });
+
+  const timelineDeliverables = timelineDeliverablesResponse?.data ?? [];
+  const {
+    data: timelineStepsResponse,
+    isLoading: isLoadingTimelineSteps,
+  } = useMilestoneSteps(viewedTimelineMilestoneId);
+  const timelineSteps = useMemo(
+    () => (timelineStepsResponse?.data ?? []).slice().sort((a, b) => {
+      const aCompleted = a.status === MilestoneStepStatus.COMPLETED ? 0 : 1;
+      const bCompleted = b.status === MilestoneStepStatus.COMPLETED ? 0 : 1;
+      if (aCompleted !== bCompleted) return aCompleted - bCompleted;
+
+      return a.orderIndex - b.orderIndex;
+    }),
+    [timelineStepsResponse?.data]
+  );
+  const updateTimelineStepStatusMutation = useMutation({
+    mutationFn: ({ stepId, status }: { stepId: string; status: MilestoneStepStatus }) =>
+      projectService.updateStepStatus(stepId, status),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['milestone', viewedTimelineMilestoneId, 'steps'] });
+      toast.success('Step status updated.');
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Failed to update step status.'));
+    },
+  });
+
   // API Nộp sản phẩm (Expert bấm Submit)
   const submitMutation = useMutation({
     mutationFn: ({ milestoneId, data }: { milestoneId: string; data: { description: string; fileUrl: string; demoUrl: string; sourceCodeUrl: string; note: string } }) => projectService.submitDeliverable(milestoneId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project', id, 'milestones'] });
       queryClient.invalidateQueries({ queryKey: ['milestone', selectedMilestone?.id, 'deliverables'] });
+      queryClient.invalidateQueries({ queryKey: ['milestone', selectedMilestone?.id, 'timeline-deliverables'] });
       setIsSubmitModalOpen(false);
       setSelectedMilestone(null);
     }
@@ -317,6 +444,31 @@ export const ProjectWorkspacePage = () => {
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error, 'Failed to fund milestone.'));
+    },
+  });
+
+  const updateMilestoneMutation = useMutation({
+    mutationFn: ({ milestoneId, data }: {
+      milestoneId: string;
+      data: {
+        title?: string;
+        description?: string;
+        acceptanceCriteria?: string;
+        amount?: number;
+        dueDate?: string;
+      };
+    }) => projectService.updateMilestone(milestoneId, data),
+    onSuccess: (response) => {
+      void queryClient.invalidateQueries({ queryKey: ['project', id] });
+      void queryClient.invalidateQueries({ queryKey: ['project', id, 'milestones'] });
+      if (response.data) {
+        setSelectedMilestone(response.data);
+      }
+      setIsMilestoneEditOpen(false);
+      toast.success('Milestone updated successfully.');
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Failed to update milestone.'));
     },
   });
 
@@ -417,21 +569,39 @@ export const ProjectWorkspacePage = () => {
 
   const handleMilestoneClick = (milestone: Milestone) => setSelectedMilestone(milestone);
 
-  const handleFundMilestone = () => {
-    if (!selectedMilestone) return;
+  const openMilestoneEditModal = (milestone: Milestone) => {
+    setSelectedMilestone(milestone);
+    setMilestoneEditData({
+      title: milestone.title ?? '',
+      description: milestone.description ?? '',
+      acceptanceCriteria: milestone.acceptanceCriteria ?? '',
+      amount: Number(milestone.amount ?? 0),
+      dueDate: milestone.dueDate ? milestone.dueDate.slice(0, 10) : '',
+    });
+    setIsMilestoneEditOpen(true);
+  };
 
-    if (!selectedMilestone.id) {
+  const openStepEditor = (milestone: Milestone) => {
+    setStepEditorMilestoneId(milestone.id);
+    setIsStepEditorOpen(true);
+  };
+
+  const handleFundMilestone = (milestone = selectedMilestone) => {
+    if (!milestone) return;
+
+    if (!milestone.id) {
       toast.error('Cannot fund this milestone because its id is missing.');
       return;
     }
 
-    const amount = Number(selectedMilestone.amount ?? 0);
+    const amount = Number(milestone.amount ?? 0);
     if (walletBalance < amount) {
       toast.error(`Insufficient wallet balance. Please deposit at least ${(amount - walletBalance).toLocaleString()} Aivora Coin more.`);
       return;
     }
 
-    fundMutation.mutate(selectedMilestone.id);
+    setSelectedMilestone(milestone);
+    fundMutation.mutate(milestone.id);
   };
 
   
@@ -464,6 +634,8 @@ export const ProjectWorkspacePage = () => {
   const canShowFinishProject = user?.role === Role.CLIENT && user.id === project?.clientId;
   const canRequestFinishProject = !!id && project && project.status !== ProjectStatus.CANCELLED && !hasProjectDispute;
   const canReviewCompletedProject = project?.status === ProjectStatus.COMPLETED;
+  const canEditMilestoneGeneralInfo = user?.role === Role.CLIENT && user.id === project?.clientId;
+  const canEditTimelineSteps = user?.role === Role.EXPERT && user.id === project?.expertId;
   const hasClientReviewedProject = Boolean(
     isProjectReviewsLoaded &&
     projectReviewsResponse?.data?.some(review => review.reviewerId === user?.id)
@@ -527,14 +699,16 @@ export const ProjectWorkspacePage = () => {
     submitMutation.mutate({ milestoneId: selectedMilestone.id, data: submitData });
   };
 
-  const openDeliverableModal = () => {
-    if (!selectedMilestone) {
+  const openDeliverableModal = (milestone = selectedMilestone, milestoneDeliverables = deliverables) => {
+    if (!milestone) {
       toast.error('Cannot open deliverable modal: No milestone selected.');
       return;
     }
 
-    if (selectedMilestone.status === MilestoneStatus.REVISION_REQUESTED && deliverables.length > 0) {
-      const latestDeliverable = deliverables[0];
+    setSelectedMilestone(milestone);
+
+    if (milestone.status === MilestoneStatus.REVISION_REQUESTED && milestoneDeliverables.length > 0) {
+      const latestDeliverable = milestoneDeliverables[0];
       setSubmitData({
         description: latestDeliverable.description ?? '',
         fileUrl: latestDeliverable.fileUrl ?? '',
@@ -676,49 +850,484 @@ export const ProjectWorkspacePage = () => {
         </div>
       </div>
 
-      {/* Kanban Board Container */}
-      <div className="bg-slate-50/50 border border-slate-100 rounded-lg p-6 md:p-8 relative overflow-hidden">
-         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-brand-accent to-blue-400" />
-         
-         <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-8">
-               <div className="flex items-center gap-3">
-                  <div className="size-10 rounded-lg bg-white shadow-sm flex items-center justify-center">
-                     <DollarSign className="size-5 text-emerald-600" />
-                  </div>
-                  <div>
-                     <p className="text-lg font-black text-slate-900 leading-none">{project?.totalBudget?.toLocaleString()} Aivora Coin</p>
-                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Total Contract</p>
-                  </div>
-               </div>
-               <div className="flex items-center gap-3">
-                  <div className="size-10 rounded-lg bg-white shadow-sm flex items-center justify-center">
-                     <Calendar className="size-5 text-blue-600" />
-                  </div>
-                  <div>
-                     <p className="text-lg font-black text-slate-900 leading-none">
-                        {formatDate(project?.endDate)}
-                     </p>
-                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Target Deadline</p>
-                  </div>
-               </div>
+      <div className="rounded-lg border border-slate-100 bg-white p-2 shadow-sm">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setWorkspaceView('overview')}
+            className={cn(
+              'h-12 rounded-md px-6 text-sm font-black transition-colors',
+              workspaceView === 'overview'
+                ? 'bg-brand-blue-dark text-white shadow-sm'
+                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+            )}
+          >
+            Overview
+          </button>
+          <button
+            type="button"
+            onClick={() => setWorkspaceView('timeline')}
+            className={cn(
+              'h-12 rounded-md px-6 text-sm font-black transition-colors',
+              workspaceView === 'timeline'
+                ? 'bg-brand-blue-dark text-white shadow-sm'
+                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+            )}
+          >
+            Timeline
+          </button>
+        </div>
+      </div>
+
+      {workspaceView === 'overview' ? (
+        <div className="bg-slate-50/50 border border-slate-100 rounded-lg p-6 md:p-8 relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-brand-accent to-blue-400" />
+
+          <div className="mb-8 flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex flex-wrap items-center gap-6">
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-lg bg-white shadow-sm flex items-center justify-center">
+                  <DollarSign className="size-5 text-emerald-600" />
+                </div>
+                <div>
+                  <p className="text-lg font-black text-slate-900 leading-none">{project?.totalBudget?.toLocaleString()} Aivora Coin</p>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Total Contract</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-lg bg-white shadow-sm flex items-center justify-center">
+                  <Calendar className="size-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-lg font-black text-slate-900 leading-none">
+                    {formatDate(project?.endDate)}
+                  </p>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Target Deadline</p>
+                </div>
+              </div>
             </div>
 
             <div className="flex -space-x-3">
-               {[project?.client, project?.expert].filter(Boolean).map((u, i) => (
-                 <div key={i} className="size-10 rounded-full border-4 border-slate-50 bg-slate-200 flex items-center justify-center overflow-hidden shadow-sm" title={u?.fullName}>
-                    {u?.avatarUrl ? <img src={u.avatarUrl} className="size-full object-cover" /> : <span className="text-xs font-black">{u?.fullName?.charAt(0)}</span>}
-                 </div>
-               ))}
+              {[project?.client, project?.expert].filter(Boolean).map((u, i) => (
+                <div key={i} className="size-10 rounded-full border-4 border-slate-50 bg-slate-200 flex items-center justify-center overflow-hidden shadow-sm" title={u?.fullName}>
+                  {u?.avatarUrl ? <img src={u.avatarUrl} className="size-full object-cover" /> : <span className="text-xs font-black">{u?.fullName?.charAt(0)}</span>}
+                </div>
+              ))}
             </div>
-         </div>
+          </div>
 
-         <KanbanBoard 
-           milestones={milestones} 
-           role={getKanbanRole()}
-           onMilestoneClick={handleMilestoneClick}
-         />
-      </div>
+          <KanbanBoard
+            milestones={milestones}
+            role={getKanbanRole()}
+            onMilestoneClick={handleMilestoneClick}
+          />
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-lg border border-slate-100 bg-white shadow-sm">
+          <div className="flex flex-col gap-5 border-b border-slate-100 p-6 xl:flex-row xl:items-center xl:justify-between">
+            <div>
+              <h2 className="text-2xl font-black text-slate-900">Milestone Timeline</h2>
+              <p className="mt-1 text-sm font-medium text-slate-500">
+                Select a project milestone to view timeline and progress details inside this workspace.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <select
+                value={timelineMilestoneId}
+                onChange={(event) => setTimelineMilestoneId(event.target.value)}
+                className="h-12 min-w-[280px] rounded-lg border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-700 outline-none focus:border-primary"
+              >
+                <option value="">Select milestone</option>
+                {sortedMilestones.map((milestone) => (
+                  <option key={milestone.id} value={milestone.id}>
+                    {milestone.title}
+                  </option>
+                ))}
+              </select>
+              <Button
+                disabled={!timelineMilestoneId}
+                onClick={() => setViewedTimelineMilestoneId(timelineMilestoneId)}
+                className="h-12 rounded-md px-7 font-black shadow-lg shadow-primary/15"
+              >
+                View Timeline
+              </Button>
+            </div>
+          </div>
+
+          {!viewedTimelineMilestone ? (
+            <div className="flex min-h-[260px] flex-col items-center justify-center px-6 py-16 text-center">
+              <Clock className="mb-4 size-10 text-slate-300" />
+              <p className="text-sm font-black text-slate-500">
+                Select a milestone to view its timeline and progress details.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-8 p-6">
+              <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-md bg-blue-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-primary">
+                      {getMilestoneStatusText(viewedTimelineMilestone.status)}
+                    </span>
+                    {viewedTimelineMilestone.dueDate && (
+                      <span className="rounded-md bg-slate-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-500">
+                        {formatDate(viewedTimelineMilestone.dueDate)}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="mt-3 text-2xl font-black text-slate-900">{viewedTimelineMilestone.title}</h3>
+                  {viewedTimelineMilestone.description && (
+                    <p className="mt-2 text-sm font-medium text-slate-500">
+                      {viewedTimelineMilestone.description}
+                    </p>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => handleMilestoneClick(viewedTimelineMilestone)}
+                  className="rounded-full px-5 font-black"
+                >
+                  Open Details
+                </Button>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+                {timelineInfoCards.map(({ label, value }) => (
+                  <div key={label} className="rounded-md bg-slate-50 px-4 py-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</p>
+                    <p className="mt-2 text-sm font-black text-slate-900">{value}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-6">
+                <div className="flex items-center justify-between gap-4">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-slate-900">Milestone Timeline Chart</h3>
+                  {canEditTimelineSteps && (
+                    <Button
+                      variant="outline"
+                      onClick={() => openStepEditor(viewedTimelineMilestone)}
+                      className="rounded-full px-5 font-black"
+                    >
+                      Edit step
+                    </Button>
+                  )}
+                </div>
+                {isLoadingTimelineSteps ? (
+                  <div className="rounded-md bg-slate-50 p-4 text-sm font-semibold text-slate-500">
+                    Loading steps...
+                  </div>
+                ) : timelineSteps.length === 0 ? (
+                  <div className="rounded-md bg-slate-50 p-4 text-sm font-semibold text-slate-400">
+                    No steps added for this milestone yet.
+                  </div>
+                ) : (
+                  <div className="relative px-2 pt-8">
+                    <div className="absolute left-10 right-10 top-12 h-px bg-slate-200" />
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                      {timelineSteps.map((step) => {
+                        const isComplete = step.status === MilestoneStepStatus.COMPLETED;
+                        const isActive = step.status === MilestoneStepStatus.IN_PROGRESS || step.status === MilestoneStepStatus.BLOCKED;
+
+                        return (
+                          <div key={step.id} className="relative pt-8">
+                            <div className="absolute left-1/2 top-0 z-10 -translate-x-1/2 rounded-full bg-white p-1">
+                              <span className={cn(
+                                'flex size-7 items-center justify-center rounded-full border-2',
+                                isComplete && 'border-primary bg-primary text-white',
+                                isActive && 'border-primary bg-white text-primary shadow-md',
+                                !isComplete && !isActive && 'border-slate-200 bg-white text-slate-300'
+                              )}>
+                                {isComplete ? <CheckCircle2 className="size-4" /> : <span className="size-2 rounded-full bg-current" />}
+                              </span>
+                            </div>
+                            <div className={cn(
+                              'min-h-36 rounded-md border px-4 py-4 shadow-sm',
+                              isComplete && 'border-slate-100 bg-white',
+                              isActive && 'border-primary/40 bg-white',
+                              !isComplete && !isActive && 'border-slate-100 bg-slate-50/60'
+                            )}>
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-black text-slate-900">{step.title}</p>
+                                  <p className={cn(
+                                    'mt-1 text-[11px] font-black uppercase',
+                                    isComplete ? 'text-emerald-600' : isActive ? 'text-primary' : 'text-slate-400'
+                                  )}>
+                                    {step.status.replace('_', ' ')}
+                                  </p>
+                                </div>
+                                {canEditTimelineSteps && (
+                                  <Button
+                                    size="sm"
+                                    variant={isComplete ? 'outline' : 'primary'}
+                                    disabled={isComplete || updateTimelineStepStatusMutation.isPending}
+                                    onClick={() => updateTimelineStepStatusMutation.mutate({
+                                      stepId: step.id,
+                                      status: MilestoneStepStatus.COMPLETED,
+                                    })}
+                                    className="shrink-0 rounded-full text-xs font-black"
+                                  >
+                                    {isComplete ? 'Done' : 'Complete'}
+                                  </Button>
+                                )}
+                              </div>
+                              {step.description && (
+                                <p className="mt-3 text-xs font-medium leading-5 text-slate-500">{step.description}</p>
+                              )}
+                              <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                                {step.dueDate && <span>Due {formatDate(step.dueDate)}</span>}
+                                {step.completedAt && <span className="text-emerald-600">Completed {formatDate(step.completedAt)}</span>}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                <p className="text-xs font-semibold text-slate-500">
+                  Completed steps are sorted to the left. Experts can complete steps through the milestone step status API.
+                </p>
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div>
+                  <h3 className="mb-3 text-sm font-black uppercase tracking-widest text-slate-900">Acceptance Criteria</h3>
+                  <div className="rounded-md bg-slate-50 p-4 text-sm font-medium text-slate-500">
+                    {viewedTimelineMilestone.acceptanceCriteria || 'N/A'}
+                  </div>
+                </div>
+                <div>
+                  <h3 className="mb-3 text-sm font-black uppercase tracking-widest text-slate-900">Submitted Deliverables</h3>
+                  <div className="rounded-md bg-slate-50 p-4 text-sm font-medium text-slate-500">
+                    {isLoadingTimelineDeliverables
+                      ? 'Loading...'
+                      : timelineDeliverables.length === 0
+                        ? 'N/A'
+                        : timelineDeliverables.map((deliverable) => deliverable.description || 'Submitted deliverable').join(', ')}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="mb-2 text-sm font-black uppercase tracking-widest text-slate-900">Actions</h3>
+                <div className="flex flex-wrap gap-3">
+                  {canEditMilestoneGeneralInfo && (
+                    <Button
+                      variant="outline"
+                      onClick={() => openMilestoneEditModal(viewedTimelineMilestone)}
+                      className="rounded-full px-5 font-black"
+                    >
+                      <Pencil className="mr-1.5 size-4" />
+                      Edit milestone
+                    </Button>
+                  )}
+
+                  {viewedTimelineMilestone.status === MilestoneStatus.PENDING && user?.role === Role.CLIENT && (
+                    <Button
+                      onClick={() => handleFundMilestone(viewedTimelineMilestone)}
+                      disabled={fundMutation.isPending || isLoadingWallet}
+                      title="Funding transfers 30% to the Expert immediately"
+                      className="rounded-full px-5 font-black shadow-lg shadow-primary/20"
+                    >
+                      {fundMutation.isPending ? 'Funding...' : isLoadingWallet ? 'Checking Wallet...' : 'Fund Milestone'}
+                    </Button>
+                  )}
+
+                  {([MilestoneStatus.FUNDED, MilestoneStatus.IN_PROGRESS, MilestoneStatus.REVISION_REQUESTED] as MilestoneStatus[]).includes(viewedTimelineMilestone.status) && user?.role === Role.EXPERT && (
+                    <Button
+                      onClick={() => openDeliverableModal(viewedTimelineMilestone, timelineDeliverables)}
+                      disabled={isLoadingTimelineDeliverables}
+                      className="rounded-full bg-brand-accent px-5 font-black shadow-lg shadow-brand-accent/20 hover:bg-brand-accent/90"
+                    >
+                      <Upload className="mr-1.5 size-4" />
+                      {viewedTimelineMilestone.status === MilestoneStatus.REVISION_REQUESTED ? 'Edit Deliverables' : 'Submit Deliverables'}
+                    </Button>
+                  )}
+
+                  {viewedTimelineMilestone.status === MilestoneStatus.SUBMITTED && user?.role === Role.CLIENT && (
+                    <>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedMilestone(viewedTimelineMilestone);
+                          setIsRevisionModalOpen(true);
+                        }}
+                        className="rounded-full px-5 font-black"
+                      >
+                        Revision
+                      </Button>
+                      <Button
+                        onClick={() => approveMutation.mutate(viewedTimelineMilestone.id)}
+                        disabled={approveMutation.isPending || !viewedTimelineMilestone.id}
+                        className="rounded-full px-5 font-black shadow-lg shadow-primary/20"
+                      >
+                        {approveMutation.isPending ? 'Approving...' : 'Approve & Pay'}
+                      </Button>
+                    </>
+                  )}
+
+                  {viewedTimelineMilestone.status === MilestoneStatus.COMPLETED && (
+                    <div className="flex items-center gap-3 rounded-md border border-emerald-100 bg-emerald-50 px-4 py-3 text-emerald-700">
+                      <CheckCircle2 className="size-5 shrink-0" />
+                      <div>
+                        <p className="text-xs font-black uppercase">Milestone Completed</p>
+                        <p className="text-xs font-bold opacity-80">Funding and approval payments have been processed.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {!(canEditMilestoneGeneralInfo
+                    || (viewedTimelineMilestone.status === MilestoneStatus.PENDING && user?.role === Role.CLIENT)
+                    || (([MilestoneStatus.FUNDED, MilestoneStatus.IN_PROGRESS, MilestoneStatus.REVISION_REQUESTED] as MilestoneStatus[]).includes(viewedTimelineMilestone.status) && user?.role === Role.EXPERT)
+                    || (viewedTimelineMilestone.status === MilestoneStatus.SUBMITTED && user?.role === Role.CLIENT)
+                    || viewedTimelineMilestone.status === MilestoneStatus.COMPLETED) && (
+                    <p className="text-xs font-medium text-slate-500">
+                      No milestone action is available for your role at this status.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {isStepEditorOpen && stepEditorMilestone && canEditTimelineSteps && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => setIsStepEditorOpen(false)}
+          />
+          <div className="relative z-10 flex max-h-[86vh] w-full max-w-3xl flex-col overflow-hidden rounded-lg bg-white shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-100 p-6">
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-widest text-primary">Edit timeline steps</p>
+                <h3 className="mt-1 text-xl font-black text-slate-900">{stepEditorMilestone.title}</h3>
+                <p className="mt-1 text-sm font-medium text-slate-500">
+                  Add, edit, delete, reorder, or update milestone steps through the live milestone step API.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsStepEditorOpen(false)}
+                className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-400 transition-colors hover:text-slate-900"
+                aria-label="Close step editor"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+            <div className="overflow-y-auto p-6">
+              <StepBoard
+                milestoneId={stepEditorMilestone.id}
+                isExpert={canEditTimelineSteps}
+                isClient={false}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isMilestoneEditOpen && selectedMilestone && canEditMilestoneGeneralInfo && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => setIsMilestoneEditOpen(false)}
+          />
+          <div className="relative z-10 w-full max-w-xl rounded-lg bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="mb-6 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-widest text-primary">Edit milestone</p>
+                <h3 className="mt-1 text-xl font-black text-slate-900">{selectedMilestone.title}</h3>
+                <p className="mt-1 text-sm font-medium text-slate-500">
+                  Update milestone title, description, criteria, amount, and due date.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMilestoneEditOpen(false)}
+                className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-400 transition-colors hover:text-slate-900"
+                aria-label="Close milestone editor"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1 block text-xs font-black uppercase tracking-widest text-slate-500">Title</label>
+                <input
+                  value={milestoneEditData.title}
+                  onChange={(event) => setMilestoneEditData({ ...milestoneEditData, title: event.target.value })}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold outline-none focus:border-primary"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-black uppercase tracking-widest text-slate-500">Description</label>
+                <textarea
+                  value={milestoneEditData.description}
+                  onChange={(event) => setMilestoneEditData({ ...milestoneEditData, description: event.target.value })}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-primary"
+                  rows={3}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-black uppercase tracking-widest text-slate-500">Acceptance Criteria</label>
+                <textarea
+                  value={milestoneEditData.acceptanceCriteria}
+                  onChange={(event) => setMilestoneEditData({ ...milestoneEditData, acceptanceCriteria: event.target.value })}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-primary"
+                  rows={4}
+                />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs font-black uppercase tracking-widest text-slate-500">Amount</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={milestoneEditData.amount}
+                    onChange={(event) => setMilestoneEditData({ ...milestoneEditData, amount: Number(event.target.value) })}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold outline-none focus:border-primary"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-black uppercase tracking-widest text-slate-500">Due Date</label>
+                  <input
+                    type="date"
+                    value={milestoneEditData.dueDate}
+                    onChange={(event) => setMilestoneEditData({ ...milestoneEditData, dueDate: event.target.value })}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold outline-none focus:border-primary"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setIsMilestoneEditOpen(false)} className="rounded-full font-bold">
+                Cancel
+              </Button>
+              <Button
+                onClick={() => updateMilestoneMutation.mutate({
+                  milestoneId: selectedMilestone.id,
+                  data: {
+                    title: milestoneEditData.title.trim(),
+                    description: milestoneEditData.description.trim(),
+                    acceptanceCriteria: milestoneEditData.acceptanceCriteria.trim(),
+                    amount: milestoneEditData.amount,
+                    dueDate: milestoneEditData.dueDate || undefined,
+                  },
+                })}
+                disabled={updateMilestoneMutation.isPending || !milestoneEditData.title.trim()}
+                className="rounded-full font-black shadow-lg shadow-primary/20"
+              >
+                {updateMilestoneMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Side Detail Panel (Overlay) */}
       <div className={cn(
@@ -737,9 +1346,34 @@ export const ProjectWorkspacePage = () => {
               </div>
 
               <div className="flex-1 space-y-8 overflow-y-auto pr-2 scrollbar-hide">
-                 <div className="space-y-2">
-                    <h2 className="text-2xl font-black text-slate-900 leading-tight">{selectedMilestone.title}</h2>
-                    <p className="text-slate-500 font-medium text-sm leading-relaxed">{selectedMilestone.description}</p>
+                 <div className="space-y-4">
+                    <div className="space-y-2">
+                      <h2 className="text-2xl font-black text-slate-900 leading-tight">{selectedMilestone.title}</h2>
+                      <p className="text-slate-500 font-medium text-sm leading-relaxed">{selectedMilestone.description}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {canEditMilestoneGeneralInfo && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openMilestoneEditModal(selectedMilestone)}
+                          className="rounded-full font-black"
+                        >
+                          <Pencil className="mr-1.5 size-3.5" />
+                          Edit milestone
+                        </Button>
+                      )}
+                      {canEditTimelineSteps && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openStepEditor(selectedMilestone)}
+                          className="rounded-full font-black"
+                        >
+                          Edit steps
+                        </Button>
+                      )}
+                    </div>
                  </div>
 
                  <div className="grid grid-cols-2 gap-4">
@@ -754,6 +1388,20 @@ export const ProjectWorkspacePage = () => {
                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Est. Duration</p>
                     </div>
                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                      <ListChecks className="size-4 text-primary" />
+                      Steps
+                    </h3>
+                    <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-4">
+                      <StepBoard
+                        milestoneId={selectedMilestone.id}
+                        isExpert={false}
+                        isClient={false}
+                      />
+                    </div>
+                  </div>
 
                   <div className="space-y-4">
                     <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
@@ -861,17 +1509,8 @@ export const ProjectWorkspacePage = () => {
               <div className="pt-8 border-t border-slate-100 space-y-3">
                  {selectedMilestone.status === MilestoneStatus.PENDING && user?.role === Role.CLIENT && (
                    <div className="flex gap-3">
-                     {/* Edit button hidden until functionality is implemented */}
-                     {/* <Button
-                       onClick={openEditMilestoneModal}
-                       variant="outline"
-                       className="h-14 rounded-full font-black border-slate-200 px-6 flex items-center gap-2"
-                     >
-                       <Pencil className="size-4" />
-                       Edit
-                     </Button> */}
                      <Button
-                       onClick={handleFundMilestone}
+                       onClick={() => handleFundMilestone()}
                        disabled={fundMutation.isPending || isLoadingWallet}
                        title="Funding transfers 30% to the Expert immediately"
                        className="flex-1 h-14 rounded-full font-black text-base shadow-xl shadow-primary/20"
@@ -882,7 +1521,7 @@ export const ProjectWorkspacePage = () => {
                  )}
                  {([MilestoneStatus.FUNDED, MilestoneStatus.IN_PROGRESS, MilestoneStatus.REVISION_REQUESTED] as MilestoneStatus[]).includes(selectedMilestone.status) && user?.role === Role.EXPERT && (
                     <Button 
-                      onClick={openDeliverableModal}
+                      onClick={() => openDeliverableModal()}
                       className="w-full h-14 rounded-full font-black text-base bg-brand-accent hover:bg-brand-accent/90 shadow-xl shadow-brand-accent/20 flex items-center justify-center gap-2"
                     >
                        <Upload className="size-5" />
