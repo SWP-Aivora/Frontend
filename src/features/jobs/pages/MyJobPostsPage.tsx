@@ -10,30 +10,20 @@ import { proposalService } from '@/features/proposals/services';
 import type { Job } from '@/features/jobs/types';
 import { QUERY_KEYS, REFETCH_INTERVALS } from '@/shared/constants';
 import { ConfirmActionDialog } from '@/shared/components/ui/ConfirmActionDialog';
+import {
+  CANCELLED_JOB_POST_LOCKED_MESSAGE,
+  type NormalizedJobStatus,
+  normalizeJobPostStatus,
+} from '@/features/jobs/jobStatus';
 
 type StatusFilter = 'all' | 'draft' | 'open' | 'in-progress' | 'completed' | 'cancelled';
 type SortOrder = 'newest' | 'oldest';
 type PendingJobAction = { type: 'delete' | 'cancel'; id: string } | null;
 
-const normalizeJobStatus = (status: unknown): StatusFilter | 'cancelled' => {
-  if (status === 0) return 'draft';
-  if (status === 1) return 'open';
-  if (status === 2) return 'in-progress';
-  if (status === 3) return 'completed';
-  if (status === 4 || status === 5) return 'cancelled';
+type DisplayJobStatus = Exclude<NormalizedJobStatus, 'unknown'> | 'unknown';
 
-  const normalized = String(status ?? '').toUpperCase().replace(/\s+|_/g, '');
-  if (normalized === 'DRAFT') return 'draft';
-  if (normalized === 'OPEN' || normalized === 'PUBLISHED') return 'open';
-  if (normalized === 'INPROGRESS') return 'in-progress';
-  if (normalized === 'COMPLETED' || normalized === 'CLOSED') return 'completed';
-  if (normalized === 'CANCELLED' || normalized === 'CANCELED') return 'cancelled';
-
-  return 'open';
-};
-
-const canEditJobPost = (status: StatusFilter | 'cancelled') => status === 'draft' || status === 'open';
-const isProposalOnlyJobPost = (status: StatusFilter | 'cancelled') => status === 'in-progress' || status === 'completed';
+const canEditJobPost = (status: DisplayJobStatus) => status === 'draft' || status === 'open';
+const isProposalOnlyJobPost = (status: DisplayJobStatus) => status === 'in-progress' || status === 'completed' || status === 'closed';
 
 const getJobBudgetLabel = (job: Job) => {
   const min = job.budgetMin ?? 0;
@@ -82,6 +72,10 @@ export const MyJobPostsPage = () => {
     setPendingJobAction({ type: 'cancel', id });
   };
 
+  const showCancelledJobPostLockedMessage = () => {
+    toast.error(CANCELLED_JOB_POST_LOCKED_MESSAGE);
+  };
+
   const { data: jobsResponse, isLoading: isLoadingJobs } = useQuery({
     queryKey: ['clientJobs'],
     queryFn: () => jobService.getMyJobs({ PageSize: 100 }),
@@ -121,7 +115,7 @@ export const MyJobPostsPage = () => {
 
   const displayJobs = useMemo(() => {
     return jobs.map((job, index) => {
-      const status = normalizeJobStatus(job.status);
+      const status = normalizeJobPostStatus(job.status);
       const proposalCount = proposalCountQueries[index]?.data?.data?.length ?? 0;
 
       return {
@@ -164,6 +158,8 @@ export const MyJobPostsPage = () => {
         return { label: 'Completed', color: 'text-brand-success bg-brand-success/10', icon: CheckCircle2 };
       case 'cancelled':
         return { label: 'Cancelled', color: 'text-rose-600 bg-rose-50', icon: FileText };
+      case 'closed':
+        return { label: 'Closed', color: 'text-slate-600 bg-slate-100', icon: FileText };
       default:
         return { label: 'Unknown', color: 'text-slate-500 bg-slate-100', icon: FileText };
     }
@@ -267,12 +263,22 @@ export const MyJobPostsPage = () => {
                   
                   <div>
                     <h3 className="text-xl font-black text-slate-900 group-hover:text-primary transition-colors">
-                      <Link
-                        to={isProposalOnlyJobPost(job.status) ? `/client/job-posts/${job.id}/proposals` : `/client/post-job?editJobId=${job.id}`}
-                        className="inline-block hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm"
-                      >
-                        {job.title}
-                      </Link>
+                      {job.status === 'cancelled' ? (
+                        <button
+                          type="button"
+                          onClick={showCancelledJobPostLockedMessage}
+                          className="inline-block rounded-sm text-left hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                        >
+                          {job.title}
+                        </button>
+                      ) : (
+                        <Link
+                          to={isProposalOnlyJobPost(job.status) ? `/client/job-posts/${job.id}/proposals` : `/client/post-job?editJobId=${job.id}`}
+                          className="inline-block hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-sm"
+                        >
+                          {job.title}
+                        </Link>
+                      )}
                     </h3>
                     <div className="flex items-center gap-3 mt-2">
                        <span className="text-xs font-bold text-slate-500 bg-slate-50 px-2.5 py-1 rounded-md">

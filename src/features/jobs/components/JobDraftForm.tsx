@@ -12,6 +12,8 @@ import type { AiJobSuggestion, SuggestedMilestone } from '../types';
 import { BudgetType } from '@/shared/types/enums';
 import type { Category } from '@/shared/services/categoryService';
 import type { Skill } from '@/shared/services/skillService';
+import type { MilestoneBudgetValidation } from '../budgetValidation';
+import { BUDGET_RANGE_INVALID_MESSAGE } from '../budgetValidation';
 
 const requiredPositiveNumberField = (label: string) =>
   z.preprocess(
@@ -41,6 +43,14 @@ const jobDraftSchema = z.object({
   budgetMin: requiredPositiveNumberField('Minimum budget'),
   budgetMax: requiredPositiveNumberField('Maximum budget'),
   timelineDays: requiredPositiveNumberField('Timeline'),
+}).superRefine((data, ctx) => {
+  if (data.budgetMin !== null && data.budgetMax !== null && data.budgetMin > data.budgetMax) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: BUDGET_RANGE_INVALID_MESSAGE,
+      path: ['budgetMax'],
+    });
+  }
 });
 
 type JobDraftFormValues = {
@@ -65,10 +75,14 @@ interface JobDraftFormProps {
   onAccept: () => void;
   onSaveDraft: () => void;
   onReject?: () => void;
+  milestoneBudgetValidation: MilestoneBudgetValidation;
   isAccepting: boolean;
   isDraftSaved?: boolean;
   isGenerating?: boolean;
   canContinueToReview?: boolean;
+  isReadOnly?: boolean;
+  readOnlyStatusLabel?: string;
+  readOnlyMessage?: string;
 }
 
 export const JobDraftForm = ({ 
@@ -83,10 +97,14 @@ export const JobDraftForm = ({
   onAccept,
   onSaveDraft,
   onReject,
+  milestoneBudgetValidation,
   isAccepting,
   isDraftSaved = false,
   isGenerating = false,
-  canContinueToReview = true
+  canContinueToReview = true,
+  isReadOnly = false,
+  readOnlyStatusLabel,
+  readOnlyMessage
 }: JobDraftFormProps) => {
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<JobDraftFormValues>({
     resolver: zodResolver(jobDraftSchema),
@@ -112,6 +130,7 @@ export const JobDraftForm = ({
   const budgetMinErrorId = errors.budgetMin ? 'job-draft-budget-min-error' : undefined;
   const budgetMaxErrorId = errors.budgetMax ? 'job-draft-budget-max-error' : undefined;
   const timelineErrorId = errors.timelineDays ? 'job-draft-timeline-error' : undefined;
+  const milestoneBudgetErrorId = milestoneBudgetValidation.blockingMessage ? 'job-draft-milestone-budget-error' : undefined;
 
   const onSubmit: SubmitHandler<JobDraftFormValues> = (data) => {
     if (data.budgetMin === null || data.budgetMax === null || data.timelineDays === null) {
@@ -188,7 +207,22 @@ export const JobDraftForm = ({
             </div>
           </div>
         )}
+        {isReadOnly && readOnlyStatusLabel && (
+          <div className="flex items-center gap-1 px-3 py-1 bg-rose-50 rounded-full border border-rose-100">
+            <span className="text-[10px] font-black text-rose-700 uppercase tracking-widest">
+              {readOnlyStatusLabel}
+            </span>
+          </div>
+        )}
       </div>
+
+      {isReadOnly && readOnlyMessage && (
+        <div className="border-b border-rose-100 bg-rose-50 px-6 py-3">
+          <p role="alert" className="text-sm font-bold text-rose-700">
+            {readOnlyMessage}
+          </p>
+        </div>
+      )}
 
       {/* Form Area */}
       {/* Keep internal scrolling only on large screens where the panel shares height with the chat column. */}
@@ -214,6 +248,7 @@ export const JobDraftForm = ({
                 placeholder="Job Title"
                 aria-invalid={errors.title ? 'true' : 'false'}
                 aria-describedby={titleErrorId}
+                disabled={isReadOnly}
                 className="h-12 rounded-lg bg-slate-50 border-slate-100 focus:bg-white text-base font-bold text-slate-900" 
               />
               {errors.title && <p id={titleErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{errors.title.message}</p>}
@@ -231,6 +266,7 @@ export const JobDraftForm = ({
                 rows={6}
                 aria-invalid={errors.description ? 'true' : 'false'}
                 aria-describedby={descriptionErrorId}
+                disabled={isReadOnly}
                 className="w-full p-4 rounded-lg bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all text-sm leading-relaxed text-slate-700"
               />
               {errors.description && <p id={descriptionErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{errors.description.message}</p>}
@@ -249,6 +285,7 @@ export const JobDraftForm = ({
                   placeholder="e.g., E-commerce, Healthcare"
                   aria-invalid={errors.businessDomain ? 'true' : 'false'}
                   aria-describedby={businessDomainErrorId}
+                  disabled={isReadOnly}
                   className="h-12 rounded-lg bg-slate-50 border-slate-100 focus:bg-white text-sm font-medium text-slate-900"
                 />
                 {errors.businessDomain && <p id={businessDomainErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{errors.businessDomain.message}</p>}
@@ -260,6 +297,7 @@ export const JobDraftForm = ({
                   id="job-draft-category"
                   value={suggestion.categoryId ?? ''}
                   onChange={(e) => onCategoryChange(e.target.value)}
+                  disabled={isReadOnly}
                   className="h-12 w-full rounded-lg border border-slate-100 bg-slate-50 px-4 text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary/5"
                 >
                   <option value="">Select category</option>
@@ -283,6 +321,7 @@ export const JobDraftForm = ({
                         key={skill.id}
                         type="button"
                         aria-pressed={isSelected}
+                        disabled={isReadOnly}
                         onClick={() => onSkillChange(skill.id)}
                         className={cn(
                           "px-4 py-2 rounded-xl text-xs font-bold transition-all border duration-200",
@@ -328,6 +367,7 @@ export const JobDraftForm = ({
                           }}
                           aria-invalid={errors.budgetMin ? 'true' : 'false'}
                           aria-describedby={budgetMinErrorId}
+                          disabled={isReadOnly}
                           className="h-11 rounded-lg bg-slate-50"
                         />
                         {errors.budgetMin && <p id={budgetMinErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{errors.budgetMin.message}</p>}
@@ -346,6 +386,7 @@ export const JobDraftForm = ({
                           }}
                           aria-invalid={errors.budgetMax ? 'true' : 'false'}
                           aria-describedby={budgetMaxErrorId}
+                          disabled={isReadOnly}
                           className="h-11 rounded-lg bg-slate-50"
                         />
                         {errors.budgetMax && <p id={budgetMaxErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{errors.budgetMax.message}</p>}
@@ -355,6 +396,7 @@ export const JobDraftForm = ({
                      <button 
                        type="button"
                        aria-pressed={suggestion.budgetType === BudgetType.FIXED}
+                       disabled={isReadOnly}
                        onClick={() => {
                          setValue('budgetType', BudgetType.FIXED);
                          onUpdate({ budgetType: BudgetType.FIXED });
@@ -367,6 +409,7 @@ export const JobDraftForm = ({
                      <button 
                        type="button"
                        aria-pressed={suggestion.budgetType === BudgetType.HOURLY}
+                       disabled={isReadOnly}
                        onClick={() => {
                          setValue('budgetType', BudgetType.HOURLY);
                          onUpdate({ budgetType: BudgetType.HOURLY });
@@ -399,6 +442,7 @@ export const JobDraftForm = ({
                   }}
                   aria-invalid={errors.timelineDays ? 'true' : 'false'}
                   aria-describedby={timelineErrorId}
+                  disabled={isReadOnly}
                   className="h-11 rounded-lg bg-slate-50"
                 />
                 {errors.timelineDays && <p id={timelineErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{errors.timelineDays.message}</p>}
@@ -413,9 +457,37 @@ export const JobDraftForm = ({
                 <ListChecks className="size-4" />
                 <h4 id="job-draft-milestones-heading" className="text-xs font-black uppercase tracking-widest text-left">Suggested Milestones</h4>
               </div>
-              <Button type="button" onClick={handleAddMilestone} variant="ghost" size="sm" className="h-8 rounded-lg text-primary text-xs font-bold gap-1">
+              {!isReadOnly && (
+                <Button type="button" onClick={handleAddMilestone} variant="ghost" size="sm" className="h-8 rounded-lg text-primary text-xs font-bold gap-1">
                   <Plus className="size-3" /> Add Milestone
-              </Button>
+                </Button>
+              )}
+            </div>
+
+            <div
+              className={cn(
+                "rounded-lg border px-4 py-3",
+                milestoneBudgetValidation.blockingMessage
+                  ? "border-rose-200 bg-rose-50"
+                  : "border-emerald-100 bg-emerald-50"
+              )}
+            >
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs font-black uppercase tracking-widest text-slate-500">
+                  Milestone total
+                </p>
+                <p className="text-sm font-black text-slate-900">
+                  {milestoneBudgetValidation.milestoneTotal.toLocaleString()} Aivora Coin
+                </p>
+              </div>
+              <p className="mt-1 text-xs font-semibold text-slate-500">
+                Job budget range: {milestoneBudgetValidation.budgetRangeLabel}
+              </p>
+              {milestoneBudgetValidation.blockingMessage && (
+                <p id={milestoneBudgetErrorId} role="alert" className="mt-2 text-xs font-bold text-rose-600">
+                  {milestoneBudgetValidation.blockingMessage}
+                </p>
+              )}
             </div>
 
             <div className="space-y-3">
@@ -436,6 +508,7 @@ export const JobDraftForm = ({
                             value={ms.title}
                             title={ms.title}
                             onChange={(e) => handleMilestoneChange(idx, 'title', e.target.value)}
+                            disabled={isReadOnly}
                             className="h-10 rounded-lg bg-white border-slate-200 text-sm font-bold text-slate-900"
                           />
                         </div>
@@ -448,6 +521,7 @@ export const JobDraftForm = ({
                             type="number"
                             value={ms.amount ?? 0}
                             onChange={(e) => handleMilestoneChange(idx, 'amount', Number(e.target.value))}
+                            disabled={isReadOnly}
                             className="h-10 rounded-lg bg-white border-slate-200 text-sm font-bold text-slate-900"
                           />
                         </div>
@@ -460,19 +534,22 @@ export const JobDraftForm = ({
                             type="number"
                             value={ms.dueDays ?? 0}
                             onChange={(e) => handleMilestoneChange(idx, 'dueDays', Number(e.target.value))}
+                            disabled={isReadOnly}
                             className="h-10 rounded-lg bg-white border-slate-200 text-sm font-bold text-slate-900"
                           />
                         </div>
                       </div>
                     </div>
-                    <button 
-                      type="button" 
-                      onClick={() => handleRemoveMilestone(idx)}
-                      className="p-1 text-slate-300 hover:text-rose-500 transition-opacity md:opacity-0 md:group-hover:opacity-100"
-                      aria-label={`Remove milestone ${idx + 1}: ${ms.title}`}
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
+                    {!isReadOnly && (
+                      <button 
+                        type="button" 
+                        onClick={() => handleRemoveMilestone(idx)}
+                        className="p-1 text-slate-300 hover:text-rose-500 transition-opacity md:opacity-0 md:group-hover:opacity-100"
+                        aria-label={`Remove milestone ${idx + 1}: ${ms.title}`}
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    )}
                   </div>
                   <div className="space-y-2 md:pl-12">
                     <label htmlFor={`milestone-description-${idx}`} className="text-[10px] font-bold text-slate-400 uppercase">
@@ -483,6 +560,7 @@ export const JobDraftForm = ({
                       value={ms.description ?? ''}
                       onChange={(e) => handleMilestoneChange(idx, 'description', e.target.value)}
                       rows={2}
+                      disabled={isReadOnly}
                       className="w-full rounded-lg border border-slate-200 bg-white p-3 text-sm leading-relaxed text-slate-700 focus:outline-none focus:ring-4 focus:ring-primary/5"
                     />
                   </div>
@@ -497,12 +575,13 @@ export const JobDraftForm = ({
       <div className="p-6 bg-white border-t border-slate-100 flex items-center justify-between gap-4">
          <div className="hidden sm:block">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-              {canContinueToReview ? 'Final Step' : 'Update Post'}
+              {isReadOnly ? 'Read-only' : canContinueToReview ? 'Final Step' : 'Update Post'}
             </p>
             <p className="text-xs font-black text-slate-900 mt-1">
-              {canContinueToReview ? 'Review & Publish' : 'Save changes'}
+              {isReadOnly ? readOnlyStatusLabel ?? 'Locked' : canContinueToReview ? 'Review & Publish' : 'Save changes'}
             </p>
          </div>
+         {!isReadOnly && (
          <div className="flex items-center gap-3 w-full sm:w-auto">
             {onReject && (
               <Button
@@ -530,6 +609,7 @@ export const JobDraftForm = ({
               </Button>
             )}
          </div>
+         )}
       </div>
     </section>
   );
