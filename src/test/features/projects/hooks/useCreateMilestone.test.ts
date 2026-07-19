@@ -49,7 +49,12 @@ describe('useCreateMilestone', () => {
   });
 
   it('uses the real project create service contract with project ID and request payload', async () => {
-    vi.mocked(projectService.createMilestone).mockResolvedValue({ success: true, data: null });
+    vi.mocked(projectService.createMilestone).mockResolvedValue({
+      success: true,
+      message: 'Success',
+      data: null,
+      statusCode: 200,
+    });
 
     renderHook(() => useCreateMilestone({ projectId: 'project-101' }));
 
