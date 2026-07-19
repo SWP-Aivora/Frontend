@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MediaLibraryTab } from '@/features/profiles/components/MediaLibraryTab';
 import { mediaService, type MediaItem } from '@/shared/services/mediaService';
@@ -108,9 +108,6 @@ describe('MediaLibraryTab', () => {
   });
 
   it('handles delete action correctly', async () => {
-    // Mock window.confirm
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
-    
     vi.mocked(mediaService.deleteMedia).mockResolvedValue({
       data: null,
       message: 'Success',
@@ -127,22 +124,17 @@ describe('MediaLibraryTab', () => {
     // Click the first delete button (sample.jpg)
     fireEvent.click(deleteButtons[0]);
 
-    // Check if confirm was called
-    expect(confirmSpy).toHaveBeenCalledWith('Are you sure you want to delete this file? This action cannot be undone.');
+    const dialog = await screen.findByRole('dialog', { name: /delete this file/i });
+    fireEvent.click(within(dialog).getByRole('button', { name: /delete file/i }));
     
     // Check if deleteMedia was called with the correct publicId
     await waitFor(() => {
       expect(mediaService.deleteMedia).toHaveBeenCalledWith('aivora/test/sample');
       expect(toast.success).toHaveBeenCalledWith('File deleted successfully');
     });
-
-    confirmSpy.mockRestore();
   });
   
-  it('does not call deleteMedia if user cancels confirmation', async () => {
-    // Mock window.confirm to return false
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
-
+  it('does not call deleteMedia if user cancels confirmation dialog', async () => {
     renderComponent();
 
     // Wait for items to appear
@@ -151,12 +143,10 @@ describe('MediaLibraryTab', () => {
     // Click the first delete button
     fireEvent.click(deleteButtons[0]);
 
-    // Check if confirm was called
-    expect(confirmSpy).toHaveBeenCalled();
+    const dialog = await screen.findByRole('dialog', { name: /delete this file/i });
+    fireEvent.click(within(dialog).getByRole('button', { name: /cancel/i }));
     
     // Check that deleteMedia was not called
     expect(mediaService.deleteMedia).not.toHaveBeenCalled();
-
-    confirmSpy.mockRestore();
   });
 });

@@ -5,6 +5,7 @@ import { KanbanBoard } from '../components/KanbanBoard';
 import { StepBoard } from '../components/StepBoard';
 import { EditMilestoneModal } from '../components/EditMilestoneModal';
 import { StepEditorModal } from '../components/StepEditorModal';
+import { AddMilestoneModal } from '../components/AddMilestoneModal';
 import type { Milestone } from '../types';
 import { projectService } from '../services';
 import {
@@ -22,8 +23,10 @@ import {
   ExternalLink,
   FileText,
   ListChecks,
+  PlusCircle,
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
+import { ConfirmActionDialog } from '@/shared/components/ui/ConfirmActionDialog';
 import { useAuthStore } from '@/features/auth/store';
 import { Role, ProjectStatus, MilestoneStatus, MilestoneStepStatus } from '@/shared/types/enums';
 import { cn } from '@/lib/utils';
@@ -165,8 +168,10 @@ export const ProjectWorkspacePage = () => {
   const [selectedMilestone, setSelectedMilestone] = useState<Milestone | null>(null);
   const [isStepEditorOpen, setIsStepEditorOpen] = useState(false);
   const [isMilestoneEditOpen, setIsMilestoneEditOpen] = useState(false);
+  const [isAddMilestoneOpen, setIsAddMilestoneOpen] = useState(false);
   const [isFinishModalOpen, setIsFinishModalOpen] = useState(false);
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
+  const [milestoneIdToApprove, setMilestoneIdToApprove] = useState<string | null>(null);
 
   // Fetch toàn bộ thông tin chi tiết của Project (Hợp đồng làm việc)
   const { data: projectResponse, isLoading: isLoadingProject } = useQuery({
@@ -250,8 +255,10 @@ export const ProjectWorkspacePage = () => {
     setSelectedMilestone(null);
     setIsStepEditorOpen(false);
     setIsMilestoneEditOpen(false);
+    setIsAddMilestoneOpen(false);
     setIsFinishModalOpen(false);
     setIsDisputeModalOpen(false);
+    setMilestoneIdToApprove(null);
     resetTimeline();
   }, [id, resetTimeline]);
   const isLoading = isLoadingProject || isLoadingMilestones || (!projectResponse?.data && isLoadingFallbackProjects);
@@ -377,6 +384,7 @@ export const ProjectWorkspacePage = () => {
     mutationFn: (milestoneId: string) => projectService.approveMilestone(milestoneId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project', id, 'milestones'] });
+      setMilestoneIdToApprove(null);
       setSelectedMilestone(null);
     }
   });
@@ -563,6 +571,10 @@ export const ProjectWorkspacePage = () => {
     fundMutation.mutate(milestone.id);
   };
 
+  const handleConfirmApproveMilestone = () => {
+    if (milestoneIdToApprove) approveMutation.mutate(milestoneIdToApprove);
+  };
+
   
   const getStatusLabel = (status: ProjectStatus) => {
     switch (status) {
@@ -594,6 +606,7 @@ export const ProjectWorkspacePage = () => {
   const canRequestFinishProject = !!id && project && project.status !== ProjectStatus.CANCELLED && !hasProjectDispute;
   const canReviewCompletedProject = project?.status === ProjectStatus.COMPLETED;
   const canEditMilestoneGeneralInfo = user?.role === Role.CLIENT && user.id === project?.clientId;
+  const canCreateMilestone = user?.role === Role.CLIENT && user.id === project?.clientId && project?.status === ProjectStatus.ACTIVE;
   const canEditTimelineSteps = user?.role === Role.EXPERT && user.id === project?.expertId;
   const hasClientReviewedProject = Boolean(
     isProjectReviewsLoaded &&
@@ -866,12 +879,24 @@ export const ProjectWorkspacePage = () => {
               </div>
             </div>
 
-            <div className="flex -space-x-3">
-              {[project?.client, project?.expert].filter(Boolean).map((u, i) => (
-                <div key={i} className="size-10 rounded-full border-4 border-slate-50 bg-slate-200 flex items-center justify-center overflow-hidden shadow-sm" title={u?.fullName}>
-                  {u?.avatarUrl ? <img src={u.avatarUrl} className="size-full object-cover" /> : <span className="text-xs font-black">{u?.fullName?.charAt(0)}</span>}
-                </div>
-              ))}
+            <div className="flex flex-wrap items-center gap-3">
+              {canCreateMilestone && (
+                <Button
+                  type="button"
+                  onClick={() => setIsAddMilestoneOpen(true)}
+                  className="rounded-full px-5 font-black shadow-lg shadow-primary/20 flex items-center gap-2"
+                >
+                  <PlusCircle className="size-4" />
+                  Add Milestone
+                </Button>
+              )}
+              <div className="flex -space-x-3">
+                {[project?.client, project?.expert].filter(Boolean).map((u, i) => (
+                  <div key={i} className="size-10 rounded-full border-4 border-slate-50 bg-slate-200 flex items-center justify-center overflow-hidden shadow-sm" title={u?.fullName}>
+                    {u?.avatarUrl ? <img src={u.avatarUrl} className="size-full object-cover" /> : <span className="text-xs font-black">{u?.fullName?.charAt(0)}</span>}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -1127,7 +1152,7 @@ export const ProjectWorkspacePage = () => {
                           Revision
                         </Button>
                         <Button
-                          onClick={() => approveMutation.mutate(viewedTimelineMilestone.id)}
+                          onClick={() => setMilestoneIdToApprove(viewedTimelineMilestone.id)}
                           disabled={approveMutation.isPending || !viewedTimelineMilestone.id}
                           className="rounded-full px-5 font-black shadow-lg shadow-primary/20"
                         >
@@ -1168,6 +1193,26 @@ export const ProjectWorkspacePage = () => {
         milestone={stepEditorMilestone}
         canEditSteps={canEditTimelineSteps}
         onClose={() => setIsStepEditorOpen(false)}
+      />
+
+      <AddMilestoneModal
+        isOpen={isAddMilestoneOpen && canCreateMilestone}
+        projectId={project.id}
+        onClose={() => setIsAddMilestoneOpen(false)}
+      />
+
+      <ConfirmActionDialog
+        open={Boolean(milestoneIdToApprove)}
+        title="Approve and pay this milestone?"
+        description="This confirms the submitted work and releases the milestone payment."
+        confirmLabel="Approve & Pay"
+        pendingLabel="Approving..."
+        isPending={approveMutation.isPending}
+        destructive={false}
+        onOpenChange={(open) => {
+          if (!open) setMilestoneIdToApprove(null);
+        }}
+        onConfirm={handleConfirmApproveMilestone}
       />
 
       <EditMilestoneModal
@@ -1394,9 +1439,9 @@ export const ProjectWorkspacePage = () => {
                           className="flex-1 h-14 rounded-full font-black border-slate-200"
                         >
                           Revision
-                        </Button>
-                        <Button
-                          onClick={() => selectedMilestone?.id && approveMutation.mutate(selectedMilestone.id)}
+                         </Button>
+                         <Button
+                          onClick={() => selectedMilestone?.id && setMilestoneIdToApprove(selectedMilestone.id)}
                           disabled={approveMutation.isPending || !selectedMilestone?.id}
                           className="flex-[2] h-14 rounded-full font-black shadow-xl shadow-primary/20"
                         >

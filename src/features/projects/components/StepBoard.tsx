@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ListChecks, Plus, Sparkles, X } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
+import { ConfirmActionDialog } from '@/shared/components/ui/ConfirmActionDialog';
 import type { MilestoneStep } from '../types';
 import { MilestoneStepStatus } from '@/shared/types/enums';
 import { useMilestoneSteps } from '../hooks/useMilestoneSteps';
@@ -47,6 +48,7 @@ export const StepBoard = ({ milestoneId, isExpert, isClient }: StepBoardProps) =
   const [newDueDate, setNewDueDate] = useState('');
   const [draftSteps, setDraftSteps] = useState<DraftStep[] | null>(null);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [stepIdToDelete, setStepIdToDelete] = useState<string | null>(null);
 
   const { data: stepsResponse, isLoading } = useMilestoneSteps(milestoneId);
   const createStep = useCreateMilestoneStep(milestoneId);
@@ -82,6 +84,10 @@ export const StepBoard = ({ milestoneId, isExpert, isClient }: StepBoardProps) =
         setDraftSteps((res.data ?? []).map((s) => ({ title: s.title, description: s.description ?? '' })));
       },
     });
+  };
+
+  const confirmDeleteStep = () => {
+    if (stepIdToDelete) deleteStep.mutate(stepIdToDelete, { onSuccess: () => setStepIdToDelete(null) });
   };
 
   const updateDraftStep = (index: number, patch: Partial<DraftStep>) => {
@@ -245,7 +251,7 @@ export const StepBoard = ({ milestoneId, isExpert, isClient }: StepBoardProps) =
                     onSkip={() => updateStatus.mutate({ stepId: step.id, status: MilestoneStepStatus.SKIPPED })}
                     onBlock={(reason) => updateStatus.mutate({ stepId: step.id, status: MilestoneStepStatus.BLOCKED, reason })}
                     onUnblock={() => updateStatus.mutate({ stepId: step.id, status: MilestoneStepStatus.IN_PROGRESS })}
-                    onDelete={() => deleteStep.mutate(step.id)}
+                    onDelete={() => setStepIdToDelete(step.id)}
                     onMoveUp={() => moveStep(step, -1)}
                     onMoveDown={() => moveStep(step, 1)}
                     onEdit={(data) => updateStep.mutate({
@@ -259,6 +265,18 @@ export const StepBoard = ({ milestoneId, isExpert, isClient }: StepBoardProps) =
           ))}
         </div>
       )}
+      <ConfirmActionDialog
+        open={Boolean(stepIdToDelete)}
+        title="Delete this step?"
+        description="This action cannot be undone."
+        confirmLabel="Delete Step"
+        pendingLabel="Deleting..."
+        isPending={deleteStep.isPending}
+        onOpenChange={(open) => {
+          if (!open) setStepIdToDelete(null);
+        }}
+        onConfirm={confirmDeleteStep}
+      />
     </div>
   );
 };

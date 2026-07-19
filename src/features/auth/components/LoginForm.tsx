@@ -12,8 +12,22 @@ import { toast } from 'sonner';
 import { Role } from '@/shared/types/enums';
 import { Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react';
 
+const getLoginErrorMessage = (statusCode?: number, message?: string) => {
+  if (statusCode === 401) return 'Invalid email or password.';
+
+  const normalizedMessage = message?.trim();
+  if (!normalizedMessage) return 'Login failed';
+
+  if (/invalid|credential|password|email/i.test(normalizedMessage)) {
+    return 'Invalid email or password.';
+  }
+
+  return normalizedMessage;
+};
+
 export const LoginForm = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const { setAuth } = useAuthStore();
   const navigate = useNavigate();
@@ -24,9 +38,11 @@ export const LoginForm = () => {
 
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
+    setLoginError(null);
     try {
       const response = await authService.login(data);
       if (response.success && response.data) {
+        setLoginError(null);
         const authData = response.data;
         // Pass the entire flat response as the user object since it contains user fields
         setAuth(authData, authData.accessToken, authData.refreshToken);
@@ -48,15 +64,21 @@ export const LoginForm = () => {
             navigate('/');
         }
       } else {
-        toast.error(response.message || 'Login failed');
+        const message = getLoginErrorMessage(response.statusCode, response.message);
+        setLoginError(message);
+        toast.error(message);
       }
     } catch (error: unknown) {
-      if (error && typeof error === 'object' && 'response' in error) {
-        const axiosError = error as { response: { data: { message: string } } };
-        toast.error(axiosError.response?.data?.message || 'An error occurred during login');
-      } else {
-        toast.error('An unexpected error occurred');
-      }
+      const message = (() => {
+        if (error && typeof error === 'object' && 'response' in error) {
+          const axiosError = error as { response?: { data?: { message?: string }; status?: number } };
+          return getLoginErrorMessage(axiosError.response?.status, axiosError.response?.data?.message);
+        }
+
+        return 'An unexpected error occurred';
+      })();
+      setLoginError(message);
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -76,7 +98,7 @@ export const LoginForm = () => {
               id="email"
               type="email" 
               placeholder="Enter your email address" 
-              {...register('email')}
+              {...register('email', { onChange: () => setLoginError(null) })}
               className={`pl-14 h-12 bg-slate-50 border-slate-200 rounded-lg focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300 ${errors.email ? 'border-destructive' : 'hover:border-slate-300'}`}
             />
           </div>
@@ -94,7 +116,7 @@ export const LoginForm = () => {
               id="password"
               type={showPassword ? 'text' : 'password'} 
               placeholder="Enter your password" 
-              {...register('password')}
+              {...register('password', { onChange: () => setLoginError(null) })}
               className={`login-password-input pl-14 pr-14 h-12 bg-slate-50 border-slate-200 rounded-lg focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all duration-300 ${errors.password ? 'border-destructive' : 'hover:border-slate-300'}`}
             />
             <button
@@ -109,6 +131,12 @@ export const LoginForm = () => {
           {errors.password && <p className="text-xs text-destructive font-medium ml-1">{errors.password.message}</p>}
         </div>
       </div>
+
+      {loginError && (
+        <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
+          {loginError}
+        </div>
+      )}
 
       <Button 
         type="submit" 

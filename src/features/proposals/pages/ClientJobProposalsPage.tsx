@@ -18,6 +18,7 @@ import {
   Star
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
+import { ConfirmActionDialog } from '@/shared/components/ui/ConfirmActionDialog';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { AxiosError } from 'axios';
@@ -27,6 +28,7 @@ import { QUERY_KEYS, REFETCH_INTERVALS } from '@/shared/constants';
 
 type ProposalFilter = 'all' | 'shortlisted' | 'refused';
 type NormalizedProposalStatus = 'submitted' | 'shortlisted' | 'accepted' | 'rejected' | 'withdrawn';
+type PendingJobAction = 'cancel' | 'delete' | null;
 
 const normalizeProposalStatus = (status: unknown): NormalizedProposalStatus => {
   const numericStatus = typeof status === 'number'
@@ -82,6 +84,7 @@ export const ClientJobProposalsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isRecommendationsOpen, setIsRecommendationsOpen] = useState(false);
   const [acceptedProposalId, setAcceptedProposalId] = useState<string | null>(null);
+  const [pendingJobAction, setPendingJobAction] = useState<PendingJobAction>(null);
   // Lấy chi tiết Job hiện tại
   const { data: jobResponse, isLoading: isJobLoading } = useQuery({
     queryKey: QUERY_KEYS.JOBS.DETAIL(resolvedJobId!),
@@ -404,6 +407,7 @@ export const ClientJobProposalsPage = () => {
       void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.JOBS.DETAIL(resolvedJobId!) });
       void queryClient.invalidateQueries({ queryKey: ['clientJobs'] });
       void queryClient.invalidateQueries({ queryKey: ['clientProjects'] });
+      setPendingJobAction(null);
       navigate('/client/job-posts');
     },
     onError: () => toast.error('Failed to cancel job post.'),
@@ -415,22 +419,42 @@ export const ClientJobProposalsPage = () => {
       toast.success('Job post deleted.');
       queryClient.invalidateQueries({ queryKey: ['clientJobs'] });
       queryClient.invalidateQueries({ queryKey: ['clientProjects'] });
+      setPendingJobAction(null);
       navigate('/client/job-posts');
     },
     onError: () => toast.error('Failed to delete job post.'),
   });
 
   const handleCancelJob = () => {
-    if (window.confirm('Cancel this job post? Experts will no longer be able to apply.')) {
-      if (resolvedJobId) cancelJobMutation.mutate(resolvedJobId);
-    }
+    setPendingJobAction('cancel');
   };
 
   const handleDeleteJob = () => {
-    if (window.confirm('Delete this draft job post? This action cannot be undone.')) {
-      if (resolvedJobId) deleteJobMutation.mutate(resolvedJobId);
-    }
+    setPendingJobAction('delete');
   };
+
+  const isJobActionPending = cancelJobMutation.isPending || deleteJobMutation.isPending;
+  const pendingJobActionContent = pendingJobAction === 'cancel'
+    ? {
+        title: 'Cancel this job post?',
+        description: 'Experts will no longer be able to apply.',
+        confirmLabel: 'Cancel Job',
+        pendingLabel: 'Cancelling...',
+        onConfirm: () => {
+          if (resolvedJobId) cancelJobMutation.mutate(resolvedJobId);
+        },
+      }
+    : pendingJobAction === 'delete'
+      ? {
+          title: 'Delete this draft job post?',
+          description: 'This action cannot be undone.',
+          confirmLabel: 'Delete Job',
+          pendingLabel: 'Deleting...',
+          onConfirm: () => {
+            if (resolvedJobId) deleteJobMutation.mutate(resolvedJobId);
+          },
+        }
+      : null;
 
   if (isLoading) {
     return (
@@ -737,12 +761,26 @@ export const ClientJobProposalsPage = () => {
                 </div>
               ) : (
                 <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-10 text-center">
-                  <p className="text-sm font-bold text-slate-500">No expert recommendations were returned by the API yet.</p>
+                  <p className="text-sm font-bold text-slate-500">No expert recommendations are available yet.</p>
                 </div>
               )}
             </div>
           </div>
         </div>
+      )}
+      {pendingJobActionContent && (
+        <ConfirmActionDialog
+          open={Boolean(pendingJobAction)}
+          title={pendingJobActionContent.title}
+          description={pendingJobActionContent.description}
+          confirmLabel={pendingJobActionContent.confirmLabel}
+          pendingLabel={pendingJobActionContent.pendingLabel}
+          isPending={isJobActionPending}
+          onOpenChange={(open) => {
+            if (!open) setPendingJobAction(null);
+          }}
+          onConfirm={pendingJobActionContent.onConfirm}
+        />
       )}
     </div>
   );

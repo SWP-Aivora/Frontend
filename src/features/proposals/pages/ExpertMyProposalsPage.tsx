@@ -15,6 +15,7 @@ import {
   Briefcase
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
+import { ConfirmActionDialog } from '@/shared/components/ui/ConfirmActionDialog';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -55,6 +56,7 @@ export const ExpertMyProposalsPage = () => {
   const proposals = response?.data || [];
   const projects = projectsResponse?.data || [];
   const [filter, setFilter] = useState<'all' | 'pending' | 'accepted' | 'declined'>('all');
+  const [proposalIdToWithdraw, setProposalIdToWithdraw] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const withdrawMutation = useMutation({
@@ -62,6 +64,7 @@ export const ExpertMyProposalsPage = () => {
     onSuccess: () => {
       toast.success('Proposal withdrawn successfully');
       queryClient.invalidateQueries({ queryKey: ['myProposals'] });
+      setProposalIdToWithdraw(null);
     },
     onError: () => {
       toast.error('Failed to withdraw proposal');
@@ -269,11 +272,7 @@ export const ExpertMyProposalsPage = () => {
                                variant="outline"
                                className="w-full rounded-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
                                disabled={withdrawMutation.isPending}
-                               onClick={() => {
-                                 if (window.confirm('Are you sure you want to withdraw this proposal?')) {
-                                   withdrawMutation.mutate(proposal.id);
-                                 }
-                               }}
+                                onClick={() => setProposalIdToWithdraw(proposal.id)}
                              >
                                Withdraw Proposal
                              </Button>
@@ -297,7 +296,21 @@ export const ExpertMyProposalsPage = () => {
                  <Link to="/expert/jobs">Browse AI Projects</Link>
               </Button>
            </div>
-         )}
+          )}
+         <ConfirmActionDialog
+           open={Boolean(proposalIdToWithdraw)}
+           title="Withdraw this proposal?"
+           description="This action cannot be undone."
+           confirmLabel="Withdraw Proposal"
+           pendingLabel="Withdrawing..."
+           isPending={withdrawMutation.isPending}
+           onOpenChange={(open) => {
+             if (!open) setProposalIdToWithdraw(null);
+           }}
+           onConfirm={() => {
+             if (proposalIdToWithdraw) withdrawMutation.mutate(proposalIdToWithdraw);
+           }}
+         />
       </div>
     </div>
   );

@@ -9,9 +9,11 @@ import { jobService } from '@/features/jobs/services';
 import { proposalService } from '@/features/proposals/services';
 import type { Job } from '@/features/jobs/types';
 import { QUERY_KEYS, REFETCH_INTERVALS } from '@/shared/constants';
+import { ConfirmActionDialog } from '@/shared/components/ui/ConfirmActionDialog';
 
 type StatusFilter = 'all' | 'draft' | 'open' | 'in-progress' | 'completed' | 'cancelled';
 type SortOrder = 'newest' | 'oldest';
+type PendingJobAction = { type: 'delete' | 'cancel'; id: string } | null;
 
 const normalizeJobStatus = (status: unknown): StatusFilter | 'cancelled' => {
   if (status === 0) return 'draft';
@@ -49,6 +51,7 @@ export const MyJobPostsPage = () => {
   const [searchInput, setSearchInput] = useState('');
   const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
+  const [pendingJobAction, setPendingJobAction] = useState<PendingJobAction>(null);
   const queryClient = useQueryClient();
 
   const deleteJobMutation = useMutation({
@@ -56,6 +59,7 @@ export const MyJobPostsPage = () => {
     onSuccess: () => {
       toast.success('Job post deleted.');
       queryClient.invalidateQueries({ queryKey: ['clientJobs'] });
+      setPendingJobAction(null);
     },
     onError: () => toast.error('Failed to delete job post.'),
   });
@@ -65,20 +69,17 @@ export const MyJobPostsPage = () => {
     onSuccess: () => {
       toast.success('Job post cancelled.');
       queryClient.invalidateQueries({ queryKey: ['clientJobs'] });
+      setPendingJobAction(null);
     },
     onError: () => toast.error('Failed to cancel job post.'),
   });
 
   const handleDeleteJob = (id: string) => {
-    if (window.confirm('Delete this draft job post? This cannot be undone.')) {
-      deleteJobMutation.mutate(id);
-    }
+    setPendingJobAction({ type: 'delete', id });
   };
 
   const handleCancelJob = (id: string) => {
-    if (window.confirm('Cancel this job post? Experts will no longer be able to apply.')) {
-      cancelJobMutation.mutate(id);
-    }
+    setPendingJobAction({ type: 'cancel', id });
   };
 
   const { data: jobsResponse, isLoading: isLoadingJobs } = useQuery({
@@ -99,6 +100,24 @@ export const MyJobPostsPage = () => {
   });
 
   const isLoading = isLoadingJobs;
+  const isJobActionPending = deleteJobMutation.isPending || cancelJobMutation.isPending;
+  const pendingJobActionContent = pendingJobAction?.type === 'delete'
+    ? {
+        title: 'Delete this draft job post?',
+        description: 'This action cannot be undone.',
+        confirmLabel: 'Delete Job',
+        pendingLabel: 'Deleting...',
+        onConfirm: () => deleteJobMutation.mutate(pendingJobAction.id),
+      }
+    : pendingJobAction?.type === 'cancel'
+      ? {
+          title: 'Cancel this job post?',
+          description: 'Experts will no longer be able to apply.',
+          confirmLabel: 'Cancel Job',
+          pendingLabel: 'Cancelling...',
+          onConfirm: () => cancelJobMutation.mutate(pendingJobAction.id),
+        }
+      : null;
 
   const displayJobs = useMemo(() => {
     return jobs.map((job, index) => {
@@ -327,6 +346,20 @@ export const MyJobPostsPage = () => {
           </div>
         )}
       </div>
+      {pendingJobActionContent && (
+        <ConfirmActionDialog
+          open={Boolean(pendingJobAction)}
+          title={pendingJobActionContent.title}
+          description={pendingJobActionContent.description}
+          confirmLabel={pendingJobActionContent.confirmLabel}
+          pendingLabel={pendingJobActionContent.pendingLabel}
+          isPending={isJobActionPending}
+          onOpenChange={(open) => {
+            if (!open) setPendingJobAction(null);
+          }}
+          onConfirm={pendingJobActionContent.onConfirm}
+        />
+      )}
     </div>
   );
 };

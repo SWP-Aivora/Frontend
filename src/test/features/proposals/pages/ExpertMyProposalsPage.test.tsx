@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ExpertMyProposalsPage } from '../../../../features/proposals/pages/ExpertMyProposalsPage';
 import { MemoryRouter, useLocation } from 'react-router-dom';
@@ -147,6 +147,7 @@ describe('ExpertMyProposalsPage', () => {
       expect(screen.queryByRole('button', { name: /withdraw proposal/i })).not.toBeInTheDocument();
     });
     it('calls withdrawProposal on Withdraw button click', async () => {
+      const user = userEvent.setup();
       const mockMutate = vi.fn();
       (vi.mocked(reactQuery.useMutation)).mockReturnValue({
         mutate: mockMutate,
@@ -155,11 +156,11 @@ describe('ExpertMyProposalsPage', () => {
       } as any);
       mockPageData({ proposals: [createProposal({ id: '1', status: 0, coverLetter: 'test', jobId: 'job123' })] });
 
-      vi.spyOn(window, 'confirm').mockReturnValue(true);
-
       renderComponent();
       const withdrawButton = screen.getByRole('button', { name: /withdraw proposal/i });
-      withdrawButton.click();
+      await user.click(withdrawButton);
+      const dialog = screen.getByRole('dialog', { name: /withdraw this proposal/i });
+      await user.click(within(dialog).getByRole('button', { name: /withdraw proposal/i }));
       expect(mockMutate).toHaveBeenCalledWith('1');
     });
 
@@ -169,7 +170,7 @@ describe('ExpertMyProposalsPage', () => {
       renderComponent();
 
       const badge = screen.getByText('Withdrawn').closest('div');
-      expect(badge).toHaveClass('text-destructive', 'bg-destructive/10');
+      expect(badge).toHaveClass('text-rose-700', 'bg-rose-50');
       expect(screen.queryByText('Unknown')).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /withdraw proposal/i })).not.toBeInTheDocument();
     });

@@ -1,4 +1,5 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -14,6 +15,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
+import { ConfirmActionDialog } from '@/shared/components/ui/ConfirmActionDialog';
 import { Role } from '@/shared/types/enums';
 import { useAuthStore } from '@/features/auth/store';
 import { proposalService } from '../services';
@@ -51,6 +53,7 @@ export const ProposalDetailsPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
+  const [isWithdrawConfirmOpen, setIsWithdrawConfirmOpen] = useState(false);
 
   const { data: proposalResponse, isLoading, isError } = useQuery({
     queryKey: ['proposal', proposalId],
@@ -73,6 +76,7 @@ export const ProposalDetailsPage = () => {
       toast.success('Proposal withdrawn.');
       queryClient.invalidateQueries({ queryKey: ['proposal', proposalId] });
       queryClient.invalidateQueries({ queryKey: ['myProposals'] });
+      setIsWithdrawConfirmOpen(false);
     },
     onError: () => {
       toast.error('Failed to withdraw proposal.');
@@ -80,9 +84,7 @@ export const ProposalDetailsPage = () => {
   });
 
   const handleWithdraw = () => {
-    if (window.confirm('Withdraw this proposal? This cannot be undone.')) {
-      withdrawMutation.mutate();
-    }
+    setIsWithdrawConfirmOpen(true);
   };
 
   if (isLoading) {
@@ -248,6 +250,16 @@ export const ProposalDetailsPage = () => {
           </section>
         </div>
       </div>
+      <ConfirmActionDialog
+        open={isWithdrawConfirmOpen}
+        title="Withdraw this proposal?"
+        description="This action cannot be undone."
+        confirmLabel="Withdraw Proposal"
+        pendingLabel="Withdrawing..."
+        isPending={withdrawMutation.isPending}
+        onOpenChange={setIsWithdrawConfirmOpen}
+        onConfirm={() => withdrawMutation.mutate()}
+      />
     </div>
   );
 };

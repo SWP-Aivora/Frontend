@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { AdminUserDetailPage } from '../../../features/admin/pages/AdminUserDetailPage';
 
@@ -320,7 +320,7 @@ describe('AdminUserDetailPage', () => {
     });
   });
 
-  it('calls approve expert review successfully when confirmed', () => {
+  it('calls approve expert review successfully when confirmed', async () => {
     mockUseParams.mockReturnValue({ id: 'u-2' });
     mockUseExpertReviewDetail.mockReturnValue({
       isLoading: false,
@@ -332,8 +332,6 @@ describe('AdminUserDetailPage', () => {
       isPending: false,
     });
 
-    vi.spyOn(window, 'confirm').mockImplementation(() => true);
-
     render(
       <MemoryRouter>
         <AdminUserDetailPage />
@@ -343,11 +341,13 @@ describe('AdminUserDetailPage', () => {
     const approveButton = screen.getByRole('button', { name: /approve all changes/i });
     fireEvent.click(approveButton);
 
-    expect(window.confirm).toHaveBeenCalled();
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: /^approve$/i }));
+
     expect(processMock).toHaveBeenCalledWith({ id: 'r-1', status: 'Approved' });
   });
 
-  it('does not call approve expert review when confirmation is rejected', () => {
+  it('does not call approve expert review when confirmation is cancelled', async () => {
     mockUseParams.mockReturnValue({ id: 'u-2' });
     mockUseExpertReviewDetail.mockReturnValue({
       isLoading: false,
@@ -359,8 +359,6 @@ describe('AdminUserDetailPage', () => {
       isPending: false,
     });
 
-    vi.spyOn(window, 'confirm').mockImplementation(() => false);
-
     render(
       <MemoryRouter>
         <AdminUserDetailPage />
@@ -370,7 +368,9 @@ describe('AdminUserDetailPage', () => {
     const approveButton = screen.getByRole('button', { name: /approve all changes/i });
     fireEvent.click(approveButton);
 
-    expect(window.confirm).toHaveBeenCalled();
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: /cancel/i }));
+
     expect(processMock).not.toHaveBeenCalled();
   });
 

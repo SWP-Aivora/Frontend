@@ -5,6 +5,14 @@ import { ProjectWorkspacePage } from '../../../../features/projects/pages/Projec
 import { BrowserRouter } from 'react-router-dom';
 import { MilestoneStatus, ProjectStatus, Role } from '../../../../shared/types/enums';
 
+const authStoreMock = vi.hoisted(() => ({
+  user: { id: 'client-1', role: 'CLIENT' },
+}));
+
+const addMilestoneModalMock = vi.hoisted(() => ({
+  props: [] as Array<{ isOpen: boolean; projectId: string; onClose: () => void }>,
+}));
+
 vi.mock('@tanstack/react-query', async () => {
   const actual = await vi.importActual('@tanstack/react-query');
   return {
@@ -53,8 +61,25 @@ vi.mock('../../../../features/projects/services', () => ({
 
 vi.mock('@/features/auth/store', () => ({
   useAuthStore: () => ({
-    user: { id: 'client-1', role: Role.CLIENT },
+    user: authStoreMock.user,
   }),
+}));
+
+vi.mock('../../../../features/projects/components/AddMilestoneModal', () => ({
+  AddMilestoneModal: (props: { isOpen: boolean; projectId: string; onClose: () => void }) => {
+    addMilestoneModalMock.props.push(props);
+
+    if (!props.isOpen) return null;
+
+    return (
+      <div role="dialog" aria-label="Add New Milestone">
+        <span data-testid="add-milestone-project-id">{props.projectId}</span>
+        <button type="button" onClick={props.onClose}>
+          Close Add Milestone
+        </button>
+      </div>
+    );
+  },
 }));
 
 vi.mock('../../../../features/projects/components/KanbanBoard', () => ({
@@ -93,6 +118,8 @@ vi.mock('@/features/chat/services', () => ({
 describe('ProjectWorkspacePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    authStoreMock.user = { id: 'client-1', role: Role.CLIENT };
+    addMilestoneModalMock.props = [];
     vi.mocked(reactQuery.useMutation).mockReturnValue({
       mutate: vi.fn(),
       mutateAsync: vi.fn(),
@@ -108,6 +135,43 @@ describe('ProjectWorkspacePage', () => {
         <ProjectWorkspacePage />
       </BrowserRouter>
     );
+  };
+
+  const setupWorkspaceQueries = (projectOverrides: Record<string, unknown> = {}) => {
+    const project = {
+      id: 'project-101',
+      title: 'Active Client Project',
+      description: 'Workspace description',
+      status: ProjectStatus.ACTIVE,
+      clientId: 'client-1',
+      expertId: 'expert-1',
+      client: { id: 'client-1', fullName: 'Client One', avatarUrl: null, role: Role.CLIENT },
+      expert: { id: 'expert-1', fullName: 'Expert One', avatarUrl: null, role: Role.EXPERT },
+      milestones: [],
+      totalBudget: 1000,
+      remainingBudget: 1000,
+      endDate: null,
+      ...projectOverrides,
+    };
+
+    (vi.mocked(reactQuery.useQuery)).mockImplementation((options: { queryKey?: readonly unknown[] }) => {
+      const queryKey = options.queryKey as unknown[];
+      if (queryKey?.[0] === 'project' && queryKey?.[1] === 'project-101' && !queryKey?.[2]) {
+        return { data: { data: project }, isLoading: false } as unknown as reactQuery.UseQueryResult;
+      }
+      if (queryKey?.[0] === 'project' && queryKey?.[1] === 'project-101' && queryKey?.[2] === 'milestones') {
+        return { data: { data: project.milestones }, isLoading: false } as unknown as reactQuery.UseQueryResult;
+      }
+      if (queryKey?.[0] === 'project' && queryKey?.[1] === 'project-101' && queryKey?.[2] === 'active-disputes') {
+        return { data: [], isSuccess: true, isLoading: false } as unknown as reactQuery.UseQueryResult;
+      }
+      if (queryKey?.[0] === 'wallet') {
+        return { data: { data: { balance: 1000 } }, isLoading: false } as unknown as reactQuery.UseQueryResult;
+      }
+      return { isLoading: false, data: { data: [] }, isSuccess: true } as unknown as reactQuery.UseQueryResult;
+    });
+
+    return project;
   };
 
   const submittedMilestone = {
@@ -239,6 +303,60 @@ describe('ProjectWorkspacePage', () => {
 
       expect(screen.queryByRole('button', { name: /approve & pay/i })).not.toBeInTheDocument();
       expect(screen.getByText('Checking submitted deliverables before approval.')).toBeInTheDocument();
+    });
+  });
+
+  describe('Add milestone integration', () => {
+    it('shows Add Milestone for the Client owner of an ACTIVE project', () => {
+      setupWorkspaceQueries();
+
+      renderComponent();
+
+      expect(screen.getByRole('button', { name: /add milestone/i })).toBeInTheDocument();
+    });
+
+    it('does not show Add Milestone for an Expert', () => {
+      authStoreMock.user = { id: 'expert-1', role: Role.EXPERT };
+      setupWorkspaceQueries();
+
+      renderComponent();
+
+      expect(screen.queryByRole('button', { name: /add milestone/i })).not.toBeInTheDocument();
+    });
+
+    it('does not show Add Milestone for a Client who does not own the project', () => {
+      authStoreMock.user = { id: 'client-2', role: Role.CLIENT };
+      setupWorkspaceQueries();
+
+      renderComponent();
+
+      expect(screen.queryByRole('button', { name: /add milestone/i })).not.toBeInTheDocument();
+    });
+
+    it('does not show Add Milestone for the Client owner when the project is not ACTIVE', () => {
+      setupWorkspaceQueries({ status: ProjectStatus.COMPLETED });
+
+      renderComponent();
+
+      expect(screen.queryByRole('button', { name: /add milestone/i })).not.toBeInTheDocument();
+    });
+
+    it('opens the existing AddMilestoneModal with the current project ID and closes it', () => {
+      setupWorkspaceQueries();
+
+      renderComponent();
+      fireEvent.click(screen.getByRole('button', { name: /add milestone/i }));
+
+      expect(screen.getByRole('dialog', { name: /add new milestone/i })).toBeInTheDocument();
+      expect(screen.getByTestId('add-milestone-project-id')).toHaveTextContent('project-101');
+      expect(addMilestoneModalMock.props.at(-1)).toMatchObject({
+        isOpen: true,
+        projectId: 'project-101',
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /close add milestone/i }));
+
+      expect(screen.queryByRole('dialog', { name: /add new milestone/i })).not.toBeInTheDocument();
     });
   });
 

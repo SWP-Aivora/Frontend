@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ProposalDetailsPage } from '../../../../features/proposals/pages/ProposalDetailsPage';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -121,6 +122,7 @@ describe('ProposalDetailsPage', () => {
     });
 
     it('calls withdrawProposal on Withdraw button click', async () => {
+      const user = userEvent.setup();
       const mockMutate = vi.fn();
       (vi.mocked(reactQuery.useMutation)).mockReturnValue({
         mutate: mockMutate,
@@ -130,12 +132,12 @@ describe('ProposalDetailsPage', () => {
         isLoading: false, 
         data: { data: { id: 'prop-123', status: 1, jobId: 'job-123', expertId: 'exp-1', milestones: [] } } 
       } as never);
-      
-      vi.spyOn(window, 'confirm').mockReturnValue(true);
 
       renderComponent();
       const withdrawButton = screen.getByRole('button', { name: /withdraw proposal/i });
-      withdrawButton.click();
+      await user.click(withdrawButton);
+      const dialog = screen.getByRole('dialog', { name: /withdraw this proposal/i });
+      await user.click(within(dialog).getByRole('button', { name: /withdraw proposal/i }));
       expect(mockMutate).toHaveBeenCalled();
     });
   });

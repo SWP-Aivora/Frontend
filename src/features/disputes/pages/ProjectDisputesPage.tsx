@@ -1,9 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, ArrowLeft, FileText, MessageSquareWarning, UserRound } from 'lucide-react';
 import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
 import { Button } from '@/shared/components/ui/Button';
+import { ConfirmActionDialog } from '@/shared/components/ui/ConfirmActionDialog';
 import { useAuthStore } from '@/features/auth/store';
 import { Role } from '@/shared/types/enums';
 import { DisputeStatusBadge } from '../components/DisputeStatusBadge';
@@ -40,6 +41,7 @@ export const ProjectDisputesPage = () => {
   const { id } = useParams();
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
+  const [disputeIdToClose, setDisputeIdToClose] = useState<string | null>(null);
 
   const closeDisputeMutation = useMutation({
     mutationFn: (disputeId: string) => disputeService.closeDispute(disputeId),
@@ -206,11 +208,7 @@ export const ProjectDisputesPage = () => {
                         type="button"
                         variant="outline"
                         disabled={isClosingThisDispute}
-                        onClick={() => {
-                          if (window.confirm('Close this dispute?')) {
-                            closeDisputeMutation.mutate(dispute.id);
-                          }
-                        }}
+                        onClick={() => setDisputeIdToClose(dispute.id)}
                         className="rounded-full border-rose-200 bg-rose-50 font-black text-rose-700 hover:bg-rose-100 hover:text-rose-800"
                       >
                         {isClosingThisDispute ? 'Closing...' : 'Close Dispute'}
@@ -223,6 +221,20 @@ export const ProjectDisputesPage = () => {
           );
         })}
       </div>
+      <ConfirmActionDialog
+        open={Boolean(disputeIdToClose)}
+        title="Close this dispute?"
+        description="This will close the dispute and refresh the related project records."
+        confirmLabel="Close Dispute"
+        pendingLabel="Closing..."
+        isPending={closeDisputeMutation.isPending}
+        onOpenChange={(open) => {
+          if (!open) setDisputeIdToClose(null);
+        }}
+        onConfirm={() => {
+          if (disputeIdToClose) closeDisputeMutation.mutate(disputeIdToClose);
+        }}
+      />
     </div>
   );
 };

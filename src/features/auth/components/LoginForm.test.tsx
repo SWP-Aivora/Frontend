@@ -4,6 +4,14 @@ import { LoginForm } from './LoginForm';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import { authService } from '../services';
+import { toast } from 'sonner';
+import { Role } from '@/shared/types/enums';
+
+const authStoreMock = vi.hoisted(() => ({
+  setAuth: vi.fn(),
+}));
+
+const navigateMock = vi.hoisted(() => vi.fn());
 
 // Mock authService
 vi.mock('../services', () => ({
@@ -11,6 +19,27 @@ vi.mock('../services', () => ({
     login: vi.fn(),
   },
 }));
+
+vi.mock('../store', () => ({
+  useAuthStore: () => ({
+    setAuth: authStoreMock.setAuth,
+  }),
+}));
+
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => navigateMock,
+  };
+});
 
 describe('LoginForm Component', () => {
   beforeEach(() => {
@@ -139,5 +168,63 @@ describe('LoginForm Component', () => {
     expect(authService.login).not.toHaveBeenCalled();
     expect(passwordInput).toHaveValue('secret123');
     expect(passwordInput).toHaveAttribute('type', 'text');
+  });
+
+  it('shows inline and toast feedback for invalid credentials without navigating', async () => {
+    const user = userEvent.setup();
+    vi.mocked(authService.login).mockResolvedValue({
+      success: false,
+      message: 'Invalid credentials',
+      statusCode: 401,
+      data: null,
+    });
+
+    render(
+      <BrowserRouter>
+        <LoginForm />
+      </BrowserRouter>
+    );
+
+    await user.type(screen.getByLabelText(/email/i), 'client@example.com');
+    await user.type(screen.getByPlaceholderText(/enter your password/i), 'wrong-password');
+    await user.click(screen.getByRole('button', { name: /log in/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Invalid email or password.');
+    expect(toast.error).toHaveBeenCalledWith('Invalid email or password.');
+    expect(navigateMock).not.toHaveBeenCalled();
+    expect(authStoreMock.setAuth).not.toHaveBeenCalled();
+  });
+
+  it('keeps successful login auth, toast, and role navigation behavior', async () => {
+    const user = userEvent.setup();
+    const authResponse = {
+      id: 'client-1',
+      email: 'client@example.com',
+      fullName: 'Client User',
+      role: Role.CLIENT,
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+    };
+    vi.mocked(authService.login).mockResolvedValue({
+      success: true,
+      message: 'OK',
+      statusCode: 200,
+      data: authResponse,
+    });
+
+    render(
+      <BrowserRouter>
+        <LoginForm />
+      </BrowserRouter>
+    );
+
+    await user.type(screen.getByLabelText(/email/i), 'client@example.com');
+    await user.type(screen.getByPlaceholderText(/enter your password/i), 'correct-password');
+    await user.click(screen.getByRole('button', { name: /log in/i }));
+
+    expect(authStoreMock.setAuth).toHaveBeenCalledWith(authResponse, 'access-token', 'refresh-token');
+    expect(toast.success).toHaveBeenCalledWith('Login successful!');
+    expect(navigateMock).toHaveBeenCalledWith('/client');
+    expect(screen.queryByText('Invalid email or password.')).not.toBeInTheDocument();
   });
 });
