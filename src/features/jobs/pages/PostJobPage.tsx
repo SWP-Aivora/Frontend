@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Sparkles, Rocket, Loader2, AlertCircle } from 'lucide-react';
@@ -14,6 +14,15 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useDebouncedCallback } from '@/shared/hooks/useDebounce';
 import { BudgetType, JobVisibility, SkillLevel } from '@/shared/types/enums';
+import { validateMilestoneBudgetTotal } from '../budgetValidation';
+import {
+  CANCELLED_JOB_POST_LOCKED_MESSAGE,
+  LOCKED_JOB_POST_MESSAGE,
+  getJobStatusLabel,
+  getLockedJobPostMessage,
+  isLockedJobPostStatus,
+  normalizeJobPostStatus,
+} from '../jobStatus';
 
 type FlowStep = 'PLANNING' | 'DRAFTING' | 'REVIEWING' | 'MATCHING';
 
@@ -55,33 +64,8 @@ const toCreateJobSkillLevel = (value: AiJobSuggestion['experienceLevel']): Creat
 };
 
 const isDraftJobStatus = (status: unknown) => {
-  if (status === 0) return true;
-
-  return String(status ?? '').toUpperCase().replace(/\s+|_/g, '') === 'DRAFT';
+  return normalizeJobPostStatus(status) === 'draft';
 };
-
-const normalizeEditableJobStatus = (status: unknown) => {
-  if (status === 0 || String(status) === '0') return 'draft';
-  if (status === 1 || String(status) === '1') return 'open';
-  if (status === 2 || String(status) === '2') return 'in-progress';
-  if (status === 3 || String(status) === '3') return 'completed';
-
-  const normalized = String(status ?? '').toUpperCase().replace(/\s+|_/g, '');
-  if (normalized === 'DRAFT') return 'draft';
-  if (normalized === 'OPEN' || normalized === 'PUBLISHED') return 'open';
-  if (normalized === 'INPROGRESS') return 'in-progress';
-  if (normalized === 'COMPLETED' || normalized === 'CLOSED') return 'completed';
-  if (normalized === 'CANCELLED' || normalized === 'CANCELED') return 'cancelled';
-
-  return 'open';
-};
-
-const isLockedJobPostStatus = (status: unknown) => {
-  const normalized = normalizeEditableJobStatus(status);
-  return normalized === 'in-progress' || normalized === 'completed';
-};
-
-const LOCKED_JOB_POST_MESSAGE = "This job post can't be edited in its current status.";
 
 const getUniqueSkillIds = (skills: Array<{ id?: string | null } | string> | null | undefined): string[] => (
   Array.from(new Set(
@@ -196,12 +180,28 @@ export const PostJobPage = () => {
   const isPublishedExistingJob = isEditingExistingJob && existingJobResponse?.data
     ? !isDraftJobStatus(existingJobResponse.data.status)
     : false;
+  const normalizedExistingJobStatus = isEditingExistingJob && existingJobResponse?.data
+    ? normalizeJobPostStatus(existingJobResponse.data.status)
+    : null;
   const isExistingJobLocked = isEditingExistingJob && existingJobResponse?.data
     ? isLockedJobPostStatus(existingJobResponse.data.status)
     : false;
+  const isCancelledExistingJob = normalizedExistingJobStatus === 'cancelled';
+  const lockedJobPostMessage = existingJobResponse?.data
+    ? getLockedJobPostMessage(existingJobResponse.data.status)
+    : LOCKED_JOB_POST_MESSAGE;
+  const milestoneBudgetValidation = useMemo(() => (
+    suggestion
+      ? validateMilestoneBudgetTotal(
+          suggestion.suggestedBudgetMin,
+          suggestion.suggestedBudgetMax,
+          suggestion.suggestedMilestones,
+        )
+      : null
+  ), [suggestion]);
 
   const showLockedJobPostMessage = () => {
-    toast.error(LOCKED_JOB_POST_MESSAGE);
+    toast.error(lockedJobPostMessage);
   };
 
   // --- Mutations ---
@@ -519,9 +519,11 @@ export const PostJobPage = () => {
         {
           id: 'edit-existing-job',
           role: 'assistant',
-          content: isDraftJobStatus(job.status)
-            ? "You're editing an existing job post. Update the post on the right, then save or continue to review when you're ready."
-            : "You're editing a published job post. Update the post on the right, then save when you're ready.",
+          content: isLockedJobPostStatus(job.status)
+            ? getLockedJobPostMessage(job.status)
+            : isDraftJobStatus(job.status)
+              ? "You're editing an existing job post. Update the post on the right, then save or continue to review when you're ready."
+              : "You're editing a published job post. Update the post on the right, then save when you're ready.",
           createdAt: new Date().toISOString(),
         },
       ]);
@@ -531,6 +533,11 @@ export const PostJobPage = () => {
   // --- Handlers ---
 
   const handleInitialSend = async (text: string) => {
+    if (isExistingJobLocked) {
+      showLockedJobPostMessage();
+      return;
+    }
+
     setMessages(prev => [...prev, { id: `user-${createMessageId()}`, role: 'user', content: text, createdAt: new Date().toISOString() }]);
     return initMutation.mutateAsync(text);
   };
@@ -568,6 +575,11 @@ export const PostJobPage = () => {
   }, 800);
 
   const handleManualUpdate = (data: Partial<AiJobSuggestion>) => {
+    if (isExistingJobLocked) {
+      showLockedJobPostMessage();
+      return;
+    }
+
     if (suggestion) {
       setIsDraftSaved(false);
       // Optimistic local update
@@ -594,6 +606,11 @@ export const PostJobPage = () => {
   };
 
   const handleCategoryChange = (categoryId: string) => {
+    if (isExistingJobLocked) {
+      showLockedJobPostMessage();
+      return;
+    }
+
     if (!suggestion) {
       return;
     }
@@ -611,6 +628,11 @@ export const PostJobPage = () => {
   };
 
   const handleSkillChange = (skillId: string) => {
+    if (isExistingJobLocked) {
+      showLockedJobPostMessage();
+      return;
+    }
+
     setIsDraftSaved(false);
     setSelectedSkillIds(prev => {
       const next = prev.includes(skillId)
@@ -741,6 +763,10 @@ export const PostJobPage = () => {
       return;
     }
 
+    if (!validateMilestoneBudgetBeforeAction()) {
+      return;
+    }
+
     try {
       await flushPendingSuggestionChanges();
     } catch {
@@ -841,6 +867,15 @@ export const PostJobPage = () => {
     return true;
   };
 
+  const validateMilestoneBudgetBeforeAction = () => {
+    if (!milestoneBudgetValidation?.isValid) {
+      toast.error(milestoneBudgetValidation?.blockingMessage ?? 'Please fix the milestone budget before continuing.');
+      return false;
+    }
+
+    return true;
+  };
+
   const isPublishing = acceptMutation.isPending || publishMutation.isPending || updateDraftJobMutation.isPending || patchMutation.isPending;
 
   const handlePublishClick = () => {
@@ -850,6 +885,7 @@ export const PostJobPage = () => {
     }
 
     if (!validateRequiredFields()) return;
+    if (!validateMilestoneBudgetBeforeAction()) return;
     setIsPublishModalOpen(true);
   };
 
@@ -868,6 +904,10 @@ export const PostJobPage = () => {
       await flushPendingSuggestionChanges();
     } catch {
       toast.error('Failed to save the latest changes');
+      return;
+    }
+
+    if (!validateMilestoneBudgetBeforeAction()) {
       return;
     }
 
@@ -1017,6 +1057,31 @@ export const PostJobPage = () => {
             </div>
           )}
 
+          {milestoneBudgetValidation && (
+            <div
+              className={cn(
+                "mb-3 rounded-lg border px-3 py-2",
+                milestoneBudgetValidation.blockingMessage
+                  ? "border-rose-200 bg-rose-50"
+                  : "border-emerald-100 bg-emerald-50"
+              )}
+            >
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-[80%] font-semibold text-slate-600 lg:text-[12px]">
+                  Milestone total: <span className="font-black text-slate-900">{milestoneBudgetValidation.milestoneTotal.toLocaleString()} Aivora Coin</span>
+                </p>
+                <p className="text-[76%] font-semibold text-slate-500 lg:text-[11px]">
+                  Budget range: {milestoneBudgetValidation.budgetRangeLabel}
+                </p>
+              </div>
+              {milestoneBudgetValidation.blockingMessage && (
+                <p role="alert" className="mt-1 text-[78%] font-bold text-rose-700 lg:text-[12px]">
+                  {milestoneBudgetValidation.blockingMessage}
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="grid flex-1 grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.95fr)]">
             <div className="flex flex-col gap-3">
               <div className="space-y-2.5">
@@ -1127,14 +1192,14 @@ export const PostJobPage = () => {
             <Button 
               variant="outline" 
               onClick={() => setStep('DRAFTING')}
-              disabled={isPublishing}
+              disabled={isPublishing || isExistingJobLocked}
               className="rounded-lg px-6 py-2 text-[80%] sm:text-[84%] lg:text-[13px]"
             >
               Back to Edit
             </Button>
             <Button 
               onClick={handlePublishClick}
-              disabled={isPublishing}
+              disabled={isPublishing || isExistingJobLocked}
               className="rounded-lg px-6 py-2 text-[80%] sm:ml-auto sm:text-[84%] lg:text-[13px]"
             >
               {isPublishing ? (
@@ -1171,7 +1236,7 @@ export const PostJobPage = () => {
                 </Button>
                 <Button
                   onClick={handleConfirmPublish}
-                  disabled={isPublishing}
+                  disabled={isPublishing || isExistingJobLocked}
                   className="rounded-full font-black shadow-lg shadow-primary/20"
                 >
                   {isPublishing ? (
@@ -1248,8 +1313,9 @@ export const PostJobPage = () => {
             onRefine={handleRefine}
             isGenerating={initMutation.isPending || refineMutation.isPending || refineExistingJobMutation.isPending}
             hasSuggestion={!!suggestion}
-            inputDisabled={false}
-            modeLabel={isEditingExistingJob ? 'Edit Mode' : undefined}
+            inputDisabled={isExistingJobLocked}
+            disabledPlaceholder={isExistingJobLocked ? lockedJobPostMessage : undefined}
+            modeLabel={isExistingJobLocked ? 'Read-only' : isEditingExistingJob ? 'Edit Mode' : undefined}
           />
           <div className="shrink-0 flex items-center justify-center gap-2 px-2">
             <Rocket className="size-3 text-slate-400" />
@@ -1260,10 +1326,10 @@ export const PostJobPage = () => {
         </div>
 
          {/* Right: Preview Form (Only if draft exists) */}
-         {step === 'DRAFTING' && suggestion && (
+         {step === 'DRAFTING' && suggestion && milestoneBudgetValidation && (
            <div className="lg:col-span-7 flex min-h-0 animate-in slide-in-from-right-10 duration-700">
-             <JobDraftForm 
-                suggestion={suggestion}
+              <JobDraftForm 
+                 suggestion={suggestion}
                 categories={categories}
                 skills={skills}
                 selectedSkillIds={selectedSkillIds}
@@ -1272,12 +1338,16 @@ export const PostJobPage = () => {
                 onUpdate={handleManualUpdate}
                onCategoryChange={handleCategoryChange}
                onAccept={handleAccept}
-               onSaveDraft={handleSaveDraft}
-               onReject={!isEditingExistingJob && !createdJobId ? () => setIsRejectModalOpen(true) : undefined}
-               isAccepting={acceptMutation.isPending}
+                 onSaveDraft={handleSaveDraft}
+                 onReject={!isEditingExistingJob && !createdJobId ? () => setIsRejectModalOpen(true) : undefined}
+                 milestoneBudgetValidation={milestoneBudgetValidation}
+                 isAccepting={acceptMutation.isPending}
                isDraftSaved={isDraftSaved}
                canContinueToReview={!isPublishedExistingJob}
               isGenerating={initMutation.isPending || refineMutation.isPending || refineExistingJobMutation.isPending || patchMutation.isPending}
+              isReadOnly={isExistingJobLocked}
+              readOnlyStatusLabel={isExistingJobLocked ? getJobStatusLabel(existingJobResponse?.data?.status) : undefined}
+              readOnlyMessage={isCancelledExistingJob ? CANCELLED_JOB_POST_LOCKED_MESSAGE : isExistingJobLocked ? lockedJobPostMessage : undefined}
             />
           </div>
         )}

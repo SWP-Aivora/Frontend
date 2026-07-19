@@ -7,6 +7,14 @@ import * as reactQuery from '@tanstack/react-query';
 import { MyJobPostsPage } from '../../../../features/jobs/pages/MyJobPostsPage';
 import { QUERY_KEYS, REFETCH_INTERVALS } from '@/shared/constants';
 import { BudgetType } from '@/shared/types/enums';
+import { toast } from 'sonner';
+
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
 
 vi.mock('@tanstack/react-query', async () => {
   const actual = await vi.importActual('@tanstack/react-query');
@@ -169,6 +177,48 @@ describe('MyJobPostsPage', () => {
       await user.click(screen.getByRole('link', { name: 'Completed Job' }));
 
       expect(currentPath()).toBe('/client/job-posts/completed-job/proposals');
+    });
+
+    it('blocks editor navigation for a numeric cancelled job post title', async () => {
+      const user = userEvent.setup();
+      mockPageData({
+        jobs: [createJob({ id: 'cancelled-job', title: 'Cancelled Job', status: 4 })],
+      });
+
+      renderComponent();
+
+      await user.click(screen.getByRole('button', { name: 'Cancelled Job' }));
+
+      expect(currentPath()).toBe('/client/job-posts');
+      expect(toast.error).toHaveBeenCalledWith('This cancelled job post cannot be edited or re-published.');
+    });
+
+    it('blocks editor navigation for a string cancelled job post title', async () => {
+      const user = userEvent.setup();
+      mockPageData({
+        jobs: [createJob({ id: 'cancelled-job', title: 'Cancelled Job', status: 'CANCELLED' })],
+      });
+
+      renderComponent();
+
+      await user.click(screen.getByRole('button', { name: 'Cancelled Job' }));
+
+      expect(currentPath()).toBe('/client/job-posts');
+      expect(toast.error).toHaveBeenCalledWith('This cancelled job post cannot be edited or re-published.');
+    });
+
+    it('keeps closed job posts separate from cancelled job posts', async () => {
+      const user = userEvent.setup();
+      mockPageData({
+        jobs: [createJob({ id: 'closed-job', title: 'Closed Job', status: 5 })],
+      });
+
+      renderComponent();
+
+      await user.click(screen.getByRole('link', { name: 'Closed Job' }));
+
+      expect(currentPath()).toBe('/client/job-posts/closed-job/proposals');
+      expect(toast.error).not.toHaveBeenCalledWith('This cancelled job post cannot be edited or re-published.');
     });
 
     it('does not navigate when clicking outside the title', async () => {

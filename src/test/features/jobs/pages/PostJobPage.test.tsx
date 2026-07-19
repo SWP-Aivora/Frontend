@@ -7,6 +7,10 @@ import { PostJobPage } from '../../../../features/jobs/pages/PostJobPage';
 import { jobService } from '../../../../features/jobs/services';
 import { JobVisibility } from '../../../../shared/types/enums';
 import { toast } from 'sonner';
+import {
+  MILESTONE_TOTAL_BELOW_MIN_MESSAGE,
+  MILESTONE_TOTAL_ABOVE_MAX_MESSAGE,
+} from '../../../../features/jobs/budgetValidation';
 
 // Mock sonner toast
 vi.mock('sonner', () => ({
@@ -47,22 +51,59 @@ vi.mock('@/shared/services/skillService', () => ({
 
 // Mock components to simplify rendering
 vi.mock('../../../../features/jobs/components/AiChatPanel', () => ({
-  AiChatPanel: () => <div data-testid="ai-chat-panel">AiChatPanel</div>,
+  AiChatPanel: ({ inputDisabled, disabledPlaceholder, modeLabel }: any) => (
+    <div data-testid="ai-chat-panel" data-disabled={inputDisabled ? 'true' : 'false'}>
+      AiChatPanel
+      {modeLabel && <span>{modeLabel}</span>}
+      {disabledPlaceholder && <p>{disabledPlaceholder}</p>}
+    </div>
+  ),
 }));
 vi.mock('../../../../features/jobs/components/JobDraftForm', () => ({
-  JobDraftForm: ({ onAccept, onReject, onSaveDraft, onSkillChange }: any) => (
+  JobDraftForm: ({
+    onAccept,
+    onReject,
+    onSaveDraft,
+    onSkillChange,
+    milestoneBudgetValidation,
+    isReadOnly,
+    readOnlyStatusLabel,
+    readOnlyMessage,
+  }: any) => (
     <div data-testid="job-draft-form">
       JobDraftForm
+      {isReadOnly && (
+        <div>
+          {readOnlyStatusLabel && <span>{readOnlyStatusLabel}</span>}
+          {readOnlyMessage && <p role="alert">{readOnlyMessage}</p>}
+        </div>
+      )}
+      {milestoneBudgetValidation?.blockingMessage && (
+        <p role="alert">{milestoneBudgetValidation.blockingMessage}</p>
+      )}
       <button data-testid="mock-skill-btn" onClick={() => onSkillChange('skill-1')}>
         Select Skill
       </button>
-      <button data-testid="mock-save-btn" onClick={onSaveDraft}>
-        Save
-      </button>
-      <button data-testid="mock-accept-btn" onClick={onAccept}>
-        Continue to Review
-      </button>
-      {onReject && (
+      {isReadOnly ? (
+        <>
+          <button data-testid="mock-force-save-btn" onClick={onSaveDraft}>
+            Force Save
+          </button>
+          <button data-testid="mock-force-accept-btn" onClick={onAccept}>
+            Force Continue
+          </button>
+        </>
+      ) : (
+        <>
+          <button data-testid="mock-save-btn" onClick={onSaveDraft}>
+            Save
+          </button>
+          <button data-testid="mock-accept-btn" onClick={onAccept}>
+            Continue to Review
+          </button>
+        </>
+      )}
+      {!isReadOnly && onReject && (
         <button data-testid="mock-reject-btn" onClick={onReject}>
           Reject
         </button>
@@ -127,6 +168,12 @@ const publishReadySuggestion = {
   ],
   createdAt: '2026-07-15T00:00:00.000Z',
 };
+
+const createPublishReadySuggestion = (overrides: Partial<typeof publishReadySuggestion> = {}) => ({
+  ...publishReadySuggestion,
+  ...overrides,
+  suggestedMilestones: overrides.suggestedMilestones ?? publishReadySuggestion.suggestedMilestones,
+});
 
 describe('PostJobPage query invalidation on mutation success', () => {
   let queryClient: QueryClient;
@@ -326,10 +373,13 @@ describe('PostJobPage publish confirmation flow', () => {
     );
   };
 
-  const moveToReviewStep = (view: ReturnType<typeof renderComponent>) => {
+  const moveToReviewStep = (
+    view: ReturnType<typeof renderComponent>,
+    suggestion = publishReadySuggestion,
+  ) => {
     const initMutationCall = findMutation('initAiJobAssistant');
     act(() => {
-      initMutationCall.onSuccess({ data: publishReadySuggestion });
+      initMutationCall.onSuccess({ data: suggestion });
     });
 
     act(() => {
@@ -371,10 +421,92 @@ describe('PostJobPage publish confirmation flow', () => {
 
     const view = renderComponent(['/client/post-job?editJobId=locked-job']);
 
-    const saveButton = await view.findByTestId('mock-save-btn');
+    expect(await view.findByText("This job post can't be edited in its current status.")).toBeDefined();
+    expect(view.queryByTestId('mock-save-btn')).toBeNull();
+
+    const saveButton = await view.findByTestId('mock-force-save-btn');
     fireEvent.click(saveButton);
 
     expect(toast.error).toHaveBeenCalledWith("This job post can't be edited in its current status.");
+    expect(jobService.updateJob).not.toHaveBeenCalled();
+  });
+
+  it('loads a cancelled job post as read-only and blocks defensive save and review handlers', async () => {
+    vi.mocked(jobService.getJobById).mockResolvedValue({
+      data: {
+        id: 'cancelled-job',
+        clientId: 'client-1',
+        title: 'Cancelled Job Post',
+        originalDescription: 'Original requirements',
+        finalDescription: 'Final requirements',
+        businessDomain: 'Education',
+        expectedOutcome: 'Delivered content',
+        categoryId: 'cat-1',
+        categoryName: 'Education',
+        budgetType: 0,
+        budgetMin: 100,
+        budgetMax: 200,
+        currency: 'Xu',
+        timelineDays: 14,
+        experienceLevel: 3,
+        status: 4,
+        skills: [{ id: 'skill-1', name: 'Writing' }],
+        milestones: [],
+        createdAt: '2026-07-15T00:00:00.000Z',
+      },
+      message: 'Success',
+      success: true,
+      statusCode: 200,
+    } as any);
+
+    const view = renderComponent(['/client/post-job?editJobId=cancelled-job']);
+
+    expect(await view.findByText('Cancelled')).toBeDefined();
+    expect(view.getAllByText('This cancelled job post cannot be edited or re-published.').length).toBeGreaterThan(0);
+    expect(view.getByTestId('ai-chat-panel').getAttribute('data-disabled')).toBe('true');
+    expect(view.queryByTestId('mock-save-btn')).toBeNull();
+    expect(view.queryByTestId('mock-accept-btn')).toBeNull();
+
+    fireEvent.click(view.getByTestId('mock-force-save-btn'));
+    fireEvent.click(view.getByTestId('mock-force-accept-btn'));
+    fireEvent.click(view.getByTestId('mock-skill-btn'));
+
+    expect(toast.error).toHaveBeenCalledWith('This cancelled job post cannot be edited or re-published.');
+    expect(jobService.updateJob).not.toHaveBeenCalled();
+    expect(jobService.acceptAiJobSuggestion).not.toHaveBeenCalled();
+    expect(jobService.publishJob).not.toHaveBeenCalled();
+  });
+
+  it('blocks saving when the milestone total is below the minimum job budget', () => {
+    const view = renderComponent();
+    const initMutationCall = findMutation('initAiJobAssistant');
+    act(() => {
+      initMutationCall.onSuccess({
+        data: createPublishReadySuggestion({
+          suggestedBudgetMin: 1000,
+          suggestedBudgetMax: 2000,
+          suggestedMilestones: [
+            {
+              title: 'Discovery',
+              description: 'Confirm scope',
+              acceptanceCriteria: 'Scope approved',
+              amount: 900,
+              dueDays: 7,
+              orderIndex: 0,
+            },
+          ],
+        }),
+      });
+    });
+
+    expect(view.getByText(MILESTONE_TOTAL_BELOW_MIN_MESSAGE)).toBeDefined();
+
+    act(() => {
+      view.getByTestId('mock-save-btn').click();
+    });
+
+    expect(toast.error).toHaveBeenCalledWith(MILESTONE_TOTAL_BELOW_MIN_MESSAGE);
+    expect(jobService.createJob).not.toHaveBeenCalled();
     expect(jobService.updateJob).not.toHaveBeenCalled();
   });
 
@@ -409,6 +541,39 @@ describe('PostJobPage publish confirmation flow', () => {
     expect(view.queryByText('Publish this job post?')).toBeNull();
     expect(jobService.publishJob).not.toHaveBeenCalled();
     expect(jobService.updateJob).not.toHaveBeenCalled();
+  });
+
+  it('blocks publishing when the milestone total exceeds the maximum job budget', () => {
+    const view = renderComponent();
+    moveToReviewStep(
+      view,
+      createPublishReadySuggestion({
+        suggestedBudgetMin: 1000,
+        suggestedBudgetMax: 2000,
+        suggestedMilestones: [
+          {
+            title: 'Discovery',
+            description: 'Confirm scope',
+            acceptanceCriteria: 'Scope approved',
+            amount: 2100,
+            dueDays: 7,
+            orderIndex: 0,
+          },
+        ],
+      }),
+    );
+
+    expect(view.getByText(MILESTONE_TOTAL_ABOVE_MAX_MESSAGE)).toBeDefined();
+
+    act(() => {
+      fireEvent.click(view.getByText('Publish Job Post'));
+    });
+
+    expect(toast.error).toHaveBeenCalledWith(MILESTONE_TOTAL_ABOVE_MAX_MESSAGE);
+    expect(view.queryByText('Publish this job post?')).toBeNull();
+    expect(jobService.acceptAiJobSuggestion).not.toHaveBeenCalled();
+    expect(jobService.updateJob).not.toHaveBeenCalled();
+    expect(jobService.publishJob).not.toHaveBeenCalled();
   });
 
   it('preserves the existing publish sequence after custom confirmation', async () => {
