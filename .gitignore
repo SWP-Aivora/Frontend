@@ -28,7 +28,6 @@ dist-ssr
 .env.production
 .env.local
 .env.*.local
-docs/superpowers/
 
 # AI Assistant
 .gemini/
