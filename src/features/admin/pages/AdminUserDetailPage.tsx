@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useAdminUsers } from '../hooks/useAdminUsers';
 import { useAdminExpertReviews, useExpertReviewDetail, useProcessExpertReview } from '../hooks/useAdminExpertReviews';
 import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
+import { ConfirmActionDialog } from '@/shared/components/ui/ConfirmActionDialog';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -25,6 +26,7 @@ export const AdminUserDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showApproveModal, setShowApproveModal] = useState(false);
   const queryClient = useQueryClient();
 
   // Fetch all users to find the specific one
@@ -63,9 +65,7 @@ export const AdminUserDetailPage = () => {
 
   const handleApprove = () => {
     if (!pendingReview) return;
-    if (window.confirm('Are you sure you want to approve these profile changes?')) {
-      processReview({ id: pendingReview.id, status: 'Approved' });
-    }
+    setShowApproveModal(true);
   };
 
   const handleReject = () => {
@@ -73,6 +73,12 @@ export const AdminUserDetailPage = () => {
     processReview({ id: pendingReview.id, status: 'Rejected', note: rejectionReason });
     setShowRejectModal(false);
     setRejectionReason('');
+  };
+
+  const confirmApprove = () => {
+    if (!pendingReview) return;
+    processReview({ id: pendingReview.id, status: 'Approved' });
+    setShowApproveModal(false);
   };
 
   if (isLoadingUser) {
@@ -408,6 +414,18 @@ export const AdminUserDetailPage = () => {
         </div>
 
       </div>
+
+      <ConfirmActionDialog
+        open={showApproveModal}
+        title="Approve profile changes?"
+        description="The requested expert profile changes will become visible after approval."
+        confirmLabel="Approve"
+        pendingLabel="Approving..."
+        isPending={isProcessing}
+        destructive={false}
+        onOpenChange={setShowApproveModal}
+        onConfirm={confirmApprove}
+      />
 
       {/* Rejection Modal */}
       {showRejectModal && (

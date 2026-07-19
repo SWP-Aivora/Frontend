@@ -3,6 +3,8 @@ import { mediaService } from '@/shared/services/mediaService';
 import { QUERY_KEYS } from '@/shared/constants';
 import { Trash2, FileIcon, ImageIcon, FileTextIcon, FileArchiveIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { useState } from 'react';
+import { ConfirmActionDialog } from '@/shared/components/ui/ConfirmActionDialog';
 
 const formatBytes = (bytes: number, decimals = 2) => {
   if (!+bytes) return '0 Bytes';
@@ -32,6 +34,7 @@ const getFileIcon = (format: string) => {
 
 export const MediaLibraryTab = () => {
   const queryClient = useQueryClient();
+  const [deletePublicId, setDeletePublicId] = useState<string | null>(null);
 
   const { data: response, isLoading } = useQuery({
     queryKey: QUERY_KEYS.MEDIA.LIST,
@@ -43,6 +46,7 @@ export const MediaLibraryTab = () => {
     onSuccess: () => {
       toast.success('File deleted successfully');
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MEDIA.LIST });
+      setDeletePublicId(null);
     },
     onError: () => {
       toast.error('Failed to delete file');
@@ -50,9 +54,7 @@ export const MediaLibraryTab = () => {
   });
 
   const handleDelete = (publicId: string) => {
-    if (window.confirm('Are you sure you want to delete this file? This action cannot be undone.')) {
-      deleteMutation.mutate(publicId);
-    }
+    setDeletePublicId(publicId);
   };
 
   const mediaList = response?.data || [];
@@ -78,6 +80,7 @@ export const MediaLibraryTab = () => {
   }
 
   return (
+    <>
     <div className="bg-white rounded-lg p-6 border border-slate-100 shadow-sm">
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -154,5 +157,20 @@ export const MediaLibraryTab = () => {
         })}
       </div>
     </div>
+    <ConfirmActionDialog
+      open={Boolean(deletePublicId)}
+      title="Delete this file?"
+      description="This action cannot be undone."
+      confirmLabel="Delete File"
+      pendingLabel="Deleting..."
+      isPending={deleteMutation.isPending}
+      onOpenChange={(open) => {
+        if (!open) setDeletePublicId(null);
+      }}
+      onConfirm={() => {
+        if (deletePublicId) deleteMutation.mutate(deletePublicId);
+      }}
+    />
+    </>
   );
 };
