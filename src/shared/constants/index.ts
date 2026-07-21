@@ -132,6 +132,7 @@ export const QUERY_KEYS = {
   },
   SERVICES: {
     DETAIL: (id: string) => ['service', id] as const,
+    NEW: ['service', 'new'] as const,
     MINE: ['services', 'mine'] as const,
     SERVICE_REQUESTS: (serviceId: string) => ['services', serviceId, 'requests'] as const,
     EXPERT_REQUESTS: (status?: string) => ['services', 'expert-requests', status ?? 'all'] as const,

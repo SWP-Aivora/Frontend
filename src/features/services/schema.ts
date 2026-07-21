@@ -3,22 +3,22 @@ import { PackageTier } from './types';
 
 export const servicePackageSchema = z.object({
   tier: z.enum([PackageTier.BASIC, PackageTier.STANDARD, PackageTier.PREMIUM]),
-  title: z.string().min(2, 'Package title is required'),
-  description: z.string().optional(),
+  title: z.string().trim().min(2, 'Package title is required'),
+  description: z.string().trim().optional(),
   price: z.coerce.number().min(1, 'Price must be greater than 0'),
   deliveryDays: z.coerce.number().int().min(1, 'Delivery must be at least 1 day').max(3650, 'Delivery is too long'),
-  features: z.string().optional(),
+  features: z.string().trim().optional(),
 });
 
 export const serviceFaqSchema = z.object({
-  question: z.string().min(3, 'FAQ question is required'),
-  answer: z.string().min(3, 'FAQ answer is required'),
+  question: z.string().trim().min(3, 'FAQ question is required'),
+  answer: z.string().trim().min(3, 'FAQ answer is required'),
 });
 
 export const serviceFormSchema = z.object({
-  title: z.string().min(3, 'Service title is required').max(255, 'Title is too long'),
-  description: z.string().min(20, 'Description must be at least 20 characters').max(5000, 'Description is too long'),
-  attachmentUrl: z.string().url('Attachment must be a valid URL').optional().or(z.literal('')),
+  title: z.string().trim().min(3, 'Service title is required').max(255, 'Title is too long'),
+  description: z.string().trim().min(20, 'Description must be at least 20 characters').max(5000, 'Description is too long'),
+  attachmentUrl: z.string().trim().refine(value => !value || URL.canParse(value), 'Attachment must be a valid URL'),
   packages: z.array(servicePackageSchema).min(1, 'At least one package is required'),
   faqs: z.array(serviceFaqSchema).min(1, 'At least one FAQ is required'),
 });
@@ -65,4 +65,3 @@ export type ServiceFormValues = z.infer<typeof serviceFormSchema>;
 export type ServiceRequestFormValues = z.infer<typeof serviceRequestFormSchema>;
 export type AiServiceGenerationValues = z.infer<typeof aiServiceGenerationSchema>;
 export type ServiceOfferFormValues = z.infer<typeof serviceOfferSchema>;
-

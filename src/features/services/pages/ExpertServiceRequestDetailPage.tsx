@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -13,14 +13,21 @@ import { ServiceRequestStatusBadge } from '../components/ServiceStatusBadge';
 import { MissingApiNotice } from '../components/MissingApiNotice';
 import { serviceOfferSchema } from '../schema';
 
+const createDefaultMilestones = (): ServiceOfferMilestone[] => [
+  { title: '', description: '', amount: 1, dueDays: 7, acceptanceCriteria: '', orderIndex: 0 },
+];
+
 export const ExpertServiceRequestDetailPage = () => {
   const { serviceId = '', requestId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [milestones, setMilestones] = useState<ServiceOfferMilestone[]>([
-    { title: '', description: '', amount: 1, dueDays: 7, acceptanceCriteria: '', orderIndex: 0 },
-  ]);
+  const [milestones, setMilestones] = useState<ServiceOfferMilestone[]>(createDefaultMilestones);
   const [amount, setAmount] = useState(1);
+
+  useEffect(() => {
+    setMilestones(createDefaultMilestones());
+    setAmount(1);
+  }, [requestId]);
 
   const { data: serviceData, isLoading: isServiceLoading } = useQuery({
     queryKey: QUERY_KEYS.SERVICES.DETAIL(serviceId),
@@ -124,9 +131,9 @@ export const ExpertServiceRequestDetailPage = () => {
             <p className="mt-2 text-sm font-medium text-slate-500">Client: {request.clientName || request.clientId}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button disabled title="This action is currently unavailable because the required API is not implemented." variant="outline" className="rounded-full">
+            <Button disabled title="Client chat is coming soon." variant="outline" className="rounded-full">
               <MessageSquare className="mr-2 size-4" />
-              Message Client
+              Chat Coming Soon
             </Button>
             {isPending && (
               <>
@@ -149,8 +156,6 @@ export const ExpertServiceRequestDetailPage = () => {
           <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Client note</p>
           <p className="mt-2 whitespace-pre-wrap text-sm font-medium leading-6 text-slate-600">{request.note || 'No note provided.'}</p>
         </div>
-        {/* TODO: Missing POST /api/v1/conversations/init serviceRequestId query parameter in v1.json. */}
-        <MissingApiNotice className="mt-5" message="Chat is blocked because POST /api/v1/conversations/init does not define a serviceRequestId parameter, even though service-request conversations exist in backend models." />
       </section>
 
       <section className="rounded-lg border border-slate-100 bg-white p-6 shadow-sm">

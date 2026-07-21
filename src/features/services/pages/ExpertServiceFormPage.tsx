@@ -10,20 +10,20 @@ import type { AiServiceGenerationValues, ServiceFormValues } from '../schema';
 import { ServiceStatus } from '../types';
 
 const toPayload = (values: ServiceFormValues) => ({
-  title: values.title.trim(),
-  description: values.description.trim(),
-  attachmentUrl: values.attachmentUrl?.trim() || null,
+  title: values.title,
+  description: values.description,
+  attachmentUrl: values.attachmentUrl || null,
   packages: values.packages.map(pkg => ({
     tier: pkg.tier,
-    title: pkg.title.trim(),
-    description: pkg.description?.trim() || null,
+    title: pkg.title,
+    description: pkg.description || null,
     price: Number(pkg.price),
     deliveryDays: Number(pkg.deliveryDays),
-    features: pkg.features?.trim() || null,
+    features: pkg.features || null,
   })),
   faqs: values.faqs.map(faq => ({
-    question: faq.question.trim(),
-    answer: faq.answer.trim(),
+    question: faq.question,
+    answer: faq.answer,
   })),
 });
 
@@ -34,7 +34,7 @@ export const ExpertServiceFormPage = () => {
   const isEditing = Boolean(serviceId);
 
   const { data, isLoading } = useQuery({
-    queryKey: serviceId ? QUERY_KEYS.SERVICES.DETAIL(serviceId) : ['service', 'new'],
+    queryKey: serviceId ? QUERY_KEYS.SERVICES.DETAIL(serviceId) : QUERY_KEYS.SERVICES.NEW,
     queryFn: () => servicesFeatureApi.getServiceById(serviceId!),
     enabled: !!serviceId,
   });
