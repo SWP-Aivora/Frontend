@@ -33,8 +33,13 @@ export const AdminCategoriesPage = () => {
       setDescription('');
     },
     onError: (error: unknown) => {
-      const e = error as { response?: { data?: { message?: string } } };
-      const message = e.response?.data?.message || (error instanceof Error ? error.message : 'Failed to create category');
+      let message = 'Failed to create category';
+      if (error instanceof Error) {
+        message = error.message;
+      } else if (typeof error === 'object' && error !== null) {
+        const err = error as { response?: { data?: { message?: string } } };
+        message = err.response?.data?.message || message;
+      }
       toast.error(message);
     },
   });
@@ -92,7 +97,7 @@ export const AdminCategoriesPage = () => {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
           <div className="bg-white rounded-2xl p-8 w-[90%] max-w-md relative z-10 shadow-2xl">
             <div className="flex justify-between items-start mb-6">
