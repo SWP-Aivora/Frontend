@@ -8,9 +8,10 @@ interface MessageInputProps {
   onTyping?: () => void;
   disabled?: boolean;
   disabledReason?: string;
+  maxLength?: number;
 }
 
-export const MessageInput = ({ onSendMessage, onTyping, disabled, disabledReason = 'Please wait before sending.' }: MessageInputProps) => {
+export const MessageInput = ({ onSendMessage, onTyping, disabled, disabledReason = 'Please wait before sending.', maxLength = 4000 }: MessageInputProps) => {
   const [content, setContent] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
@@ -34,9 +35,12 @@ export const MessageInput = ({ onSendMessage, onTyping, disabled, disabledReason
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const isOverLimit = content.length > maxLength;
+
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     const trimmedContent = content.trim();
+    if (isOverLimit) return;
     if ((trimmedContent || attachmentUrl) && !disabled && !isSending) {
       setIsSending(true);
       try {
@@ -122,6 +126,11 @@ export const MessageInput = ({ onSendMessage, onTyping, disabled, disabledReason
       {uploadError && (
         <p className="text-xs text-rose-500 mb-2 font-medium px-1">
           {uploadError}
+        </p>
+      )}
+      {isOverLimit && (
+        <p className="text-xs text-rose-500 mb-2 font-medium px-1">
+          Message is too long ({content.length.toLocaleString()}/{maxLength.toLocaleString()} characters)
         </p>
       )}
 
@@ -215,7 +224,7 @@ export const MessageInput = ({ onSendMessage, onTyping, disabled, disabledReason
           size="sm" 
           aria-label="Send message"
           className="h-8 w-8 p-0 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm disabled:opacity-50 disabled:bg-slate-300 shrink-0"
-          disabled={(!content.trim() && !attachmentUrl) || disabled || isSending || isUploading}
+          disabled={(!content.trim() && !attachmentUrl) || disabled || isSending || isUploading || isOverLimit}
         >
           <Send className="w-3.5 h-3.5" />
         </Button>

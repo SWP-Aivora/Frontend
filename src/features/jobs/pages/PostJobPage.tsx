@@ -335,7 +335,14 @@ export const PostJobPage = () => {
       toast.success('Job post published successfully!');
     },
     onError: (error: unknown) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to publish project');
+      let message = 'Failed to publish project';
+      if (error instanceof Error) {
+        message = error.message;
+      } else if (typeof error === 'object' && error !== null) {
+        const err = error as { response?: { data?: { message?: string } } };
+        message = err.response?.data?.message || message;
+      }
+      toast.error(message);
     }
   });
 
@@ -388,7 +395,14 @@ export const PostJobPage = () => {
       }
     },
     onError: (error: unknown) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to accept draft');
+      let message = 'Failed to accept draft';
+      if (error instanceof Error) {
+        message = error.message;
+      } else if (typeof error === 'object' && error !== null) {
+        const err = error as { response?: { data?: { message?: string } } };
+        message = err.response?.data?.message || message;
+      }
+      toast.error(message);
     }
   });
 
@@ -871,6 +885,18 @@ export const PostJobPage = () => {
     if (!milestoneBudgetValidation?.isValid) {
       toast.error(milestoneBudgetValidation?.blockingMessage ?? 'Please fix the milestone budget before continuing.');
       return false;
+    }
+
+    if (suggestion && suggestion.suggestedMilestones.length > 0) {
+      const { milestoneTotal, budgetMin, budgetMax } = milestoneBudgetValidation;
+      if (budgetMin !== null && milestoneTotal < budgetMin) {
+        toast.error(`Total milestone amount (${milestoneTotal.toLocaleString()} Aivora Coin) is below the minimum budget (${budgetMin.toLocaleString()} Aivora Coin).`);
+        return false;
+      }
+      if (budgetMax !== null && milestoneTotal > budgetMax) {
+        toast.error(`Total milestone amount (${milestoneTotal.toLocaleString()} Aivora Coin) exceeds the maximum budget (${budgetMax.toLocaleString()} Aivora Coin).`);
+        return false;
+      }
     }
 
     return true;
