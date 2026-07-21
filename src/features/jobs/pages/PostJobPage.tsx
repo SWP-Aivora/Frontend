@@ -335,7 +335,7 @@ export const PostJobPage = () => {
       toast.success('Job post published successfully!');
     },
     onError: (error: unknown) => {
-      toast.error(getErrorMessage(error, 'Failed to accept draft'));
+      toast.error(getErrorMessage(error, 'Failed to publish project'));
     }
   });
 
@@ -388,14 +388,7 @@ export const PostJobPage = () => {
       }
     },
     onError: (error: unknown) => {
-      let message = 'Failed to accept draft';
-      if (error instanceof Error) {
-        message = error.message;
-      } else if (typeof error === 'object' && error !== null) {
-        const err = error as { response?: { data?: { message?: string } } };
-        message = err.response?.data?.message || message;
-      }
-      toast.error(message);
+      toast.error(getErrorMessage(error, 'Failed to accept draft'));
     }
   });
 
