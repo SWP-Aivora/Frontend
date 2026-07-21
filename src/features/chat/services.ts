@@ -437,7 +437,6 @@ class ChatService extends BaseService<Conversation> {
   /**
    * Send a message through the backend SignalR hub.
    * The hub persists the message server-side before completing the invocation.
-   * Wrapped with a timeout to surface failures when the hub never responds.
    */
   async sendMessage(conversationId: string, payload: SendMessagePayload): Promise<void> {
     const content = payload.content.trim();
@@ -447,25 +446,15 @@ class ChatService extends BaseService<Conversation> {
 
     const connection = await this.ensureChatConnection();
 
-      let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        timeoutHandle = setTimeout(() => reject(new Error('Message send timed out. Please try again.')), 15_000);
+    try {
+      await connection.invoke('SendMessage', {
+        conversationId,
+        content,
+        attachmentUrl: payload.attachmentUrl,
       });
-
-      try {
-        await Promise.race([
-          connection.invoke('SendMessage', {
-            conversationId,
-            content,
-            attachmentUrl: payload.attachmentUrl,
-          }),
-          timeoutPromise,
-        ]);
-      } catch (error: unknown) {
-        throw createSignalRError('Unable to send chat message', error);
-      } finally {
-        if (timeoutHandle) clearTimeout(timeoutHandle);
-      }
+    } catch (error: unknown) {
+      throw createSignalRError('Unable to send chat message', error);
+    }
   }
 
   /**
