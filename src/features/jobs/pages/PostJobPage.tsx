@@ -4,7 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Sparkles, Rocket, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { AiChatPanel } from '../components/AiChatPanel';
-import { JobDraftForm } from '../components/JobDraftForm';
+import { JobDraftForm, type JobDraftFormValues } from '../components/JobDraftForm';
 import { ExpertMatchInsights } from '../components/ExpertMatchInsights';
 import { jobService } from '../services';
 import { AiJobAssistantStatus, type ChatMessage, type AiJobSuggestion, type PatchAiJobSuggestionRequest, type AcceptAiJobSuggestionRequest, type AcceptedJobResponse, type CreateJobRequest, type Job } from '../types';
@@ -12,7 +12,6 @@ import { categoryService } from '@/shared/services/categoryService';
 import { skillService } from '@/shared/services/skillService';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { useDebouncedCallback } from '@/shared/hooks/useDebounce';
 import { BudgetType, JobVisibility, SkillLevel } from '@/shared/types/enums';
 import { validateMilestoneBudgetTotal } from '../budgetValidation';
 import { getErrorMessage } from '@/lib/api-utils';
@@ -73,6 +72,10 @@ const getUniqueSkillIds = (skills: Array<{ id?: string | null } | string> | null
       .map((skill) => typeof skill === 'string' ? skill : skill.id)
       .filter((skillId): skillId is string => Boolean(skillId))
   ))
+);
+
+const toNullableFiniteNumber = (value: number | null | undefined): number | null => (
+  typeof value === 'number' && Number.isFinite(value) ? value : null
 );
 
 const buildSuggestionFromJob = (job: Job): AiJobSuggestion => ({
@@ -560,51 +563,6 @@ export const PostJobPage = () => {
 
   const pendingPatchRef = useRef<PatchAiJobSuggestionRequest>({});
 
-  const debouncedPatch = useDebouncedCallback(() => {
-    if (Object.keys(pendingPatchRef.current).length > 0) {
-      // Create a shallow copy to send and reset immediately so new changes aren't missed
-      const dataToSend = { ...pendingPatchRef.current };
-      pendingPatchRef.current = {};
-      patchMutation.mutate(dataToSend, {
-        onError: () => {
-          // If it fails, we put the fields back into the pending ref (merging with any new ones)
-          pendingPatchRef.current = { ...dataToSend, ...pendingPatchRef.current };
-        }
-      });
-    }
-  }, 800);
-
-  const handleManualUpdate = (data: Partial<AiJobSuggestion>) => {
-    if (isExistingJobLocked) {
-      showLockedJobPostMessage();
-      return;
-    }
-
-    if (suggestion) {
-      setIsDraftSaved(false);
-      // Optimistic local update
-      setSuggestion({ ...suggestion, ...data });
-
-      if (!isEditingExistingJob) {
-        // Accumulate patch request only when the editor is backed by an AI suggestion session.
-        if (data.suggestedTitle !== undefined) pendingPatchRef.current.suggestedTitle = data.suggestedTitle;
-        if (data.suggestedDescription !== undefined) pendingPatchRef.current.suggestedDescription = data.suggestedDescription;
-        if (data.businessDomain !== undefined) pendingPatchRef.current.businessDomain = data.businessDomain;
-        if (data.expectedOutcome !== undefined) pendingPatchRef.current.expectedOutcome = data.expectedOutcome;
-        if (data.budgetType !== undefined) pendingPatchRef.current.budgetType = data.budgetType;
-        if (data.suggestedBudgetMin !== undefined) pendingPatchRef.current.suggestedBudgetMin = data.suggestedBudgetMin;
-        if (data.suggestedBudgetMax !== undefined) pendingPatchRef.current.suggestedBudgetMax = data.suggestedBudgetMax;
-        if (data.currency !== undefined) pendingPatchRef.current.currency = data.currency;
-        if (data.suggestedTimelineDays !== undefined) pendingPatchRef.current.suggestedTimelineDays = data.suggestedTimelineDays;
-        if (data.experienceLevel !== undefined) pendingPatchRef.current.experienceLevel = data.experienceLevel;
-        if (data.suggestedSkills !== undefined) pendingPatchRef.current.suggestedSkills = data.suggestedSkills;
-        if (data.suggestedMilestones !== undefined) pendingPatchRef.current.suggestedMilestones = data.suggestedMilestones;
-
-        debouncedPatch();
-      }
-    }
-  };
-
   const handleCategoryChange = (categoryId: string) => {
     if (isExistingJobLocked) {
       showLockedJobPostMessage();
@@ -625,6 +583,48 @@ export const PostJobPage = () => {
     });
     setSelectedSkillIds([]);
     setHasAttemptedSkillValidation(false);
+  };
+
+  const applyDraftFormValuesToSuggestion = (values: JobDraftFormValues): AiJobSuggestion | null => {
+    if (!suggestion) {
+      return null;
+    }
+
+    const nextSuggestion: AiJobSuggestion = {
+      ...suggestion,
+      suggestedTitle: values.title,
+      suggestedDescription: values.description,
+      businessDomain: values.businessDomain.trim(),
+      budgetType: values.budgetType,
+      suggestedBudgetMin: toNullableFiniteNumber(values.budgetMin),
+      suggestedBudgetMax: toNullableFiniteNumber(values.budgetMax),
+      suggestedTimelineDays: toNullableFiniteNumber(values.timelineDays),
+      suggestedMilestones: values.milestones.map((milestone, index) => ({
+        ...milestone,
+        amount: toNullableFiniteNumber(milestone.amount),
+        dueDays: toNullableFiniteNumber(milestone.dueDays),
+        orderIndex: milestone.orderIndex ?? index,
+      })),
+    };
+
+    setIsDraftSaved(false);
+    setSuggestion(nextSuggestion);
+
+    if (!isEditingExistingJob) {
+      pendingPatchRef.current = {
+        ...pendingPatchRef.current,
+        suggestedTitle: nextSuggestion.suggestedTitle,
+        suggestedDescription: nextSuggestion.suggestedDescription,
+        businessDomain: nextSuggestion.businessDomain,
+        budgetType: nextSuggestion.budgetType,
+        suggestedBudgetMin: nextSuggestion.suggestedBudgetMin,
+        suggestedBudgetMax: nextSuggestion.suggestedBudgetMax,
+        suggestedTimelineDays: nextSuggestion.suggestedTimelineDays,
+        suggestedMilestones: nextSuggestion.suggestedMilestones,
+      };
+    }
+
+    return nextSuggestion;
   };
 
   const handleSkillChange = (skillId: string) => {
@@ -674,25 +674,28 @@ export const PostJobPage = () => {
     }
   };
 
-  const buildDraftJobUpdateData = (visibility?: JobVisibility) => {
-    if (!suggestion) {
+  const buildDraftJobUpdateData = (
+    visibility?: JobVisibility,
+    sourceSuggestion: AiJobSuggestion | null = suggestion,
+  ) => {
+    if (!sourceSuggestion) {
       return null;
     }
 
     return {
-      title: suggestion.suggestedTitle,
-      finalDescription: suggestion.suggestedDescription,
-      businessDomain: suggestion.businessDomain?.trim() || null,
-      expectedOutcome: suggestion.expectedOutcome,
-      categoryId: suggestion.categoryId ?? null,
-      budgetType: toCreateJobBudgetType(suggestion.budgetType),
-      budgetMin: suggestion.suggestedBudgetMin,
-      budgetMax: suggestion.suggestedBudgetMax,
-      currency: suggestion.currency,
-      timelineDays: suggestion.suggestedTimelineDays,
-      experienceLevel: toCreateJobSkillLevel(suggestion.experienceLevel),
+      title: sourceSuggestion.suggestedTitle,
+      finalDescription: sourceSuggestion.suggestedDescription,
+      businessDomain: sourceSuggestion.businessDomain?.trim() || null,
+      expectedOutcome: sourceSuggestion.expectedOutcome,
+      categoryId: sourceSuggestion.categoryId ?? null,
+      budgetType: toCreateJobBudgetType(sourceSuggestion.budgetType),
+      budgetMin: sourceSuggestion.suggestedBudgetMin,
+      budgetMax: sourceSuggestion.suggestedBudgetMax,
+      currency: sourceSuggestion.currency,
+      timelineDays: sourceSuggestion.suggestedTimelineDays,
+      experienceLevel: toCreateJobSkillLevel(sourceSuggestion.experienceLevel),
       skillIds: selectedSkillIds,
-      milestones: suggestion.suggestedMilestones.map((milestone, index) => ({
+      milestones: sourceSuggestion.suggestedMilestones.map((milestone, index) => ({
         title: milestone.title,
         description: milestone.description || null,
         acceptanceCriteria: milestone.acceptanceCriteria || null,
@@ -704,35 +707,37 @@ export const PostJobPage = () => {
     };
   };
 
-  const buildCreateJobRequest = (): CreateJobRequest | null => {
-    if (!suggestion) {
+  const buildCreateJobRequest = (
+    sourceSuggestion: AiJobSuggestion | null = suggestion,
+  ): CreateJobRequest | null => {
+    if (!sourceSuggestion) {
       return null;
     }
 
-    if (!suggestion.categoryId) {
+    if (!sourceSuggestion.categoryId) {
       toast.error('Please select a category before saving the draft.');
       return null;
     }
 
-    const currency = suggestion.currency || 'Xu';
+    const currency = sourceSuggestion.currency || 'Xu';
 
     return {
-      title: suggestion.suggestedTitle,
-      originalDescription: suggestion.rawInput || suggestion.suggestedDescription,
-      finalDescription: suggestion.suggestedDescription,
-      businessDomain: suggestion.businessDomain?.trim() || null,
-      expectedOutcome: suggestion.expectedOutcome,
-      categoryId: suggestion.categoryId,
-      budgetType: toCreateJobBudgetType(suggestion.budgetType),
-      budgetMin: suggestion.suggestedBudgetMin,
-      budgetMax: suggestion.suggestedBudgetMax,
+      title: sourceSuggestion.suggestedTitle,
+      originalDescription: sourceSuggestion.rawInput || sourceSuggestion.suggestedDescription,
+      finalDescription: sourceSuggestion.suggestedDescription,
+      businessDomain: sourceSuggestion.businessDomain?.trim() || null,
+      expectedOutcome: sourceSuggestion.expectedOutcome,
+      categoryId: sourceSuggestion.categoryId,
+      budgetType: toCreateJobBudgetType(sourceSuggestion.budgetType),
+      budgetMin: sourceSuggestion.suggestedBudgetMin,
+      budgetMax: sourceSuggestion.suggestedBudgetMax,
       currency,
-      timelineDays: suggestion.suggestedTimelineDays,
-      deadline: getDateAfterDays(suggestion.suggestedTimelineDays),
-      experienceLevel: toCreateJobSkillLevel(suggestion.experienceLevel),
+      timelineDays: sourceSuggestion.suggestedTimelineDays,
+      deadline: getDateAfterDays(sourceSuggestion.suggestedTimelineDays),
+      experienceLevel: toCreateJobSkillLevel(sourceSuggestion.experienceLevel),
       visibility: JobVisibility.PRIVATE,
       skillIds: selectedSkillIds,
-      milestones: suggestion.suggestedMilestones.map((milestone, index) => ({
+      milestones: sourceSuggestion.suggestedMilestones.map((milestone, index) => ({
         title: milestone.title,
         description: milestone.description,
         acceptanceCriteria: milestone.acceptanceCriteria,
@@ -757,9 +762,14 @@ export const PostJobPage = () => {
     return response.data?.job ?? null;
   };
 
-  const handleSaveDraft = async () => {
+  const handleSaveDraft = async (values: JobDraftFormValues) => {
     if (isExistingJobLocked) {
       showLockedJobPostMessage();
+      return;
+    }
+
+    const nextSuggestion = applyDraftFormValuesToSuggestion(values);
+    if (!nextSuggestion) {
       return;
     }
 
@@ -771,7 +781,7 @@ export const PostJobPage = () => {
     }
 
     if (createdJobId) {
-      const updateData = buildDraftJobUpdateData();
+      const updateData = buildDraftJobUpdateData(undefined, nextSuggestion);
       if (!updateData) {
         return;
       }
@@ -789,7 +799,7 @@ export const PostJobPage = () => {
       return;
     }
 
-    const createData = buildCreateJobRequest();
+    const createData = buildCreateJobRequest(nextSuggestion);
     if (!createData) {
       return;
     }
@@ -808,9 +818,14 @@ export const PostJobPage = () => {
     toast.success('Saved successfully!');
   };
 
-  const handleAccept = () => {
+  const handleAccept = (values: JobDraftFormValues) => {
     if (isExistingJobLocked) {
       showLockedJobPostMessage();
+      return;
+    }
+
+    const nextSuggestion = applyDraftFormValuesToSuggestion(values);
+    if (!nextSuggestion) {
       return;
     }
 
@@ -1317,12 +1332,10 @@ export const PostJobPage = () => {
                 selectedSkillIds={selectedSkillIds}
                 onSkillChange={handleSkillChange}
                 skillError={hasAttemptedSkillValidation && selectedSkillIds.length === 0 ? 'Select at least one required skill.' : undefined}
-                onUpdate={handleManualUpdate}
                onCategoryChange={handleCategoryChange}
                onAccept={handleAccept}
                  onSaveDraft={handleSaveDraft}
                  onReject={!isEditingExistingJob && !createdJobId ? () => setIsRejectModalOpen(true) : undefined}
-                 milestoneBudgetValidation={milestoneBudgetValidation}
                  isAccepting={acceptMutation.isPending}
                isDraftSaved={isDraftSaved}
                canContinueToReview={!isPublishedExistingJob}
