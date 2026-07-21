@@ -444,23 +444,15 @@ class ChatService extends BaseService<Conversation> {
       throw new Error('Message cannot be empty');
     }
 
+    const connection = await this.ensureChatConnection();
+
     try {
-      const connection = await this.ensureChatConnection();
-
-      try {
-        await connection.invoke('SendMessage', {
-          conversationId,
-          content,
-          attachmentUrl: payload.attachmentUrl,
-        });
-      } catch (invokeError: unknown) {
-        throw createSignalRError('Unable to send chat message', invokeError);
-      }
+      await connection.invoke('SendMessage', {
+        conversationId,
+        content,
+        attachmentUrl: payload.attachmentUrl,
+      });
     } catch (error: unknown) {
-      if (error instanceof Error) {
-        throw error;
-      }
-
       throw createSignalRError('Unable to send chat message', error);
     }
   }

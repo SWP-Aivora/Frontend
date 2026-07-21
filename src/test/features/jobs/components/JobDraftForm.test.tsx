@@ -1,11 +1,9 @@
-import { useMemo, useState } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { JobDraftForm } from '../../../../features/jobs/components/JobDraftForm';
 import {
   MILESTONE_TOTAL_BELOW_MIN_MESSAGE,
   MILESTONE_TOTAL_ABOVE_MAX_MESSAGE,
-  validateMilestoneBudgetTotal,
 } from '../../../../features/jobs/budgetValidation';
 import type { AiJobSuggestion } from '../../../../features/jobs/types';
 import { AiJobAssistantStatus } from '../../../../features/jobs/types';
@@ -42,28 +40,16 @@ const createSuggestion = (amounts: number[], budgetMin = 1000, budgetMax = 2000)
 });
 
 const DraftFormHarness = ({ initialSuggestion }: { initialSuggestion: AiJobSuggestion }) => {
-  const [suggestion, setSuggestion] = useState(initialSuggestion);
-  const validation = useMemo(
-    () => validateMilestoneBudgetTotal(
-      suggestion.suggestedBudgetMin,
-      suggestion.suggestedBudgetMax,
-      suggestion.suggestedMilestones,
-    ),
-    [suggestion],
-  );
-
   return (
     <JobDraftForm
-      suggestion={suggestion}
+      suggestion={initialSuggestion}
       categories={[]}
       skills={[]}
       selectedSkillIds={[]}
       onSkillChange={vi.fn()}
-      onUpdate={(data) => setSuggestion((current) => ({ ...current, ...data }))}
       onCategoryChange={vi.fn()}
       onAccept={vi.fn()}
       onSaveDraft={vi.fn()}
-      milestoneBudgetValidation={validation}
       isAccepting={false}
     />
   );

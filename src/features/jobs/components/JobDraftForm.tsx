@@ -1,4 +1,5 @@
-import { useForm, type SubmitHandler } from 'react-hook-form';
+import { useEffect, useRef } from 'react';
+import { useForm, useFieldArray, useWatch, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { 
@@ -12,8 +13,7 @@ import type { AiJobSuggestion, SuggestedMilestone } from '../types';
 import { BudgetType } from '@/shared/types/enums';
 import type { Category } from '@/shared/services/categoryService';
 import type { Skill } from '@/shared/services/skillService';
-import type { MilestoneBudgetValidation } from '../budgetValidation';
-import { BUDGET_RANGE_INVALID_MESSAGE } from '../budgetValidation';
+import { BUDGET_RANGE_INVALID_MESSAGE, validateMilestoneBudgetTotal } from '../budgetValidation';
 
 const requiredPositiveNumberField = (label: string) =>
   z.preprocess(
@@ -43,6 +43,15 @@ const jobDraftSchema = z.object({
   budgetMin: requiredPositiveNumberField('Minimum budget'),
   budgetMax: requiredPositiveNumberField('Maximum budget'),
   timelineDays: requiredPositiveNumberField('Timeline'),
+  milestones: z.array(z.object({
+    id: z.string().optional(),
+    title: z.string().trim().min(1, 'Milestone title is required'),
+    description: z.string().nullable().optional(),
+    amount: requiredPositiveNumberField('Milestone amount'),
+    dueDays: requiredPositiveNumberField('Milestone due days'),
+    acceptanceCriteria: z.string().nullable().optional(),
+    orderIndex: z.number(),
+  })),
 }).superRefine((data, ctx) => {
   if (data.budgetMin !== null && data.budgetMax !== null && data.budgetMin > data.budgetMax) {
     ctx.addIssue({
@@ -51,9 +60,23 @@ const jobDraftSchema = z.object({
       path: ['budgetMax'],
     });
   }
+
+  const milestoneBudgetValidation = validateMilestoneBudgetTotal(
+    data.budgetMin,
+    data.budgetMax,
+    data.milestones,
+  );
+
+  if (milestoneBudgetValidation.milestoneTotalMessage) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: milestoneBudgetValidation.milestoneTotalMessage,
+      path: ['milestones'],
+    });
+  }
 });
 
-type JobDraftFormValues = {
+export type JobDraftFormValues = {
   title: string;
   description: string;
   businessDomain: string;
@@ -61,7 +84,19 @@ type JobDraftFormValues = {
   budgetMin: number | null;
   budgetMax: number | null;
   timelineDays: number | null;
+  milestones: SuggestedMilestone[];
 };
+
+const getFormValuesFromSuggestion = (suggestion: AiJobSuggestion): JobDraftFormValues => ({
+  title: suggestion.suggestedTitle,
+  description: suggestion.suggestedDescription,
+  businessDomain: suggestion.businessDomain ?? '',
+  budgetType: suggestion.budgetType,
+  budgetMin: suggestion.suggestedBudgetMin ?? null,
+  budgetMax: suggestion.suggestedBudgetMax ?? null,
+  timelineDays: suggestion.suggestedTimelineDays ?? null,
+  milestones: suggestion.suggestedMilestones,
+});
 
 interface JobDraftFormProps {
   suggestion: AiJobSuggestion;
@@ -70,12 +105,10 @@ interface JobDraftFormProps {
   selectedSkillIds?: string[];
   onSkillChange?: (skillId: string) => void;
   skillError?: string;
-  onUpdate: (data: Partial<AiJobSuggestion>) => void;
   onCategoryChange: (categoryId: string) => void;
-  onAccept: () => void;
-  onSaveDraft: () => void;
+  onAccept: (values: JobDraftFormValues) => void;
+  onSaveDraft: (values: JobDraftFormValues) => void;
   onReject?: () => void;
-  milestoneBudgetValidation: MilestoneBudgetValidation;
   isAccepting: boolean;
   isDraftSaved?: boolean;
   isGenerating?: boolean;
@@ -92,12 +125,10 @@ export const JobDraftForm = ({
   selectedSkillIds = [],
   onSkillChange,
   skillError,
-  onUpdate, 
   onCategoryChange,
   onAccept,
   onSaveDraft,
   onReject,
-  milestoneBudgetValidation,
   isAccepting,
   isDraftSaved = false,
   isGenerating = false,
@@ -106,18 +137,36 @@ export const JobDraftForm = ({
   readOnlyStatusLabel,
   readOnlyMessage
 }: JobDraftFormProps) => {
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm<JobDraftFormValues>({
+  const { register, control, handleSubmit, getValues, reset, setValue, formState: { errors } } = useForm<JobDraftFormValues>({
     resolver: zodResolver(jobDraftSchema),
-    values: {
-      title: suggestion.suggestedTitle,
-      description: suggestion.suggestedDescription,
-      businessDomain: suggestion.businessDomain ?? '',
-      budgetType: suggestion.budgetType,
-      budgetMin: suggestion.suggestedBudgetMin ?? null,
-      budgetMax: suggestion.suggestedBudgetMax ?? null,
-      timelineDays: suggestion.suggestedTimelineDays ?? null,
-    }
+    defaultValues: getFormValuesFromSuggestion(suggestion),
   });
+  const lastSuggestionVersionRef = useRef<string | null>(null);
+  const { fields: milestoneFields, append, remove } = useFieldArray({
+    control,
+    name: 'milestones',
+    keyName: 'fieldId',
+  });
+  const watchedBudgetMin = useWatch({ control, name: 'budgetMin' });
+  const watchedBudgetMax = useWatch({ control, name: 'budgetMax' });
+  const watchedBudgetType = useWatch({ control, name: 'budgetType' });
+  const watchedMilestones = useWatch({ control, name: 'milestones' });
+  const milestoneBudgetValidation = validateMilestoneBudgetTotal(
+    watchedBudgetMin,
+    watchedBudgetMax,
+    watchedMilestones,
+  );
+
+  useEffect(() => {
+    const suggestionVersion = `${suggestion.id}:${suggestion.createdAt}:${suggestion.suggestedTitle}:${suggestion.suggestedDescription}:${suggestion.suggestedMilestones.length}`;
+
+    if (lastSuggestionVersionRef.current === suggestionVersion) {
+      return;
+    }
+
+    lastSuggestionVersionRef.current = suggestionVersion;
+    reset(getFormValuesFromSuggestion(suggestion));
+  }, [reset, suggestion]);
   const titleField = register('title');
   const descriptionField = register('description');
   const businessDomainField = register('businessDomain');
@@ -130,27 +179,21 @@ export const JobDraftForm = ({
   const budgetMinErrorId = errors.budgetMin ? 'job-draft-budget-min-error' : undefined;
   const budgetMaxErrorId = errors.budgetMax ? 'job-draft-budget-max-error' : undefined;
   const timelineErrorId = errors.timelineDays ? 'job-draft-timeline-error' : undefined;
-  const milestoneBudgetErrorId = milestoneBudgetValidation.blockingMessage ? 'job-draft-milestone-budget-error' : undefined;
+  const milestoneErrors = errors.milestones;
+  const milestoneBudgetSchemaMessage = Array.isArray(milestoneErrors) ? undefined : milestoneErrors?.message;
+  const milestoneBudgetErrorMessage = milestoneBudgetSchemaMessage ?? milestoneBudgetValidation.blockingMessage;
+  const milestoneBudgetErrorId = milestoneBudgetErrorMessage ? 'job-draft-milestone-budget-error' : undefined;
 
   const onSubmit: SubmitHandler<JobDraftFormValues> = (data) => {
     if (data.budgetMin === null || data.budgetMax === null || data.timelineDays === null) {
       return;
     }
 
-    onUpdate({
-      suggestedTitle: data.title,
-      suggestedDescription: data.description,
-      businessDomain: data.businessDomain.trim(),
-      budgetType: data.budgetType,
-      suggestedBudgetMin: data.budgetMin,
-      suggestedBudgetMax: data.budgetMax,
-      suggestedTimelineDays: data.timelineDays,
-    });
+    onAccept(data);
   };
 
   const handleRemoveMilestone = (index: number) => {
-    const newMilestones = suggestion.suggestedMilestones.filter((_, i) => i !== index);
-    onUpdate({ suggestedMilestones: newMilestones });
+    remove(index);
   };
 
   const handleAddMilestone = () => {
@@ -161,21 +204,7 @@ export const JobDraftForm = ({
       dueDays: 0,
       orderIndex: suggestion.suggestedMilestones.length
     };
-    onUpdate({ suggestedMilestones: [...suggestion.suggestedMilestones, newMilestone] });
-  };
-
-  const handleMilestoneChange = (
-    index: number,
-    field: keyof SuggestedMilestone,
-    value: string | number | null
-  ) => {
-    const newMilestones = suggestion.suggestedMilestones.map((milestone, milestoneIndex) =>
-      milestoneIndex === index
-        ? { ...milestone, [field]: value }
-        : milestone
-    );
-
-    onUpdate({ suggestedMilestones: newMilestones });
+    append(newMilestone);
   };
 
   return (
@@ -241,10 +270,6 @@ export const JobDraftForm = ({
               <Input 
                 id="job-draft-title"
                 {...titleField}
-                onChange={(e) => {
-                  titleField.onChange(e);
-                  onUpdate({ suggestedTitle: e.target.value });
-                }}
                 placeholder="Job Title"
                 aria-invalid={errors.title ? 'true' : 'false'}
                 aria-describedby={titleErrorId}
@@ -259,10 +284,6 @@ export const JobDraftForm = ({
               <textarea 
                 id="job-draft-description"
                 {...descriptionField}
-                onChange={(e) => {
-                  descriptionField.onChange(e);
-                  onUpdate({ suggestedDescription: e.target.value });
-                }}
                 rows={6}
                 aria-invalid={errors.description ? 'true' : 'false'}
                 aria-describedby={descriptionErrorId}
@@ -278,10 +299,6 @@ export const JobDraftForm = ({
                 <Input
                   id="job-draft-business-domain"
                   {...businessDomainField}
-                  onChange={(e) => {
-                    businessDomainField.onChange(e);
-                    onUpdate({ businessDomain: e.target.value });
-                  }}
                   placeholder="e.g., E-commerce, Healthcare"
                   aria-invalid={errors.businessDomain ? 'true' : 'false'}
                   aria-describedby={businessDomainErrorId}
@@ -359,12 +376,6 @@ export const JobDraftForm = ({
                           id="job-draft-budget-min"
                           type="number"
                           {...budgetMinField}
-                          onChange={(e) => {
-                            budgetMinField.onChange(e);
-                            onUpdate({
-                              suggestedBudgetMin: e.target.value === '' ? null : Number(e.target.value)
-                            });
-                          }}
                           aria-invalid={errors.budgetMin ? 'true' : 'false'}
                           aria-describedby={budgetMinErrorId}
                           disabled={isReadOnly}
@@ -378,12 +389,6 @@ export const JobDraftForm = ({
                           id="job-draft-budget-max"
                           type="number"
                           {...budgetMaxField}
-                          onChange={(e) => {
-                            budgetMaxField.onChange(e);
-                            onUpdate({
-                              suggestedBudgetMax: e.target.value === '' ? null : Number(e.target.value)
-                            });
-                          }}
                           aria-invalid={errors.budgetMax ? 'true' : 'false'}
                           aria-describedby={budgetMaxErrorId}
                           disabled={isReadOnly}
@@ -395,28 +400,26 @@ export const JobDraftForm = ({
                   <div className="flex bg-slate-50 p-1 rounded-lg border border-slate-100" role="group" aria-label="Budget type">
                      <button 
                        type="button"
-                       aria-pressed={suggestion.budgetType === BudgetType.FIXED}
+                       aria-pressed={watchedBudgetType === BudgetType.FIXED}
                        disabled={isReadOnly}
                        onClick={() => {
-                         setValue('budgetType', BudgetType.FIXED);
-                         onUpdate({ budgetType: BudgetType.FIXED });
+                         setValue('budgetType', BudgetType.FIXED, { shouldValidate: true });
                       }}
                       className={cn(
                         "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
-                        suggestion.budgetType === BudgetType.FIXED ? "bg-white shadow-sm text-primary" : "text-slate-500 hover:text-slate-700"
+                        watchedBudgetType === BudgetType.FIXED ? "bg-white shadow-sm text-primary" : "text-slate-500 hover:text-slate-700"
                       )}
                     >Fixed Price</button>
                      <button 
                        type="button"
-                       aria-pressed={suggestion.budgetType === BudgetType.HOURLY}
+                       aria-pressed={watchedBudgetType === BudgetType.HOURLY}
                        disabled={isReadOnly}
                        onClick={() => {
-                         setValue('budgetType', BudgetType.HOURLY);
-                         onUpdate({ budgetType: BudgetType.HOURLY });
+                         setValue('budgetType', BudgetType.HOURLY, { shouldValidate: true });
                       }}
                       className={cn(
                         "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
-                        suggestion.budgetType === BudgetType.HOURLY ? "bg-white shadow-sm text-primary" : "text-slate-500 hover:text-slate-700"
+                        watchedBudgetType === BudgetType.HOURLY ? "bg-white shadow-sm text-primary" : "text-slate-500 hover:text-slate-700"
                       )}
                      >Hourly Rate</button>
                   </div>
@@ -434,12 +437,6 @@ export const JobDraftForm = ({
                   id="job-draft-timeline-days"
                   type="number"
                   {...timelineDaysField}
-                  onChange={(e) => {
-                    timelineDaysField.onChange(e);
-                    onUpdate({
-                      suggestedTimelineDays: e.target.value === '' ? null : Number(e.target.value)
-                    });
-                  }}
                   aria-invalid={errors.timelineDays ? 'true' : 'false'}
                   aria-describedby={timelineErrorId}
                   disabled={isReadOnly}
@@ -467,7 +464,7 @@ export const JobDraftForm = ({
             <div
               className={cn(
                 "rounded-lg border px-4 py-3",
-                milestoneBudgetValidation.blockingMessage
+                milestoneBudgetErrorMessage
                   ? "border-rose-200 bg-rose-50"
                   : "border-emerald-100 bg-emerald-50"
               )}
@@ -483,89 +480,101 @@ export const JobDraftForm = ({
               <p className="mt-1 text-xs font-semibold text-slate-500">
                 Job budget range: {milestoneBudgetValidation.budgetRangeLabel}
               </p>
-              {milestoneBudgetValidation.blockingMessage && (
+              {milestoneBudgetErrorMessage && (
                 <p id={milestoneBudgetErrorId} role="alert" className="mt-2 text-xs font-bold text-rose-600">
-                  {milestoneBudgetValidation.blockingMessage}
+                  {milestoneBudgetErrorMessage}
                 </p>
               )}
             </div>
 
             <div className="space-y-3">
-              {suggestion.suggestedMilestones.map((ms, idx) => (
-                <div key={ms.id || `milestone-${idx}`} className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-4 group">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-4 flex-1">
-                      <div className="size-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 font-black text-xs text-slate-400">
-                        {idx + 1}
+              {milestoneFields.map((ms, idx) => {
+                const milestoneFieldErrors = Array.isArray(milestoneErrors) ? milestoneErrors[idx] : undefined;
+                const milestoneTitleErrorId = milestoneFieldErrors?.title ? `milestone-title-${idx}-error` : undefined;
+                const milestoneAmountErrorId = milestoneFieldErrors?.amount ? `milestone-amount-${idx}-error` : undefined;
+                const milestoneDueDaysErrorId = milestoneFieldErrors?.dueDays ? `milestone-due-days-${idx}-error` : undefined;
+
+                return (
+                  <div key={ms.fieldId} className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-4 group">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-4 flex-1">
+                        <div className="size-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 font-black text-xs text-slate-400">
+                          {idx + 1}
+                        </div>
+                        <div className="grid flex-1 grid-cols-1 gap-3 md:grid-cols-[minmax(0,1.8fr)_minmax(140px,0.8fr)_minmax(120px,0.7fr)]">
+                          <div className="space-y-2">
+                            <label htmlFor={`milestone-title-${idx}`} className="text-[10px] font-bold text-slate-400 uppercase">
+                              Title
+                            </label>
+                            <Input
+                              id={`milestone-title-${idx}`}
+                              title={ms.title}
+                              {...register(`milestones.${idx}.title`)}
+                              aria-invalid={milestoneFieldErrors?.title ? 'true' : 'false'}
+                              aria-describedby={milestoneTitleErrorId}
+                              disabled={isReadOnly}
+                              className="h-10 rounded-lg bg-white border-slate-200 text-sm font-bold text-slate-900"
+                            />
+                            {milestoneFieldErrors?.title && <p id={milestoneTitleErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{milestoneFieldErrors.title.message}</p>}
+                          </div>
+                          <div className="space-y-2">
+                            <label htmlFor={`milestone-amount-${idx}`} className="text-[10px] font-bold text-slate-400 uppercase">
+                              Amount (Aivora Coin)
+                            </label>
+                            <Input
+                              id={`milestone-amount-${idx}`}
+                              type="number"
+                              {...register(`milestones.${idx}.amount`, { valueAsNumber: true })}
+                              aria-invalid={milestoneFieldErrors?.amount ? 'true' : 'false'}
+                              aria-describedby={milestoneAmountErrorId}
+                              disabled={isReadOnly}
+                              className="h-10 rounded-lg bg-white border-slate-200 text-sm font-bold text-slate-900"
+                            />
+                            {milestoneFieldErrors?.amount && <p id={milestoneAmountErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{milestoneFieldErrors.amount.message}</p>}
+                          </div>
+                          <div className="space-y-2">
+                            <label htmlFor={`milestone-due-days-${idx}`} className="text-[10px] font-bold text-slate-400 uppercase">
+                              Due Days
+                            </label>
+                            <Input
+                              id={`milestone-due-days-${idx}`}
+                              type="number"
+                              {...register(`milestones.${idx}.dueDays`, { valueAsNumber: true })}
+                              aria-invalid={milestoneFieldErrors?.dueDays ? 'true' : 'false'}
+                              aria-describedby={milestoneDueDaysErrorId}
+                              disabled={isReadOnly}
+                              className="h-10 rounded-lg bg-white border-slate-200 text-sm font-bold text-slate-900"
+                            />
+                            {milestoneFieldErrors?.dueDays && <p id={milestoneDueDaysErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{milestoneFieldErrors.dueDays.message}</p>}
+                          </div>
+                        </div>
                       </div>
-                      <div className="grid flex-1 grid-cols-1 gap-3 md:grid-cols-[minmax(0,1.8fr)_minmax(140px,0.8fr)_minmax(120px,0.7fr)]">
-                        <div className="space-y-2">
-                          <label htmlFor={`milestone-title-${idx}`} className="text-[10px] font-bold text-slate-400 uppercase">
-                            Title
-                          </label>
-                          <Input
-                            id={`milestone-title-${idx}`}
-                            value={ms.title}
-                            title={ms.title}
-                            onChange={(e) => handleMilestoneChange(idx, 'title', e.target.value)}
-                            disabled={isReadOnly}
-                            className="h-10 rounded-lg bg-white border-slate-200 text-sm font-bold text-slate-900"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label htmlFor={`milestone-amount-${idx}`} className="text-[10px] font-bold text-slate-400 uppercase">
-                            Amount (Aivora Coin)
-                          </label>
-                          <Input
-                            id={`milestone-amount-${idx}`}
-                            type="number"
-                            value={ms.amount ?? 0}
-                            onChange={(e) => handleMilestoneChange(idx, 'amount', Number(e.target.value))}
-                            disabled={isReadOnly}
-                            className="h-10 rounded-lg bg-white border-slate-200 text-sm font-bold text-slate-900"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label htmlFor={`milestone-due-days-${idx}`} className="text-[10px] font-bold text-slate-400 uppercase">
-                            Due Days
-                          </label>
-                          <Input
-                            id={`milestone-due-days-${idx}`}
-                            type="number"
-                            value={ms.dueDays ?? 0}
-                            onChange={(e) => handleMilestoneChange(idx, 'dueDays', Number(e.target.value))}
-                            disabled={isReadOnly}
-                            className="h-10 rounded-lg bg-white border-slate-200 text-sm font-bold text-slate-900"
-                          />
-                        </div>
-                      </div>
+                      {!isReadOnly && (
+                        <button 
+                          type="button" 
+                          onClick={() => handleRemoveMilestone(idx)}
+                          className="p-1 text-slate-300 hover:text-rose-500 transition-opacity md:opacity-0 md:group-hover:opacity-100"
+                          aria-label={`Remove milestone ${idx + 1}: ${ms.title}`}
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      )}
                     </div>
-                    {!isReadOnly && (
-                      <button 
-                        type="button" 
-                        onClick={() => handleRemoveMilestone(idx)}
-                        className="p-1 text-slate-300 hover:text-rose-500 transition-opacity md:opacity-0 md:group-hover:opacity-100"
-                        aria-label={`Remove milestone ${idx + 1}: ${ms.title}`}
-                      >
-                        <Trash2 className="size-4" />
-                      </button>
-                    )}
+                    <div className="space-y-2 md:pl-12">
+                      <label htmlFor={`milestone-description-${idx}`} className="text-[10px] font-bold text-slate-400 uppercase">
+                        Description
+                      </label>
+                      <textarea
+                        id={`milestone-description-${idx}`}
+                        {...register(`milestones.${idx}.description`)}
+                        rows={2}
+                        disabled={isReadOnly}
+                        className="w-full rounded-lg border border-slate-200 bg-white p-3 text-sm leading-relaxed text-slate-700 focus:outline-none focus:ring-4 focus:ring-primary/5"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2 md:pl-12">
-                    <label htmlFor={`milestone-description-${idx}`} className="text-[10px] font-bold text-slate-400 uppercase">
-                      Description
-                    </label>
-                    <textarea
-                      id={`milestone-description-${idx}`}
-                      value={ms.description ?? ''}
-                      onChange={(e) => handleMilestoneChange(idx, 'description', e.target.value)}
-                      rows={2}
-                      disabled={isReadOnly}
-                      className="w-full rounded-lg border border-slate-200 bg-white p-3 text-sm leading-relaxed text-slate-700 focus:outline-none focus:ring-4 focus:ring-primary/5"
-                    />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         </form>
@@ -593,15 +602,17 @@ export const JobDraftForm = ({
               </Button>
             )}
             <Button
+              type="button"
               variant="outline"
               className="flex-1 sm:flex-none rounded-full font-bold border-slate-200"
-              onClick={onSaveDraft}
+              onClick={() => onSaveDraft(getValues())}
             >
               Save
             </Button>
             {canContinueToReview && (
               <Button 
-                onClick={onAccept}
+                type="button"
+                onClick={handleSubmit(onSubmit)}
                 disabled={isAccepting}
                 className="flex-[2] sm:flex-none rounded-full px-10 font-black shadow-xl shadow-primary/20 bg-primary hover:scale-[1.02] active:scale-95 transition-all"
               >
