@@ -6,6 +6,7 @@ describe('Shared Constants', () => {
     expect(QUERY_KEYS.JOBS.DETAIL('123')).toEqual(['job', '123']);
     expect(QUERY_KEYS.JOBS.PROPOSALS('456')).toEqual(['proposals', '456']);
     expect(QUERY_KEYS.JOBS.PROPOSAL_COUNT('789')).toEqual(['proposals', '789', 'count']);
+    expect(QUERY_KEYS.SERVICES.NEW).toEqual(['service', 'new']);
   });
 
   it('defines REFETCH_INTERVALS with expected milliseconds', () => {
