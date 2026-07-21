@@ -335,7 +335,7 @@ export const PostJobPage = () => {
       toast.success('Job post published successfully!');
     },
     onError: (error: unknown) => {
-      toast.error(getErrorMessage(error));
+      toast.error(getErrorMessage(error, 'Failed to accept draft'));
     }
   });
 
