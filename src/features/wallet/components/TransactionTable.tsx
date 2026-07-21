@@ -52,10 +52,10 @@ export const TransactionTable = ({ transactions, isClient }: TransactionTablePro
       <tbody className="divide-y divide-slate-50">
         {transactions.map((t) => {
           const typeInfo = getTransactionTypeInfo(t.type);
-          const statusInfo = getStatusInfo(TransactionStatus.COMPLETED);
+          const statusInfo = getStatusInfo(t.status);
           const isIncoming = isIncomingTransaction(t);
           return (
-            <tr key={t.id || Math.random()} className="group hover:bg-slate-50/50 transition-colors">
+            <tr key={`tx-${t.id}`} className="group hover:bg-slate-50/50 transition-colors">
               <td className="px-6 py-5">
                 <div className="flex items-center gap-4">
                   <div className={cn(
@@ -84,7 +84,7 @@ export const TransactionTable = ({ transactions, isClient }: TransactionTablePro
                   statusInfo.color
                 )}>
                   <span className="size-1.5 rounded-full bg-current" />
-                  {statusInfo.label}
+                  <span>{statusInfo.label}</span>
                 </div>
               </td>
               <td className="px-6 py-5 text-right">

@@ -32,8 +32,15 @@ export const AdminCategoriesPage = () => {
       setName('');
       setDescription('');
     },
-    onError: () => {
-      toast.error('Failed to create category');
+    onError: (error: unknown) => {
+      let message = 'Failed to create category';
+      if (error instanceof Error) {
+        message = error.message;
+      } else if (typeof error === 'object' && error !== null) {
+        const err = error as { response?: { data?: { message?: string } } };
+        message = err.response?.data?.message || message;
+      }
+      toast.error(message);
     },
   });
 
