@@ -50,12 +50,12 @@ export const TransactionTable = ({ transactions, isClient }: TransactionTablePro
         </tr>
       </thead>
       <tbody className="divide-y divide-slate-50">
-        {transactions.map((t, index) => {
+        {transactions.map((t) => {
           const typeInfo = getTransactionTypeInfo(t.type);
           const statusInfo = getStatusInfo(t.status);
           const isIncoming = isIncomingTransaction(t);
           return (
-            <tr key={t.id || index} className="group hover:bg-slate-50/50 transition-colors">
+            <tr key={`tx-${t.id}`} className="group hover:bg-slate-50/50 transition-colors">
               <td className="px-6 py-5">
                 <div className="flex items-center gap-4">
                   <div className={cn(
