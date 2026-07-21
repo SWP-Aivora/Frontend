@@ -79,21 +79,38 @@ export const ServiceForm = ({ initialService, isSaving, isPublishing, isGenerati
     const aiColumn = aiColumnRef.current;
     if (!aiColumn) return undefined;
 
+    let animationFrameId: number | null = null;
     const updateFormPanelHeight = () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+
+      animationFrameId = requestAnimationFrame(() => {
+        animationFrameId = null;
+
+        const nextHeight = aiColumn.getBoundingClientRect().height;
+        setFormPanelHeight(currentHeight => (
+          currentHeight && Math.abs(currentHeight - nextHeight) < 1 ? currentHeight : nextHeight
+        ));
+      });
+    };
+
+    const measureFormPanelHeight = () => {
       const nextHeight = aiColumn.getBoundingClientRect().height;
       setFormPanelHeight(currentHeight => (
         currentHeight && Math.abs(currentHeight - nextHeight) < 1 ? currentHeight : nextHeight
       ));
     };
 
-    updateFormPanelHeight();
+    measureFormPanelHeight();
     const observer = new ResizeObserver(updateFormPanelHeight);
     observer.observe(aiColumn);
-    window.addEventListener('resize', updateFormPanelHeight);
 
     return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
       observer.disconnect();
-      window.removeEventListener('resize', updateFormPanelHeight);
     };
   }, []);
 
