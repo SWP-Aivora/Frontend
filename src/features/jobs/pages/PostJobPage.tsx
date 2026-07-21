@@ -15,8 +15,8 @@ import { cn } from '@/lib/utils';
 import { useDebouncedCallback } from '@/shared/hooks/useDebounce';
 import { BudgetType, JobVisibility, SkillLevel } from '@/shared/types/enums';
 import { validateMilestoneBudgetTotal } from '../budgetValidation';
-import {
-  CANCELLED_JOB_POST_LOCKED_MESSAGE,
+import { getErrorMessage } from '@/lib/api-utils';
+import {  CANCELLED_JOB_POST_LOCKED_MESSAGE,
   LOCKED_JOB_POST_MESSAGE,
   getJobStatusLabel,
   getLockedJobPostMessage,
@@ -335,14 +335,7 @@ export const PostJobPage = () => {
       toast.success('Job post published successfully!');
     },
     onError: (error: unknown) => {
-      let message = 'Failed to publish project';
-      if (error instanceof Error) {
-        message = error.message;
-      } else if (typeof error === 'object' && error !== null) {
-        const err = error as { response?: { data?: { message?: string } } };
-        message = err.response?.data?.message || message;
-      }
-      toast.error(message);
+      toast.error(getErrorMessage(error));
     }
   });
 

@@ -447,20 +447,24 @@ class ChatService extends BaseService<Conversation> {
 
     const connection = await this.ensureChatConnection();
 
-    const invokePromise = connection.invoke('SendMessage', {
-      conversationId,
-      content,
-      attachmentUrl: payload.attachmentUrl,
-    });
-
+    let timeoutHandle: ReturnType<typeof setTimeout>;
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Message send timed out. Please try again.')), 15_000);
+      timeoutHandle = setTimeout(() => reject(new Error('Message send timed out. Please try again.')), 15_000);
     });
 
     try {
-      await Promise.race([invokePromise, timeoutPromise]);
+      await Promise.race([
+        connection.invoke('SendMessage', {
+          conversationId,
+          content,
+          attachmentUrl: payload.attachmentUrl,
+        }),
+        timeoutPromise,
+      ]);
     } catch (error: unknown) {
       throw createSignalRError('Unable to send chat message', error);
+    } finally {
+      clearTimeout(timeoutHandle!);
     }
   }
 

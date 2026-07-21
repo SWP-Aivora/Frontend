@@ -271,10 +271,13 @@ export function normalizeBaseResponse<T>(
     };
   }
 
-  return {
-    success,
-    message,
-    statusCode,
-    data: finalData
-  };
+export function getErrorMessage(error: unknown, defaultMessage = 'An error occurred'): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === 'object' && error !== null && 'response' in error) {
+    const err = error as { response?: { data?: { message?: string } } };
+    return err.response?.data?.message || defaultMessage;
+  }
+  return defaultMessage;
 }
