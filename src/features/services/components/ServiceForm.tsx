@@ -120,7 +120,16 @@ export const ServiceForm = ({ initialService, isSaving, isPublishing, isGenerati
     if (!result.success) {
       const nextErrors: Record<string, string> = {};
       result.error.issues.forEach(issue => {
-        nextErrors[issue.path.join('.')] = issue.message;
+        const pathKey = issue.path.join('.');
+        const rootKey = String(issue.path[0] ?? '');
+
+        if (pathKey) {
+          nextErrors[pathKey] = issue.message;
+        }
+
+        if (rootKey && !nextErrors[rootKey]) {
+          nextErrors[rootKey] = issue.message;
+        }
       });
       setErrors(nextErrors);
       toast.error('Please fix the highlighted service fields.');
@@ -265,16 +274,28 @@ export const ServiceForm = ({ initialService, isSaving, isPublishing, isGenerati
                   />
                 </div>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-[140px_minmax(0,1fr)_140px_140px]">
-                  <select value={pkg.tier} onChange={event => setPackageField(index, 'tier', event.target.value)} className="h-12 rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold">
-                    {Object.values(PackageTier).map(tier => <option key={tier} value={tier}>{tier}</option>)}
-                  </select>
-                  <Input value={pkg.title} onChange={event => setPackageField(index, 'title', event.target.value)} placeholder="Package title" />
-                  <Input type="number" value={pkg.price} onChange={event => setPackageField(index, 'price', Number(event.target.value))} placeholder="Price" />
-                  <Input type="number" value={pkg.deliveryDays} onChange={event => setPackageField(index, 'deliveryDays', Number(event.target.value))} placeholder="Days" />
+                  <FieldError message={errors[`packages.${index}.tier`]}>
+                    <select value={pkg.tier} onChange={event => setPackageField(index, 'tier', event.target.value)} className="h-12 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold">
+                      {Object.values(PackageTier).map(tier => <option key={tier} value={tier}>{tier}</option>)}
+                    </select>
+                  </FieldError>
+                  <FieldError message={errors[`packages.${index}.title`]}>
+                    <Input value={pkg.title} onChange={event => setPackageField(index, 'title', event.target.value)} placeholder="Package title" />
+                  </FieldError>
+                  <FieldError message={errors[`packages.${index}.price`]}>
+                    <Input type="number" value={pkg.price} onChange={event => setPackageField(index, 'price', Number(event.target.value))} placeholder="Price" />
+                  </FieldError>
+                  <FieldError message={errors[`packages.${index}.deliveryDays`]}>
+                    <Input type="number" value={pkg.deliveryDays} onChange={event => setPackageField(index, 'deliveryDays', Number(event.target.value))} placeholder="Days" />
+                  </FieldError>
                 </div>
                 <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-                  <AutoResizeTextarea value={pkg.description ?? ''} onChange={event => setPackageField(index, 'description', event.target.value)} placeholder="Package description" className="min-h-[120px]" />
-                  <AutoResizeTextarea value={pkg.features ?? ''} onChange={event => setPackageField(index, 'features', event.target.value)} placeholder="Features, one per line" className="min-h-[120px]" />
+                  <FieldError message={errors[`packages.${index}.description`]}>
+                    <AutoResizeTextarea value={pkg.description ?? ''} onChange={event => setPackageField(index, 'description', event.target.value)} placeholder="Package description" className="min-h-[120px]" />
+                  </FieldError>
+                  <FieldError message={errors[`packages.${index}.features`]}>
+                    <AutoResizeTextarea value={pkg.features ?? ''} onChange={event => setPackageField(index, 'features', event.target.value)} placeholder="Features, one per line" className="min-h-[120px]" />
+                  </FieldError>
                 </div>
               </div>
             ))}
@@ -303,10 +324,14 @@ export const ServiceForm = ({ initialService, isSaving, isPublishing, isGenerati
                 </div>
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,0.44fr)_minmax(0,0.56fr)]">
                   <LabeledField label="Question">
-                    <Input value={faq.question} onChange={event => setFaqField(index, 'question', event.target.value)} placeholder="Question clients often ask" />
+                    <FieldError message={errors[`faqs.${index}.question`]}>
+                      <Input value={faq.question} onChange={event => setFaqField(index, 'question', event.target.value)} placeholder="Question clients often ask" />
+                    </FieldError>
                   </LabeledField>
                   <LabeledField label="Answer">
-                    <AutoResizeTextarea value={faq.answer} onChange={event => setFaqField(index, 'answer', event.target.value)} placeholder="Answer clearly and concisely" className="min-h-[96px]" />
+                    <FieldError message={errors[`faqs.${index}.answer`]}>
+                      <AutoResizeTextarea value={faq.answer} onChange={event => setFaqField(index, 'answer', event.target.value)} placeholder="Answer clearly and concisely" className="min-h-[96px]" />
+                    </FieldError>
                   </LabeledField>
                 </div>
               </div>
