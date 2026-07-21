@@ -14,6 +14,22 @@ export const API_ENDPOINTS = {
     ID: (id: string) => `jobs/${id}`,
     PROPOSALS: (id: string) => `jobs/${id}/proposals`,
   },
+  SERVICES: {
+    BASE: 'services',
+    ID: (id: string) => `services/${id}`,
+    MINE: 'services/mine',
+    PUBLISH: (id: string) => `services/${id}/publish`,
+    UNPUBLISH: (id: string) => `services/${id}/unpublish`,
+    REQUESTS: (id: string) => `services/${id}/requests`,
+    EXPERT_REQUESTS: 'experts/me/service-requests',
+    ACCEPT_REQUEST: (id: string) => `service-requests/${id}/accept`,
+    DECLINE_REQUEST: (id: string) => `service-requests/${id}/decline`,
+    OFFERS: (requestId: string) => `service-requests/${requestId}/offers`,
+    ACCEPT_OFFER: (offerId: string) => `service-offers/${offerId}/accept`,
+  },
+  AI: {
+    SERVICE_GENERATOR: 'ai/service-generator',
+  },
   PROJECTS: {
     BASE: 'projects',
     ID: (id: string) => `projects/${id}`,
@@ -113,6 +129,12 @@ export const QUERY_KEYS = {
     DETAIL: (id: string) => ['job', id] as const,
     PROPOSALS: (id: string) => ['proposals', id] as const,
     PROPOSAL_COUNT: (id: string) => ['proposals', id, 'count'] as const,
+  },
+  SERVICES: {
+    DETAIL: (id: string) => ['service', id] as const,
+    MINE: ['services', 'mine'] as const,
+    SERVICE_REQUESTS: (serviceId: string) => ['services', serviceId, 'requests'] as const,
+    EXPERT_REQUESTS: (status?: string) => ['services', 'expert-requests', status ?? 'all'] as const,
   },
   MEDIA: {
     LIST: ['media', 'list'] as const,

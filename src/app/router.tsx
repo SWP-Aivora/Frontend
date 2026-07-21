@@ -2,7 +2,6 @@ import { createBrowserRouter, Navigate, useParams } from 'react-router-dom';
 import { LoginPage } from '../features/auth/pages/LoginPage';
 import { RegisterPage } from '../features/auth/pages/RegisterPage';
 import { ProfilePage } from '../features/profiles/pages/ProfilePage';
-import { ServiceGeneratorPage } from '../features/profiles/pages/ServiceGeneratorPage';
 import { PostJobPage } from '../features/jobs/pages/PostJobPage';
 import { MyJobPostsPage } from '../features/jobs/pages/MyJobPostsPage';
 import { ClientProjectsPage } from '../features/projects/pages/ClientProjectsPage';
@@ -36,6 +35,16 @@ import { ExpertMyJobsPage } from '../features/jobs/pages/ExpertMyJobsPage';
 import { SettingsPage } from '../features/settings/pages/SettingsPage';
 import { ClientDashboardPage } from '../features/dashboard/pages/ClientDashboardPage';
 import { ExpertDashboardPage } from '../features/dashboard/pages/ExpertDashboardPage';
+import { ClientServicesModulePage } from '../features/services/pages/ClientServicesModulePage';
+import { BrowseServicesPage } from '../features/services/pages/BrowseServicesPage';
+import { ServiceDetailPage } from '../features/services/pages/ServiceDetailPage';
+import { RequestServicePage } from '../features/services/pages/RequestServicePage';
+import { ClientServiceRequestsPage } from '../features/services/pages/ClientServiceRequestsPage';
+import { ClientServiceRequestDetailPage } from '../features/services/pages/ClientServiceRequestDetailPage';
+import { ExpertServicesPage } from '../features/services/pages/ExpertServicesPage';
+import { ExpertServiceFormPage } from '../features/services/pages/ExpertServiceFormPage';
+import { ExpertServiceRequestsPage } from '../features/services/pages/ExpertServiceRequestsPage';
+import { ExpertServiceRequestDetailPage } from '../features/services/pages/ExpertServiceRequestDetailPage';
 // import { ProtectedRoute } from '../shared/components/common/ProtectedRoute';
 import { ProtectedRoute } from '../shared/components/common/ProtectedRoute';
 import { ClientLayout, ExpertLayout, AdminLayout } from '../shared/layouts';
@@ -54,6 +63,12 @@ const ProposalCreateRouteRedirect = () => {
 const LegacyClientJobProposalsRedirect = () => {
   const { id } = useParams();
   return <Navigate to={`/client/job-posts/${id ?? ''}/proposals`} replace />;
+};
+
+// eslint-disable-next-line react-refresh/only-export-components
+const LegacyClientServiceRequestDetailRedirect = () => {
+  const { requestId } = useParams();
+  return <Navigate to={`/client/services/requests/${requestId ?? ''}`} replace />;
 };
 
 export const router = createBrowserRouter([
@@ -108,6 +123,13 @@ export const router = createBrowserRouter([
       { path: 'proposals/:proposalId', element: <ProposalDetailsPage /> },
       { path: 'projects/:id/workspace', element: <ProjectWorkspacePage /> },
       { path: 'projects/:id/disputes', element: <ProjectDisputesPage /> },
+      { path: 'services', element: <ClientServicesModulePage><BrowseServicesPage showHeader={false} /></ClientServicesModulePage> },
+      { path: 'services/requests', element: <ClientServicesModulePage><ClientServiceRequestsPage showHeader={false} /></ClientServicesModulePage> },
+      { path: 'services/requests/:requestId', element: <ClientServicesModulePage><ClientServiceRequestDetailPage /></ClientServicesModulePage> },
+      { path: 'services/:serviceId', element: <ServiceDetailPage /> },
+      { path: 'services/:serviceId/request', element: <RequestServicePage /> },
+      { path: 'service-requests', element: <Navigate to="/client/services/requests" replace /> },
+      { path: 'service-requests/:requestId', element: <LegacyClientServiceRequestDetailRedirect /> },
       { path: 'experts', element: <SearchExpertsPage /> },
       { path: 'experts/:id', element: <ExpertPublicProfilePage /> },
       { path: 'post-job', element: <PostJobPage /> },
@@ -130,12 +152,20 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <ExpertDashboardPage /> },
       { path: 'profile', element: <ProfilePage /> },
-      { path: 'service-generator', element: <ServiceGeneratorPage /> },
       { path: 'jobs', element: <FindWorkPage /> },
       { path: 'jobs/:id', element: <JobDetailsPage /> },
       { path: 'jobs/:id/proposals/:proposalId/edit', element: <JobDetailsPage /> },
       { path: 'proposals', element: <ExpertMyProposalsPage /> },
       { path: 'proposals/:proposalId', element: <ProposalDetailsPage /> },
+      { path: 'services', element: <ExpertServicesPage /> },
+      { path: 'services/new', element: <ExpertServiceFormPage /> },
+      { path: 'services/requests', element: <Navigate to="/expert/services" replace /> },
+      { path: 'services/requests/:requestId', element: <Navigate to="/expert/services" replace /> },
+      { path: 'services/:serviceId/edit', element: <ExpertServiceFormPage /> },
+      { path: 'services/:serviceId/requests', element: <ExpertServiceRequestsPage /> },
+      { path: 'services/:serviceId/requests/:requestId', element: <ExpertServiceRequestDetailPage /> },
+      { path: 'service-requests', element: <Navigate to="/expert/services" replace /> },
+      { path: 'service-requests/:requestId', element: <Navigate to="/expert/services" replace /> },
       { path: 'projects/:id/workspace', element: <ProjectWorkspacePage /> },
       { path: 'projects/:id/disputes', element: <ProjectDisputesPage /> },
       { path: 'my-jobs', element: <ExpertMyJobsPage /> },

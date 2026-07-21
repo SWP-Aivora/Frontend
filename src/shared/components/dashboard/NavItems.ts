@@ -8,13 +8,12 @@ import {
   Settings, 
   UserCircle,
   Search,
-  PlusCircle,
   FileText,
   Bell,
   Wrench,
-  Sparkles,
   ShieldCheck,
   LayoutGrid,
+  ShoppingBag,
   type LucideIcon
 } from 'lucide-react';
 import { Role } from '@/shared/types/enums';
@@ -30,8 +29,8 @@ export const NAV_ITEMS: Record<string, NavItem[]> = {
     { label: 'Dashboard', href: '/client', icon: LayoutDashboard },
     { label: 'My Job Posts', href: '/client/job-posts', icon: FileText },
     { label: 'My Projects', href: '/client/projects', icon: Briefcase },
+    { label: 'Services', href: '/client/services', icon: ShoppingBag },
     { label: 'Find Experts', href: '/client/experts', icon: Search },
-    { label: 'Post a Job', href: '/client/post-job', icon: PlusCircle },
     { label: 'Messages', href: '/client/messages', icon: MessageSquare },
     { label: 'Notifications', href: '/client/notifications', icon: Bell },
     { label: 'Wallet', href: '/client/wallet', icon: Wallet },
@@ -43,7 +42,7 @@ export const NAV_ITEMS: Record<string, NavItem[]> = {
     { label: 'My Workspace', href: '/expert/my-jobs', icon: Briefcase },
     { label: 'Find Work', href: '/expert/jobs', icon: Search },
     { label: 'My Proposals', href: '/expert/proposals', icon: FileText },
-    { label: 'Service Generator', href: '/expert/service-generator', icon: Sparkles },
+    { label: 'My Services', href: '/expert/services', icon: ShoppingBag },
     { label: 'Messages', href: '/expert/messages', icon: MessageSquare },
     { label: 'Notifications', href: '/expert/notifications', icon: Bell },
     { label: 'Wallet', href: '/expert/wallet', icon: Wallet },
