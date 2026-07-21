@@ -763,10 +763,6 @@ export const PostJobPage = () => {
       return;
     }
 
-    if (!validateMilestoneBudgetBeforeAction()) {
-      return;
-    }
-
     try {
       await flushPendingSuggestionChanges();
     } catch {
@@ -867,27 +863,6 @@ export const PostJobPage = () => {
     return true;
   };
 
-  const validateMilestoneBudgetBeforeAction = () => {
-    if (!milestoneBudgetValidation?.isValid) {
-      toast.error(milestoneBudgetValidation?.blockingMessage ?? 'Please fix the milestone budget before continuing.');
-      return false;
-    }
-
-    if (suggestion && suggestion.suggestedMilestones.length > 0) {
-      const { milestoneTotal, budgetMin, budgetMax } = milestoneBudgetValidation;
-      if (budgetMin !== null && milestoneTotal < budgetMin) {
-        toast.error(`Total milestone amount (${milestoneTotal.toLocaleString()} Aivora Coin) is below the minimum budget (${budgetMin.toLocaleString()} Aivora Coin).`);
-        return false;
-      }
-      if (budgetMax !== null && milestoneTotal > budgetMax) {
-        toast.error(`Total milestone amount (${milestoneTotal.toLocaleString()} Aivora Coin) exceeds the maximum budget (${budgetMax.toLocaleString()} Aivora Coin).`);
-        return false;
-      }
-    }
-
-    return true;
-  };
-
   const isPublishing = acceptMutation.isPending || publishMutation.isPending || updateDraftJobMutation.isPending || patchMutation.isPending;
 
   const handlePublishClick = () => {
@@ -897,7 +872,6 @@ export const PostJobPage = () => {
     }
 
     if (!validateRequiredFields()) return;
-    if (!validateMilestoneBudgetBeforeAction()) return;
     setIsPublishModalOpen(true);
   };
 
@@ -916,10 +890,6 @@ export const PostJobPage = () => {
       await flushPendingSuggestionChanges();
     } catch {
       toast.error('Failed to save the latest changes');
-      return;
-    }
-
-    if (!validateMilestoneBudgetBeforeAction()) {
       return;
     }
 
