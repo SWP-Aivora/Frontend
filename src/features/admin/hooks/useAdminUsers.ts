@@ -18,7 +18,12 @@ export const useAdminUsers = (params?: Record<string, unknown>) => {
 export const useAdminUser = (id: string | undefined, enabled = true) => {
   return useQuery({
     queryKey: id ? adminUsersQueryKeys.detail(id) : [...adminUsersQueryKeys.all, 'detail', 'missing'],
-    queryFn: () => adminService.getUserById(id!),
+    queryFn: () => {
+      if (!id) {
+        return Promise.reject(new Error('Missing user ID'));
+      }
+      return adminService.getUserById(id);
+    },
     enabled: Boolean(id) && enabled,
     select: (response) => response.data,
     retry: false,
