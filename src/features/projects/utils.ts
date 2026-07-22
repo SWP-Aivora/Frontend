@@ -2,6 +2,9 @@ import { MilestoneStatus, ProjectStatus } from '@/shared/types/enums';
 
 export type ProjectDisputeSignal = boolean | null | undefined;
 
+export const DISPUTE_ACTIONS_UNAVAILABLE_MESSAGE = 'Actions are unavailable while there is an open dispute.';
+export const DISPUTE_ACTION_BLOCKED_TOAST = 'This action cannot be completed while there is an open dispute.';
+
 const normalizeStatus = (status: unknown): string => (
   String(status ?? '').toUpperCase().replace(/\s+|_/g, '')
 );
@@ -77,6 +80,37 @@ export const getMutationErrorMessage = (error: unknown, fallback: string): strin
     if (msg) return msg;
   }
   return error instanceof Error ? error.message : fallback;
+};
+
+const getErrorMessage = (error: unknown): string | null => {
+  if (typeof error !== 'object' || error === null) return null;
+  const err = error as { response?: { data?: unknown } };
+  const data = err.response?.data;
+  if (typeof data === 'string' && data.trim()) return data;
+  if (data && typeof data === 'object') {
+    const record = data as Record<string, unknown>;
+    return [record.message, record.detail, record.title, record.error]
+      .find((value): value is string => typeof value === 'string' && value.trim() !== '') ?? null;
+  }
+  return error instanceof Error ? error.message : null;
+};
+
+export const getDisputeGuardErrorMessage = (error: unknown): string | null => {
+  const message = getErrorMessage(error);
+  if (!message) return null;
+
+  const normalized = message.toLowerCase();
+  const isDisputeGuard =
+    normalized.includes('while there is an active dispute') &&
+    (
+      normalized.includes('cannot create a milestone') ||
+      normalized.includes('cannot submit a deliverable') ||
+      normalized.includes('cannot update a milestone') ||
+      normalized.includes('cannot add steps') ||
+      normalized.includes('cannot modify steps')
+    );
+
+  return isDisputeGuard ? DISPUTE_ACTION_BLOCKED_TOAST : null;
 };
 
 export const normalizeMilestoneStatus = (status: unknown): MilestoneStatus => {

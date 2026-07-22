@@ -3,6 +3,7 @@ import { API_ENDPOINTS } from '@/shared/constants';
 import type { 
   DashboardSummary, 
   AdminUserManagementData, 
+  AdminUserItem,
   AdminExpertReviewsData, 
   ExpertReviewItem,
   ExpertReviewDetail,
@@ -267,6 +268,40 @@ const normalizeAdminUserVerificationState = (
   if (verified === false) return 'Pending';
 
   return 'Pending';
+};
+
+const normalizeAdminUser = (user: AdminRecord): AdminUserItem => {
+  const lastLoginRaw = getValue(user, 'lastLoginAt', 'LastLoginAt');
+  const fullName = getStringValue(getValue(user, 'fullName', 'FullName'));
+  const role = normalizeAdminUserRole(getValue(user, 'role', 'Role'));
+
+  return {
+    id: getStringValue(getValue(user, 'id', 'Id')),
+    fullName,
+    email: getStringValue(getValue(user, 'email', 'Email')),
+    role,
+    status: normalizeAdminUserStatus(getValue(user, 'status', 'Status')),
+    verificationState: normalizeAdminUserVerificationState(user, role),
+    createdAt: getStringValue(getValue(user, 'CreatedAt', 'createdAt'), ''),
+    updatedAt: getNullableString(user, 'UpdatedAt', 'updatedAt'),
+    lastLoginAt: (() => {
+      const normalized = getNumericValue(lastLoginRaw) ?? (typeof lastLoginRaw === 'string' ? lastLoginRaw : undefined);
+      if (normalized === undefined) return null;
+      const date = new Date(normalized);
+      return Number.isNaN(date.getTime()) ? null : date.toISOString();
+    })(),
+    avatarUrl: getOptionalString(user, 'avatarUrl', 'AvatarUrl'),
+    initials: fullName
+      ? fullName.split(' ').map((namePart: string) => namePart[0]).join('').substring(0, 2).toUpperCase()
+      : 'U',
+    projectsCount: getNumberValue(user, 'projectsCount', 'ProjectsCount') ?? undefined,
+    proposalsCount: getNumberValue(user, 'proposalsCount', 'ProposalsCount') ?? undefined,
+    completionRate: getOptionalString(user, 'completionRate', 'CompletionRate'),
+    riskLevel: (() => {
+      const value = getOptionalString(user, 'riskLevel', 'RiskLevel');
+      return value === 'High' || value === 'Med' || value === 'Low' ? value : undefined;
+    })(),
+  };
 };
 
 /**
@@ -1007,32 +1042,7 @@ export const adminService = {
     const pageResult = getRecord(normalized.data);
     const items = normalizeList(pageResult);
     
-    // Map backend users to frontend AdminUserItem
-    const mappedUsers = items.map((user) => {
-      const lastLoginRaw = getValue(user, 'lastLoginAt', 'LastLoginAt');
-      const fullName = getStringValue(getValue(user, 'fullName', 'FullName'));
-      const role = normalizeAdminUserRole(getValue(user, 'role', 'Role'));
-      return {
-        id: getStringValue(getValue(user, 'id', 'Id')),
-        fullName,
-        email: getStringValue(getValue(user, 'email', 'Email')),
-        role,
-        status: normalizeAdminUserStatus(getValue(user, 'status', 'Status')),
-        verificationState: normalizeAdminUserVerificationState(user, role),
-        createdAt: getStringValue(getValue(user, 'CreatedAt', 'createdAt'), ''),
-        updatedAt: getNullableString(user, 'UpdatedAt', 'updatedAt'),
-        lastLoginAt: (() => {
-          const normalized = getNumericValue(lastLoginRaw) ?? (typeof lastLoginRaw === 'string' ? lastLoginRaw : undefined);
-          if (normalized === undefined) return null;
-          const date = new Date(normalized);
-          return Number.isNaN(date.getTime()) ? null : date.toISOString();
-        })(),
-        avatarUrl: getOptionalString(user, 'avatarUrl', 'AvatarUrl'),
-        initials: fullName
-          ? fullName.split(' ').map((namePart: string) => namePart[0]).join('').substring(0, 2).toUpperCase()
-          : 'U'
-      };
-    });
+    const mappedUsers = items.map(normalizeAdminUser);
 
     return {
       ...normalized,
@@ -1053,6 +1063,19 @@ export const adminService = {
         
         _isStub: false 
       }
+    };
+  },
+
+  getUserById: async (id: string): Promise<BaseResponse<AdminUserItem>> => {
+    const response = await apiClient.get<unknown>(API_ENDPOINTS.ADMIN.USER_DETAIL(id));
+    const normalized = normalizeBaseResponse<AdminRecord>(response, isMutableRecord);
+    const data = getRecord(normalized.data);
+    const nestedUser = getValue(data, 'user', 'User');
+    const user = isMutableRecord(nestedUser) ? nestedUser : data;
+
+    return {
+      ...normalized,
+      data: normalized.data ? normalizeAdminUser(user) : null,
     };
   },
 

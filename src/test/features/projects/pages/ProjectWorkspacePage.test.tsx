@@ -137,7 +137,10 @@ describe('ProjectWorkspacePage', () => {
     );
   };
 
-  const setupWorkspaceQueries = (projectOverrides: Record<string, unknown> = {}) => {
+  const setupWorkspaceQueries = (
+    projectOverrides: Record<string, unknown> = {},
+    activeDisputes: unknown[] = [],
+  ) => {
     const project = {
       id: 'project-101',
       title: 'Active Client Project',
@@ -163,7 +166,7 @@ describe('ProjectWorkspacePage', () => {
         return { data: { data: project.milestones }, isLoading: false } as unknown as reactQuery.UseQueryResult;
       }
       if (queryKey?.[0] === 'project' && queryKey?.[1] === 'project-101' && queryKey?.[2] === 'active-disputes') {
-        return { data: [], isSuccess: true, isLoading: false } as unknown as reactQuery.UseQueryResult;
+        return { data: activeDisputes, isSuccess: true, isLoading: false } as unknown as reactQuery.UseQueryResult;
       }
       if (queryKey?.[0] === 'wallet') {
         return { data: { data: { balance: 1000 } }, isLoading: false } as unknown as reactQuery.UseQueryResult;
@@ -358,6 +361,56 @@ describe('ProjectWorkspacePage', () => {
 
       expect(screen.queryByRole('dialog', { name: /add new milestone/i })).not.toBeInTheDocument();
     });
+
+    it('disables Add Milestone and explains unavailable actions while a dispute is open', () => {
+      setupWorkspaceQueries({}, [{
+        id: 'dispute-1',
+        projectId: 'project-101',
+        milestoneId: 'ms-1',
+        status: 'OPEN',
+      }]);
+
+      renderComponent();
+
+      expect(screen.getByText('Actions are unavailable while there is an open dispute.')).toBeInTheDocument();
+      const addMilestoneButton = screen.getByRole('button', { name: /add milestone/i });
+      expect(addMilestoneButton).toBeDisabled();
+      expect(addMilestoneButton).toHaveAttribute('title', 'Actions are unavailable while there is an open dispute.');
+
+      fireEvent.click(addMilestoneButton);
+      expect(screen.queryByRole('dialog', { name: /add new milestone/i })).not.toBeInTheDocument();
+    });
+  });
+
+  it('disables expert deliverable submission while a project dispute is open', () => {
+    authStoreMock.user = { id: 'expert-1', role: Role.EXPERT };
+    setupWorkspaceQueries({
+      milestones: [{
+        id: 'ms-funded',
+        projectId: 'project-101',
+        title: 'Funded milestone',
+        description: 'Ready for work',
+        amount: 500,
+        currency: 'AICOIN',
+        status: MilestoneStatus.FUNDED,
+        dueDate: null,
+        orderIndex: 0,
+        createdAt: '2026-07-14T10:00:00Z',
+        updatedAt: '2026-07-14T10:00:00Z',
+      }],
+    }, [{
+      id: 'dispute-1',
+      projectId: 'project-101',
+      milestoneId: 'ms-funded',
+      status: 'OPEN',
+    }]);
+
+    renderComponent();
+    fireEvent.click(screen.getByRole('button', { name: 'Funded milestone' }));
+
+    const submitButton = screen.getByRole('button', { name: /submit deliverables/i });
+    expect(submitButton).toBeDisabled();
+    expect(submitButton).toHaveAttribute('title', 'Actions are unavailable while there is an open dispute.');
   });
 
   it('configures focus and reconnect refetch without polling for project and active-disputes queries', () => {

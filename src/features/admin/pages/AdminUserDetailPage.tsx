@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { useState } from 'react';
-import { useAdminUsers } from '../hooks/useAdminUsers';
+import { adminUsersQueryKeys, useAdminUser } from '../hooks/useAdminUsers';
 import { useAdminExpertReviews, useExpertReviewDetail, useProcessExpertReview } from '../hooks/useAdminExpertReviews';
 import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
 import { ConfirmActionDialog } from '@/shared/components/ui/ConfirmActionDialog';
@@ -22,23 +22,32 @@ import {
 import { adminService } from '../services';
 import type { ExpertReviewItem } from '../types';
 
+const isValidUserId = (value: string | undefined): value is string =>
+  Boolean(value && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value));
+
+const isNotFoundError = (error: unknown) => (
+  typeof error === 'object'
+    && error !== null
+    && 'response' in error
+    && typeof (error as { response?: { status?: unknown } }).response?.status === 'number'
+    && (error as { response: { status: number } }).response.status === 404
+);
+
 export const AdminUserDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showApproveModal, setShowApproveModal] = useState(false);
   const queryClient = useQueryClient();
+  const hasValidUserId = isValidUserId(id);
 
-  // Fetch all users to find the specific one
-  const { data: userDataResponse, isLoading: isLoadingUser, isError: isUserError, error: userError } = useAdminUsers();
+  const { data: user, isLoading: isLoadingUser, isError: isUserError, error: userError } = useAdminUser(id, hasValidUserId);
   
   // Fetch reviews to find if this expert has a pending one
-  const { data: reviewsDataResponse } = useAdminExpertReviews();
+  const { data: reviewsDataResponse } = useAdminExpertReviews(undefined, hasValidUserId);
 
-  const userData = userDataResponse;
   const reviewsData = reviewsDataResponse;
 
-  const user = userData?.users?.find(u => u.id === id);
   const pendingReview = reviewsData?.reviews.find((rev: ExpertReviewItem) => rev.expertId === id && rev.status === 'Pending');
 
   const { data: detailData, isLoading: isLoadingDetail } = useExpertReviewDetail(pendingReview?.id || null);
@@ -57,6 +66,7 @@ export const AdminUserDetailPage = () => {
         toast.success('User suspended successfully');
       }
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      queryClient.invalidateQueries({ queryKey: adminUsersQueryKeys.detail(user.id) });
     } catch (err) {
       console.error('Failed to update user status', err);
       toast.error('Failed to update user status');
@@ -70,14 +80,20 @@ export const AdminUserDetailPage = () => {
 
   const handleReject = () => {
     if (!pendingReview || !rejectionReason) return;
-    processReview({ id: pendingReview.id, status: 'Rejected', note: rejectionReason });
+    processReview(
+      { id: pendingReview.id, status: 'Rejected', note: rejectionReason },
+      { onSuccess: () => queryClient.invalidateQueries({ queryKey: adminUsersQueryKeys.detail(id!) }) }
+    );
     setShowRejectModal(false);
     setRejectionReason('');
   };
 
   const confirmApprove = () => {
     if (!pendingReview) return;
-    processReview({ id: pendingReview.id, status: 'Approved' });
+    processReview(
+      { id: pendingReview.id, status: 'Approved' },
+      { onSuccess: () => queryClient.invalidateQueries({ queryKey: adminUsersQueryKeys.detail(id!) }) }
+    );
     setShowApproveModal(false);
   };
 
@@ -85,6 +101,28 @@ export const AdminUserDetailPage = () => {
     return (
       <div className="h-[50vh] flex items-center justify-center">
         <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (!hasValidUserId) {
+    return (
+      <div className="bg-amber-50 border border-amber-100 rounded-lg p-10 text-center max-w-2xl mx-auto my-10">
+        <AlertCircle className="size-12 text-amber-500 mx-auto mb-4" />
+        <h2 className="text-lg font-black text-amber-900 mb-2">Invalid user ID</h2>
+        <p className="text-amber-700 font-medium">The selected user route is invalid.</p>
+        <Link to="/admin/users" className="mt-6 inline-block text-primary font-semibold hover:underline">Return to User Management</Link>
+      </div>
+    );
+  }
+
+  if (isUserError && isNotFoundError(userError)) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <User className="size-16 text-slate-300 mb-4" />
+        <h2 className="text-xl font-bold text-slate-900">User not found</h2>
+        <p className="text-sm text-slate-500 mt-2">The user you are looking for does not exist or has been removed.</p>
+        <Link to="/admin/users" className="mt-6 text-primary font-semibold hover:underline">Return to User Management</Link>
       </div>
     );
   }

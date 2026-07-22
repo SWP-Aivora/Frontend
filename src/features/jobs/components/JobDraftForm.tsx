@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
-import { useForm, useFieldArray, useWatch, type SubmitHandler } from 'react-hook-form';
+import { useForm, useFieldArray, useWatch, type FieldErrors, type SubmitErrorHandler, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { toast } from 'sonner';
 import { 
   FileText, DollarSign, Clock, ListChecks, 
   Sparkles, CheckCircle2, Trash2, Plus
@@ -98,6 +99,33 @@ const getFormValuesFromSuggestion = (suggestion: AiJobSuggestion): JobDraftFormV
   milestones: suggestion.suggestedMilestones,
 });
 
+const getFirstValidationMessage = (errors: FieldErrors<JobDraftFormValues>): string | null => {
+  const milestoneRootMessage = !Array.isArray(errors.milestones) ? errors.milestones?.message : undefined;
+  if (typeof milestoneRootMessage === 'string' && milestoneRootMessage.trim()) {
+    return milestoneRootMessage;
+  }
+
+  const queue: unknown[] = Object.values(errors);
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current || typeof current !== 'object') continue;
+
+    const message = (current as { message?: unknown }).message;
+    if (typeof message === 'string' && message.trim()) {
+      return message;
+    }
+
+    if (Array.isArray(current)) {
+      queue.push(...current);
+      continue;
+    }
+
+    queue.push(...Object.values(current));
+  }
+
+  return null;
+};
+
 interface JobDraftFormProps {
   suggestion: AiJobSuggestion;
   categories: Category[];
@@ -192,6 +220,10 @@ export const JobDraftForm = ({
     onAccept(data);
   };
 
+  const onInvalid: SubmitErrorHandler<JobDraftFormValues> = (validationErrors) => {
+    toast.error(getFirstValidationMessage(validationErrors) ?? 'Please fix the highlighted draft fields before continuing.');
+  };
+
   const handleRemoveMilestone = (index: number) => {
     remove(index);
   };
@@ -256,7 +288,7 @@ export const JobDraftForm = ({
       {/* Form Area */}
       {/* Keep internal scrolling only on large screens where the panel shares height with the chat column. */}
       <div className="flex-1 min-h-0 overflow-visible lg:overflow-y-auto p-6 sm:p-8 space-y-10 custom-scrollbar">
-        <form id="job-draft-form" onSubmit={handleSubmit(onSubmit)} className="space-y-8" aria-labelledby="job-draft-heading">
+        <form id="job-draft-form" onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-8" aria-labelledby="job-draft-heading">
           
           {/* Section: Basic Info */}
           <section className="space-y-6 text-left" aria-labelledby="job-draft-info-heading">
@@ -612,7 +644,7 @@ export const JobDraftForm = ({
             {canContinueToReview && (
               <Button 
                 type="button"
-                onClick={handleSubmit(onSubmit)}
+                onClick={handleSubmit(onSubmit, onInvalid)}
                 disabled={isAccepting}
                 className="flex-[2] sm:flex-none rounded-full px-10 font-black shadow-xl shadow-primary/20 bg-primary hover:scale-[1.02] active:scale-95 transition-all"
               >

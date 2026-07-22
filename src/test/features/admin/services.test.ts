@@ -361,6 +361,44 @@ describe('adminService.getUsers', () => {
   });
 });
 
+describe('adminService.getUserById', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('calls the admin user detail endpoint and maps the backend user', async () => {
+    (vi.mocked(apiClient.get)).mockResolvedValue({
+      data: {
+        success: true,
+        data: {
+          Id: '55555555-5555-4555-8555-555555555555',
+          FullName: 'Expert One',
+          Email: 'expert.one@example.com',
+          Role: 'EXPERT',
+          Status: 'ACTIVE',
+          VerificationState: 'REVIEW',
+          CreatedAt: '2025-01-01T00:00:00Z',
+          LastLoginAt: '2026-07-21T00:00:00Z',
+          ProposalsCount: 12,
+        },
+      },
+    });
+
+    const result = await adminService.getUserById('55555555-5555-4555-8555-555555555555');
+
+    expect(apiClient.get).toHaveBeenCalledWith('admin/users/55555555-5555-4555-8555-555555555555');
+    expect(result.data).toMatchObject({
+      id: '55555555-5555-4555-8555-555555555555',
+      fullName: 'Expert One',
+      email: 'expert.one@example.com',
+      role: 'Expert',
+      status: 'Active',
+      verificationState: 'Review',
+      proposalsCount: 12,
+    });
+  });
+});
+
 describe('adminService.getExpertReviews', () => {
   beforeEach(() => {
     vi.clearAllMocks();

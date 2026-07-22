@@ -14,7 +14,7 @@ import {
   Trash2,
   WalletCards,
 } from 'lucide-react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createProposalSchema, type CreateProposalFormValues } from '../../proposals/schema';
 import { Input } from '@/shared/components/ui/Input';
@@ -126,7 +126,7 @@ export const JobDetailsPage = () => {
   })();
   const isProposalResubmission = Boolean(isEditMode && proposal && isProposalStatusResubmittable(proposal.status));
 
-  const { register, control, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<CreateProposalFormValues>({
+  const { register, control, handleSubmit, reset, setValue, formState: { errors } } = useForm<CreateProposalFormValues>({
     resolver: zodResolver(createProposalSchema),
     defaultValues: {
       coverLetter: '',
@@ -165,7 +165,7 @@ export const JobDetailsPage = () => {
     control,
     name: "milestones"
   });
-  const watchedMilestones = watch('milestones');
+  const watchedMilestones = useWatch({ control, name: 'milestones' });
   const computedProposalTotals = useMemo(
     () => getProposalMilestoneTotals(watchedMilestones),
     [watchedMilestones]

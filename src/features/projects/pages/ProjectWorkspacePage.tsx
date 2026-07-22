@@ -32,7 +32,14 @@ import { Role, ProjectStatus, MilestoneStatus, MilestoneStepStatus } from '@/sha
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/shared/utils/date';
 import { ProjectDisputeStatusBadge } from '../components/ProjectDisputeStatusBadge';
-import { getDefaultNonDisputeProjectStatus, getMilestoneStatusText, isProjectDisputed } from '../utils';
+import {
+  DISPUTE_ACTION_BLOCKED_TOAST,
+  DISPUTE_ACTIONS_UNAVAILABLE_MESSAGE,
+  getDefaultNonDisputeProjectStatus,
+  getDisputeGuardErrorMessage,
+  getMilestoneStatusText,
+  isProjectDisputed,
+} from '../utils';
 import { useProjectMilestones } from '../hooks/useProjectMilestones';
 import { useMilestoneSteps } from '../hooks/useMilestoneSteps';
 import { useProjectTimeline } from '../hooks/useProjectTimeline';
@@ -77,6 +84,9 @@ const getWalletBalance = (wallet: unknown): number => {
 };
 
 const getApiErrorMessage = (error: unknown, fallback: string): string => {
+  const disputeGuardMessage = getDisputeGuardErrorMessage(error);
+  if (disputeGuardMessage) return disputeGuardMessage;
+
   if (typeof error === 'object' && error !== null && 'response' in error) {
     const response = (error as { response?: { data?: unknown; status?: number } }).response;
     const data = response?.data;
@@ -377,7 +387,10 @@ export const ProjectWorkspacePage = () => {
       queryClient.invalidateQueries({ queryKey: ['milestone', selectedMilestone?.id, 'timeline-deliverables'] });
       setIsSubmitModalOpen(false);
       setSelectedMilestone(null);
-    }
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Failed to submit deliverable.'));
+    },
   });
 
   const approveMutation = useMutation({
@@ -606,8 +619,12 @@ export const ProjectWorkspacePage = () => {
   const canRequestFinishProject = !!id && project && project.status !== ProjectStatus.CANCELLED && !hasProjectDispute;
   const canReviewCompletedProject = project?.status === ProjectStatus.COMPLETED;
   const canEditMilestoneGeneralInfo = user?.role === Role.CLIENT && user.id === project?.clientId;
-  const canCreateMilestone = user?.role === Role.CLIENT && user.id === project?.clientId && project?.status === ProjectStatus.ACTIVE;
+  const canAccessCreateMilestone = user?.role === Role.CLIENT && user.id === project?.clientId && project?.status === ProjectStatus.ACTIVE;
+  const canCreateMilestone = canAccessCreateMilestone && !hasProjectDispute;
   const canEditTimelineSteps = user?.role === Role.EXPERT && user.id === project?.expertId;
+  const isMilestoneBlockedByDispute = (milestone?: Milestone | null) => (
+    hasProjectDispute || milestone?.status === MilestoneStatus.DISPUTED
+  );
   const hasClientReviewedProject = Boolean(
     isProjectReviewsLoaded &&
     projectReviewsResponse?.data?.some(review => review.reviewerId === user?.id)
@@ -658,6 +675,12 @@ export const ProjectWorkspacePage = () => {
       return;
     }
 
+    if (isMilestoneBlockedByDispute(selectedMilestone)) {
+      toast.error(DISPUTE_ACTION_BLOCKED_TOAST);
+      setIsSubmitModalOpen(false);
+      return;
+    }
+
     if (!submitData.description.trim()) {
       toast.error('Description is required.');
       return;
@@ -674,6 +697,11 @@ export const ProjectWorkspacePage = () => {
   const openDeliverableModal = (milestone = selectedMilestone, milestoneDeliverables = deliverables) => {
     if (!milestone) {
       toast.error('Cannot open deliverable modal: No milestone selected.');
+      return;
+    }
+
+    if (isMilestoneBlockedByDispute(milestone)) {
+      toast.error(DISPUTE_ACTION_BLOCKED_TOAST);
       return;
     }
 
@@ -822,6 +850,13 @@ export const ProjectWorkspacePage = () => {
         </div>
       </div>
 
+      {hasProjectDispute && (
+        <div className="mb-6 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-800">
+          <ShieldAlert className="mt-0.5 size-5 shrink-0" />
+          <p className="text-sm font-bold">{DISPUTE_ACTIONS_UNAVAILABLE_MESSAGE}</p>
+        </div>
+      )}
+
       <div className="rounded-lg border border-slate-100 bg-white p-2 shadow-sm">
         <div className="flex items-center gap-2">
           <button
@@ -880,10 +915,12 @@ export const ProjectWorkspacePage = () => {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              {canCreateMilestone && (
+              {canAccessCreateMilestone && (
                 <Button
                   type="button"
                   onClick={() => setIsAddMilestoneOpen(true)}
+                  disabled={!canCreateMilestone}
+                  title={!canCreateMilestone ? DISPUTE_ACTIONS_UNAVAILABLE_MESSAGE : undefined}
                   className="rounded-full px-5 font-black shadow-lg shadow-primary/20 flex items-center gap-2"
                 >
                   <PlusCircle className="size-4" />
@@ -1122,7 +1159,8 @@ export const ProjectWorkspacePage = () => {
                   {([MilestoneStatus.FUNDED, MilestoneStatus.IN_PROGRESS, MilestoneStatus.REVISION_REQUESTED] as MilestoneStatus[]).includes(viewedTimelineMilestone.status) && user?.role === Role.EXPERT && (
                     <Button
                       onClick={() => openDeliverableModal(viewedTimelineMilestone, timelineDeliverables)}
-                      disabled={isLoadingTimelineDeliverables}
+                      disabled={isLoadingTimelineDeliverables || isMilestoneBlockedByDispute(viewedTimelineMilestone)}
+                      title={isMilestoneBlockedByDispute(viewedTimelineMilestone) ? DISPUTE_ACTIONS_UNAVAILABLE_MESSAGE : undefined}
                       className="rounded-full bg-brand-accent px-5 font-black shadow-lg shadow-brand-accent/20 hover:bg-brand-accent/90"
                     >
                       <Upload className="mr-1.5 size-4" />
@@ -1413,11 +1451,13 @@ export const ProjectWorkspacePage = () => {
                      </Button>
                    </div>
                  )}
-                 {([MilestoneStatus.FUNDED, MilestoneStatus.IN_PROGRESS, MilestoneStatus.REVISION_REQUESTED] as MilestoneStatus[]).includes(selectedMilestone.status) && user?.role === Role.EXPERT && (
-                    <Button 
-                      onClick={() => openDeliverableModal()}
-                      className="w-full h-14 rounded-full font-black text-base bg-brand-accent hover:bg-brand-accent/90 shadow-xl shadow-brand-accent/20 flex items-center justify-center gap-2"
-                    >
+                  {([MilestoneStatus.FUNDED, MilestoneStatus.IN_PROGRESS, MilestoneStatus.REVISION_REQUESTED] as MilestoneStatus[]).includes(selectedMilestone.status) && user?.role === Role.EXPERT && (
+                     <Button
+                       onClick={() => openDeliverableModal()}
+                       disabled={isMilestoneBlockedByDispute(selectedMilestone)}
+                       title={isMilestoneBlockedByDispute(selectedMilestone) ? DISPUTE_ACTIONS_UNAVAILABLE_MESSAGE : undefined}
+                       className="w-full h-14 rounded-full font-black text-base bg-brand-accent hover:bg-brand-accent/90 shadow-xl shadow-brand-accent/20 flex items-center justify-center gap-2"
+                     >
                        <Upload className="size-5" />
                        {selectedMilestone.status === MilestoneStatus.REVISION_REQUESTED ? 'Edit Deliverables' : 'Submit Deliverables'}
                     </Button>
@@ -1535,7 +1575,8 @@ export const ProjectWorkspacePage = () => {
               <Button variant="outline" onClick={() => setIsSubmitModalOpen(false)} className="rounded-full font-bold">Cancel</Button>
               <Button
                 onClick={handleSubmitDeliverable}
-                disabled={submitMutation.isPending}
+                disabled={submitMutation.isPending || isMilestoneBlockedByDispute(selectedMilestone)}
+                title={isMilestoneBlockedByDispute(selectedMilestone) ? DISPUTE_ACTIONS_UNAVAILABLE_MESSAGE : undefined}
                 className="rounded-full shadow-lg shadow-primary/20 font-black"
               >
                 {submitMutation.isPending

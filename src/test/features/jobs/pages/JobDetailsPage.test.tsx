@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { JobDetailsPage } from '../../../../features/jobs/pages/JobDetailsPage';
 import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
@@ -306,6 +307,52 @@ describe('JobDetailsPage', () => {
       expect(amountInputs).toHaveLength(2);
       amountInputs.forEach((input) => {
         expect(input).toHaveAttribute('step', '1');
+      });
+    });
+
+    it('updates read-only proposal summaries when milestones are edited, added, and removed', async () => {
+      const user = userEvent.setup();
+      mockOpenJob();
+
+      renderComponent();
+
+      const budgetInput = screen.getByTestId('proposal-budget-input');
+      const timelineInput = screen.getByTestId('proposal-timeline-input');
+      expect(budgetInput).toHaveAttribute('readonly');
+      expect(timelineInput).toHaveAttribute('readonly');
+      expect(budgetInput).toHaveValue(1);
+      expect(timelineInput).toHaveValue(1);
+
+      const amountInputs = screen.getAllByTestId('proposal-milestone-amount');
+      const dayInputs = screen.getAllByTestId('proposal-milestone-days');
+      await user.clear(amountInputs[0]);
+      await user.type(amountInputs[0], '100');
+      await user.clear(dayInputs[0]);
+      await user.type(dayInputs[0], '5');
+
+      await waitFor(() => {
+        expect(budgetInput).toHaveValue(100);
+        expect(timelineInput).toHaveValue(5);
+      });
+
+      await user.click(screen.getByRole('button', { name: /add milestone/i }));
+      const nextAmountInput = screen.getAllByTestId('proposal-milestone-amount')[1];
+      const nextDayInput = screen.getAllByTestId('proposal-milestone-days')[1];
+      await user.clear(nextAmountInput);
+      await user.type(nextAmountInput, '25');
+      await user.clear(nextDayInput);
+      await user.type(nextDayInput, '2');
+
+      await waitFor(() => {
+        expect(budgetInput).toHaveValue(125);
+        expect(timelineInput).toHaveValue(7);
+      });
+
+      await user.click(screen.getAllByRole('button', { name: /remove milestone/i })[1]);
+
+      await waitFor(() => {
+        expect(budgetInput).toHaveValue(100);
+        expect(timelineInput).toHaveValue(5);
       });
     });
 
