@@ -1,25 +1,38 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, CheckCircle2, Clock, ExternalLink, FileText, Send } from 'lucide-react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/shared/components/ui/Button';
 import { QUERY_KEYS } from '@/shared/constants';
 import { servicesFeatureApi } from '../services';
-import { ServiceOfferStatus, type ServiceOfferMilestone, type ServiceRequest } from '../types';
+import { ServiceOfferStatus, type ServiceOfferMilestone } from '../types';
 import { ServiceRequestStatusBadge } from '../components/ServiceStatusBadge';
-
-type RequestDetailLocationState = {
-  request?: ServiceRequest;
-};
 
 export const ClientServiceRequestDetailPage = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { requestId = '' } = useParams();
   const queryClient = useQueryClient();
-  const stateRequest = (location.state as RequestDetailLocationState | null)?.request ?? null;
-  const request = stateRequest?.id === requestId ? stateRequest : null;
-  const offer = request?.offer ?? null;
+  const requestQueryParams = useMemo(() => ({
+    PageIndex: 1,
+    PageSize: 20,
+    SearchTerm: requestId,
+  }), [requestId]);
+  const { data, isLoading, isError } = useQuery({
+    queryKey: QUERY_KEYS.SERVICES.CLIENT_REQUESTS(requestQueryParams),
+    queryFn: () => servicesFeatureApi.getClientServiceRequests(requestQueryParams),
+    enabled: Boolean(requestId),
+  });
+  const { data: offerData, isLoading: isOfferLoading, isError: isOfferError } = useQuery({
+    queryKey: ['service-request-offer', requestId],
+    queryFn: () => servicesFeatureApi.getServiceOfferForRequest(requestId),
+    enabled: Boolean(requestId),
+    retry: false,
+  });
+  const request = useMemo(() => (
+    (data?.data ?? []).find(item => item.id === requestId) ?? null
+  ), [data?.data, requestId]);
+  const offer = offerData?.data ?? null;
   const isPendingOffer = String(offer?.status ?? '').toUpperCase() === ServiceOfferStatus.PENDING;
 
   const acceptOfferMutation = useMutation({
@@ -29,7 +42,8 @@ export const ClientServiceRequestDetailPage = () => {
     },
     onSuccess: (response) => {
       toast.success('Final offer accepted.');
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SERVICES.CLIENT_REQUESTS() });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SERVICES.CLIENT_REQUESTS(requestQueryParams) });
+      queryClient.invalidateQueries({ queryKey: ['service-request-offer', requestId] });
       if (response.data?.projectId) {
         navigate(`/client/projects/${response.data.projectId}/workspace`);
       }
@@ -44,11 +58,23 @@ export const ClientServiceRequestDetailPage = () => {
         Back to requests
       </button>
 
-      {!request && (
+      {isLoading && (
+        <div className="flex justify-center py-20">
+          <div className="size-12 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+        </div>
+      )}
+
+      {isError && (
+        <div className="rounded-lg border border-rose-100 bg-rose-50 p-4 text-sm font-bold text-rose-700">
+          Failed to load this service request. Please try again.
+        </div>
+      )}
+
+      {!isLoading && !isError && !request && (
         <section className="rounded-lg border border-slate-100 bg-white p-8 text-center shadow-sm">
-          <h1 className="text-2xl font-black text-slate-900">Request detail unavailable</h1>
+          <h1 className="text-2xl font-black text-slate-900">Service request not found</h1>
           <p className="mx-auto mt-2 max-w-xl text-sm font-medium leading-6 text-slate-500">
-            Request {requestId || 'detail'} is still represented in the URL, but a direct request-detail API is required to load this page from a copied URL or browser refresh.
+            This request was not found from your submitted service requests.
           </p>
         </section>
       )}
@@ -104,7 +130,13 @@ export const ClientServiceRequestDetailPage = () => {
               )}
             </div>
 
-            {!offer && (
+            {isOfferLoading && (
+              <div className="mt-5 flex justify-center rounded-lg border border-slate-100 bg-slate-50 p-8">
+                <div className="size-8 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+              </div>
+            )}
+
+            {isOfferError && (
               <div className="mt-5 rounded-lg border border-amber-100 bg-amber-50 p-4">
                 <h3 className="flex items-center gap-2 text-base font-black text-amber-950">
                   <Clock className="size-5 text-amber-600" />
@@ -116,7 +148,19 @@ export const ClientServiceRequestDetailPage = () => {
               </div>
             )}
 
-            {offer && (
+            {!isOfferLoading && !isOfferError && !offer && (
+              <div className="mt-5 rounded-lg border border-amber-100 bg-amber-50 p-4">
+                <h3 className="flex items-center gap-2 text-base font-black text-amber-950">
+                  <Clock className="size-5 text-amber-600" />
+                  No final offer yet
+                </h3>
+                <p className="mt-2 text-sm font-medium leading-6 text-amber-800">
+                  The expert has not sent a final offer for this request yet.
+                </p>
+              </div>
+            )}
+
+            {!isOfferLoading && offer && (
               <>
                 <div className="mt-5 grid grid-cols-1 gap-4">
                   {offer.milestones

@@ -26,6 +26,7 @@ export const API_ENDPOINTS = {
     ACCEPT_REQUEST: (id: string) => `service-requests/${id}/accept`,
     DECLINE_REQUEST: (id: string) => `service-requests/${id}/decline`,
     OFFERS: (requestId: string) => `service-requests/${requestId}/offers`,
+    OFFER: (requestId: string) => `service-requests/${requestId}/offer`,
     ACCEPT_OFFER: (offerId: string) => `service-offers/${offerId}/accept`,
   },
   AI: {

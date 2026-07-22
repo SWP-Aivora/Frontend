@@ -361,6 +361,15 @@ export const servicesFeatureApi = {
     };
   },
 
+  getServiceOfferForRequest: async (requestId: string): Promise<BaseResponse<ServiceOffer>> => {
+    const response = await apiClient.get(API_ENDPOINTS.SERVICES.OFFER(requestId));
+    const normalized = normalizeBaseResponse<unknown>(response);
+    return {
+      ...normalized,
+      data: normalized.data ? normalizeOffer(normalized.data) : null,
+    };
+  },
+
   acceptServiceOffer: async (offerId: string): Promise<BaseResponse<AcceptServiceOfferResult>> => {
     const response = await apiClient.post(API_ENDPOINTS.SERVICES.ACCEPT_OFFER(offerId));
     const normalized = normalizeBaseResponse<unknown>(response);
