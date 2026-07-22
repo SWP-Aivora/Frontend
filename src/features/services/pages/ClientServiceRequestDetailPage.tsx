@@ -1,29 +1,22 @@
-import { useMemo } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, CheckCircle2, Clock, ExternalLink, FileText, Send } from 'lucide-react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/shared/components/ui/Button';
 import { QUERY_KEYS } from '@/shared/constants';
 import { servicesFeatureApi } from '../services';
-import { ServiceOfferStatus, type ServiceOfferMilestone } from '../types';
+import { ServiceOfferStatus, type ServiceOfferMilestone, type ServiceRequest } from '../types';
 import { ServiceRequestStatusBadge } from '../components/ServiceStatusBadge';
 
-const requestDetailParams = { PageIndex: 1, PageSize: 100 };
+type RequestDetailLocationState = {
+  request?: ServiceRequest;
+};
 
 export const ClientServiceRequestDetailPage = () => {
   const navigate = useNavigate();
-  const { requestId = '' } = useParams();
+  const location = useLocation();
   const queryClient = useQueryClient();
-
-  const { data, isLoading, isError } = useQuery({
-    queryKey: QUERY_KEYS.SERVICES.CLIENT_REQUESTS(requestDetailParams),
-    queryFn: () => servicesFeatureApi.getClientServiceRequests(requestDetailParams),
-  });
-
-  const request = useMemo(() => (
-    (data?.data ?? []).find(item => item.id === requestId) ?? null
-  ), [data?.data, requestId]);
+  const request = (location.state as RequestDetailLocationState | null)?.request ?? null;
   const offer = request?.offer ?? null;
   const isPendingOffer = String(offer?.status ?? '').toUpperCase() === ServiceOfferStatus.PENDING;
 
@@ -34,21 +27,13 @@ export const ClientServiceRequestDetailPage = () => {
     },
     onSuccess: (response) => {
       toast.success('Final offer accepted.');
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SERVICES.CLIENT_REQUESTS(requestDetailParams) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SERVICES.CLIENT_REQUESTS() });
       if (response.data?.projectId) {
         navigate(`/client/projects/${response.data.projectId}/workspace`);
       }
     },
     onError: () => toast.error('Failed to accept final offer.'),
   });
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center py-20">
-        <div className="size-12 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -57,16 +42,12 @@ export const ClientServiceRequestDetailPage = () => {
         Back to requests
       </button>
 
-      {isError && (
-        <div className="rounded-lg border border-rose-100 bg-rose-50 p-4 text-sm font-bold text-rose-700">
-          Failed to load this service request. Please try again.
-        </div>
-      )}
-
-      {!isError && !request && (
+      {!request && (
         <section className="rounded-lg border border-slate-100 bg-white p-8 text-center shadow-sm">
-          <h1 className="text-2xl font-black text-slate-900">Service request not found</h1>
-          <p className="mt-2 text-sm font-medium text-slate-500">This request was not found in your submitted service requests.</p>
+          <h1 className="text-2xl font-black text-slate-900">Request detail unavailable</h1>
+          <p className="mx-auto mt-2 max-w-xl text-sm font-medium leading-6 text-slate-500">
+            Open this page from your request list. A direct request-detail API is required to load this page from a copied URL or browser refresh.
+          </p>
         </section>
       )}
 

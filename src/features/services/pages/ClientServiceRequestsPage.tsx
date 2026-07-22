@@ -58,7 +58,7 @@ export const ClientServiceRequestsPage = ({ showHeader = true }: ClientServiceRe
                 {request.note && <p className="mt-2 line-clamp-2 text-sm font-medium leading-6 text-slate-500">{request.note}</p>}
               </div>
               <Button asChild className="rounded-full">
-                <Link to={`/client/services/requests/${request.id}`}>
+                <Link to={`/client/services/requests/${request.id}`} state={{ request }}>
                   View Details
                   <ChevronRight className="ml-2 size-4" />
                 </Link>

@@ -220,7 +220,14 @@ export const ServiceForm = ({ initialService, isSaving, isPublishing, isGenerati
     setAiMessages(current => [...current, userMessage]);
     setAiInput('');
 
-    const generated = await onGenerate(result.data);
+    let generated: GeneratedServiceDescription | null;
+    try {
+      generated = await onGenerate(result.data);
+    } catch {
+      toast.error('Failed to generate service description.');
+      return;
+    }
+
     if (!generated) return;
 
     applyGeneratedService(generated);
