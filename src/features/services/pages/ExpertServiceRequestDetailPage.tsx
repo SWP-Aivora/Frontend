@@ -7,8 +7,6 @@ import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
 import { Textarea } from '@/shared/components/ui/Textarea';
 import { QUERY_KEYS } from '@/shared/constants';
-import { chatService } from '@/features/chat/services';
-import { useAuthStore } from '@/features/auth/store';
 import { servicesFeatureApi } from '../services';
 import { ServiceRequestStatus, type ServiceOfferMilestone } from '../types';
 import { ServiceRequestStatusBadge } from '../components/ServiceStatusBadge';
@@ -23,7 +21,6 @@ export const ExpertServiceRequestDetailPage = () => {
   const { serviceId = '', requestId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const user = useAuthStore(state => state.user);
   const [milestones, setMilestones] = useState<ServiceOfferMilestone[]>(createDefaultMilestones);
 
   useEffect(() => {
@@ -73,26 +70,10 @@ export const ExpertServiceRequestDetailPage = () => {
     onError: () => toast.error('Failed to decline service request.'),
   });
 
-  const findConversationForRequest = async () => {
-    if (!request?.clientId) return null;
-
-    const conversations = await chatService.getAll({ PageIndex: 1, PageSize: 100 }, user?.id);
-    return (conversations.data ?? []).find(conversation => (
-      conversation.recipient.id === request.clientId
-      && conversation.type === 'SUPPORT'
-      && !conversation.projectId
-      && !conversation.serviceRequestId
-    )) ?? null;
-  };
-
   const openChatMutation = useMutation({
     mutationFn: async () => {
       if (!requestId) throw new Error('Service request is missing.');
-
-      const existingConversation = await findConversationForRequest();
-      if (existingConversation) return existingConversation.id;
-
-      throw new Error('General Inquiry chat with this client does not exist yet.');
+      throw new Error('A direct conversation lookup API is required to open the existing General Inquiry chat from this page.');
     },
     onSuccess: (conversationId) => {
       toast.success('Chat opened.');

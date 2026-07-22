@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, CheckCircle2, Clock, ExternalLink, FileText, Send } from 'lucide-react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/shared/components/ui/Button';
 import { QUERY_KEYS } from '@/shared/constants';
@@ -15,8 +15,10 @@ type RequestDetailLocationState = {
 export const ClientServiceRequestDetailPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { requestId = '' } = useParams();
   const queryClient = useQueryClient();
-  const request = (location.state as RequestDetailLocationState | null)?.request ?? null;
+  const stateRequest = (location.state as RequestDetailLocationState | null)?.request ?? null;
+  const request = stateRequest?.id === requestId ? stateRequest : null;
   const offer = request?.offer ?? null;
   const isPendingOffer = String(offer?.status ?? '').toUpperCase() === ServiceOfferStatus.PENDING;
 
@@ -46,7 +48,7 @@ export const ClientServiceRequestDetailPage = () => {
         <section className="rounded-lg border border-slate-100 bg-white p-8 text-center shadow-sm">
           <h1 className="text-2xl font-black text-slate-900">Request detail unavailable</h1>
           <p className="mx-auto mt-2 max-w-xl text-sm font-medium leading-6 text-slate-500">
-            Open this page from your request list. A direct request-detail API is required to load this page from a copied URL or browser refresh.
+            Request {requestId || 'detail'} is still represented in the URL, but a direct request-detail API is required to load this page from a copied URL or browser refresh.
           </p>
         </section>
       )}
