@@ -232,7 +232,7 @@ export const servicesFeatureApi = {
     const normalized = normalizePaginatedResponse<unknown>(response);
     return {
       ...normalized,
-      data: normalized.data.map(normalizeService),
+      data: (normalized.data ?? []).map(normalizeService),
     };
   },
 
@@ -321,7 +321,7 @@ export const servicesFeatureApi = {
     const normalized = normalizePaginatedResponse<unknown>(response);
     return {
       ...normalized,
-      data: normalized.data.map(normalizeRequest),
+      data: (normalized.data ?? []).map(normalizeRequest),
     };
   },
 

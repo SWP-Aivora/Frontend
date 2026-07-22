@@ -22,7 +22,7 @@ export const ClientServiceRequestDetailPage = () => {
   });
 
   const request = useMemo(() => (
-    data?.data.find(item => item.id === requestId) ?? null
+    (data?.data ?? []).find(item => item.id === requestId) ?? null
   ), [data?.data, requestId]);
   const offer = request?.offer ?? null;
   const isPendingOffer = String(offer?.status ?? '').toUpperCase() === ServiceOfferStatus.PENDING;

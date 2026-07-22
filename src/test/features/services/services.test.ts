@@ -48,7 +48,7 @@ describe('servicesFeatureApi', () => {
     expect(apiClient.get).toHaveBeenCalledWith('services', {
       params: { PageIndex: 1, PageSize: 12, SearchTerm: 'dashboard' },
     });
-    expect(response.data[0]?.id).toBe('service-1');
+    expect(response.data![0]?.id).toBe('service-1');
     expect(response.metadata.totalCount).toBe(1);
   });
 

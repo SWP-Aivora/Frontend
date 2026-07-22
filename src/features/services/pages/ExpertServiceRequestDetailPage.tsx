@@ -77,7 +77,7 @@ export const ExpertServiceRequestDetailPage = () => {
     if (!request?.clientId) return null;
 
     const conversations = await chatService.getAll({ PageIndex: 1, PageSize: 100 }, user?.id);
-    return conversations.data.find(conversation => (
+    return (conversations.data ?? []).find(conversation => (
       conversation.recipient.id === request.clientId
       && conversation.type === 'SUPPORT'
       && !conversation.projectId
