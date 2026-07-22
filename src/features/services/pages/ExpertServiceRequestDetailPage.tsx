@@ -70,21 +70,6 @@ export const ExpertServiceRequestDetailPage = () => {
     onError: () => toast.error('Failed to decline service request.'),
   });
 
-  const openChatMutation = useMutation({
-    mutationFn: async () => {
-      if (!requestId) throw new Error('Service request is missing.');
-      throw new Error('A direct conversation lookup API is required to open the existing General Inquiry chat from this page.');
-    },
-    onSuccess: (conversationId) => {
-      toast.success('Chat opened.');
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      navigate('/expert/messages', { state: { conversationId } });
-    },
-    onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to open chat.');
-    },
-  });
-
   const offerMutation = useMutation({
     mutationFn: () => servicesFeatureApi.createServiceOffer(requestId!, {
       amount,
@@ -151,12 +136,12 @@ export const ExpertServiceRequestDetailPage = () => {
             <Button
               type="button"
               variant="outline"
-              disabled={openChatMutation.isPending || acceptMutation.isPending || declineMutation.isPending}
-              onClick={() => openChatMutation.mutate()}
+              disabled
+              title="Opening the existing General Inquiry chat from here requires a direct conversation lookup API."
               className="rounded-full"
             >
               <MessageSquare className="mr-2 size-4" />
-              {openChatMutation.isPending ? 'Opening Chat...' : 'Open Chat'}
+              Open Chat
             </Button>
             {isPending && (
               <>
