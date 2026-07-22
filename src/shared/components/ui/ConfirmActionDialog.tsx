@@ -6,6 +6,7 @@ interface ConfirmActionDialogProps {
   open: boolean;
   title: string;
   description: string;
+  cancelLabel?: string;
   confirmLabel: string;
   pendingLabel?: string;
   isPending?: boolean;
@@ -18,6 +19,7 @@ export const ConfirmActionDialog = ({
   open,
   title,
   description,
+  cancelLabel = 'Cancel',
   confirmLabel,
   pendingLabel,
   isPending = false,
@@ -50,7 +52,7 @@ export const ConfirmActionDialog = ({
         <div className="flex justify-end gap-3">
           <Dialog.Close asChild disabled={isPending}>
             <Button type="button" variant="outline" disabled={isPending} className="rounded-full font-bold">
-              Cancel
+              {cancelLabel}
             </Button>
           </Dialog.Close>
           <Button

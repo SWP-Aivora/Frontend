@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectService } from '../services';
 import { toast } from 'sonner';
 import type { CreateMilestoneFormValues } from '../schema';
+import { getDisputeGuardErrorMessage } from '../utils';
 
 interface UseCreateMilestoneOptions {
   projectId: string;
@@ -33,6 +34,9 @@ export const useCreateMilestone = ({ projectId, onSuccess }: UseCreateMilestoneO
     },
     onError: (error: unknown) => {
       const message = (() => {
+        const disputeGuardMessage = getDisputeGuardErrorMessage(error);
+        if (disputeGuardMessage) return disputeGuardMessage;
+
         if (typeof error !== 'object' || error === null) return 'Failed to create milestone.';
         const err = error as { response?: { data?: unknown; status?: number } };
         const data = err.response?.data;

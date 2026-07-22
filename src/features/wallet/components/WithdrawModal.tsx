@@ -14,11 +14,13 @@ interface WithdrawModalProps {
 export const WithdrawModal = ({ maxBalance }: WithdrawModalProps) => {
   const [open, setOpen] = useState(false);
   const [amountStr, setAmountStr] = useState<string>('500');
+  const [paymentMethod, setPaymentMethod] = useState('bank');
   const queryClient = useQueryClient();
 
   const withdrawMutation = useMutation({
-    mutationFn: (amt: number) => walletService.withdraw({
-      amount: amt,
+    mutationFn: (values: { amount: number; paymentMethod: string }) => walletService.withdraw({
+      amount: values.amount,
+      paymentMethod: values.paymentMethod,
       description: 'Wallet withdrawal',
     }),
     onSuccess: () => {
@@ -27,6 +29,7 @@ export const WithdrawModal = ({ maxBalance }: WithdrawModalProps) => {
       toast.success('Withdrawal request submitted successfully.');
       setOpen(false);
       setAmountStr('500');
+      setPaymentMethod('bank');
     },
     onError: (error: Error) => {
       toast.error(error?.message || 'Failed to request withdrawal. Please try again.');
@@ -34,7 +37,7 @@ export const WithdrawModal = ({ maxBalance }: WithdrawModalProps) => {
   });
 
   const confirmWithdraw = () => {
-    const result = withdrawSchema.safeParse({ amount: amountStr });
+    const result = withdrawSchema.safeParse({ amount: amountStr, paymentMethod });
     if (!result.success) {
       toast.error('Invalid withdraw amount. Please enter a valid number (1 - 100,000).');
       return;
@@ -45,14 +48,17 @@ export const WithdrawModal = ({ maxBalance }: WithdrawModalProps) => {
       return;
     }
 
-    withdrawMutation.mutate(result.data.amount);
+    withdrawMutation.mutate(result.data);
   };
 
   const isInvalid = amountStr.trim() === '' || isNaN(Number(amountStr)) || Number(amountStr) <= 0 || Number(amountStr) > maxBalance;
 
   const handleOpenChange = (nextOpen: boolean) => {
     setOpen(nextOpen);
-    if (!nextOpen) setAmountStr('500');
+    if (!nextOpen) {
+      setAmountStr('500');
+      setPaymentMethod('bank');
+    }
   };
 
   return (
@@ -82,9 +88,10 @@ export const WithdrawModal = ({ maxBalance }: WithdrawModalProps) => {
           
           <div className="space-y-4 mb-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Amount (Aivora Coin)</label>
+              <label htmlFor="withdraw-amount" className="block text-xs font-bold text-slate-700 mb-1">Amount (Aivora Coin)</label>
               <div className="relative">
                 <input 
+                  id="withdraw-amount"
                   type="text" 
                   className="w-full rounded-lg border-slate-200 p-3 pl-4 pr-12 text-lg font-bold text-slate-900 focus:ring-primary focus:border-primary" 
                   placeholder="500"
@@ -94,6 +101,19 @@ export const WithdrawModal = ({ maxBalance }: WithdrawModalProps) => {
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">Aivora Coin</span>
               </div>
               <p className="text-[10px] font-medium text-slate-400 mt-1">Available to withdraw: {maxBalance.toLocaleString()} Aivora Coin</p>
+            </div>
+            <div>
+              <label htmlFor="withdraw-payment-method" className="block text-xs font-bold text-slate-700 mb-1">Withdrawal Method</label>
+              <select
+                id="withdraw-payment-method"
+                value={paymentMethod}
+                onChange={event => setPaymentMethod(event.target.value)}
+                className="h-12 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-900 focus:border-primary focus:ring-primary"
+              >
+                <option value="bank">Bank transfer</option>
+                <option value="paypal">PayPal</option>
+                <option value="crypto">Crypto</option>
+              </select>
             </div>
           </div>
 

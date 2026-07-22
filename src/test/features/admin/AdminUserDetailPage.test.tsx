@@ -35,12 +35,19 @@ vi.mock('../../../features/admin/services', () => ({
 
 // Mock hooks
 const mockUseAdminUsers = vi.fn();
+const mockUseAdminUser = vi.fn();
 const mockUseAdminExpertReviews = vi.fn();
 const mockUseExpertReviewDetail = vi.fn();
 const mockUseProcessExpertReview = vi.fn();
 
 vi.mock('../../../features/admin/hooks/useAdminUsers', () => ({
+  adminUsersQueryKeys: {
+    all: ['admin', 'users'],
+    list: (params?: Record<string, unknown>) => ['admin', 'users', params],
+    detail: (id: string) => ['admin', 'users', 'detail', id],
+  },
   useAdminUsers: (...args: unknown[]) => mockUseAdminUsers(...args),
+  useAdminUser: (...args: unknown[]) => mockUseAdminUser(...args),
 }));
 
 vi.mock('../../../features/admin/hooks/useAdminExpertReviews', () => ({
@@ -60,10 +67,18 @@ vi.mock('@tanstack/react-query', async (importOriginal) => {
   };
 });
 
+const userIds = {
+  client: '11111111-1111-4111-8111-111111111111',
+  expert: '22222222-2222-4222-8222-222222222222',
+  suspendedExpert: '33333333-3333-4333-8333-333333333333',
+  admin: '44444444-4444-4444-8444-444444444444',
+  nonRecentExpert: '55555555-5555-4555-8555-555555555555',
+};
+
 const mockUsersData = {
   users: [
     {
-      id: 'u-1',
+      id: userIds.client,
       fullName: 'Alice Client',
       email: 'alice@client.com',
       role: 'Client',
@@ -75,7 +90,7 @@ const mockUsersData = {
       projectsCount: 2,
     },
     {
-      id: 'u-2',
+      id: userIds.expert,
       fullName: 'Bob Expert',
       email: 'bob@expert.com',
       role: 'Expert',
@@ -89,7 +104,7 @@ const mockUsersData = {
       riskLevel: 'Low',
     },
     {
-      id: 'u-3',
+      id: userIds.suspendedExpert,
       fullName: 'Suspended Expert',
       email: 'suspended@expert.com',
       role: 'Expert',
@@ -101,7 +116,7 @@ const mockUsersData = {
       proposalsCount: 1,
     },
     {
-      id: 'u-4',
+      id: userIds.admin,
       fullName: 'Charlie Admin',
       email: 'charlie@admin.com',
       role: 'Admin',
@@ -111,14 +126,29 @@ const mockUsersData = {
       lastLoginAt: '2026-06-21',
       initials: 'CA',
     }
-  ]
+  ],
+};
+
+const nonRecentExpert = {
+  id: userIds.nonRecentExpert,
+  fullName: 'Expert One',
+  email: 'expert.one@example.com',
+  role: 'Expert',
+  status: 'Active',
+  verificationState: 'Review',
+  createdAt: '2025-01-01',
+  lastLoginAt: '2026-06-21',
+  initials: 'EO',
+  proposalsCount: 12,
+  completionRate: '98%',
+  riskLevel: 'Low',
 };
 
 const mockReviewsData = {
   reviews: [
     {
       id: 'r-1',
-      expertId: 'u-2',
+      expertId: userIds.expert,
       status: 'Pending',
       submittedAt: '2026-06-21',
       fullName: 'Bob Expert',
@@ -134,7 +164,7 @@ const mockReviewsData = {
 
 const mockReviewDetail = {
   id: 'r-1',
-  expertId: 'u-2',
+  expertId: userIds.expert,
   fullName: 'Bob Expert',
   email: 'bob@expert.com',
   status: 'Pending',
@@ -156,10 +186,10 @@ const mockReviewDetail = {
 describe('AdminUserDetailPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseParams.mockReturnValue({ id: 'u-1' });
-    mockUseAdminUsers.mockReturnValue({
+    mockUseParams.mockReturnValue({ id: userIds.client });
+    mockUseAdminUser.mockReturnValue({
       isLoading: false,
-      data: mockUsersData,
+      data: mockUsersData.users[0],
       isError: false,
     });
     mockUseAdminExpertReviews.mockReturnValue({
@@ -175,7 +205,7 @@ describe('AdminUserDetailPage', () => {
   });
 
   it('renders loading state', () => {
-    mockUseAdminUsers.mockReturnValue({
+    mockUseAdminUser.mockReturnValue({
       isLoading: true,
       data: undefined,
     });
@@ -190,7 +220,7 @@ describe('AdminUserDetailPage', () => {
   });
 
   it('renders error state when user fails to load', () => {
-    mockUseAdminUsers.mockReturnValue({
+    mockUseAdminUser.mockReturnValue({
       isLoading: false,
       isError: true,
       error: new Error('User not found in system'),
@@ -206,8 +236,12 @@ describe('AdminUserDetailPage', () => {
     expect(screen.getByText('User not found in system')).toBeInTheDocument();
   });
 
-  it('renders not found state when user is missing', () => {
-    mockUseParams.mockReturnValue({ id: 'u-999' });
+  it('renders not found state when the detail endpoint returns 404', () => {
+    mockUseAdminUser.mockReturnValue({
+      isLoading: false,
+      isError: true,
+      error: { response: { status: 404 } },
+    });
 
     render(
       <MemoryRouter>
@@ -218,8 +252,22 @@ describe('AdminUserDetailPage', () => {
     expect(screen.getByText('User not found')).toBeInTheDocument();
   });
 
+  it('handles invalid route IDs without enabling the detail query', () => {
+    mockUseParams.mockReturnValue({ id: 'not-a-valid-user-id' });
+
+    render(
+      <MemoryRouter>
+        <AdminUserDetailPage />
+      </MemoryRouter>
+    );
+
+    expect(mockUseAdminUser).toHaveBeenCalledWith('not-a-valid-user-id', false);
+    expect(mockUseAdminExpertReviews).toHaveBeenCalledWith(undefined, false);
+    expect(screen.getByText('Invalid user ID')).toBeInTheDocument();
+  });
+
   it('renders Client details successfully', () => {
-    mockUseParams.mockReturnValue({ id: 'u-1' });
+    mockUseParams.mockReturnValue({ id: userIds.client });
 
     render(
       <MemoryRouter>
@@ -233,7 +281,12 @@ describe('AdminUserDetailPage', () => {
   });
 
   it('renders Admin details successfully', () => {
-    mockUseParams.mockReturnValue({ id: 'u-4' });
+    mockUseParams.mockReturnValue({ id: userIds.admin });
+    mockUseAdminUser.mockReturnValue({
+      isLoading: false,
+      data: mockUsersData.users[3],
+      isError: false,
+    });
 
     render(
       <MemoryRouter>
@@ -247,7 +300,12 @@ describe('AdminUserDetailPage', () => {
   });
 
   it('renders Expert details successfully', () => {
-    mockUseParams.mockReturnValue({ id: 'u-2' });
+    mockUseParams.mockReturnValue({ id: userIds.expert });
+    mockUseAdminUser.mockReturnValue({
+      isLoading: false,
+      data: mockUsersData.users[1],
+      isError: false,
+    });
     mockUseExpertReviewDetail.mockReturnValue({
       isLoading: false,
       data: mockReviewDetail,
@@ -264,8 +322,74 @@ describe('AdminUserDetailPage', () => {
     expect(screen.getByText('Pending Profile Changes')).toBeInTheDocument();
   });
 
+  it('uses the route user ID with the direct detail hook and does not use the paginated users hook', () => {
+    mockUseParams.mockReturnValue({ id: userIds.nonRecentExpert });
+    mockUseAdminUser.mockReturnValue({
+      isLoading: false,
+      data: nonRecentExpert,
+      isError: false,
+    });
+
+    render(
+      <MemoryRouter>
+        <AdminUserDetailPage />
+      </MemoryRouter>
+    );
+
+    expect(mockUseAdminUser).toHaveBeenCalledWith(userIds.nonRecentExpert, true);
+    expect(mockUseAdminUsers).not.toHaveBeenCalled();
+    expect(screen.getByText('Expert One')).toBeInTheDocument();
+  });
+
+  it('keeps pending expert review actions visible for a non-recent user loaded by detail endpoint', () => {
+    mockUseParams.mockReturnValue({ id: userIds.nonRecentExpert });
+    mockUseAdminUser.mockReturnValue({
+      isLoading: false,
+      data: nonRecentExpert,
+      isError: false,
+    });
+    mockUseAdminExpertReviews.mockReturnValue({
+      data: {
+        reviews: [
+          {
+            ...mockReviewsData.reviews[0],
+            id: 'r-non-recent',
+            expertId: userIds.nonRecentExpert,
+            fullName: 'Expert One',
+            email: 'expert.one@example.com',
+          },
+        ],
+      },
+    });
+    mockUseExpertReviewDetail.mockReturnValue({
+      isLoading: false,
+      data: {
+        ...mockReviewDetail,
+        id: 'r-non-recent',
+        expertId: userIds.nonRecentExpert,
+        fullName: 'Expert One',
+        email: 'expert.one@example.com',
+      },
+    });
+
+    render(
+      <MemoryRouter>
+        <AdminUserDetailPage />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('Pending Profile Changes')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /approve all changes/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /reject/i })).toBeInTheDocument();
+  });
+
   it('calls suspend action successfully', async () => {
-    mockUseParams.mockReturnValue({ id: 'u-2' });
+    mockUseParams.mockReturnValue({ id: userIds.expert });
+    mockUseAdminUser.mockReturnValue({
+      isLoading: false,
+      data: mockUsersData.users[1],
+      isError: false,
+    });
     mockSuspendUser.mockResolvedValueOnce({});
 
     render(
@@ -277,14 +401,19 @@ describe('AdminUserDetailPage', () => {
     const suspendButton = screen.getByRole('button', { name: /suspend user/i });
     fireEvent.click(suspendButton);
 
-    expect(mockSuspendUser).toHaveBeenCalledWith('u-2', 'Suspended by admin via dashboard');
+    expect(mockSuspendUser).toHaveBeenCalledWith(userIds.expert, 'Suspended by admin via dashboard');
     await waitFor(() => {
       expect(mockToastSuccess).toHaveBeenCalledWith('User suspended successfully');
     });
   });
 
   it('calls unsuspend action successfully', async () => {
-    mockUseParams.mockReturnValue({ id: 'u-3' });
+    mockUseParams.mockReturnValue({ id: userIds.suspendedExpert });
+    mockUseAdminUser.mockReturnValue({
+      isLoading: false,
+      data: mockUsersData.users[2],
+      isError: false,
+    });
     mockUnsuspendUser.mockResolvedValueOnce({});
 
     render(
@@ -296,14 +425,19 @@ describe('AdminUserDetailPage', () => {
     const unsuspendButton = screen.getByRole('button', { name: /unsuspend user/i });
     fireEvent.click(unsuspendButton);
 
-    expect(mockUnsuspendUser).toHaveBeenCalledWith('u-3');
+    expect(mockUnsuspendUser).toHaveBeenCalledWith(userIds.suspendedExpert);
     await waitFor(() => {
       expect(mockToastSuccess).toHaveBeenCalledWith('User unsuspended successfully');
     });
   });
 
   it('handles suspend failure', async () => {
-    mockUseParams.mockReturnValue({ id: 'u-2' });
+    mockUseParams.mockReturnValue({ id: userIds.expert });
+    mockUseAdminUser.mockReturnValue({
+      isLoading: false,
+      data: mockUsersData.users[1],
+      isError: false,
+    });
     mockSuspendUser.mockRejectedValueOnce(new Error('Network error'));
 
     render(
@@ -321,7 +455,12 @@ describe('AdminUserDetailPage', () => {
   });
 
   it('calls approve expert review successfully when confirmed', async () => {
-    mockUseParams.mockReturnValue({ id: 'u-2' });
+    mockUseParams.mockReturnValue({ id: userIds.expert });
+    mockUseAdminUser.mockReturnValue({
+      isLoading: false,
+      data: mockUsersData.users[1],
+      isError: false,
+    });
     mockUseExpertReviewDetail.mockReturnValue({
       isLoading: false,
       data: mockReviewDetail,
@@ -344,11 +483,16 @@ describe('AdminUserDetailPage', () => {
     const dialog = await screen.findByRole('dialog');
     fireEvent.click(within(dialog).getByRole('button', { name: /^approve$/i }));
 
-    expect(processMock).toHaveBeenCalledWith({ id: 'r-1', status: 'Approved' });
+    expect(processMock).toHaveBeenCalledWith({ id: 'r-1', status: 'Approved' }, expect.any(Object));
   });
 
   it('does not call approve expert review when confirmation is cancelled', async () => {
-    mockUseParams.mockReturnValue({ id: 'u-2' });
+    mockUseParams.mockReturnValue({ id: userIds.expert });
+    mockUseAdminUser.mockReturnValue({
+      isLoading: false,
+      data: mockUsersData.users[1],
+      isError: false,
+    });
     mockUseExpertReviewDetail.mockReturnValue({
       isLoading: false,
       data: mockReviewDetail,
@@ -375,7 +519,12 @@ describe('AdminUserDetailPage', () => {
   });
 
   it('calls reject expert review successfully', () => {
-    mockUseParams.mockReturnValue({ id: 'u-2' });
+    mockUseParams.mockReturnValue({ id: userIds.expert });
+    mockUseAdminUser.mockReturnValue({
+      isLoading: false,
+      data: mockUsersData.users[1],
+      isError: false,
+    });
     mockUseExpertReviewDetail.mockReturnValue({
       isLoading: false,
       data: mockReviewDetail,
@@ -402,6 +551,6 @@ describe('AdminUserDetailPage', () => {
     const confirmRejectBtn = screen.getByRole('button', { name: /confirm reject/i });
     fireEvent.click(confirmRejectBtn);
 
-    expect(processMock).toHaveBeenCalledWith({ id: 'r-1', status: 'Rejected', note: 'Incomplete document' });
+    expect(processMock).toHaveBeenCalledWith({ id: 'r-1', status: 'Rejected', note: 'Incomplete document' }, expect.any(Object));
   });
 });

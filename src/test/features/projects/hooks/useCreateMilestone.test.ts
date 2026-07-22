@@ -18,6 +18,7 @@ const mutationMock = vi.hoisted(() => ({
       acceptanceCriteria?: string;
     }) => unknown;
     onSuccess?: () => void;
+    onError?: (error: unknown) => void;
   },
 }));
 
@@ -86,5 +87,19 @@ describe('useCreateMilestone', () => {
     expect(queryClientMock.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['project', 'project-101', 'milestones'] });
     expect(toast.success).toHaveBeenCalledWith('Milestone created successfully!');
     expect(onSuccess).toHaveBeenCalled();
+  });
+
+  it('shows a specific toast for the backend active-dispute guard', () => {
+    renderHook(() => useCreateMilestone({ projectId: 'project-101' }));
+
+    mutationMock.options?.onError?.({
+      response: {
+        data: {
+          message: 'Cannot create a milestone while there is an active dispute.',
+        },
+      },
+    });
+
+    expect(toast.error).toHaveBeenCalledWith('This action cannot be completed while there is an open dispute.');
   });
 });

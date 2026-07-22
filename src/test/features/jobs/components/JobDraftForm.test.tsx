@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { JobDraftForm } from '../../../../features/jobs/components/JobDraftForm';
 import {
   MILESTONE_TOTAL_BELOW_MIN_MESSAGE,
@@ -8,6 +8,14 @@ import {
 import type { AiJobSuggestion } from '../../../../features/jobs/types';
 import { AiJobAssistantStatus } from '../../../../features/jobs/types';
 import { BudgetType, SkillLevel } from '../../../../shared/types/enums';
+
+vi.mock('sonner', () => ({
+  toast: {
+    error: vi.fn(),
+  },
+}));
+
+import { toast } from 'sonner';
 
 const createSuggestion = (amounts: number[], budgetMin = 1000, budgetMax = 2000): AiJobSuggestion => ({
   id: 'suggestion-1',
@@ -39,7 +47,13 @@ const createSuggestion = (amounts: number[], budgetMin = 1000, budgetMax = 2000)
   createdAt: '2026-07-19T00:00:00.000Z',
 });
 
-const DraftFormHarness = ({ initialSuggestion }: { initialSuggestion: AiJobSuggestion }) => {
+const DraftFormHarness = ({
+  initialSuggestion,
+  onAccept = vi.fn(),
+}: {
+  initialSuggestion: AiJobSuggestion;
+  onAccept?: (values: unknown) => void;
+}) => {
   return (
     <JobDraftForm
       suggestion={initialSuggestion}
@@ -48,7 +62,7 @@ const DraftFormHarness = ({ initialSuggestion }: { initialSuggestion: AiJobSugge
       selectedSkillIds={[]}
       onSkillChange={vi.fn()}
       onCategoryChange={vi.fn()}
-      onAccept={vi.fn()}
+      onAccept={onAccept}
       onSaveDraft={vi.fn()}
       isAccepting={false}
     />
@@ -56,6 +70,10 @@ const DraftFormHarness = ({ initialSuggestion }: { initialSuggestion: AiJobSugge
 };
 
 describe('JobDraftForm milestone budget feedback', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('shows the current milestone total and budget range for valid AI-generated milestones', () => {
     render(<DraftFormHarness initialSuggestion={createSuggestion([500, 1000])} />);
 
@@ -82,5 +100,40 @@ describe('JobDraftForm milestone budget feedback', () => {
 
     expect(screen.getByText('2,100 Aivora Coin')).toBeInTheDocument();
     expect(screen.getByText(MILESTONE_TOTAL_ABOVE_MAX_MESSAGE)).toBeInTheDocument();
+  });
+
+  it('shows the milestone budget validation message on invalid continue and does not accept the draft', async () => {
+    const onAccept = vi.fn();
+    render(<DraftFormHarness initialSuggestion={createSuggestion([400, 500])} onAccept={onAccept} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /continue to review/i }));
+
+    expect(await screen.findByText(MILESTONE_TOTAL_BELOW_MIN_MESSAGE)).toBeInTheDocument();
+    expect(toast.error).toHaveBeenCalledWith(MILESTONE_TOTAL_BELOW_MIN_MESSAGE);
+    expect(onAccept).not.toHaveBeenCalled();
+  });
+
+  it('shows a specific field validation message for other schema failures', async () => {
+    const onAccept = vi.fn();
+    render(<DraftFormHarness initialSuggestion={createSuggestion([1000])} onAccept={onAccept} />);
+
+    fireEvent.change(screen.getByLabelText(/job title/i), { target: { value: 'Bad' } });
+    fireEvent.click(screen.getByRole('button', { name: /continue to review/i }));
+
+    expect(await screen.findByText('Title must be at least 5 characters')).toBeInTheDocument();
+    expect(toast.error).toHaveBeenCalledWith('Title must be at least 5 characters');
+    expect(onAccept).not.toHaveBeenCalled();
+  });
+
+  it('continues to review for a valid draft', async () => {
+    const onAccept = vi.fn();
+    render(<DraftFormHarness initialSuggestion={createSuggestion([500, 1000])} onAccept={onAccept} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /continue to review/i }));
+
+    await waitFor(() => {
+      expect(onAccept).toHaveBeenCalledTimes(1);
+    });
+    expect(toast.error).not.toHaveBeenCalled();
   });
 });

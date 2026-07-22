@@ -118,6 +118,7 @@ export const API_ENDPOINTS = {
   ADMIN: {
     DASHBOARD_SUMMARY: 'admin/stats',
     USERS: 'admin/users',
+    USER_DETAIL: (id: string) => `admin/users/${id}`,
     EXPERT_REVIEWS: 'admin/expert-profile-updates',
     EXPERT_REVIEW_DETAIL: (id: string) => `admin/expert-profile-updates/${id}`,
     PROCESS_EXPERT_REVIEW: (id: string) => `admin/expert-profile-updates/${id}/review`,

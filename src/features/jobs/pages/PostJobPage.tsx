@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useBlocker, useSearchParams } from 'react-router-dom';
 import { Sparkles, Rocket, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
+import { ConfirmActionDialog } from '@/shared/components/ui/ConfirmActionDialog';
 import { AiChatPanel } from '../components/AiChatPanel';
 import { JobDraftForm, type JobDraftFormValues } from '../components/JobDraftForm';
 import { ExpertMatchInsights } from '../components/ExpertMatchInsights';
@@ -135,6 +136,8 @@ export const PostJobPage = () => {
 
   // --- Refs for stale closure guards ---
   const isBusyRef = useRef(false);
+  const hasUnsavedAiDraftRef = useRef(false);
+  const isDiscardingUnsavedDraftRef = useRef(false);
   const prevSuggestionRef = useRef<AiJobSuggestion | null>(null);
   const hydratedEditJobIdRef = useRef<string | null>(null);
 
@@ -189,6 +192,7 @@ export const PostJobPage = () => {
   const isExistingJobLocked = isEditingExistingJob && existingJobResponse?.data
     ? isLockedJobPostStatus(existingJobResponse.data.status)
     : false;
+  const hasUnsavedAiDraft = Boolean(suggestion && !isDraftSaved && !isExistingJobLocked);
   const isCancelledExistingJob = normalizedExistingJobStatus === 'cancelled';
   const lockedJobPostMessage = existingJobResponse?.data
     ? getLockedJobPostMessage(existingJobResponse.data.status)
@@ -214,6 +218,7 @@ export const PostJobPage = () => {
     mutationFn: (prompt: string) => jobService.initAiJobAssistant(prompt),
     onSuccess: (response) => {
       setSuggestion(response.data);
+      setIsDraftSaved(false);
       setStep('DRAFTING');
       setMessages(prev => [
         ...prev,
@@ -248,6 +253,7 @@ export const PostJobPage = () => {
       }
 
       setSuggestion(data.suggestion);
+      setIsDraftSaved(false);
       setMessages(prev => [
         ...prev,
         {
@@ -481,6 +487,7 @@ export const PostJobPage = () => {
       createDraftJobMutation.isPending ||
       patchMutation.isPending ||
       updateDraftJobMutation.isPending;
+    hasUnsavedAiDraftRef.current = hasUnsavedAiDraft;
   }, [
     initMutation.isPending,
     refineMutation.isPending,
@@ -489,12 +496,13 @@ export const PostJobPage = () => {
     createDraftJobMutation.isPending,
     patchMutation.isPending,
     updateDraftJobMutation.isPending,
+    hasUnsavedAiDraft,
   ]);
 
-  // --- Blocking navigation when busy ---
+  // --- Blocking navigation when busy or an AI-generated draft has not been saved ---
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isBusyRef.current) {
+      if (isBusyRef.current || hasUnsavedAiDraftRef.current) {
         e.preventDefault();
         e.returnValue = '';
       }
@@ -502,6 +510,44 @@ export const PostJobPage = () => {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []);
+
+  const unsavedDraftBlocker = useBlocker(({ currentLocation, nextLocation }) => (
+    hasUnsavedAiDraft
+      && !isDiscardingUnsavedDraftRef.current
+      && `${currentLocation.pathname}${currentLocation.search}` !== `${nextLocation.pathname}${nextLocation.search}`
+  ));
+
+  const handleStayOnPostJobPage = () => {
+    isDiscardingUnsavedDraftRef.current = false;
+    if (unsavedDraftBlocker.state === 'blocked') {
+      unsavedDraftBlocker.reset();
+    }
+  };
+
+  const handleLeaveWithoutSaving = () => {
+    isDiscardingUnsavedDraftRef.current = true;
+    hasUnsavedAiDraftRef.current = false;
+    setIsDraftSaved(true);
+    if (unsavedDraftBlocker.state === 'blocked') {
+      unsavedDraftBlocker.proceed();
+    }
+  };
+
+  const unsavedDraftDialog = (
+    <ConfirmActionDialog
+      open={unsavedDraftBlocker.state === 'blocked'}
+      title="Leave without saving?"
+      description="Your AI-generated job draft has not been saved. If you leave this page now, your changes will be lost."
+      cancelLabel="Stay on this page"
+      confirmLabel="Leave without saving"
+      destructive
+      isPending={false}
+      onOpenChange={(open) => {
+        if (!open) handleStayOnPostJobPage();
+      }}
+      onConfirm={handleLeaveWithoutSaving}
+    />
+  );
 
   useEffect(() => {
     if (!existingJobResponse?.data || !editJobId) {
@@ -983,32 +1029,35 @@ export const PostJobPage = () => {
 
   if (step === 'MATCHING') {
     return (
-      <div className="max-w-6xl mx-auto px-4">
-        {isMatching ? (
-          <div className="py-20 flex flex-col items-center justify-center space-y-4">
-            <Loader2 className="size-12 text-primary animate-spin" />
-            <p className="text-slate-500 font-bold animate-pulse uppercase tracking-widest text-xs">Finding best matches...</p>
-          </div>
-        ) : isMatchError ? (
-          <div className="py-20 flex flex-col items-center justify-center space-y-6">
-            <div className="size-16 rounded-xl bg-rose-50 flex items-center justify-center">
-              <AlertCircle className="size-8 text-rose-500" />
+      <>
+        <div className="max-w-6xl mx-auto px-4">
+          {isMatching ? (
+            <div className="py-20 flex flex-col items-center justify-center space-y-4">
+              <Loader2 className="size-12 text-primary animate-spin" />
+              <p className="text-slate-500 font-bold animate-pulse uppercase tracking-widest text-xs">Finding best matches...</p>
             </div>
-            <div className="text-center space-y-2">
-              <h3 className="text-xl font-black text-slate-900">Unable to load recommendations</h3>
-              <p className="text-slate-500 font-medium max-w-sm">We couldn't analyze matching experts at this moment. You can still manage your job post from My Job Posts.</p>
+          ) : isMatchError ? (
+            <div className="py-20 flex flex-col items-center justify-center space-y-6">
+              <div className="size-16 rounded-xl bg-rose-50 flex items-center justify-center">
+                <AlertCircle className="size-8 text-rose-500" />
+              </div>
+              <div className="text-center space-y-2">
+                <h3 className="text-xl font-black text-slate-900">Unable to load recommendations</h3>
+                <p className="text-slate-500 font-medium max-w-sm">We couldn't analyze matching experts at this moment. You can still manage your job post from My Job Posts.</p>
+              </div>
+              <div className="flex gap-3">
+                <Button onClick={() => refetchMatches()} variant="outline" className="rounded-full px-8">Retry Analysis</Button>
+                <Button asChild className="rounded-full px-8"><Link to="/client/job-posts">Go to My Job Posts</Link></Button>
+              </div>
             </div>
-            <div className="flex gap-3">
-              <Button onClick={() => refetchMatches()} variant="outline" className="rounded-full px-8">Retry Analysis</Button>
-              <Button asChild className="rounded-full px-8"><Link to="/client/job-posts">Go to My Job Posts</Link></Button>
-            </div>
-          </div>
-        ) : (
-          <ExpertMatchInsights 
-            experts={recommendationsResponse?.data || []} 
-          />
-        )}
-      </div>
+          ) : (
+            <ExpertMatchInsights
+              experts={recommendationsResponse?.data || []}
+            />
+          )}
+        </div>
+        {unsavedDraftDialog}
+      </>
     );
   }
 
@@ -1032,6 +1081,7 @@ export const PostJobPage = () => {
       ?? (suggestion.categoryId && isLoadingCategories ? 'Selected category' : null);
 
     return (
+      <>
       <div className="mx-auto max-w-6xl px-3 py-2 animate-in fade-in duration-500">
         <div className="flex min-h-[560px] flex-col rounded-xl border border-slate-100 bg-white p-3 shadow-sm lg:p-4">
           <div className="mb-3 flex items-start gap-2.5 border-b border-slate-100 pb-3">
@@ -1253,6 +1303,8 @@ export const PostJobPage = () => {
           </div>
         )}
       </div>
+      {unsavedDraftDialog}
+      </>
     );
   }
 
@@ -1381,6 +1433,7 @@ export const PostJobPage = () => {
           </div>
         </div>
       )}
+      {unsavedDraftDialog}
     </main>
   );
 };

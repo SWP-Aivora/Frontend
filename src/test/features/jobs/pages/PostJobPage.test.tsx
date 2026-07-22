@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, act, fireEvent, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { render, act, fireEvent, waitFor, screen } from '@testing-library/react';
+import { createMemoryRouter, Link, RouterProvider } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PostJobPage } from '../../../../features/jobs/pages/PostJobPage';
 import { jobService } from '../../../../features/jobs/services';
@@ -59,58 +59,72 @@ vi.mock('../../../../features/jobs/components/AiChatPanel', () => ({
     </div>
   ),
 }));
-vi.mock('../../../../features/jobs/components/JobDraftForm', () => ({
-  JobDraftForm: ({
-    onAccept,
-    onReject,
-    onSaveDraft,
-    onSkillChange,
-    milestoneBudgetValidation,
-    isReadOnly,
-    readOnlyStatusLabel,
-    readOnlyMessage,
-  }: any) => (
-    <div data-testid="job-draft-form">
-      JobDraftForm
-      {isReadOnly && (
-        <div>
-          {readOnlyStatusLabel && <span>{readOnlyStatusLabel}</span>}
-          {readOnlyMessage && <p role="alert">{readOnlyMessage}</p>}
-        </div>
-      )}
-      {milestoneBudgetValidation?.blockingMessage && (
-        <p role="alert">{milestoneBudgetValidation.blockingMessage}</p>
-      )}
-      <button data-testid="mock-skill-btn" onClick={() => onSkillChange('skill-1')}>
-        Select Skill
-      </button>
-      {isReadOnly ? (
-        <>
-          <button data-testid="mock-force-save-btn" onClick={onSaveDraft}>
-            Force Save
-          </button>
-          <button data-testid="mock-force-accept-btn" onClick={onAccept}>
-            Force Continue
-          </button>
-        </>
-      ) : (
-        <>
-          <button data-testid="mock-save-btn" onClick={onSaveDraft}>
-            Save
-          </button>
-          <button data-testid="mock-accept-btn" onClick={onAccept}>
-            Continue to Review
-          </button>
-        </>
-      )}
-      {!isReadOnly && onReject && (
-        <button data-testid="mock-reject-btn" onClick={onReject}>
-          Reject
+vi.mock('../../../../features/jobs/components/JobDraftForm', () => {
+  const toMockDraftFormValues = (suggestion: any) => ({
+    title: suggestion?.suggestedTitle,
+    description: suggestion?.suggestedDescription,
+    businessDomain: suggestion?.businessDomain ?? '',
+    budgetType: suggestion?.budgetType,
+    budgetMin: suggestion?.suggestedBudgetMin ?? null,
+    budgetMax: suggestion?.suggestedBudgetMax ?? null,
+    timelineDays: suggestion?.suggestedTimelineDays ?? null,
+    milestones: suggestion?.suggestedMilestones ?? [],
+  });
+
+  return {
+    JobDraftForm: ({
+      suggestion,
+      onAccept,
+      onReject,
+      onSaveDraft,
+      onSkillChange,
+      milestoneBudgetValidation,
+      isReadOnly,
+      readOnlyStatusLabel,
+      readOnlyMessage,
+    }: any) => (
+      <div data-testid="job-draft-form">
+        JobDraftForm
+        {isReadOnly && (
+          <div>
+            {readOnlyStatusLabel && <span>{readOnlyStatusLabel}</span>}
+            {readOnlyMessage && <p role="alert">{readOnlyMessage}</p>}
+          </div>
+        )}
+        {milestoneBudgetValidation?.blockingMessage && (
+          <p role="alert">{milestoneBudgetValidation.blockingMessage}</p>
+        )}
+        <button data-testid="mock-skill-btn" onClick={() => onSkillChange('skill-1')}>
+          Select Skill
         </button>
-      )}
-    </div>
-  ),
-}));
+        {isReadOnly ? (
+          <>
+            <button data-testid="mock-force-save-btn" onClick={() => onSaveDraft(toMockDraftFormValues(suggestion))}>
+              Force Save
+            </button>
+            <button data-testid="mock-force-accept-btn" onClick={() => onAccept(toMockDraftFormValues(suggestion))}>
+              Force Continue
+            </button>
+          </>
+        ) : (
+          <>
+            <button data-testid="mock-save-btn" onClick={() => onSaveDraft(toMockDraftFormValues(suggestion))}>
+              Save
+            </button>
+            <button data-testid="mock-accept-btn" onClick={() => onAccept(toMockDraftFormValues(suggestion))}>
+              Continue to Review
+            </button>
+          </>
+        )}
+        {!isReadOnly && onReject && (
+          <button data-testid="mock-reject-btn" onClick={onReject}>
+            Reject
+          </button>
+        )}
+      </div>
+    ),
+  };
+});
 vi.mock('../../../../features/jobs/components/ExpertMatchInsights', () => ({
   ExpertMatchInsights: () => <div data-testid="expert-match-insights">ExpertMatchInsights</div>,
 }));
@@ -187,11 +201,14 @@ describe('PostJobPage query invalidation on mutation success', () => {
   });
 
   const renderComponent = (initialEntries: string[] = ['/client/post-job']) => {
+    const router = createMemoryRouter(
+      [{ path: '/client/post-job', element: <PostJobPage /> }],
+      { initialEntries }
+    );
+
     return render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={initialEntries}>
-          <PostJobPage />
-        </MemoryRouter>
+        <RouterProvider router={router} />
       </QueryClientProvider>
     );
   };
@@ -259,11 +276,14 @@ describe('PostJobPage AI suggestion rejection flow', () => {
   });
 
   const renderComponent = (initialEntries: string[] = ['/client/post-job']) => {
+    const router = createMemoryRouter(
+      [{ path: '/client/post-job', element: <PostJobPage /> }],
+      { initialEntries }
+    );
+
     return render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={initialEntries}>
-          <PostJobPage />
-        </MemoryRouter>
+        <RouterProvider router={router} />
       </QueryClientProvider>
     );
   };
@@ -337,6 +357,15 @@ describe('PostJobPage publish confirmation flow', () => {
     vi.clearAllMocks();
     mutationCalls = [];
     queryClient = new QueryClient();
+    vi.mocked(jobService.patchAiJobSuggestion).mockImplementation(async (_suggestionId, data) => ({
+      data: {
+        ...publishReadySuggestion,
+        ...data,
+      },
+      message: 'Success',
+      success: true,
+      statusCode: 200,
+    } as any));
     vi.mocked(jobService.acceptAiJobSuggestion).mockResolvedValue({
       data: {
         job: {
@@ -364,11 +393,14 @@ describe('PostJobPage publish confirmation flow', () => {
   });
 
   const renderComponent = (initialEntries: string[] = ['/client/post-job']) => {
+    const router = createMemoryRouter(
+      [{ path: '/client/post-job', element: <PostJobPage /> }],
+      { initialEntries }
+    );
+
     return render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={initialEntries}>
-          <PostJobPage />
-        </MemoryRouter>
+        <RouterProvider router={router} />
       </QueryClientProvider>
     );
   };
@@ -602,5 +634,114 @@ describe('PostJobPage publish confirmation flow', () => {
       );
       expect(jobService.publishJob).toHaveBeenCalledWith('job-123');
     });
+  });
+});
+
+describe('PostJobPage unsaved AI draft protection', () => {
+  let queryClient: QueryClient;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mutationCalls = [];
+    queryClient = new QueryClient();
+    vi.mocked(jobService.patchAiJobSuggestion).mockImplementation(async (_suggestionId, data) => ({
+      data: {
+        ...publishReadySuggestion,
+        ...data,
+      },
+      message: 'Success',
+      success: true,
+      statusCode: 200,
+    } as any));
+    vi.mocked(jobService.createJob).mockResolvedValue({
+      data: { id: 'saved-job-123' },
+      message: 'Success',
+      success: true,
+      statusCode: 200,
+    } as any);
+  });
+
+  const PostJobRouteShell = () => (
+    <>
+        <Link to="/client/job-posts">Go to job posts</Link>
+      <PostJobPage />
+    </>
+  );
+
+  const renderRoutedComponent = () => {
+    const router = createMemoryRouter(
+      [
+        { path: '/client/post-job', element: <PostJobRouteShell /> },
+        { path: '/client/job-posts', element: <div>Job Posts Route</div> },
+      ],
+      { initialEntries: ['/client/post-job'] }
+    );
+
+    return render(
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>
+    );
+  };
+
+  const generateDraft = () => {
+    const initMutationCall = findMutation('initAiJobAssistant');
+    act(() => {
+      initMutationCall.onSuccess({ data: publishReadySuggestion });
+    });
+  };
+
+  it('blocks in-app navigation after AI draft generation and lets the user stay on the page', async () => {
+    renderRoutedComponent();
+    generateDraft();
+
+    fireEvent.click(screen.getByRole('link', { name: /go to job posts/i }));
+
+    expect(await screen.findByText('Leave without saving?')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /stay on this page/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByText('Leave without saving?')).not.toBeInTheDocument();
+    });
+    expect(screen.getByTestId('job-draft-form')).toBeInTheDocument();
+    expect(screen.queryByText('Job Posts Route')).not.toBeInTheDocument();
+  });
+
+  it('prevents beforeunload while an AI draft is unsaved', async () => {
+    renderRoutedComponent();
+    generateDraft();
+
+    expect(await screen.findByTestId('job-draft-form')).toBeInTheDocument();
+
+    const event = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it('successful save clears beforeunload protection', async () => {
+    renderRoutedComponent();
+    generateDraft();
+
+    fireEvent.click(await screen.findByTestId('mock-save-btn'));
+
+    await waitFor(() => {
+      expect(jobService.createJob).toHaveBeenCalled();
+    });
+
+    const event = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  it('does not show the leave-page modal for normal wizard step transitions', async () => {
+    renderRoutedComponent();
+    generateDraft();
+
+    fireEvent.click(await screen.findByTestId('mock-skill-btn'));
+    fireEvent.click(screen.getByTestId('mock-accept-btn'));
+
+    expect(await screen.findByText('Review Project Details')).toBeInTheDocument();
+    expect(screen.queryByText('Leave without saving?')).not.toBeInTheDocument();
   });
 });
