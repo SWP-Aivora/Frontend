@@ -1,10 +1,10 @@
-import { useQuery } from '@tanstack/react-query';
+import { skipToken, useQuery } from '@tanstack/react-query';
 import { adminService } from '../services';
 
 export const adminUsersQueryKeys = {
   all: ['admin', 'users'] as const,
   list: (params?: Record<string, unknown>) => ['admin', 'users', params] as const,
-  detail: (id: string) => ['admin', 'users', 'detail', id] as const,
+  detail: (id: string | undefined) => ['admin', 'users', 'detail', id] as const,
 };
 
 export const useAdminUsers = (params?: Record<string, unknown>) => {
@@ -17,14 +17,8 @@ export const useAdminUsers = (params?: Record<string, unknown>) => {
 
 export const useAdminUser = (id: string | undefined, enabled = true) => {
   return useQuery({
-    queryKey: id ? adminUsersQueryKeys.detail(id) : [...adminUsersQueryKeys.all, 'detail', 'missing'],
-    queryFn: () => {
-      if (!id) {
-        return Promise.reject(new Error('Missing user ID'));
-      }
-      return adminService.getUserById(id);
-    },
-    enabled: Boolean(id) && enabled,
+    queryKey: adminUsersQueryKeys.detail(id),
+    queryFn: id && enabled ? () => adminService.getUserById(id) : skipToken,
     select: (response) => response.data,
     retry: false,
   });

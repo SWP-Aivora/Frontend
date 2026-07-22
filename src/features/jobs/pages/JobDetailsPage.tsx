@@ -508,7 +508,6 @@ export const JobDetailsPage = () => {
                             min="1"
                             step="0.01"
                             {...register('proposedBudget')}
-                            value={computedProposalTotals.proposedBudget}
                             readOnly
                             aria-readonly="true"
                             aria-label="Proposal bid"
@@ -525,7 +524,6 @@ export const JobDetailsPage = () => {
                             type="number"
                             min="1"
                             {...register('proposedTimelineDays')}
-                            value={computedProposalTotals.proposedTimelineDays}
                             readOnly
                             aria-readonly="true"
                             aria-label="Proposal delivery time"
