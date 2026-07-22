@@ -22,9 +22,11 @@ export const API_ENDPOINTS = {
     UNPUBLISH: (id: string) => `services/${id}/unpublish`,
     REQUESTS: (id: string) => `services/${id}/requests`,
     EXPERT_REQUESTS: 'experts/me/service-requests',
+    CLIENT_REQUESTS: 'clients/me/service-requests',
     ACCEPT_REQUEST: (id: string) => `service-requests/${id}/accept`,
     DECLINE_REQUEST: (id: string) => `service-requests/${id}/decline`,
     OFFERS: (requestId: string) => `service-requests/${requestId}/offers`,
+    OFFER: (requestId: string) => `service-requests/${requestId}/offer`,
     ACCEPT_OFFER: (offerId: string) => `service-offers/${offerId}/accept`,
   },
   AI: {
@@ -133,10 +135,12 @@ export const QUERY_KEYS = {
   },
   SERVICES: {
     DETAIL: (id: string) => ['service', id] as const,
+    CATALOG: (params?: { PageIndex?: number; PageSize?: number; SearchTerm?: string }) => ['services', 'catalog', params ?? {}] as const,
     NEW: ['service', 'new'] as const,
     MINE: ['services', 'mine'] as const,
     SERVICE_REQUESTS: (serviceId: string) => ['services', serviceId, 'requests'] as const,
     EXPERT_REQUESTS: (status?: string) => ['services', 'expert-requests', status ?? 'all'] as const,
+    CLIENT_REQUESTS: (params?: { PageIndex?: number; PageSize?: number; SearchTerm?: string; status?: string }) => ['services', 'client-requests', params ?? {}] as const,
   },
   MEDIA: {
     LIST: ['media', 'list'] as const,

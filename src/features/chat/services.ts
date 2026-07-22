@@ -71,7 +71,8 @@ const mapConversationResponse = (item: Record<string, unknown>, currentUserId?: 
     unreadCount: (item.unreadCount as number) || 0,
     type: item.projectId ? 'PROJECT' : (item.jobId ? 'PROPOSAL' : 'SUPPORT'),
     relatedTitle: (item.projectTitle || item.jobTitle || 'General Inquiry') as string,
-    projectId: item.projectId as string
+    projectId: item.projectId as string,
+    serviceRequestId: item.serviceRequestId as string,
   };
 };
 

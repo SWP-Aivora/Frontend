@@ -1,14 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { ArrowLeft, ChevronRight, MessageSquare, Plus, Send, Trash2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ChevronRight, MessageSquare, Plus, Send, Trash2 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
 import { Textarea } from '@/shared/components/ui/Textarea';
 import { QUERY_KEYS } from '@/shared/constants';
 import { servicesFeatureApi } from '../services';
-import { ServiceRequestStatus, type ServiceOfferMilestone } from '../types';
+import { ServiceRequestStatus, type CreateServiceOfferPayload, type ServiceOffer, type ServiceOfferMilestone } from '../types';
 import { ServiceRequestStatusBadge } from '../components/ServiceStatusBadge';
 import { MissingApiNotice } from '../components/MissingApiNotice';
 import { serviceOfferSchema } from '../schema';
@@ -22,11 +22,11 @@ export const ExpertServiceRequestDetailPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [milestones, setMilestones] = useState<ServiceOfferMilestone[]>(createDefaultMilestones);
-  const [amount, setAmount] = useState(1);
+  const [sentOffer, setSentOffer] = useState<ServiceOffer | null>(null);
 
   useEffect(() => {
     setMilestones(createDefaultMilestones());
-    setAmount(1);
+    setSentOffer(null);
   }, [requestId]);
 
   const { data: serviceData, isLoading: isServiceLoading } = useQuery({
@@ -45,6 +45,12 @@ export const ExpertServiceRequestDetailPage = () => {
   const request = useMemo(() => (
     data?.data?.find(item => item.id === requestId && item.serviceId === serviceId) ?? null
   ), [data?.data, requestId, serviceId]);
+  const amount = useMemo(
+    () => milestones.reduce((total, milestone) => total + (Number(milestone.amount) || 0), 0),
+    [milestones],
+  );
+  const offerValidation = useMemo(() => serviceOfferSchema.safeParse({ amount, milestones }), [amount, milestones]);
+  const offerValidationMessage = offerValidation.success ? null : offerValidation.error.issues[0]?.message ?? 'Please complete the final offer fields.';
   const isPending = String(request?.status ?? '').toUpperCase() === ServiceRequestStatus.PENDING;
   const isAccepted = String(request?.status ?? '').toUpperCase() === ServiceRequestStatus.ACCEPTED;
 
@@ -69,21 +75,34 @@ export const ExpertServiceRequestDetailPage = () => {
   });
 
   const offerMutation = useMutation({
-    mutationFn: () => servicesFeatureApi.createServiceOffer(requestId!, {
-      amount,
-      milestones: milestones.map((milestone, index) => ({ ...milestone, amount: Number(milestone.amount), dueDays: Number(milestone.dueDays), orderIndex: index })),
-    }),
-    onSuccess: () => toast.success('Final offer sent to client.'),
+    mutationFn: (payload: CreateServiceOfferPayload) => servicesFeatureApi.createServiceOffer(requestId!, payload),
+    onSuccess: (response) => {
+      if (response.data) {
+        setSentOffer(response.data);
+      }
+      toast.success('Final offer sent to client.');
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SERVICES.SERVICE_REQUESTS(serviceId) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SERVICES.EXPERT_REQUESTS('all') });
+    },
     onError: () => toast.error('Failed to send final offer.'),
   });
 
   const submitOffer = () => {
-    const result = serviceOfferSchema.safeParse({ amount, milestones });
-    if (!result.success) {
-      toast.error(result.error.issues[0]?.message ?? 'Please check final offer fields.');
+    if (sentOffer) return;
+
+    if (!offerValidation.success) {
+      toast.error(offerValidationMessage ?? 'Please check final offer fields.');
       return;
     }
-    offerMutation.mutate();
+    offerMutation.mutate({
+      amount: offerValidation.data.amount,
+      milestones: offerValidation.data.milestones.map((milestone, index) => ({
+        ...milestone,
+        amount: Number(milestone.amount),
+        dueDays: Number(milestone.dueDays),
+        orderIndex: index,
+      })),
+    });
   };
 
   const setMilestoneField = (index: number, field: keyof ServiceOfferMilestone, value: string | number) => {
@@ -131,9 +150,15 @@ export const ExpertServiceRequestDetailPage = () => {
             <p className="mt-2 text-sm font-medium text-slate-500">Client: {request.clientName || request.clientId}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button disabled title="Client chat is coming soon." variant="outline" className="rounded-full">
+            <Button
+              type="button"
+              variant="outline"
+              disabled
+              title="Opening the existing General Inquiry chat from here requires a direct conversation lookup API."
+              className="rounded-full"
+            >
               <MessageSquare className="mr-2 size-4" />
-              Chat Coming Soon
+              Open Chat
             </Button>
             {isPending && (
               <>
@@ -158,44 +183,92 @@ export const ExpertServiceRequestDetailPage = () => {
         </div>
       </section>
 
-      <section className="rounded-lg border border-slate-100 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-xl font-black text-slate-900">Create final offer</h2>
-            <p className="mt-1 text-sm font-medium text-slate-500">Available after accepting the request.</p>
-          </div>
-          {!isAccepted && <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black uppercase tracking-wider text-slate-500">Request must be accepted</span>}
-        </div>
-        <fieldset disabled={!isAccepted || offerMutation.isPending} className="mt-5 space-y-4 disabled:opacity-60">
-          <Input type="number" value={amount} onChange={event => setAmount(Number(event.target.value))} placeholder="Final offer amount" />
-          {milestones.map((milestone, index) => (
-            <div key={index} className="rounded-lg border border-slate-100 bg-slate-50/60 p-4">
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_120px_120px_40px]">
-                <Input value={milestone.title} onChange={event => setMilestoneField(index, 'title', event.target.value)} placeholder="Milestone title" />
-                <Input type="number" value={milestone.amount} onChange={event => setMilestoneField(index, 'amount', Number(event.target.value))} placeholder="Amount" />
-                <Input type="number" value={milestone.dueDays} onChange={event => setMilestoneField(index, 'dueDays', Number(event.target.value))} placeholder="Due days" />
-                <Button type="button" variant="ghost" disabled={milestones.length === 1} onClick={() => setMilestones(current => current.filter((_, itemIndex) => itemIndex !== index))} className="h-12 rounded-lg text-rose-600">
-                  <Trash2 className="size-4" />
-                </Button>
-              </div>
-              <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-                <Textarea value={milestone.description ?? ''} onChange={event => setMilestoneField(index, 'description', event.target.value)} placeholder="Description" />
-                <Textarea value={milestone.acceptanceCriteria ?? ''} onChange={event => setMilestoneField(index, 'acceptanceCriteria', event.target.value)} placeholder="Acceptance criteria" />
-              </div>
+      {isAccepted && (
+        <section className="rounded-lg border border-slate-100 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-xl font-black text-slate-900">Create final offer</h2>
+              <p className="mt-1 text-sm font-medium text-slate-500">
+                {sentOffer ? 'Final offer has been sent to the client.' : 'Send a final offer with milestones for this accepted request.'}
+              </p>
             </div>
-          ))}
-          <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
-            <Button type="button" variant="outline" onClick={() => setMilestones(current => [...current, { title: '', description: '', amount: 1, dueDays: 7, acceptanceCriteria: '', orderIndex: current.length }])} className="rounded-full">
-              <Plus className="mr-2 size-4" />
-              Add Milestone
-            </Button>
-            <Button type="button" onClick={submitOffer} className="rounded-full px-8">
-              <Send className="mr-2 size-4" />
-              {offerMutation.isPending ? 'Sending...' : 'Send Final Offer'}
-            </Button>
           </div>
-        </fieldset>
-      </section>
+          {sentOffer && (
+            <div className="mt-5 rounded-lg border border-emerald-100 bg-emerald-50 p-4">
+              <h3 className="flex items-center gap-2 text-base font-black text-emerald-900">
+                <CheckCircle2 className="size-5 text-emerald-600" />
+                Final offer sent
+              </h3>
+              <p className="mt-2 text-sm font-medium text-emerald-800">
+                Total: {sentOffer.amount.toLocaleString()} Aivora Coin · {sentOffer.milestones.length} milestone{sentOffer.milestones.length === 1 ? '' : 's'}
+              </p>
+            </div>
+          )}
+          {!sentOffer && (
+            <fieldset disabled={offerMutation.isPending} className="mt-5 space-y-4 disabled:opacity-60">
+              <FinalOfferField label="Final offer amount">
+                <Input
+                  type="number"
+                  value={amount}
+                  readOnly
+                  aria-readonly="true"
+                  placeholder="Final offer amount"
+                  className="cursor-not-allowed bg-slate-50 font-bold text-slate-700"
+                />
+              </FinalOfferField>
+              {milestones.map((milestone, index) => (
+                <div key={index} className="rounded-lg border border-slate-100 bg-slate-50/60 p-4">
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_120px_120px_40px]">
+                    <FinalOfferField label="Milestone title">
+                      <Input value={milestone.title} onChange={event => setMilestoneField(index, 'title', event.target.value)} placeholder="Milestone title" />
+                    </FinalOfferField>
+                    <FinalOfferField label="Amount">
+                      <Input type="number" value={milestone.amount} onChange={event => setMilestoneField(index, 'amount', Number(event.target.value))} placeholder="Amount" />
+                    </FinalOfferField>
+                    <FinalOfferField label="Due days">
+                      <Input type="number" value={milestone.dueDays} onChange={event => setMilestoneField(index, 'dueDays', Number(event.target.value))} placeholder="Due days" />
+                    </FinalOfferField>
+                    <div className="flex items-end">
+                      <Button type="button" variant="ghost" disabled={milestones.length === 1} onClick={() => setMilestones(current => current.filter((_, itemIndex) => itemIndex !== index))} className="h-12 rounded-lg text-rose-600">
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <FinalOfferField label="Description">
+                      <Textarea value={milestone.description ?? ''} onChange={event => setMilestoneField(index, 'description', event.target.value)} placeholder="Description" />
+                    </FinalOfferField>
+                    <FinalOfferField label="Acceptance criteria">
+                      <Textarea value={milestone.acceptanceCriteria ?? ''} onChange={event => setMilestoneField(index, 'acceptanceCriteria', event.target.value)} placeholder="Acceptance criteria" />
+                    </FinalOfferField>
+                  </div>
+                </div>
+              ))}
+              <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
+                <Button type="button" variant="outline" onClick={() => setMilestones(current => [...current, { title: '', description: '', amount: 1, dueDays: 7, acceptanceCriteria: '', orderIndex: current.length }])} className="rounded-full">
+                  <Plus className="mr-2 size-4" />
+                  Add Milestone
+                </Button>
+                <div className="flex flex-col items-start gap-2 sm:items-end">
+                  <Button
+                    type="button"
+                    disabled={offerMutation.isPending || !offerValidation.success}
+                    onClick={submitOffer}
+                    className="rounded-full px-8"
+                    title={!offerValidation.success ? offerValidationMessage ?? undefined : undefined}
+                  >
+                    <Send className="mr-2 size-4" />
+                    {offerMutation.isPending ? 'Sending...' : 'Send Final Offer'}
+                  </Button>
+                  {offerValidationMessage && (
+                    <p className="max-w-sm text-left text-xs font-bold text-amber-700 sm:text-right">{offerValidationMessage}</p>
+                  )}
+                </div>
+              </div>
+            </fieldset>
+          )}
+        </section>
+      )}
     </div>
   );
 };
@@ -205,4 +278,11 @@ const Info = ({ label, value }: { label: string; value: string }) => (
     <p className="text-xs font-black uppercase tracking-widest text-slate-400">{label}</p>
     <p className="mt-1 font-black text-slate-900">{value}</p>
   </div>
+);
+
+const FinalOfferField = ({ label, children }: { label: string; children: ReactNode }) => (
+  <label className="block">
+    <span className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</span>
+    {children}
+  </label>
 );

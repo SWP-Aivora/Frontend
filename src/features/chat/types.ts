@@ -18,6 +18,7 @@ export interface Conversation {
   type: 'PROJECT' | 'PROPOSAL' | 'SUPPORT';
   relatedTitle?: string;
   projectId?: string;
+  serviceRequestId?: string;
 }
 
 export interface Message {
