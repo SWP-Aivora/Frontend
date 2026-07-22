@@ -23,7 +23,7 @@ export const ClientServicesModulePage = ({ children }: ClientServicesModulePageP
         <p className="mt-1 font-medium text-slate-500">
           {isRequestsPage
             ? 'Track the services you have requested from experts.'
-            : 'Browse packaged expert services when catalog listing becomes available.'}
+            : 'Browse packaged expert services and request the package that fits your scope.'}
         </p>
         <div className="mt-6 overflow-x-auto border-b border-slate-200">
           <nav className="flex min-w-max gap-8" aria-label="Services sections">

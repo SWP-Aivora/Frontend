@@ -10,6 +10,48 @@ describe('servicesFeatureApi', () => {
     vi.clearAllMocks();
   });
 
+  it('lists published services using the client-safe catalog endpoint', async () => {
+    vi.mocked(apiClient.get).mockResolvedValueOnce({
+      data: {
+        success: true,
+        message: 'Services loaded',
+        statusCode: 200,
+        data: {
+          items: [
+            {
+              id: 'service-1',
+              expertId: 'expert-1',
+              expertName: 'Jane Expert',
+              title: 'AI dashboard build',
+              description: 'A complete dashboard service',
+              status: 'PUBLISHED',
+              packages: [
+                { id: 'package-1', tier: 'BASIC', title: 'Basic', price: 100, deliveryDays: 3 },
+              ],
+              faqs: [],
+            },
+          ],
+          pageIndex: 1,
+          pageSize: 12,
+          totalItems: 1,
+          totalPages: 1,
+        },
+      },
+    });
+
+    const response = await servicesFeatureApi.getServices({
+      PageIndex: 1,
+      PageSize: 12,
+      SearchTerm: ' dashboard ',
+    });
+
+    expect(apiClient.get).toHaveBeenCalledWith('services', {
+      params: { PageIndex: 1, PageSize: 12, SearchTerm: 'dashboard' },
+    });
+    expect(response.data[0]?.id).toBe('service-1');
+    expect(response.metadata.totalCount).toBe(1);
+  });
+
   it('creates a service using the contracted services endpoint', async () => {
     vi.mocked(apiClient.post).mockResolvedValueOnce({
       data: {
@@ -106,4 +148,3 @@ describe('servicesFeatureApi', () => {
     });
   });
 });
-

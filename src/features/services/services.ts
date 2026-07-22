@@ -1,6 +1,6 @@
 import apiClient from '@/lib/axios';
-import { normalizeBaseResponse } from '@/lib/api-utils';
-import type { BaseResponse } from '@/shared/types/api';
+import { normalizeBaseResponse, normalizePaginatedResponse } from '@/lib/api-utils';
+import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
 import { API_ENDPOINTS } from '@/shared/constants';
 import type {
   AcceptServiceOfferResult,
@@ -19,6 +19,16 @@ import type {
 import { PackageTier, ServiceRequestStatus, ServiceStatus } from './types';
 
 type ApiRecord = Record<string, unknown>;
+
+export interface ServiceCatalogParams {
+  PageIndex?: number;
+  PageSize?: number;
+  SearchTerm?: string;
+}
+
+export interface ClientServiceRequestParams extends ServiceCatalogParams {
+  status?: string;
+}
 
 const getRecord = (value: unknown): ApiRecord => (
   value && typeof value === 'object' && !Array.isArray(value) ? value as ApiRecord : {}
@@ -124,11 +134,15 @@ const normalizeService = (value: unknown): ServiceListing => {
 
 const normalizeRequest = (value: unknown): ServiceRequest => {
   const item = getRecord(value);
+  const offers = getArray<unknown>(item, ['offers', 'Offers', 'serviceOffers', 'ServiceOffers']).map(normalizeOffer);
+  const offerRecord = item.offer ?? item.Offer ?? item.serviceOffer ?? item.ServiceOffer;
+
   return {
     id: getString(item, ['id', 'Id']),
     serviceId: getString(item, ['serviceId', 'ServiceId']),
     serviceTitle: getNullableString(item, ['serviceTitle', 'ServiceTitle']),
     expertId: getString(item, ['expertId', 'ExpertId']),
+    expertName: getNullableString(item, ['expertName', 'ExpertName']),
     clientId: getString(item, ['clientId', 'ClientId']),
     clientName: getNullableString(item, ['clientName', 'ClientName']),
     packageId: getString(item, ['packageId', 'PackageId']),
@@ -138,6 +152,7 @@ const normalizeRequest = (value: unknown): ServiceRequest => {
     note: getNullableString(item, ['note', 'Note']),
     status: normalizeRequestStatus(item.status ?? item.Status),
     createdAt: getString(item, ['createdAt', 'CreatedAt']) || undefined,
+    offer: offerRecord ? normalizeOffer(offerRecord) : (offers[0] ?? null),
   };
 };
 
@@ -205,6 +220,22 @@ const normalizeGeneratedService = (value: unknown): GeneratedServiceDescription 
 };
 
 export const servicesFeatureApi = {
+  getServices: async (params: ServiceCatalogParams = {}): Promise<PaginatedResponse<ServiceListing>> => {
+    const cleanParams: ServiceCatalogParams = {};
+    if (params.PageIndex) cleanParams.PageIndex = params.PageIndex;
+    if (params.PageSize) cleanParams.PageSize = params.PageSize;
+    if (params.SearchTerm?.trim()) cleanParams.SearchTerm = params.SearchTerm.trim();
+
+    const response = await apiClient.get(API_ENDPOINTS.SERVICES.BASE, {
+      params: Object.keys(cleanParams).length > 0 ? cleanParams : undefined,
+    });
+    const normalized = normalizePaginatedResponse<unknown>(response);
+    return {
+      ...normalized,
+      data: normalized.data.map(normalizeService),
+    };
+  },
+
   getMyServices: async (): Promise<BaseResponse<ServiceListing[]>> => {
     const response = await apiClient.get(API_ENDPOINTS.SERVICES.MINE);
     const normalized = normalizeBaseResponse<unknown[]>(response);
@@ -277,6 +308,23 @@ export const servicesFeatureApi = {
     };
   },
 
+  getClientServiceRequests: async (params: ClientServiceRequestParams = {}): Promise<PaginatedResponse<ServiceRequest>> => {
+    const cleanParams: ClientServiceRequestParams = {};
+    if (params.PageIndex) cleanParams.PageIndex = params.PageIndex;
+    if (params.PageSize) cleanParams.PageSize = params.PageSize;
+    if (params.SearchTerm?.trim()) cleanParams.SearchTerm = params.SearchTerm.trim();
+    if (params.status && params.status !== 'all') cleanParams.status = params.status;
+
+    const response = await apiClient.get(API_ENDPOINTS.SERVICES.CLIENT_REQUESTS, {
+      params: Object.keys(cleanParams).length > 0 ? cleanParams : undefined,
+    });
+    const normalized = normalizePaginatedResponse<unknown>(response);
+    return {
+      ...normalized,
+      data: normalized.data.map(normalizeRequest),
+    };
+  },
+
   getServiceRequestsByService: async (serviceId: string): Promise<BaseResponse<ServiceRequest[]>> => {
     const response = await apiClient.get(API_ENDPOINTS.SERVICES.REQUESTS(serviceId));
     const normalized = normalizeBaseResponse<unknown[]>(response);
@@ -339,4 +387,3 @@ export const servicesFeatureApi = {
     };
   },
 };
-

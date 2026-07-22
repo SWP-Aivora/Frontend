@@ -97,6 +97,7 @@ export interface ServiceRequest {
   serviceId: string;
   serviceTitle?: string | null;
   expertId: string;
+  expertName?: string | null;
   clientId: string;
   clientName?: string | null;
   packageId: string;
@@ -106,6 +107,7 @@ export interface ServiceRequest {
   note?: string | null;
   status: ServiceRequestStatus | string;
   createdAt?: string;
+  offer?: ServiceOffer | null;
 }
 
 export interface CreateServiceRequestPayload {
@@ -168,4 +170,3 @@ export interface GeneratedServiceDescription {
   faqs: ServiceFaqPayload[];
   provider?: string;
 }
-

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -7,6 +7,8 @@ import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
 import { Textarea } from '@/shared/components/ui/Textarea';
 import { QUERY_KEYS } from '@/shared/constants';
+import { chatService } from '@/features/chat/services';
+import { useAuthStore } from '@/features/auth/store';
 import { servicesFeatureApi } from '../services';
 import { ServiceRequestStatus, type ServiceOfferMilestone } from '../types';
 import { ServiceRequestStatusBadge } from '../components/ServiceStatusBadge';
@@ -21,12 +23,11 @@ export const ExpertServiceRequestDetailPage = () => {
   const { serviceId = '', requestId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const user = useAuthStore(state => state.user);
   const [milestones, setMilestones] = useState<ServiceOfferMilestone[]>(createDefaultMilestones);
-  const [amount, setAmount] = useState(1);
 
   useEffect(() => {
     setMilestones(createDefaultMilestones());
-    setAmount(1);
   }, [requestId]);
 
   const { data: serviceData, isLoading: isServiceLoading } = useQuery({
@@ -45,6 +46,10 @@ export const ExpertServiceRequestDetailPage = () => {
   const request = useMemo(() => (
     data?.data?.find(item => item.id === requestId && item.serviceId === serviceId) ?? null
   ), [data?.data, requestId, serviceId]);
+  const amount = useMemo(
+    () => milestones.reduce((total, milestone) => total + (Number(milestone.amount) || 0), 0),
+    [milestones],
+  );
   const isPending = String(request?.status ?? '').toUpperCase() === ServiceRequestStatus.PENDING;
   const isAccepted = String(request?.status ?? '').toUpperCase() === ServiceRequestStatus.ACCEPTED;
 
@@ -66,6 +71,37 @@ export const ExpertServiceRequestDetailPage = () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SERVICES.EXPERT_REQUESTS('all') });
     },
     onError: () => toast.error('Failed to decline service request.'),
+  });
+
+  const findConversationForRequest = async () => {
+    if (!request?.clientId) return null;
+
+    const conversations = await chatService.getAll({ PageIndex: 1, PageSize: 100 }, user?.id);
+    return conversations.data.find(conversation => (
+      conversation.recipient.id === request.clientId
+      && conversation.type === 'SUPPORT'
+      && !conversation.projectId
+      && !conversation.serviceRequestId
+    )) ?? null;
+  };
+
+  const openChatMutation = useMutation({
+    mutationFn: async () => {
+      if (!requestId) throw new Error('Service request is missing.');
+
+      const existingConversation = await findConversationForRequest();
+      if (existingConversation) return existingConversation.id;
+
+      throw new Error('General Inquiry chat with this client does not exist yet.');
+    },
+    onSuccess: (conversationId) => {
+      toast.success('Chat opened.');
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      navigate('/expert/messages', { state: { conversationId } });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to open chat.');
+    },
   });
 
   const offerMutation = useMutation({
@@ -131,9 +167,15 @@ export const ExpertServiceRequestDetailPage = () => {
             <p className="mt-2 text-sm font-medium text-slate-500">Client: {request.clientName || request.clientId}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button disabled title="Client chat is coming soon." variant="outline" className="rounded-full">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={openChatMutation.isPending || acceptMutation.isPending || declineMutation.isPending}
+              onClick={() => openChatMutation.mutate()}
+              className="rounded-full"
+            >
               <MessageSquare className="mr-2 size-4" />
-              Chat Coming Soon
+              {openChatMutation.isPending ? 'Opening Chat...' : 'Open Chat'}
             </Button>
             {isPending && (
               <>
@@ -158,44 +200,66 @@ export const ExpertServiceRequestDetailPage = () => {
         </div>
       </section>
 
-      <section className="rounded-lg border border-slate-100 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-xl font-black text-slate-900">Create final offer</h2>
-            <p className="mt-1 text-sm font-medium text-slate-500">Available after accepting the request.</p>
-          </div>
-          {!isAccepted && <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black uppercase tracking-wider text-slate-500">Request must be accepted</span>}
-        </div>
-        <fieldset disabled={!isAccepted || offerMutation.isPending} className="mt-5 space-y-4 disabled:opacity-60">
-          <Input type="number" value={amount} onChange={event => setAmount(Number(event.target.value))} placeholder="Final offer amount" />
-          {milestones.map((milestone, index) => (
-            <div key={index} className="rounded-lg border border-slate-100 bg-slate-50/60 p-4">
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_120px_120px_40px]">
-                <Input value={milestone.title} onChange={event => setMilestoneField(index, 'title', event.target.value)} placeholder="Milestone title" />
-                <Input type="number" value={milestone.amount} onChange={event => setMilestoneField(index, 'amount', Number(event.target.value))} placeholder="Amount" />
-                <Input type="number" value={milestone.dueDays} onChange={event => setMilestoneField(index, 'dueDays', Number(event.target.value))} placeholder="Due days" />
-                <Button type="button" variant="ghost" disabled={milestones.length === 1} onClick={() => setMilestones(current => current.filter((_, itemIndex) => itemIndex !== index))} className="h-12 rounded-lg text-rose-600">
-                  <Trash2 className="size-4" />
-                </Button>
-              </div>
-              <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-                <Textarea value={milestone.description ?? ''} onChange={event => setMilestoneField(index, 'description', event.target.value)} placeholder="Description" />
-                <Textarea value={milestone.acceptanceCriteria ?? ''} onChange={event => setMilestoneField(index, 'acceptanceCriteria', event.target.value)} placeholder="Acceptance criteria" />
-              </div>
+      {isAccepted && (
+        <section className="rounded-lg border border-slate-100 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-xl font-black text-slate-900">Create final offer</h2>
+              <p className="mt-1 text-sm font-medium text-slate-500">Send a final offer with milestones for this accepted request.</p>
             </div>
-          ))}
-          <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
-            <Button type="button" variant="outline" onClick={() => setMilestones(current => [...current, { title: '', description: '', amount: 1, dueDays: 7, acceptanceCriteria: '', orderIndex: current.length }])} className="rounded-full">
-              <Plus className="mr-2 size-4" />
-              Add Milestone
-            </Button>
-            <Button type="button" onClick={submitOffer} className="rounded-full px-8">
-              <Send className="mr-2 size-4" />
-              {offerMutation.isPending ? 'Sending...' : 'Send Final Offer'}
-            </Button>
           </div>
-        </fieldset>
-      </section>
+          <fieldset disabled={offerMutation.isPending} className="mt-5 space-y-4 disabled:opacity-60">
+            <FinalOfferField label="Final offer amount">
+              <Input
+                type="number"
+                value={amount}
+                readOnly
+                aria-readonly="true"
+                placeholder="Final offer amount"
+                className="cursor-not-allowed bg-slate-50 font-bold text-slate-700"
+              />
+            </FinalOfferField>
+            {milestones.map((milestone, index) => (
+              <div key={index} className="rounded-lg border border-slate-100 bg-slate-50/60 p-4">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_120px_120px_40px]">
+                  <FinalOfferField label="Milestone title">
+                    <Input value={milestone.title} onChange={event => setMilestoneField(index, 'title', event.target.value)} placeholder="Milestone title" />
+                  </FinalOfferField>
+                  <FinalOfferField label="Amount">
+                    <Input type="number" value={milestone.amount} onChange={event => setMilestoneField(index, 'amount', Number(event.target.value))} placeholder="Amount" />
+                  </FinalOfferField>
+                  <FinalOfferField label="Due days">
+                    <Input type="number" value={milestone.dueDays} onChange={event => setMilestoneField(index, 'dueDays', Number(event.target.value))} placeholder="Due days" />
+                  </FinalOfferField>
+                  <div className="flex items-end">
+                    <Button type="button" variant="ghost" disabled={milestones.length === 1} onClick={() => setMilestones(current => current.filter((_, itemIndex) => itemIndex !== index))} className="h-12 rounded-lg text-rose-600">
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <FinalOfferField label="Description">
+                    <Textarea value={milestone.description ?? ''} onChange={event => setMilestoneField(index, 'description', event.target.value)} placeholder="Description" />
+                  </FinalOfferField>
+                  <FinalOfferField label="Acceptance criteria">
+                    <Textarea value={milestone.acceptanceCriteria ?? ''} onChange={event => setMilestoneField(index, 'acceptanceCriteria', event.target.value)} placeholder="Acceptance criteria" />
+                  </FinalOfferField>
+                </div>
+              </div>
+            ))}
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
+              <Button type="button" variant="outline" onClick={() => setMilestones(current => [...current, { title: '', description: '', amount: 1, dueDays: 7, acceptanceCriteria: '', orderIndex: current.length }])} className="rounded-full">
+                <Plus className="mr-2 size-4" />
+                Add Milestone
+              </Button>
+              <Button type="button" onClick={submitOffer} className="rounded-full px-8">
+                <Send className="mr-2 size-4" />
+                {offerMutation.isPending ? 'Sending...' : 'Send Final Offer'}
+              </Button>
+            </div>
+          </fieldset>
+        </section>
+      )}
     </div>
   );
 };
@@ -205,4 +269,11 @@ const Info = ({ label, value }: { label: string; value: string }) => (
     <p className="text-xs font-black uppercase tracking-widest text-slate-400">{label}</p>
     <p className="mt-1 font-black text-slate-900">{value}</p>
   </div>
+);
+
+const FinalOfferField = ({ label, children }: { label: string; children: ReactNode }) => (
+  <label className="block">
+    <span className="mb-1.5 block text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</span>
+    {children}
+  </label>
 );

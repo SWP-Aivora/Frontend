@@ -1,5 +1,5 @@
 import { type ComponentProps, type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Sparkles, Trash2 } from 'lucide-react';
+import { Bot, ChevronDown, Loader2, Plus, Send, SlidersHorizontal, Sparkles, Trash2, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
@@ -12,7 +12,6 @@ import {
   type ServiceFormValues,
 } from '../schema';
 import { PackageTier, ServiceStatus, type GeneratedServiceDescription, type ServiceListing } from '../types';
-import { MissingApiNotice } from './MissingApiNotice';
 
 interface ServiceFormProps {
   initialService?: ServiceListing | null;
@@ -34,6 +33,20 @@ const defaultValues: ServiceFormValues = {
     { tier: PackageTier.PREMIUM, title: 'Premium', description: '', price: 500, deliveryDays: 14, features: '' },
   ],
   faqs: [{ question: '', answer: '' }],
+};
+
+type ServiceAiMessage = {
+  id: string;
+  role: 'assistant' | 'user';
+  content: string;
+};
+
+const createMessageId = () => {
+  if (globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 };
 
 const toFormValues = (service?: ServiceListing | null): ServiceFormValues => {
@@ -68,6 +81,15 @@ export const ServiceForm = ({ initialService, isSaving, isPublishing, isGenerati
     targetClient: 'startup',
     language: 'en',
   });
+  const [aiInput, setAiInput] = useState('');
+  const [aiMessages, setAiMessages] = useState<ServiceAiMessage[]>([
+    {
+      id: 'service-ai-welcome',
+      role: 'assistant',
+      content: 'Describe the service you want to offer. I will draft the title, description, packages, and FAQs into the form for you.',
+    },
+  ]);
+  const [isAiSettingsOpen, setIsAiSettingsOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const aiColumnRef = useRef<HTMLElement>(null);
   const [formPanelHeight, setFormPanelHeight] = useState<number>();
@@ -157,16 +179,7 @@ export const ServiceForm = ({ initialService, isSaving, isPublishing, isGenerati
     onSave(result.data, publishAfterSave);
   };
 
-  const generate = async () => {
-    const result = aiServiceGenerationSchema.safeParse(aiValues);
-    if (!result.success) {
-      toast.error(result.error.issues[0]?.message ?? 'Please check the AI fields.');
-      return;
-    }
-
-    const generated = await onGenerate(result.data);
-    if (!generated) return;
-
+  const applyGeneratedService = (generated: GeneratedServiceDescription) => {
     setValues(current => ({
       ...current,
       title: generated.suggestedTitle || current.title,
@@ -187,61 +200,177 @@ export const ServiceForm = ({ initialService, isSaving, isPublishing, isGenerati
     }));
   };
 
+  const generate = async (rawInput: string) => {
+    const payload = {
+      ...aiValues,
+      rawInput,
+    };
+    const result = aiServiceGenerationSchema.safeParse(payload);
+    if (!result.success) {
+      toast.error(result.error.issues[0]?.message ?? 'Please check the AI fields.');
+      setIsAiSettingsOpen(true);
+      return;
+    }
+
+    const userMessage: ServiceAiMessage = {
+      id: createMessageId(),
+      role: 'user',
+      content: result.data.rawInput,
+    };
+    setAiMessages(current => [...current, userMessage]);
+    setAiInput('');
+
+    const generated = await onGenerate(result.data);
+    if (!generated) return;
+
+    applyGeneratedService(generated);
+    setAiMessages(current => [
+      ...current,
+      {
+        id: createMessageId(),
+        role: 'assistant',
+        content: 'I generated a service draft and applied it to the form. Review the details, packages, and FAQs before saving or publishing.',
+      },
+    ]);
+  };
+
+  const submitAiChat = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const rawInput = aiInput.trim();
+    if (!rawInput || isGenerating) return;
+    void generate(rawInput);
+  };
+
   return (
     <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(280px,0.3fr)_minmax(0,0.7fr)]">
       <aside ref={aiColumnRef} className="space-y-4 self-start">
-        <section className="rounded-lg border border-slate-100 bg-white p-6 shadow-sm">
-          <h2 className="flex items-center gap-2 text-lg font-black text-slate-900">
-            <Sparkles className="size-5 text-primary" />
-            AI assist
-          </h2>
-          <p className="mt-2 text-sm font-medium leading-6 text-slate-500">Generate draft copy and packages, then review and edit before saving.</p>
-          <div className="mt-5 space-y-4">
-            <LabeledField label="Service idea">
-              <AutoResizeTextarea value={aiValues.rawInput} onChange={event => setAiValues(current => ({ ...current, rawInput: event.target.value }))} placeholder="Describe the service you offer" />
-            </LabeledField>
-            <LabeledField label="Skills">
-              <Input value={aiValues.skills} onChange={event => setAiValues(current => ({ ...current, skills: event.target.value }))} placeholder="Skills, comma separated" />
-            </LabeledField>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-              <LabeledField label="Starting price">
-                <Input type="number" value={aiValues.priceFrom} onChange={event => setAiValues(current => ({ ...current, priceFrom: Number(event.target.value) }))} placeholder="Price from" />
-              </LabeledField>
-              <LabeledField label="Delivery days">
-                <Input type="number" value={aiValues.deliveryDays} onChange={event => setAiValues(current => ({ ...current, deliveryDays: Number(event.target.value) }))} placeholder="Days" />
-              </LabeledField>
+        <section className="flex min-h-[560px] flex-col overflow-hidden rounded-lg border border-slate-100 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/60 p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-primary text-white shadow-lg shadow-primary/20">
+                <Bot className="size-5" />
+              </div>
+              <div>
+                <h2 className="text-sm font-black leading-none text-slate-900">AIVORA AI</h2>
+                <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-brand-success">Service Assistant</p>
+              </div>
             </div>
-            <LabeledField label="Tone">
-              <select value={aiValues.tone} onChange={event => setAiValues(current => ({ ...current, tone: event.target.value as AiServiceGenerationValues['tone'] }))} className="h-12 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold">
-                <option value="professional">Professional</option>
-                <option value="friendly">Friendly</option>
-                <option value="premium">Premium</option>
-                <option value="technical">Technical</option>
-              </select>
-            </LabeledField>
-            <LabeledField label="Target client">
-              <select value={aiValues.targetClient} onChange={event => setAiValues(current => ({ ...current, targetClient: event.target.value as AiServiceGenerationValues['targetClient'] }))} className="h-12 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold">
-                <option value="startup">Startup</option>
-                <option value="sme">SME</option>
-                <option value="enterprise">Enterprise</option>
-                <option value="individual">Individual</option>
-              </select>
-            </LabeledField>
-            <LabeledField label="Language">
-              <select value={aiValues.language} onChange={event => setAiValues(current => ({ ...current, language: event.target.value as AiServiceGenerationValues['language'] }))} className="h-12 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold">
-                <option value="en">English</option>
-                <option value="vi">Vietnamese</option>
-              </select>
-            </LabeledField>
-            <Button type="button" onClick={generate} disabled={isGenerating} className="w-full rounded-full">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Draft Mode</span>
+          </div>
+
+          <div className="flex-1 space-y-4 overflow-y-auto bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] p-4 [background-size:16px_16px]">
+            {aiMessages.map(message => {
+              const isAssistant = message.role === 'assistant';
+
+              return (
+                <div key={message.id} className={cn('flex max-w-[92%] items-start gap-3', isAssistant ? 'mr-auto' : 'ml-auto flex-row-reverse')}>
+                  <div className={cn(
+                    'flex size-8 shrink-0 items-center justify-center rounded-lg border shadow-sm',
+                    isAssistant ? 'border-slate-100 bg-white' : 'border-primary bg-primary'
+                  )}>
+                    {isAssistant ? <Bot className="size-4 text-primary" /> : <User className="size-4 text-white" />}
+                  </div>
+                  <div className={cn(
+                    'rounded-xl p-3 text-sm leading-relaxed',
+                    isAssistant
+                      ? 'rounded-tl-none border border-slate-100 bg-white text-slate-700 shadow-sm'
+                      : 'rounded-tr-none bg-primary text-white shadow-md shadow-primary/10'
+                  )}>
+                    {message.content}
+                  </div>
+                </div>
+              );
+            })}
+
+            {isGenerating && (
+              <div className="mr-auto flex max-w-[92%] items-start gap-3">
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-slate-100 bg-white shadow-sm">
+                  <Bot className="size-4 text-primary" />
+                </div>
+                <div className="flex items-center gap-2 rounded-xl rounded-tl-none border border-slate-100 bg-white p-3 text-sm italic text-slate-400 shadow-sm">
+                  <Loader2 className="size-4 animate-spin" />
+                  Generating service draft...
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="border-t border-slate-100 bg-white p-4">
+            <button
+              type="button"
+              onClick={() => setIsAiSettingsOpen(current => !current)}
+              className="mb-3 flex w-full items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-left text-xs font-black uppercase tracking-[0.18em] text-slate-500 transition hover:bg-slate-100"
+              aria-expanded={isAiSettingsOpen}
+            >
+              <span className="flex items-center gap-2">
+                <SlidersHorizontal className="size-4 text-primary" />
+                AI settings
+              </span>
+              <ChevronDown className={cn('size-4 transition-transform', isAiSettingsOpen && 'rotate-180')} />
+            </button>
+
+            {isAiSettingsOpen && (
+              <div className="mb-4 space-y-4 rounded-lg border border-slate-100 bg-slate-50/70 p-3">
+                <LabeledField label="Skills">
+                  <Input value={aiValues.skills} onChange={event => setAiValues(current => ({ ...current, skills: event.target.value }))} placeholder="Skills, comma separated" />
+                </LabeledField>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+                  <LabeledField label="Starting price">
+                    <Input type="number" value={aiValues.priceFrom} onChange={event => setAiValues(current => ({ ...current, priceFrom: Number(event.target.value) }))} placeholder="Price from" />
+                  </LabeledField>
+                  <LabeledField label="Delivery days">
+                    <Input type="number" value={aiValues.deliveryDays} onChange={event => setAiValues(current => ({ ...current, deliveryDays: Number(event.target.value) }))} placeholder="Days" />
+                  </LabeledField>
+                </div>
+                <LabeledField label="Tone">
+                  <select value={aiValues.tone} onChange={event => setAiValues(current => ({ ...current, tone: event.target.value as AiServiceGenerationValues['tone'] }))} className="h-12 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold">
+                    <option value="professional">Professional</option>
+                    <option value="friendly">Friendly</option>
+                    <option value="premium">Premium</option>
+                    <option value="technical">Technical</option>
+                  </select>
+                </LabeledField>
+                <LabeledField label="Target client">
+                  <select value={aiValues.targetClient} onChange={event => setAiValues(current => ({ ...current, targetClient: event.target.value as AiServiceGenerationValues['targetClient'] }))} className="h-12 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold">
+                    <option value="startup">Startup</option>
+                    <option value="sme">SME</option>
+                    <option value="enterprise">Enterprise</option>
+                    <option value="individual">Individual</option>
+                  </select>
+                </LabeledField>
+                <LabeledField label="Language">
+                  <select value={aiValues.language} onChange={event => setAiValues(current => ({ ...current, language: event.target.value as AiServiceGenerationValues['language'] }))} className="h-12 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold">
+                    <option value="en">English</option>
+                    <option value="vi">Vietnamese</option>
+                  </select>
+                </LabeledField>
+              </div>
+            )}
+
+            <form onSubmit={submitAiChat} className="relative">
+              <input
+                type="text"
+                value={aiInput}
+                onChange={event => setAiInput(event.target.value)}
+                disabled={isGenerating}
+                placeholder="Describe the service you offer..."
+                className="h-12 w-full rounded-xl border border-slate-100 bg-slate-50 pl-5 pr-12 text-sm font-medium outline-none transition focus:bg-white focus:ring-4 focus:ring-primary/5 disabled:opacity-50"
+              />
+              <button
+                type="submit"
+                disabled={!aiInput.trim() || isGenerating}
+                className="absolute right-1.5 top-1.5 flex size-9 items-center justify-center rounded-lg bg-primary text-white shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95 disabled:scale-100 disabled:opacity-50"
+                aria-label="Generate service draft"
+              >
+                {isGenerating ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+              </button>
+            </form>
+            <Button type="button" variant="outline" onClick={() => aiInput.trim() && void generate(aiInput.trim())} disabled={!aiInput.trim() || isGenerating} className="mt-3 w-full rounded-full">
               <Sparkles className="mr-2 size-4" />
               {isGenerating ? 'Generating...' : 'Generate into form'}
             </Button>
           </div>
         </section>
-        <MissingApiNotice
-          message="This AI endpoint does not define uploaded files or GitHub URL fields in GenerateServiceDescriptionRequest. Those inputs are intentionally not functional here."
-        />
       </aside>
 
       <div
