@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Tags, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { categoryService } from '@/shared/services/categoryService';
+import { getErrorMessage } from '@/lib/api-utils';
 import { AdminPageTitle } from '../components/AdminPageTitle';
 import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
 import { Button } from '@/shared/components/ui/Button';
@@ -33,14 +34,7 @@ export const AdminCategoriesPage = () => {
       setDescription('');
     },
     onError: (error: unknown) => {
-      let message = 'Failed to create category';
-      if (error instanceof Error) {
-        message = error.message;
-      } else if (typeof error === 'object' && error !== null) {
-        const err = error as { response?: { data?: { message?: string } } };
-        message = err.response?.data?.message || message;
-      }
-      toast.error(message);
+      toast.error(getErrorMessage(error, 'Failed to create category'));
     },
   });
 

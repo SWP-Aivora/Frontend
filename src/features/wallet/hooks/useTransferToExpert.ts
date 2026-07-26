@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { walletService } from '../services';
 import { toast } from 'sonner';
 import type { TransferFormValues } from '../schema';
+import { getErrorMessage } from '@/lib/api-utils';
 
 interface UseTransferToExpertOptions {
   recipientId: string;
@@ -35,7 +36,7 @@ export const useTransferToExpert = ({ recipientId, onSuccess }: UseTransferToExp
             .find((v): v is string => typeof v === 'string' && v.trim() !== '');
           if (msg) return msg;
         }
-        return error instanceof Error ? error.message : 'Direct transfer failed.';
+        return getErrorMessage(error, 'Direct transfer failed.');
       })();
       toast.error(message);
     },

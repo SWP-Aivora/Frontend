@@ -11,6 +11,7 @@ import {
   type ExpertProfileFormValues
 } from '../schema';
 import { profileService } from '../services';
+import { getErrorMessage } from '@/lib/api-utils';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/features/auth/store';
@@ -159,7 +160,7 @@ export const AccountInfoForm = ({ mode = 'account' }: AccountInfoFormProps) => {
           }
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Failed to load profile data';
+        const message = getErrorMessage(error, 'Failed to load profile data');
         setLoadError(message);
         toast.error(message);
         console.error('[AccountInfoForm] Load Error:', error);

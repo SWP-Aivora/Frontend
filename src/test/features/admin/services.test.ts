@@ -399,6 +399,27 @@ describe('adminService.getUserById', () => {
   });
 });
 
+describe('adminService.getJobPosts', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('calls the admin job-posts endpoint with the given params, including Status', async () => {
+    (vi.mocked(apiClient.get)).mockResolvedValue({
+      data: {
+        success: true,
+        data: { items: [], totalItems: 0, pageIndex: 1, pageSize: 10 },
+      },
+    });
+
+    await adminService.getJobPosts({ PageIndex: 1, PageSize: 10, Status: 'DRAFT' });
+
+    expect(apiClient.get).toHaveBeenCalledWith('admin/job-posts', {
+      params: { PageIndex: 1, PageSize: 10, Status: 'DRAFT' },
+    });
+  });
+});
+
 describe('adminService.getExpertReviews', () => {
   beforeEach(() => {
     vi.clearAllMocks();

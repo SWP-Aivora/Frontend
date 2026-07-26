@@ -26,6 +26,8 @@ import {  CANCELLED_JOB_POST_LOCKED_MESSAGE,
 
 type FlowStep = 'PLANNING' | 'DRAFTING' | 'REVIEWING' | 'MATCHING';
 
+const DRAFT_STORAGE_KEY = 'aivora:post-job:suggestion-id';
+
 const getDateAfterDays = (days: number | null | undefined): string | null => {
   if (!days || days < 1) {
     return null;
@@ -231,7 +233,7 @@ export const PostJobPage = () => {
       ]);
     },
     onError: (error: unknown) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to start AI assistant');
+      toast.error(getErrorMessage(error, 'Failed to start AI assistant'));
     }
   });
 
@@ -265,7 +267,7 @@ export const PostJobPage = () => {
       ]);
     },
     onError: (error: unknown) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to update draft');
+      toast.error(getErrorMessage(error, 'Failed to update draft'));
     }
   });
 
@@ -313,7 +315,7 @@ export const PostJobPage = () => {
       ]);
     },
     onError: (error: unknown) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to update draft');
+      toast.error(getErrorMessage(error, 'Failed to update draft'));
     }
   });
 
@@ -424,7 +426,7 @@ export const PostJobPage = () => {
       ]);
     },
     onError: (error: unknown) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to reject suggestion');
+      toast.error(getErrorMessage(error, 'Failed to reject suggestion'));
     }
   });
 
@@ -442,7 +444,7 @@ export const PostJobPage = () => {
       queryClient.invalidateQueries({ queryKey: ['clientProjects'] });
     },
     onError: (error: unknown) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to save');
+      toast.error(getErrorMessage(error, 'Failed to save'));
     }
   });
 
@@ -473,7 +475,7 @@ export const PostJobPage = () => {
       queryClient.invalidateQueries({ queryKey: ['clientProjects'] });
     },
     onError: (error: unknown) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to save');
+      toast.error(getErrorMessage(error, 'Failed to save'));
     }
   });
 
@@ -498,6 +500,45 @@ export const PostJobPage = () => {
     updateDraftJobMutation.isPending,
     hasUnsavedAiDraft,
   ]);
+
+  // Restore an unsaved draft left over from a previous session (reload/close tab).
+  // Must run before the persist effect below, so it reads the stored id before that
+  // effect's mount-time cleanup (suggestion is still null on the very first render) clears it.
+  useEffect(() => {
+    if (editJobId) return;
+
+    const storedSuggestionId = localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (!storedSuggestionId) return;
+
+    jobService.getAiJobSuggestion(storedSuggestionId)
+      .then((response) => {
+        if (!response.data) {
+          localStorage.removeItem(DRAFT_STORAGE_KEY);
+          return;
+        }
+
+        setSuggestion(response.data);
+        setStep('DRAFTING');
+        toast.info('Restored your unsaved job draft.');
+      })
+      .catch(() => {
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
+      });
+    // Runs once on mount only; editJobId doesn't change without a fresh page load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist the unsaved draft's id so it survives an accidental reload/close; cleared once
+  // the draft is saved, rejected, or the user confirms leaving without saving.
+  useEffect(() => {
+    if (editJobId) return;
+
+    if (hasUnsavedAiDraft && suggestion?.id) {
+      localStorage.setItem(DRAFT_STORAGE_KEY, suggestion.id);
+    } else {
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+    }
+  }, [editJobId, hasUnsavedAiDraft, suggestion?.id]);
 
   // --- Blocking navigation when busy or an AI-generated draft has not been saved ---
   useEffect(() => {
@@ -528,6 +569,9 @@ export const PostJobPage = () => {
     isDiscardingUnsavedDraftRef.current = true;
     hasUnsavedAiDraftRef.current = false;
     setIsDraftSaved(true);
+    // Clear synchronously here too: navigation below can unmount the page before the
+    // persist effect (keyed on hasUnsavedAiDraft) gets a chance to run.
+    localStorage.removeItem(DRAFT_STORAGE_KEY);
     if (unsavedDraftBlocker.state === 'blocked') {
       unsavedDraftBlocker.proceed();
     }
@@ -819,6 +863,16 @@ export const PostJobPage = () => {
       return;
     }
 
+    const budgetValidation = validateMilestoneBudgetTotal(
+      nextSuggestion.suggestedBudgetMin,
+      nextSuggestion.suggestedBudgetMax,
+      nextSuggestion.suggestedMilestones,
+    );
+    if (budgetValidation.blockingMessage) {
+      toast.error(budgetValidation.blockingMessage);
+      return;
+    }
+
     try {
       await flushPendingSuggestionChanges();
     } catch {
@@ -929,6 +983,11 @@ export const PostJobPage = () => {
   const handlePublishClick = () => {
     if (isExistingJobLocked) {
       showLockedJobPostMessage();
+      return;
+    }
+
+    if (milestoneBudgetValidation?.blockingMessage) {
+      toast.error(milestoneBudgetValidation.blockingMessage);
       return;
     }
 

@@ -83,6 +83,8 @@ const getWalletBalance = (wallet: unknown): number => {
   return 0;
 };
 
+// Not the shared lib/api-utils getErrorMessage: this one also checks the dispute-guard
+// message and .detail/.title/.error fields, matching this file's other 4 call sites.
 const getApiErrorMessage = (error: unknown, fallback: string): string => {
   const disputeGuardMessage = getDisputeGuardErrorMessage(error);
   if (disputeGuardMessage) return disputeGuardMessage;
@@ -531,7 +533,7 @@ export const ProjectWorkspacePage = () => {
       navigate(target, { state: { conversationId } });
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to open chat.');
+      toast.error(getApiErrorMessage(error, 'Failed to open chat.'));
     },
   });
 

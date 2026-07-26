@@ -23,6 +23,7 @@ export const API_ENDPOINTS = {
     REQUESTS: (id: string) => `services/${id}/requests`,
     EXPERT_REQUESTS: 'experts/me/service-requests',
     CLIENT_REQUESTS: 'clients/me/service-requests',
+    REQUEST_BY_ID: (id: string) => `service-requests/${id}`,
     ACCEPT_REQUEST: (id: string) => `service-requests/${id}/accept`,
     DECLINE_REQUEST: (id: string) => `service-requests/${id}/decline`,
     OFFERS: (requestId: string) => `service-requests/${requestId}/offers`,
@@ -124,6 +125,7 @@ export const API_ENDPOINTS = {
     EXPERT_REVIEWS: 'admin/expert-profile-updates',
     EXPERT_REVIEW_DETAIL: (id: string) => `admin/expert-profile-updates/${id}`,
     PROCESS_EXPERT_REVIEW: (id: string) => `admin/expert-profile-updates/${id}/review`,
+    JOB_POSTS: 'admin/job-posts',
   },
 } as const;
 
@@ -141,6 +143,7 @@ export const QUERY_KEYS = {
     SERVICE_REQUESTS: (serviceId: string) => ['services', serviceId, 'requests'] as const,
     EXPERT_REQUESTS: (status?: string) => ['services', 'expert-requests', status ?? 'all'] as const,
     CLIENT_REQUESTS: (params?: { PageIndex?: number; PageSize?: number; SearchTerm?: string; status?: string }) => ['services', 'client-requests', params ?? {}] as const,
+    REQUEST_DETAIL: (requestId: string) => ['service-requests', requestId] as const,
   },
   MEDIA: {
     LIST: ['media', 'list'] as const,

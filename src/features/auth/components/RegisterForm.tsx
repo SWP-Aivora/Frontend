@@ -184,7 +184,7 @@ export const RegisterForm = ({ selectedRole }: RegisterFormProps) => {
                aria-describedby={errors.termsAccepted ? 'termsAccepted-error' : undefined}
                {...register('termsAccepted')}
              />
-              <div className="absolute inset-0 bg-primary opacity-0 peer-checked:opacity-100 transition-opacity flex items-center justify-center">
+              <div className="pointer-events-none absolute inset-0 bg-primary opacity-0 peer-checked:opacity-100 transition-opacity flex items-center justify-center">
                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="size-3 text-white">
                    <path d="M5 13l4 4L19 7" />
                 </svg>

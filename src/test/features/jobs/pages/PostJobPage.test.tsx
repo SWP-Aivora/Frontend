@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, act, fireEvent, waitFor, screen } from '@testing-library/react';
 import { createMemoryRouter, Link, RouterProvider } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import {
   MILESTONE_TOTAL_BELOW_MIN_MESSAGE,
   MILESTONE_TOTAL_ABOVE_MAX_MESSAGE,
+  validateMilestoneBudgetTotal,
 } from '../../../../features/jobs/budgetValidation';
 
 // Mock sonner toast
@@ -17,6 +18,7 @@ vi.mock('sonner', () => ({
   toast: {
     success: vi.fn(),
     error: vi.fn(),
+    info: vi.fn(),
   },
 }));
 
@@ -34,6 +36,7 @@ vi.mock('../../../../features/jobs/services', () => ({
     updateJob: vi.fn(),
     getRecommendations: vi.fn().mockResolvedValue({ data: [] }),
     getJobById: vi.fn().mockResolvedValue({ data: null }),
+    getAiJobSuggestion: vi.fn().mockResolvedValue({ data: null }),
   },
 }));
 
@@ -78,11 +81,16 @@ vi.mock('../../../../features/jobs/components/JobDraftForm', () => {
       onReject,
       onSaveDraft,
       onSkillChange,
-      milestoneBudgetValidation,
       isReadOnly,
       readOnlyStatusLabel,
       readOnlyMessage,
-    }: any) => (
+    }: any) => {
+      const milestoneBudgetValidation = validateMilestoneBudgetTotal(
+        suggestion?.suggestedBudgetMin,
+        suggestion?.suggestedBudgetMax,
+        suggestion?.suggestedMilestones,
+      );
+      return (
       <div data-testid="job-draft-form">
         JobDraftForm
         {isReadOnly && (
@@ -122,7 +130,8 @@ vi.mock('../../../../features/jobs/components/JobDraftForm', () => {
           </button>
         )}
       </div>
-    ),
+      );
+    },
   };
 });
 vi.mock('../../../../features/jobs/components/ExpertMatchInsights', () => ({
@@ -187,6 +196,10 @@ const createPublishReadySuggestion = (overrides: Partial<typeof publishReadySugg
   ...publishReadySuggestion,
   ...overrides,
   suggestedMilestones: overrides.suggestedMilestones ?? publishReadySuggestion.suggestedMilestones,
+});
+
+afterEach(() => {
+  localStorage.clear();
 });
 
 describe('PostJobPage query invalidation on mutation success', () => {

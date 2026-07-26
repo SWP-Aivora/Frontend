@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, CheckCircle2, Clock, ExternalLink, FileText, Send } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -13,14 +12,9 @@ export const ClientServiceRequestDetailPage = () => {
   const navigate = useNavigate();
   const { requestId = '' } = useParams();
   const queryClient = useQueryClient();
-  const requestQueryParams = useMemo(() => ({
-    PageIndex: 1,
-    PageSize: 20,
-    SearchTerm: requestId,
-  }), [requestId]);
   const { data, isLoading, isError } = useQuery({
-    queryKey: QUERY_KEYS.SERVICES.CLIENT_REQUESTS(requestQueryParams),
-    queryFn: () => servicesFeatureApi.getClientServiceRequests(requestQueryParams),
+    queryKey: QUERY_KEYS.SERVICES.REQUEST_DETAIL(requestId),
+    queryFn: () => servicesFeatureApi.getServiceRequestById(requestId),
     enabled: Boolean(requestId),
   });
   const { data: offerData, isLoading: isOfferLoading, isError: isOfferError } = useQuery({
@@ -29,9 +23,7 @@ export const ClientServiceRequestDetailPage = () => {
     enabled: Boolean(requestId),
     retry: false,
   });
-  const request = useMemo(() => (
-    (data?.data ?? []).find(item => item.id === requestId) ?? null
-  ), [data?.data, requestId]);
+  const request = data?.data ?? null;
   const offer = offerData?.data ?? null;
   const isPendingOffer = String(offer?.status ?? '').toUpperCase() === ServiceOfferStatus.PENDING;
 
@@ -42,7 +34,7 @@ export const ClientServiceRequestDetailPage = () => {
     },
     onSuccess: (response) => {
       toast.success('Final offer accepted.');
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SERVICES.CLIENT_REQUESTS(requestQueryParams) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SERVICES.REQUEST_DETAIL(requestId) });
       queryClient.invalidateQueries({ queryKey: ['service-request-offer', requestId] });
       if (response.data?.projectId) {
         navigate(`/client/projects/${response.data.projectId}/workspace`);

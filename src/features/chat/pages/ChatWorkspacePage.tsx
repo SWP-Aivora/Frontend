@@ -9,6 +9,7 @@ import type { Conversation } from '../types';
 import { Info, ChevronRight, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { cn } from '@/lib/utils';
+import { getErrorMessage } from '@/lib/api-utils';
 import { useQuery } from '@tanstack/react-query';
 import { projectService } from '@/features/projects/services';
 import { toast } from 'sonner';
@@ -150,7 +151,7 @@ export const ChatWorkspacePage = () => {
     try {
       await sendMessage({ content, attachmentUrl });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to send message. Please try again.');
+      toast.error(getErrorMessage(error, 'Failed to send message. Please try again.'));
       throw error;
     }
   };

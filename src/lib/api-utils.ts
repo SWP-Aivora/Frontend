@@ -280,12 +280,18 @@ export function normalizeBaseResponse<T>(
 }
 
 export function getErrorMessage(error: unknown, defaultMessage = 'An error occurred'): string {
+  if (typeof error === 'object' && error !== null && 'response' in error) {
+    const data = (error as { response?: { data?: unknown } }).response?.data;
+
+    if (typeof data === 'string' && data.trim()) return data;
+
+    if (data && typeof data === 'object') {
+      const message = (data as Record<string, unknown>).message;
+      if (typeof message === 'string' && message.trim()) return message;
+    }
+  }
   if (error instanceof Error) {
     return error.message;
-  }
-  if (typeof error === 'object' && error !== null && 'response' in error) {
-    const err = error as { response?: { data?: { message?: string } } };
-    return err.response?.data?.message || defaultMessage;
   }
   return defaultMessage;
 }

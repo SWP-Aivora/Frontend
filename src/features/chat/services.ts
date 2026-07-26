@@ -4,7 +4,7 @@ import { BaseService } from '@/shared/services/BaseService';
 import { API_ENDPOINTS } from '@/shared/constants';
 import type { Conversation, Message, SendMessagePayload } from './types';
 import type { PaginatedResponse, BaseResponse } from '@/shared/types/api';
-import { normalizePaginatedResponse, normalizeBaseResponse } from '@/lib/api-utils';
+import { normalizePaginatedResponse, normalizeBaseResponse, getErrorMessage } from '@/lib/api-utils';
 import { Role } from '@/shared/types/enums';
 import type { AxiosResponse } from 'axios';
 import * as signalR from '@microsoft/signalr';
@@ -20,17 +20,9 @@ interface NewMessagePayload {
 }
 
 
-const getSignalRErrorMessage = (error: unknown): string => {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  if (typeof error === 'string') {
-    return error;
-  }
-
-  return 'Unknown SignalR error';
-};
+const getSignalRErrorMessage = (error: unknown): string => (
+  typeof error === 'string' ? error : getErrorMessage(error, 'Unknown SignalR error')
+);
 
 const createSignalRError = (operation: string, error: unknown): Error => (
   new Error(`${operation}: ${getSignalRErrorMessage(error)}`)

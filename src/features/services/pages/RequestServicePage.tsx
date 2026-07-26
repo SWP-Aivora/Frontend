@@ -6,6 +6,7 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { Textarea } from '@/shared/components/ui/Textarea';
 import { QUERY_KEYS } from '@/shared/constants';
+import { getErrorMessage } from '@/lib/api-utils';
 import { servicesFeatureApi } from '../services';
 import { serviceRequestFormSchema } from '../schema';
 import { ServicePackageGrid } from '../components/ServicePackageGrid';
@@ -37,8 +38,7 @@ export const RequestServicePage = () => {
       }
     },
     onError: (error) => {
-      const message = error instanceof Error ? error.message : 'Failed to submit service request.';
-      toast.error(message);
+      toast.error(getErrorMessage(error, 'Failed to submit service request.'));
       setHasSubmitted(false);
     },
   });

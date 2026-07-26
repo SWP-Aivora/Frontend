@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { normalizePaginatedResponse, normalizeBaseResponse } from '../../lib/api-utils';
+import { normalizePaginatedResponse, normalizeBaseResponse, getErrorMessage } from '../../lib/api-utils';
 
 interface TestItem {
   id: number;
@@ -301,6 +301,35 @@ describe('api-utils', () => {
       const result = normalizeBaseResponse(null);
       expect(result.success).toBe(false);
       expect(result.data).toBeNull();
+    });
+  });
+
+  describe('getErrorMessage', () => {
+    it('reads the server message from an Axios-shaped error before falling back to error.message', () => {
+      class FakeAxiosError extends Error {
+        response = { data: { message: 'You already have a pending request for this service.' } };
+      }
+      const error = new FakeAxiosError('Request failed with status code 400');
+
+      expect(getErrorMessage(error, 'default')).toBe('You already have a pending request for this service.');
+    });
+
+    it('accepts a plain string response body', () => {
+      class FakeAxiosError extends Error {
+        response = { data: 'Category name already exists.' };
+      }
+      const error = new FakeAxiosError('Request failed with status code 400');
+
+      expect(getErrorMessage(error, 'default')).toBe('Category name already exists.');
+    });
+
+    it('falls back to error.message for a plain Error with no response', () => {
+      expect(getErrorMessage(new Error('boom'), 'default')).toBe('boom');
+    });
+
+    it('falls back to the default message for unknown error shapes', () => {
+      expect(getErrorMessage('not an error', 'default')).toBe('default');
+      expect(getErrorMessage(null, 'default')).toBe('default');
     });
   });
 });

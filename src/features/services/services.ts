@@ -325,6 +325,15 @@ export const servicesFeatureApi = {
     };
   },
 
+  getServiceRequestById: async (requestId: string): Promise<BaseResponse<ServiceRequest>> => {
+    const response = await apiClient.get(API_ENDPOINTS.SERVICES.REQUEST_BY_ID(requestId));
+    const normalized = normalizeBaseResponse<unknown>(response);
+    return {
+      ...normalized,
+      data: normalized.data ? normalizeRequest(normalized.data) : null,
+    };
+  },
+
   getServiceRequestsByService: async (serviceId: string): Promise<BaseResponse<ServiceRequest[]>> => {
     const response = await apiClient.get(API_ENDPOINTS.SERVICES.REQUESTS(serviceId));
     const normalized = normalizeBaseResponse<unknown[]>(response);

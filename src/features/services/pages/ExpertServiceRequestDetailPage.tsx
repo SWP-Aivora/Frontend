@@ -10,7 +10,6 @@ import { QUERY_KEYS } from '@/shared/constants';
 import { servicesFeatureApi } from '../services';
 import { ServiceRequestStatus, type CreateServiceOfferPayload, type ServiceOffer, type ServiceOfferMilestone } from '../types';
 import { ServiceRequestStatusBadge } from '../components/ServiceStatusBadge';
-import { MissingApiNotice } from '../components/MissingApiNotice';
 import { serviceOfferSchema } from '../schema';
 
 const createDefaultMilestones = (): ServiceOfferMilestone[] => [
@@ -35,16 +34,14 @@ export const ExpertServiceRequestDetailPage = () => {
     enabled: Boolean(serviceId),
   });
 
-  const { data, isLoading: isRequestsLoading } = useQuery({
-    queryKey: QUERY_KEYS.SERVICES.SERVICE_REQUESTS(serviceId),
-    queryFn: () => servicesFeatureApi.getServiceRequestsByService(serviceId),
-    enabled: Boolean(serviceId),
+  const { data, isLoading: isRequestLoading } = useQuery({
+    queryKey: QUERY_KEYS.SERVICES.REQUEST_DETAIL(requestId ?? ''),
+    queryFn: () => servicesFeatureApi.getServiceRequestById(requestId!),
+    enabled: Boolean(requestId),
   });
 
   const service = serviceData?.data;
-  const request = useMemo(() => (
-    data?.data?.find(item => item.id === requestId && item.serviceId === serviceId) ?? null
-  ), [data?.data, requestId, serviceId]);
+  const request = data?.data && data.data.serviceId === serviceId ? data.data : null;
   const amount = useMemo(
     () => milestones.reduce((total, milestone) => total + (Number(milestone.amount) || 0), 0),
     [milestones],
@@ -59,6 +56,7 @@ export const ExpertServiceRequestDetailPage = () => {
     onSuccess: () => {
       toast.success('Service request accepted.');
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SERVICES.SERVICE_REQUESTS(serviceId) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SERVICES.REQUEST_DETAIL(requestId ?? '') });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SERVICES.EXPERT_REQUESTS('all') });
     },
     onError: () => toast.error('Failed to accept service request.'),
@@ -69,6 +67,7 @@ export const ExpertServiceRequestDetailPage = () => {
     onSuccess: () => {
       toast.success('Service request declined.');
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SERVICES.SERVICE_REQUESTS(serviceId) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SERVICES.REQUEST_DETAIL(requestId ?? '') });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SERVICES.EXPERT_REQUESTS('all') });
     },
     onError: () => toast.error('Failed to decline service request.'),
@@ -82,6 +81,7 @@ export const ExpertServiceRequestDetailPage = () => {
       }
       toast.success('Final offer sent to client.');
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SERVICES.SERVICE_REQUESTS(serviceId) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SERVICES.REQUEST_DETAIL(requestId ?? '') });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SERVICES.EXPERT_REQUESTS('all') });
     },
     onError: () => toast.error('Failed to send final offer.'),
@@ -109,7 +109,7 @@ export const ExpertServiceRequestDetailPage = () => {
     setMilestones(current => current.map((milestone, itemIndex) => itemIndex === index ? { ...milestone, [field]: value } : milestone));
   };
 
-  if (isServiceLoading || isRequestsLoading) {
+  if (isServiceLoading || isRequestLoading) {
     return <div className="flex justify-center py-20"><div className="size-12 animate-spin rounded-full border-4 border-primary/20 border-t-primary" /></div>;
   }
 
@@ -119,7 +119,12 @@ export const ExpertServiceRequestDetailPage = () => {
         <Button variant="outline" onClick={() => navigate(`/expert/services/${serviceId}/requests`)} className="rounded-full">
           Back to requests
         </Button>
-        <MissingApiNotice message="Request details are loaded from GET /api/v1/services/{id}/requests because no GET /api/v1/service-requests/{id} endpoint exists. This request was not found in the selected service request list, or it does not belong to this service." />
+        <section className="rounded-lg border border-slate-100 bg-white p-8 text-center shadow-sm">
+          <h1 className="text-2xl font-black text-slate-900">Service request not found</h1>
+          <p className="mx-auto mt-2 max-w-xl text-sm font-medium leading-6 text-slate-500">
+            This request was not found, or it does not belong to this service.
+          </p>
+        </section>
       </div>
     );
   }

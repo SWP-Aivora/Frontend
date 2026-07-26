@@ -7,6 +7,7 @@ import { Button } from '@/shared/components/ui/Button';
 import { DisputeStatusBadge } from '@/features/disputes/components/DisputeStatusBadge';
 import { disputeService } from '@/features/disputes/services';
 import type { Dispute } from '@/features/disputes/types';
+import { getErrorMessage } from '@/lib/api-utils';
 import { AdminPageTitle } from '../components/AdminPageTitle';
 import { adminService } from '../services';
 
@@ -16,21 +17,6 @@ const formatDate = (value?: string | null) => {
   if (!value) return 'N/A';
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
-};
-
-const getErrorMessage = (error: unknown, fallback: string): string => {
-  if (typeof error === 'object' && error !== null && 'response' in error) {
-    const data = (error as { response?: { data?: unknown } }).response?.data;
-
-    if (typeof data === 'string' && data.trim()) return data;
-
-    if (data && typeof data === 'object') {
-      const message = (data as Record<string, unknown>).message;
-      if (typeof message === 'string' && message.trim()) return message;
-    }
-  }
-
-  return error instanceof Error ? error.message : fallback;
 };
 
 export const AdminProjectDisputesPage = () => {

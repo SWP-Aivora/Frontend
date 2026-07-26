@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { notificationService } from '../services';
+import { getErrorMessage } from '@/lib/api-utils';
 import { NOTIFICATION_KEYS } from './useNotifications';
 import { NotificationStatus, type Notification } from '../types';
 import type { PaginatedResponse, BaseResponse } from '@/shared/types/api';
@@ -70,7 +71,7 @@ export const useNotificationActions = () => {
       if (context?.previousUnreadCount) {
         queryClient.setQueryData(NOTIFICATION_KEYS.unreadCount, context.previousUnreadCount);
       }
-      toast.error(error instanceof Error ? error.message : 'Failed to mark notification as read');
+      toast.error(getErrorMessage(error, 'Failed to mark notification as read'));
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: NOTIFICATION_KEYS.lists });
