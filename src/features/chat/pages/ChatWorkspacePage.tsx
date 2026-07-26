@@ -14,7 +14,7 @@ import { useQuery } from '@tanstack/react-query';
 import { projectService } from '@/features/projects/services';
 import { toast } from 'sonner';
 import { useLocation } from 'react-router-dom';
-import { servicesFeatureApi } from '@/features/services/services';
+import { serviceRequestContextService } from '@/shared/services/serviceRequestContextService';
 import { QUERY_KEYS } from '@/shared/constants';
 
 export const ChatWorkspacePage = () => {
@@ -174,7 +174,7 @@ export const ChatWorkspacePage = () => {
     isLoading: isServiceRequestLoading,
   } = useQuery({
     queryKey: QUERY_KEYS.SERVICES.REQUEST_DETAIL(selectedServiceRequestId),
-    queryFn: () => servicesFeatureApi.getServiceRequestById(selectedServiceRequestId),
+    queryFn: () => serviceRequestContextService.getById(selectedServiceRequestId),
     enabled: selectedConversation?.type === 'SERVICE_REQUEST' && !!selectedServiceRequestId,
   });
 

@@ -44,10 +44,12 @@ export const ServiceDetailPage = () => {
       request.serviceId === service.id && String(request.status).toUpperCase() === ServiceRequestStatus.PENDING
     )) ?? null;
   }, [pendingRequestsData?.data, service?.id]);
-  const activePendingRequest = submittedRequest?.serviceId === service?.id
+  const submittedRequestIsPendingForService = Boolean(
+    submittedRequest
+    && submittedRequest.serviceId === service?.id
     && String(submittedRequest.status).toUpperCase() === ServiceRequestStatus.PENDING
-    ? submittedRequest
-    : pendingRequest;
+  );
+  const activePendingRequest = submittedRequestIsPendingForService ? submittedRequest : pendingRequest;
   const hasPendingRequest = Boolean(activePendingRequest);
 
   const requestMutation = useMutation({

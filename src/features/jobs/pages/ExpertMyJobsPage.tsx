@@ -3,83 +3,20 @@ import { Button } from '@/shared/components/ui/Button';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useMemo, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { projectService } from '@/features/projects/services';
 import { ProjectStatus } from '@/shared/types/enums';
 import { isActiveProjectStatus } from '@/features/projects/utils';
 import { JobBoardCard } from '../components/JobBoardCard';
-import { type JobCard } from '../schema';
-import { JobInviteStatus, type Job, type JobInvite } from '../types';
+import { JobInviteStatus, type JobInvite } from '../types';
 import { jobService } from '../services';
 import { toast } from 'sonner';
 import { getErrorMessage } from '@/lib/api-utils';
+import { isOpenJob, mapJobToJobCard } from '../utils';
 
 
 type StatusFilter = 'all' | 'in-progress' | 'completed';
 type SortOrder = 'newest' | 'oldest';
-
-const normalizeBudgetType = (value: unknown) => {
-  if (value === 1 || String(value ?? '').toUpperCase() === 'HOURLY') return 1;
-  return 0;
-};
-
-const normalizeSkillLevel = (value: unknown) => {
-  if (value === 0 || String(value ?? '').toUpperCase() === 'BEGINNER') return 0;
-  if (value === 1 || String(value ?? '').toUpperCase() === 'INTERMEDIATE') return 1;
-  if (value === 2 || ['ADVANCED', 'EXPERIENCED'].includes(String(value ?? '').toUpperCase())) return 2;
-  if (value === 3 || String(value ?? '').toUpperCase() === 'EXPERT') return 3;
-  return null;
-};
-
-const isOpenJob = (status: unknown): boolean => {
-  if (typeof status === 'number') return status === 1;
-
-  const normalized = String(status ?? '').toUpperCase().replace(/[\s_-]/g, '');
-  return normalized === 'OPEN' || normalized === 'PUBLISHED';
-};
-
-const getNumberField = (value: Record<string, unknown>, ...keys: string[]): number | null => {
-  for (const key of keys) {
-    const fieldValue = value[key];
-    if (typeof fieldValue === 'number' && Number.isFinite(fieldValue)) return fieldValue;
-    if (typeof fieldValue === 'string' && fieldValue.trim() !== '' && Number.isFinite(Number(fieldValue))) {
-      return Number(fieldValue);
-    }
-  }
-
-  return null;
-};
-
-const getBooleanField = (value: Record<string, unknown>, ...keys: string[]): boolean | null => {
-  for (const key of keys) {
-    const fieldValue = value[key];
-    if (typeof fieldValue === 'boolean') return fieldValue;
-  }
-
-  return null;
-};
-
-const mapJobToJobCard = (job: Job): JobCard => {
-  const rawJob = job as Job & Record<string, unknown>;
-
-  return {
-    id: job.id,
-    status: job.status,
-    title: job.title,
-    description: job.finalDescription || job.originalDescription,
-    businessDomain: job.businessDomain,
-    budgetType: normalizeBudgetType(job.budgetType),
-    budgetMin: job.budgetMin,
-    budgetMax: job.budgetMax,
-    timelineDays: job.timelineDays,
-    experienceLevel: normalizeSkillLevel(job.experienceLevel),
-    createdAt: new Date(job.createdAt).toLocaleDateString(),
-    skills: job.skills?.map(skill => skill.name) || [],
-    proposalsCount: getNumberField(rawJob, 'proposalsCount', 'ProposalsCount'),
-    clientName: job.client?.fullName || 'Anonymous Client',
-    clientVerified: getBooleanField(rawJob, 'clientVerified', 'ClientVerified', 'isClientVerified', 'IsClientVerified'),
-  };
-};
 
 export const ExpertMyJobsPage = () => {
   const queryClient = useQueryClient();
@@ -104,18 +41,22 @@ export const ExpertMyJobsPage = () => {
     );
   }, [invitesResponse?.data]);
 
-  const inviteJobIds = useMemo(() => activeInvites.map((invite) => invite.jobId), [activeInvites]);
+  const inviteJobIds = useMemo(() => (
+    Array.from(new Set(activeInvites.map((invite) => invite.jobId).filter(Boolean)))
+  ), [activeInvites]);
 
-  const { data: invitedJobs = [], isLoading: isLoadingInvitedJobs } = useQuery({
-    queryKey: ['jobs', 'invited-open-details', inviteJobIds],
-    queryFn: async () => {
-      const results = await Promise.allSettled(inviteJobIds.map((jobId) => jobService.getJobById(jobId)));
-      return results.flatMap((result) => (
-        result.status === 'fulfilled' && result.value.data ? [result.value.data] : []
-      ));
-    },
-    enabled: inviteJobIds.length > 0,
+  const invitedJobQueries = useQueries({
+    queries: inviteJobIds.map((jobId) => ({
+      queryKey: ['jobs', 'detail', jobId],
+      queryFn: () => jobService.getJobById(jobId),
+      enabled: !!jobId,
+    })),
   });
+
+  const invitedJobs = useMemo(() => (
+    invitedJobQueries.flatMap((query) => query.data?.data ? [query.data.data] : [])
+  ), [invitedJobQueries]);
+  const isLoadingInvitedJobs = invitedJobQueries.some((query) => query.isLoading || query.isFetching);
 
   const inviteByJobId = useMemo(() => (
     new Map(activeInvites.map((invite) => [invite.jobId, invite]))

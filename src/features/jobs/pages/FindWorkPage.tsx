@@ -1,13 +1,13 @@
 import { type Dispatch, type FormEvent, type SetStateAction, useMemo, useState } from 'react';
 import { JobBoardCard } from '../components/JobBoardCard';
-import { type JobCard } from '../schema';
-import { JobInviteStatus, type Job, type JobInvite } from '../types';
+import { JobInviteStatus, type JobInvite } from '../types';
 import { Search, DollarSign, BrainCircuit, Loader2 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { jobService } from '../services';
 import { toast } from 'sonner';
 import { getErrorMessage } from '@/lib/api-utils';
+import { isOpenJob, mapJobToJobCard, normalizeBudgetType, normalizeSkillLevel } from '../utils';
 
 const budgetTypeFilters = [
   { label: 'Fixed Price', value: 'FIXED' },
@@ -20,92 +20,6 @@ const skillLevelFilters = [
   { label: 'Advanced', value: 'ADVANCED' },
   { label: 'Expert', value: 'EXPERT' },
 ];
-
-const normalizeBudgetType = (value: unknown) => {
-  if (value === 0) return 'FIXED';
-  if (value === 1) return 'HOURLY';
-
-  const normalized = String(value ?? '').toUpperCase();
-  if (normalized === 'FIXED' || normalized === 'HOURLY') return normalized;
-
-  return null;
-};
-
-const normalizeSkillLevel = (value: unknown) => {
-  if (value === 0) return 'BEGINNER';
-  if (value === 1) return 'INTERMEDIATE';
-  if (value === 2) return 'ADVANCED';
-  if (value === 3) return 'EXPERT';
-
-  const normalized = String(value ?? '').toUpperCase();
-  if (['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT'].includes(normalized)) return normalized;
-
-  return null;
-};
-
-const mapBudgetTypeToCardValue = (value: unknown) => {
-  const normalized = normalizeBudgetType(value);
-  return normalized === 'HOURLY' ? 1 : 0;
-};
-
-const mapSkillLevelToCardValue = (value: unknown) => {
-  const normalized = normalizeSkillLevel(value);
-  if (normalized === 'BEGINNER') return 0;
-  if (normalized === 'INTERMEDIATE') return 1;
-  if (normalized === 'ADVANCED') return 2;
-  if (normalized === 'EXPERT') return 3;
-  return null;
-};
-
-const getNumberField = (value: Record<string, unknown>, ...keys: string[]): number | null => {
-  for (const key of keys) {
-    const fieldValue = value[key];
-    if (typeof fieldValue === 'number' && Number.isFinite(fieldValue)) return fieldValue;
-    if (typeof fieldValue === 'string' && fieldValue.trim() !== '' && Number.isFinite(Number(fieldValue))) {
-      return Number(fieldValue);
-    }
-  }
-
-  return null;
-};
-
-const getBooleanField = (value: Record<string, unknown>, ...keys: string[]): boolean | null => {
-  for (const key of keys) {
-    const fieldValue = value[key];
-    if (typeof fieldValue === 'boolean') return fieldValue;
-  }
-
-  return null;
-};
-
-const mapJobToJobCard = (job: Job): JobCard => {
-  const rawJob = job as Job & Record<string, unknown>;
-
-  return {
-    id: job.id,
-    status: job.status,
-    title: job.title,
-    description: job.finalDescription || job.originalDescription,
-    businessDomain: job.businessDomain,
-    budgetType: mapBudgetTypeToCardValue(job.budgetType),
-    budgetMin: job.budgetMin,
-    budgetMax: job.budgetMax,
-    timelineDays: job.timelineDays,
-    experienceLevel: mapSkillLevelToCardValue(job.experienceLevel),
-    createdAt: new Date(job.createdAt).toLocaleDateString(),
-    skills: job.skills?.map(s => s.name) || [],
-    proposalsCount: getNumberField(rawJob, 'proposalsCount', 'ProposalsCount'),
-    clientName: job.client?.fullName || ('clientName' in rawJob ? String(rawJob.clientName || '') : '') || 'Anonymous Client',
-    clientVerified: getBooleanField(rawJob, 'clientVerified', 'ClientVerified', 'isClientVerified', 'IsClientVerified'),
-  };
-};
-
-const isOpenJob = (status: unknown): boolean => {
-  if (typeof status === 'number') return status === 1;
-
-  const normalized = String(status ?? '').toUpperCase().replace(/[\s_-]/g, '');
-  return normalized === 'OPEN' || normalized === 'PUBLISHED';
-};
 
 export const FindWorkPage = () => {
   const queryClient = useQueryClient();
