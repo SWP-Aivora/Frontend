@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { FileImage, FilePlus, Loader2, Plus, Send, X, FileIcon } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { mediaService } from '@/shared/services/mediaService';
+import { CHAT_MESSAGE_MAX_LENGTH } from '../constants';
 
 interface MessageInputProps {
   onSendMessage: (content: string, attachmentUrl?: string) => Promise<void>;
@@ -11,12 +12,13 @@ interface MessageInputProps {
   maxLength?: number;
 }
 
-export const MessageInput = ({ onSendMessage, onTyping, disabled, disabledReason = 'Please wait before sending.', maxLength = 4000 }: MessageInputProps) => {
+export const MessageInput = ({ onSendMessage, onTyping, disabled, disabledReason = 'Please wait before sending.', maxLength = CHAT_MESSAGE_MAX_LENGTH }: MessageInputProps) => {
   const [content, setContent] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [lengthError, setLengthError] = useState<string | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null);
   const [attachmentName, setAttachmentName] = useState<string | null>(null);
@@ -36,11 +38,23 @@ export const MessageInput = ({ onSendMessage, onTyping, disabled, disabledReason
   }, []);
 
   const isOverLimit = content.length > maxLength;
+  const isNearLimit = !isOverLimit && content.length >= Math.floor(maxLength * 0.9);
+
+  const getLengthError = (length: number) => (
+    `Message is too long (${length.toLocaleString()}/${maxLength.toLocaleString()} characters). Please shorten it before sending.`
+  );
+
+  const rejectOversizedContent = (length: number) => {
+    setLengthError(getLengthError(length));
+  };
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     const trimmedContent = content.trim();
-    if (isOverLimit) return;
+    if (isOverLimit) {
+      rejectOversizedContent(content.length);
+      return;
+    }
     if ((trimmedContent || attachmentUrl) && !disabled && !isSending) {
       setIsSending(true);
       try {
@@ -116,6 +130,33 @@ export const MessageInput = ({ onSendMessage, onTyping, disabled, disabledReason
     }
   };
 
+  const handleContentChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const nextValue = event.target.value;
+    if (nextValue.length > maxLength) {
+      rejectOversizedContent(nextValue.length);
+      return;
+    }
+
+    setLengthError(null);
+    setContent(nextValue);
+    event.target.style.height = 'auto';
+    event.target.style.height = `${event.target.scrollHeight}px`;
+    if (nextValue.trim()) onTyping?.();
+  };
+
+  const handlePaste = (event: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const pastedText = event.clipboardData.getData('text');
+    const target = event.currentTarget;
+    const selectionStart = target.selectionStart ?? content.length;
+    const selectionEnd = target.selectionEnd ?? selectionStart;
+    const nextValue = `${content.slice(0, selectionStart)}${pastedText}${content.slice(selectionEnd)}`;
+
+    if (nextValue.length > maxLength) {
+      event.preventDefault();
+      rejectOversizedContent(nextValue.length);
+    }
+  };
+
   return (
     <div className="p-3 border-t border-slate-200 bg-white">
       {disabled && (
@@ -128,9 +169,9 @@ export const MessageInput = ({ onSendMessage, onTyping, disabled, disabledReason
           {uploadError}
         </p>
       )}
-      {isOverLimit && (
+      {(lengthError || isOverLimit) && (
         <p className="text-xs text-rose-500 mb-2 font-medium px-1">
-          Message is too long ({content.length.toLocaleString()}/{maxLength.toLocaleString()} characters)
+          {lengthError ?? getLengthError(content.length)}
         </p>
       )}
 
@@ -207,17 +248,16 @@ export const MessageInput = ({ onSendMessage, onTyping, disabled, disabledReason
           placeholder={disabled ? "Sending disabled..." : "Message..."}
           value={content}
           rows={1}
-          onChange={(e) => {
-            setContent(e.target.value);
-            e.target.style.height = 'auto';
-            e.target.style.height = `${e.target.scrollHeight}px`;
-            if (e.target.value.trim()) onTyping?.();
-          }}
+          onChange={handleContentChange}
+          onPaste={handlePaste}
           onKeyDown={handleKeyDown}
           className="flex-1 max-h-32 bg-transparent border-none focus:outline-none py-1.5 resize-none text-sm leading-relaxed scrollbar-hide"
           disabled={disabled}
           style={{ height: '36px' }}
         />
+        <span className={`min-w-[4.75rem] text-right text-[10px] font-bold ${isOverLimit ? 'text-rose-500' : isNearLimit ? 'text-amber-600' : 'text-slate-400'}`}>
+          {content.length.toLocaleString()} / {maxLength.toLocaleString()}
+        </span>
         
         <Button 
           type="submit" 

@@ -29,6 +29,8 @@ vi.mock('@microsoft/signalr', async () => {
 });
 
 const { useRealTimeMessages } = await import('./useMessages');
+const { chatService } = await import('../services');
+const { CHAT_SEND_TIMEOUT_MS } = await import('../constants');
 
 describe('useRealTimeMessages', () => {
   beforeEach(() => {
@@ -48,5 +50,26 @@ describe('useRealTimeMessages', () => {
     await waitFor(() => {
       expect(mockConnection.invoke).toHaveBeenCalledWith('JoinConversation', 'conversation-abc');
     });
+  });
+
+  it('rejects a hung SendMessage invocation with the chat send timeout error', async () => {
+    vi.useFakeTimers();
+    try {
+      mockConnection.invoke.mockImplementation((method: string) => {
+        if (method === 'SendMessage') {
+          return new Promise(() => {});
+        }
+        return Promise.resolve();
+      });
+
+      const sendPromise = chatService.sendMessage('conversation-abc', { content: 'Hello' });
+
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(CHAT_SEND_TIMEOUT_MS);
+
+      await expect(sendPromise).rejects.toThrow('Message send timed out. Please try again.');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

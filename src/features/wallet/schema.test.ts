@@ -22,25 +22,27 @@ describe('Wallet Schemas', () => {
 
   describe('withdrawSchema', () => {
     it('should validate correct withdrawal amounts', () => {
-      expect(withdrawSchema.safeParse({ amount: 500, paymentMethod: 'bank' }).success).toBe(true);
-      expect(withdrawSchema.safeParse({ amount: 1, paymentMethod: 'paypal' }).success).toBe(true);
-      expect(withdrawSchema.safeParse({ amount: 100000, paymentMethod: 'crypto' }).success).toBe(true);
-      expect(withdrawSchema.safeParse({ amount: '250', paymentMethod: 'bank' }).success).toBe(true); // coerce
+      expect(withdrawSchema.safeParse({ amount: 500, paymentMethod: 'vnpay_sandbox' }).success).toBe(true);
+      expect(withdrawSchema.safeParse({ amount: 1, paymentMethod: 'vnpay_sandbox' }).success).toBe(true);
+      expect(withdrawSchema.safeParse({ amount: 100000, paymentMethod: 'vnpay_sandbox' }).success).toBe(true);
+      expect(withdrawSchema.safeParse({ amount: '250', paymentMethod: 'vnpay_sandbox' }).success).toBe(true); // coerce
     });
 
     it('should reject invalid withdrawal amounts', () => {
-      expect(withdrawSchema.safeParse({ amount: 0, paymentMethod: 'bank' }).success).toBe(false);
-      expect(withdrawSchema.safeParse({ amount: -10, paymentMethod: 'bank' }).success).toBe(false);
-      expect(withdrawSchema.safeParse({ amount: 100001, paymentMethod: 'bank' }).success).toBe(false);
-      expect(withdrawSchema.safeParse({ amount: NaN, paymentMethod: 'bank' }).success).toBe(false);
-      expect(withdrawSchema.safeParse({ amount: Infinity, paymentMethod: 'bank' }).success).toBe(false);
-      expect(withdrawSchema.safeParse({ amount: 'invalid', paymentMethod: 'bank' }).success).toBe(false);
+      expect(withdrawSchema.safeParse({ amount: 0, paymentMethod: 'vnpay_sandbox' }).success).toBe(false);
+      expect(withdrawSchema.safeParse({ amount: -10, paymentMethod: 'vnpay_sandbox' }).success).toBe(false);
+      expect(withdrawSchema.safeParse({ amount: 100001, paymentMethod: 'vnpay_sandbox' }).success).toBe(false);
+      expect(withdrawSchema.safeParse({ amount: NaN, paymentMethod: 'vnpay_sandbox' }).success).toBe(false);
+      expect(withdrawSchema.safeParse({ amount: Infinity, paymentMethod: 'vnpay_sandbox' }).success).toBe(false);
+      expect(withdrawSchema.safeParse({ amount: 'invalid', paymentMethod: 'vnpay_sandbox' }).success).toBe(false);
     });
 
     it('should reject blank or unsupported withdrawal payment methods', () => {
       expect(withdrawSchema.safeParse({ amount: 500, paymentMethod: '' }).success).toBe(false);
       expect(withdrawSchema.safeParse({ amount: 500, paymentMethod: '   ' }).success).toBe(false);
       expect(withdrawSchema.safeParse({ amount: 500, paymentMethod: 'BankTransfer' }).success).toBe(false);
+      expect(withdrawSchema.safeParse({ amount: 500, paymentMethod: 'paypal' }).success).toBe(false);
+      expect(withdrawSchema.safeParse({ amount: 500, paymentMethod: 'crypto' }).success).toBe(false);
     });
   });
 

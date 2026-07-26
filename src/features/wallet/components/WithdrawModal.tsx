@@ -13,22 +13,20 @@ interface WithdrawModalProps {
 }
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  bank: 'Bank transfer',
-  paypal: 'PayPal',
-  crypto: 'Crypto',
+  vnpay_sandbox: 'VNPay sandbox',
 };
 
 export const WithdrawModal = ({ maxBalance }: WithdrawModalProps) => {
   const [open, setOpen] = useState(false);
   const [amountStr, setAmountStr] = useState<string>('500');
-  const [paymentMethod, setPaymentMethod] = useState('bank');
+  const [paymentMethod, setPaymentMethod] = useState('vnpay_sandbox');
   const queryClient = useQueryClient();
 
   const withdrawMutation = useMutation({
     mutationFn: (values: { amount: number; paymentMethod: string }) => walletService.withdraw({
       amount: values.amount,
       paymentMethod: values.paymentMethod,
-      description: `Withdrawal via ${PAYMENT_METHOD_LABELS[values.paymentMethod] ?? values.paymentMethod}`,
+      description: `Wallet withdrawal via ${PAYMENT_METHOD_LABELS[values.paymentMethod] ?? values.paymentMethod}`,
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wallet'] });
@@ -36,7 +34,7 @@ export const WithdrawModal = ({ maxBalance }: WithdrawModalProps) => {
       toast.success('Withdrawal request submitted successfully.');
       setOpen(false);
       setAmountStr('500');
-      setPaymentMethod('bank');
+      setPaymentMethod('vnpay_sandbox');
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error, 'Failed to request withdrawal. Please try again.'));
@@ -64,7 +62,7 @@ export const WithdrawModal = ({ maxBalance }: WithdrawModalProps) => {
     setOpen(nextOpen);
     if (!nextOpen) {
       setAmountStr('500');
-      setPaymentMethod('bank');
+      setPaymentMethod('vnpay_sandbox');
     }
   };
 
@@ -117,9 +115,7 @@ export const WithdrawModal = ({ maxBalance }: WithdrawModalProps) => {
                 onChange={event => setPaymentMethod(event.target.value)}
                 className="h-12 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-900 focus:border-primary focus:ring-primary"
               >
-                <option value="bank">Bank transfer</option>
-                <option value="paypal">PayPal</option>
-                <option value="crypto">Crypto</option>
+                <option value="vnpay_sandbox">VNPay sandbox</option>
               </select>
             </div>
           </div>

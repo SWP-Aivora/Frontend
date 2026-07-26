@@ -404,7 +404,7 @@ describe('adminService.getJobPosts', () => {
     vi.clearAllMocks();
   });
 
-  it('calls the admin job-posts endpoint with the given params, including Status', async () => {
+  it('calls the admin job-posts endpoint with the given params, including status', async () => {
     (vi.mocked(apiClient.get)).mockResolvedValue({
       data: {
         success: true,
@@ -412,10 +412,10 @@ describe('adminService.getJobPosts', () => {
       },
     });
 
-    await adminService.getJobPosts({ PageIndex: 1, PageSize: 10, Status: 'DRAFT' });
+    await adminService.getJobPosts({ PageIndex: 1, PageSize: 10, status: 'DRAFT' });
 
     expect(apiClient.get).toHaveBeenCalledWith('admin/job-posts', {
-      params: { PageIndex: 1, PageSize: 10, Status: 'DRAFT' },
+      params: { PageIndex: 1, PageSize: 10, status: 'DRAFT' },
     });
   });
 });
