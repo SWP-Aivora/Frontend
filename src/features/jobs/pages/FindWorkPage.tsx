@@ -84,12 +84,10 @@ export const FindWorkPage = () => {
   }, [loadedJobs, appliedSearchTerm, selectedBudgetTypes, selectedSkillLevels, sortOrder]);
 
   const inviteByJobId = useMemo(() => {
-    const visibleOpenJobIds = new Set(loadedJobs.filter((job) => isOpenJob(job.status)).map((job) => job.id));
     const invites = Array.isArray(invitesResponse?.data) ? invitesResponse.data : [];
 
     return invites.reduce((map, invite) => {
       if (
-        visibleOpenJobIds.has(invite.jobId) &&
         (invite.status === JobInviteStatus.PENDING || invite.status === JobInviteStatus.ACCEPTED)
       ) {
         map.set(invite.jobId, invite);
@@ -97,7 +95,7 @@ export const FindWorkPage = () => {
 
       return map;
     }, new Map<string, JobInvite>());
-  }, [invitesResponse?.data, loadedJobs]);
+  }, [invitesResponse?.data]);
 
   const acceptInviteMutation = useMutation({
     mutationFn: (invite: JobInvite) => jobService.acceptInvite(invite.id),
