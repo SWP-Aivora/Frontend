@@ -43,7 +43,7 @@ export const ExpertServicesPage = ({ showHeader = true }: ExpertServicesPageProp
     onError: () => toast.error('Failed to unpublish service.'),
   });
 
-  const services = data?.data ?? [];
+  const services = useMemo(() => data?.data ?? [], [data?.data]);
   const filteredServices = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
 
