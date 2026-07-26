@@ -14,7 +14,7 @@ const sizeMap = {
 };
 
 /**
- * Loading Spinner đa năng
+ * Reusable loading spinner.
  */
 export function LoadingSpinner({ className, size = 'md' }: LoadingSpinnerProps) {
   return (

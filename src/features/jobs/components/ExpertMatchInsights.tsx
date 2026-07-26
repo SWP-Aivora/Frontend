@@ -2,14 +2,81 @@ import { Star, ShieldCheck, Zap, ChevronRight, CheckCircle2, Search } from 'luci
 import { Button } from '@/shared/components/ui/Button';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useMemo } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import type { ExpertMatch } from '../types';
+import { getErrorMessage } from '@/lib/api-utils';
+import { jobService } from '../services';
+import { JobInviteStatus, type ExpertMatch, type JobInvite } from '../types';
 
 interface ExpertMatchInsightsProps {
   experts: ExpertMatch[];
+  jobId?: string | null;
 }
 
-export const ExpertMatchInsights = ({ experts }: ExpertMatchInsightsProps) => {
+const upsertInvite = (invites: JobInvite[], invite: JobInvite) => {
+  const exists = invites.some((currentInvite) => currentInvite.id === invite.id);
+  return exists
+    ? invites.map((currentInvite) => (currentInvite.id === invite.id ? invite : currentInvite))
+    : [invite, ...invites];
+};
+
+const getInviteButtonLabel = (invite: JobInvite | undefined, isSending: boolean, hasJobId: boolean) => {
+  if (isSending) return 'Sending...';
+  if (!hasJobId) return 'Job unavailable';
+  if (!invite) return 'Invite to Job Post';
+  if (invite.status === JobInviteStatus.PENDING) return 'Invited';
+  if (invite.status === JobInviteStatus.ACCEPTED) return 'Invite Accepted';
+  return 'Invite Unavailable';
+};
+
+export const ExpertMatchInsights = ({ experts, jobId }: ExpertMatchInsightsProps) => {
+  const queryClient = useQueryClient();
+  const inviteQueryKey = ['jobs', jobId ?? 'missing-job', 'invites'] as const;
+
+  const { data: invitesResponse, isLoading: isLoadingInvites } = useQuery({
+    queryKey: inviteQueryKey,
+    queryFn: () => {
+      if (!jobId) {
+        throw new Error('Job ID is missing.');
+      }
+      return jobService.getInvitesByJob(jobId);
+    },
+    enabled: Boolean(jobId),
+  });
+
+  const inviteByExpertId = useMemo(() => {
+    const invites = Array.isArray(invitesResponse?.data) ? invitesResponse.data : [];
+    return new Map(invites.map((invite) => [invite.expertId, invite]));
+  }, [invitesResponse?.data]);
+
+  const inviteMutation = useMutation({
+    mutationFn: (expertId: string) => {
+      if (!jobId) {
+        throw new Error('Job ID is missing.');
+      }
+      return jobService.createInvite(jobId, expertId);
+    },
+    onSuccess: (response) => {
+      if (response.data) {
+        queryClient.setQueryData<Awaited<ReturnType<typeof jobService.getInvitesByJob>>>(
+          inviteQueryKey,
+          (currentResponse) => ({
+            success: currentResponse?.success ?? response.success,
+            message: response.message || currentResponse?.message || '',
+            statusCode: response.statusCode || currentResponse?.statusCode || 200,
+            data: upsertInvite(currentResponse?.data ?? [], response.data as JobInvite),
+          }),
+        );
+      }
+      queryClient.invalidateQueries({ queryKey: inviteQueryKey });
+      toast.success(response.message || 'Invitation sent.');
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Failed to send invitation.'));
+    },
+  });
+
   if (experts.length === 0) {
     return (
       <div className="text-center py-20 space-y-6 animate-in fade-in duration-700">
@@ -84,12 +151,22 @@ export const ExpertMatchInsights = ({ experts }: ExpertMatchInsightsProps) => {
               </div>
 
               <div className="w-full pt-4 space-y-2">
-                <Button 
-                  onClick={() => toast.success('Invitation sent! The expert will be notified.')}
-                  className="w-full rounded-xl font-black shadow-lg shadow-primary/20"
-                >
-                  Invite to Job Post
-                </Button>
+                {(() => {
+                  const existingInvite = inviteByExpertId.get(expert.id);
+                  const isSending = inviteMutation.isPending && inviteMutation.variables === expert.id;
+                  // Backend rejects duplicate invites for the same job/expert regardless of status.
+                  const hasExistingInvite = Boolean(existingInvite);
+
+                  return (
+                    <Button
+                      disabled={!jobId || isLoadingInvites || isSending || hasExistingInvite}
+                      onClick={() => inviteMutation.mutate(expert.id)}
+                      className="w-full rounded-xl font-black shadow-lg shadow-primary/20"
+                    >
+                      {getInviteButtonLabel(existingInvite, isSending, Boolean(jobId))}
+                    </Button>
+                  );
+                })()}
                 <Button variant="ghost" asChild className="w-full rounded-xl font-bold text-slate-500 hover:text-primary">
                   <Link to={`/client/experts/${expert.id}`}>
                     View Profile <ChevronRight className="size-4 ml-1" />

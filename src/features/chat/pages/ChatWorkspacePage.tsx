@@ -14,6 +14,8 @@ import { useQuery } from '@tanstack/react-query';
 import { projectService } from '@/features/projects/services';
 import { toast } from 'sonner';
 import { useLocation } from 'react-router-dom';
+import { servicesFeatureApi } from '@/features/services/services';
+import { QUERY_KEYS } from '@/shared/constants';
 
 export const ChatWorkspacePage = () => {
   const location = useLocation();
@@ -94,21 +96,39 @@ export const ChatWorkspacePage = () => {
   }, [conversations, projectTitleById]);
 
   const targetConversationId = useMemo(() => {
-    const stateConversationId = (location.state as { conversationId?: string } | null)?.conversationId;
+    const stateConversationId = (location.state as { conversationId?: string; serviceRequestId?: string; jobId?: string } | null)?.conversationId;
     if (stateConversationId) return stateConversationId;
 
     return new URLSearchParams(location.search).get('conversationId') || undefined;
   }, [location.search, location.state]);
 
-  useEffect(() => {
-    if (!targetConversationId) return;
-    if (selectedConversationId === targetConversationId) return;
+  const targetServiceRequestId = useMemo(() => {
+    const stateServiceRequestId = (location.state as { conversationId?: string; serviceRequestId?: string; jobId?: string } | null)?.serviceRequestId;
+    if (stateServiceRequestId) return stateServiceRequestId;
 
-    const conversationExists = conversationsWithProjectTitles.some((conversation) => conversation.id === targetConversationId);
-    if (conversationExists) {
-      setSelectedConversationId(targetConversationId);
+    return new URLSearchParams(location.search).get('serviceRequestId') || undefined;
+  }, [location.search, location.state]);
+
+  const targetJobId = useMemo(() => {
+    const stateJobId = (location.state as { conversationId?: string; serviceRequestId?: string; jobId?: string } | null)?.jobId;
+    if (stateJobId) return stateJobId;
+
+    return new URLSearchParams(location.search).get('jobId') || undefined;
+  }, [location.search, location.state]);
+
+  useEffect(() => {
+    if (!targetConversationId && !targetServiceRequestId && !targetJobId) return;
+
+    const targetConversation = conversationsWithProjectTitles.find((conversation) => {
+      if (targetConversationId) return conversation.id === targetConversationId;
+      if (targetServiceRequestId) return conversation.serviceRequestId === targetServiceRequestId;
+      return conversation.jobId === targetJobId;
+    });
+
+    if (targetConversation && selectedConversationId !== targetConversation.id) {
+      setSelectedConversationId(targetConversation.id);
     }
-  }, [conversationsWithProjectTitles, selectedConversationId, targetConversationId]);
+  }, [conversationsWithProjectTitles, selectedConversationId, targetConversationId, targetJobId, targetServiceRequestId]);
 
   const selectedConversation = useMemo(() => 
     conversationsWithProjectTitles.find((c: Conversation) => c.id === selectedConversationId),
@@ -117,6 +137,10 @@ export const ChatWorkspacePage = () => {
   const selectedProjectId = useMemo(() => {
     return typeof selectedConversation?.projectId === 'string' ? selectedConversation.projectId.trim() : '';
   }, [selectedConversation?.projectId]);
+
+  const selectedServiceRequestId = useMemo(() => {
+    return typeof selectedConversation?.serviceRequestId === 'string' ? selectedConversation.serviceRequestId.trim() : '';
+  }, [selectedConversation?.serviceRequestId]);
 
   const messages = useMemo(() => {
     return selectedConversationId ? (Array.isArray(messagesData?.data) ? messagesData.data : []) : [];
@@ -144,6 +168,17 @@ export const ChatWorkspacePage = () => {
   const project = projectResponse?.data;
   const milestones = Array.isArray(project?.milestones) ? project.milestones : [];
   const currentMilestone = milestones.find(m => m.status === 1 || m.status === 2) || milestones[0];
+
+  const {
+    data: serviceRequestResponse,
+    isLoading: isServiceRequestLoading,
+  } = useQuery({
+    queryKey: QUERY_KEYS.SERVICES.REQUEST_DETAIL(selectedServiceRequestId),
+    queryFn: () => servicesFeatureApi.getServiceRequestById(selectedServiceRequestId),
+    enabled: selectedConversation?.type === 'SERVICE_REQUEST' && !!selectedServiceRequestId,
+  });
+
+  const serviceRequest = serviceRequestResponse?.data;
 
   const handleSendMessage = async (content: string, attachmentUrl?: string) => {
     if (!selectedConversationId) return;
@@ -235,6 +270,9 @@ export const ChatWorkspacePage = () => {
                 type={selectedConversation.type}
                 relatedTitle={selectedConversation.relatedTitle}
                 projectId={selectedConversation.projectId}
+                serviceRequestId={selectedConversation.serviceRequestId}
+                serviceId={serviceRequest?.serviceId}
+                isServiceRequestLoading={isServiceRequestLoading}
                 isRightPanelCollapsed={isRightPanelCollapsed}
                 onToggleRightPanel={() => setIsRightPanelCollapsed(!isRightPanelCollapsed)}
               />

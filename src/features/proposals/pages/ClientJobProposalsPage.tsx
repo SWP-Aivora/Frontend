@@ -73,7 +73,7 @@ export const ClientJobProposalsPage = () => {
   const [isRecommendationsOpen, setIsRecommendationsOpen] = useState(false);
   const [acceptedProposalId, setAcceptedProposalId] = useState<string | null>(null);
   const [pendingJobAction, setPendingJobAction] = useState<PendingJobAction>(null);
-  // Lấy chi tiết Job hiện tại
+  // Fetch the current job details.
   const { data: jobResponse, isLoading: isJobLoading } = useQuery({
     queryKey: QUERY_KEYS.JOBS.DETAIL(resolvedJobId!),
     queryFn: () => jobService.getJobById(resolvedJobId!),
@@ -81,7 +81,7 @@ export const ClientJobProposalsPage = () => {
     refetchInterval: REFETCH_INTERVALS.REALTIME_SLOW,
   });
 
-  // Lấy danh sách toàn bộ Proposal (Đơn báo giá) của Job này
+  // Fetch all proposals for this job.
   const { data: proposalsResponse, isLoading: isProposalsLoading } = useQuery({
     queryKey: QUERY_KEYS.JOBS.PROPOSALS(resolvedJobId!),
     queryFn: () => proposalService.getProposalsByJobId(resolvedJobId!),

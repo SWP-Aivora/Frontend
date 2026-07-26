@@ -156,7 +156,7 @@ const ServiceCard = ({ service }: { service: ServiceListing }) => {
           </Link>
         </Button>
         <Button asChild className="h-11 flex-1 rounded-lg shadow-lg shadow-primary/20">
-          <Link to={`/client/services/${service.id}/request`}>
+          <Link to={`/client/services/${service.id}`}>
             Request
             <ArrowRight className="size-4" />
           </Link>

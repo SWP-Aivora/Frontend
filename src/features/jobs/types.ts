@@ -33,6 +33,26 @@ export interface Job {
   milestones?: AcceptedJobMilestone[];
 }
 
+export const JobInviteStatus = {
+  PENDING: 'PENDING',
+  ACCEPTED: 'ACCEPTED',
+  DECLINED: 'DECLINED',
+  EXPIRED: 'EXPIRED',
+} as const;
+export type JobInviteStatus = (typeof JobInviteStatus)[keyof typeof JobInviteStatus];
+
+export interface JobInvite {
+  id: string;
+  jobId: string;
+  jobTitle: string;
+  expertId: string;
+  expertName: string;
+  clientId: string;
+  status: JobInviteStatus;
+  respondedAt?: string | null;
+  createdAt: string;
+}
+
 export interface CreateJobMilestoneRequest {
   title: string;
   description?: string | null;

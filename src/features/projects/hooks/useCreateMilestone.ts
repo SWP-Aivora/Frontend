@@ -1,5 +1,5 @@
-// Hook mutation để tạo milestone mới trong project đã hired.
-// Sử dụng useMutation của TanStack Query, invalidate cache khi thành công.
+// Mutation hook for creating a new milestone in a hired project.
+// Uses TanStack Query useMutation and invalidates cache on success.
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectService } from '../services';
@@ -26,8 +26,8 @@ export const useCreateMilestone = ({ projectId, onSuccess }: UseCreateMilestoneO
         acceptanceCriteria: data.acceptanceCriteria || undefined,
       }),
     onSuccess: () => {
-      // Refresh cả project (để cập nhật totalBudget, remainingBudget)
-      // và milestone list trên Kanban board
+      // Refresh the project (to update totalBudget and remainingBudget)
+      // and the milestone list on the Kanban board.
       void queryClient.invalidateQueries({ queryKey: ['project', projectId] });
       void queryClient.invalidateQueries({ queryKey: ['project', projectId, 'milestones'] });
       toast.success('Milestone created successfully!');

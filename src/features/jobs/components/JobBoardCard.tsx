@@ -1,13 +1,29 @@
 import { type JobCard } from '../schema';
+import type { JobInvite } from '../types';
 import { Button } from '@/shared/components/ui/Button';
-import { BadgeCheck, Clock, MapPin, DollarSign, BrainCircuit, ChevronRight } from 'lucide-react';
+import { BadgeCheck, Check, ChevronRight, Clock, DollarSign, MailCheck, MapPin, BrainCircuit, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface JobBoardCardProps {
   job: JobCard;
+  invite?: JobInvite;
+  isInviteActionPending?: boolean;
+  onAcceptInvite?: (invite: JobInvite) => void;
+  onDeclineInvite?: (invite: JobInvite) => void;
 }
 
-export const JobBoardCard = ({ job }: JobBoardCardProps) => {
+export const JobBoardCard = ({
+  job,
+  invite,
+  isInviteActionPending,
+  onAcceptInvite,
+  onDeclineInvite,
+}: JobBoardCardProps) => {
+  const normalizedStatus = String(job.status ?? '').toUpperCase().replace(/[\s_-]/g, '');
+  const isOpenJob = job.status === 1 || normalizedStatus === 'OPEN' || normalizedStatus === 'PUBLISHED';
+  const showInvite = !!invite && isOpenJob && ['PENDING', 'ACCEPTED'].includes(invite.status);
+  const showPendingInviteActions = showInvite && invite.status === 'PENDING';
+
   const formatBudget = () => {
     if (!job.budgetMin && !job.budgetMax) return 'Negotiable';
     if (job.budgetType === 1) { // Hourly
@@ -56,6 +72,12 @@ export const JobBoardCard = ({ job }: JobBoardCardProps) => {
           <BrainCircuit className="size-3.5" />
           {getExperienceLevel()}
         </div>
+        {showInvite && (
+          <div className="px-3 py-1 bg-amber-50 border border-amber-100 rounded-lg text-xs font-bold text-amber-700 flex items-center gap-1.5">
+            <MailCheck className="size-3.5" />
+            {invite.status === 'ACCEPTED' ? 'Invite Accepted' : 'Invited'}
+          </div>
+        )}
       </div>
 
       {/* Description */}
@@ -104,16 +126,18 @@ export const JobBoardCard = ({ job }: JobBoardCardProps) => {
         <div className="flex flex-col justify-between items-end">
            <div className="flex flex-col items-end text-right">
               <span className="text-xs font-bold text-slate-700">{job.clientName || 'Anonymous Client'}</span>
-              <div className="flex items-center gap-1 mt-1">
-                 {job.clientVerified ? (
-                    <BadgeCheck className="size-3.5 text-brand-success" />
-                 ) : (
-                    <span className="size-1.5 rounded-full bg-slate-300" />
-                 )}
-                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">
-                    {job.clientVerified ? 'Payment Verified' : 'Unverified'}
-                 </span>
-              </div>
+              {typeof job.clientVerified === 'boolean' && (
+                <div className="flex items-center gap-1 mt-1">
+                   {job.clientVerified ? (
+                      <BadgeCheck className="size-3.5 text-brand-success" />
+                   ) : (
+                      <span className="size-1.5 rounded-full bg-slate-300" />
+                   )}
+                   <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">
+                      {job.clientVerified ? 'Payment Verified' : 'Unverified'}
+                   </span>
+                </div>
+              )}
            </div>
            
            <Button asChild variant="ghost" className="rounded-full hover:bg-brand-accent hover:text-white group/btn pr-3 pl-5 mt-auto">
@@ -122,6 +146,31 @@ export const JobBoardCard = ({ job }: JobBoardCardProps) => {
                <ChevronRight className="size-4 ml-1 group-hover/btn:translate-x-1 transition-transform" />
              </Link>
            </Button>
+           {showPendingInviteActions && invite && (
+             <div className="flex flex-wrap justify-end gap-2 mt-3">
+               <Button
+                 type="button"
+                 size="sm"
+                 className="rounded-full"
+                 disabled={isInviteActionPending}
+                 onClick={() => onAcceptInvite?.(invite)}
+               >
+                 <Check className="size-3.5 mr-1" />
+                 Accept
+               </Button>
+               <Button
+                 type="button"
+                 size="sm"
+                 variant="outline"
+                 className="rounded-full"
+                 disabled={isInviteActionPending}
+                 onClick={() => onDeclineInvite?.(invite)}
+               >
+                 <X className="size-3.5 mr-1" />
+                 Decline
+               </Button>
+             </div>
+           )}
         </div>
       </div>
     </div>

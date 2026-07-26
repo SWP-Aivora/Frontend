@@ -8,9 +8,12 @@ import { useAuthStore } from '@/features/auth/store';
 
 interface ChatHeaderProps {
   recipient: ConversationRecipient;
-  type: 'PROJECT' | 'PROPOSAL' | 'SUPPORT';
+  type: 'PROJECT' | 'PROPOSAL' | 'SERVICE_REQUEST' | 'SUPPORT';
   relatedTitle?: string;
   projectId?: string; // Assume ID is passed or available from context
+  serviceRequestId?: string;
+  serviceId?: string;
+  isServiceRequestLoading?: boolean;
   isRightPanelCollapsed?: boolean;
   onToggleRightPanel?: () => void;
 }
@@ -20,6 +23,9 @@ export const ChatHeader = ({
   type, 
   relatedTitle, 
   projectId,
+  serviceRequestId,
+  serviceId,
+  isServiceRequestLoading = false,
   isRightPanelCollapsed,
   onToggleRightPanel
 }: ChatHeaderProps) => {
@@ -55,6 +61,33 @@ export const ChatHeader = ({
       navigate(target);
     }
   };
+
+  const getServiceRequestAction = () => {
+    if (type !== 'SERVICE_REQUEST' || !serviceRequestId) return null;
+
+    const isClient = user?.role === Role.CLIENT || location.pathname.startsWith('/client');
+    const isExpert = user?.role === Role.EXPERT || location.pathname.startsWith('/expert');
+
+    if (isClient) {
+      return {
+        label: 'View Offer',
+        target: `/client/services/requests/${serviceRequestId}`,
+        disabled: false,
+      };
+    }
+
+    if (isExpert) {
+      return {
+        label: 'Send Final Offer',
+        target: serviceId ? `/expert/services/${serviceId}/requests/${serviceRequestId}` : '',
+        disabled: !serviceId,
+      };
+    }
+
+    return null;
+  };
+
+  const serviceRequestAction = getServiceRequestAction();
 
   return (
     <div className="flex items-center justify-between px-6 py-3 border-b border-slate-200 bg-white sticky top-0 z-10 h-[72px]">
@@ -97,6 +130,19 @@ export const ChatHeader = ({
             className="hidden sm:flex h-9 gap-2 text-xs font-bold text-blue-600 border-blue-100 hover:bg-blue-50 rounded-lg"
           >
             View Project
+            <ExternalLink className="w-3.5 h-3.5" />
+          </Button>
+        )}
+        {serviceRequestAction && (
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isServiceRequestLoading || serviceRequestAction.disabled}
+            onClick={() => serviceRequestAction.target && navigate(serviceRequestAction.target)}
+            className="hidden sm:flex h-9 gap-2 text-xs font-bold text-blue-600 border-blue-100 hover:bg-blue-50 rounded-lg"
+            title={serviceRequestAction.disabled ? 'Service request details are still loading.' : undefined}
+          >
+            {isServiceRequestLoading ? 'Loading...' : serviceRequestAction.label}
             <ExternalLink className="w-3.5 h-3.5" />
           </Button>
         )}

@@ -1,8 +1,8 @@
-// Zod schemas cho feature projects
+// Zod schemas for the projects feature.
 import { z } from 'zod';
 
 /**
- * Schema validate form tạo milestone mới trong project đã hired.
+ * Validation schema for creating a new milestone in a hired project.
  * Backend endpoint: POST /projects/{id}/milestones
  */
 export const createMilestoneSchema = z.object({

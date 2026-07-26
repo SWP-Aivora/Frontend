@@ -27,6 +27,7 @@ export type JobIdeaFormValues = z.infer<typeof jobIdeaSchema>;
 // Schema for Job display on the Expert Job Board
 export const jobCardSchema = z.object({
   id: z.string(),
+  status: z.union([z.string(), z.number()]).nullable(),
   title: z.string(),
   description: z.string(),
   businessDomain: z.string().nullable(),
@@ -37,11 +38,9 @@ export const jobCardSchema = z.object({
   experienceLevel: z.number().nullable(),
   createdAt: z.string(),
   skills: z.array(z.string()),
-  proposalsCount: z.number(),
+  proposalsCount: z.number().nullable(),
   clientName: z.string().nullable(),
-  clientVerified: z.boolean().default(false),
+  clientVerified: z.boolean().nullable(),
 });
 
 export type JobCard = z.infer<typeof jobCardSchema>;
-
-

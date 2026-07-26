@@ -8,8 +8,8 @@ interface GuestRouteProps {
 }
 
 /**
- * Route chỉ dành cho Guest (VD: Login, Register).
- * Nếu đã đăng nhập sẽ tự động redirect về trang chủ tương ứng role.
+ * Route available only to guests, such as Login and Register.
+ * If already authenticated, redirects to the role-specific home page.
  */
 export const GuestRoute: React.FC<GuestRouteProps> = ({ children }) => {
   const { isAuthenticated, user, isHydrated } = useAuthStore();
@@ -18,7 +18,7 @@ export const GuestRoute: React.FC<GuestRouteProps> = ({ children }) => {
   if (!isHydrated) return null;
 
   if (isAuthenticated && user?.role) {
-    // Điều hướng dựa vào Role
+    // Navigate based on role.
     if (user.role === 'ADMIN') return <Navigate to="/admin" replace />;
     if (user.role === 'EXPERT') return <Navigate to="/expert" replace />;
     return <Navigate to="/client" replace />;

@@ -1,72 +1,96 @@
-# Bài Học Quan Trọng Khi Làm Việc Với Code
+# Important Lessons for Working With This Codebase
 
-## 🚨 Kiểm Tra Syntax Trước Khi Commit
+## Check Syntax Before Committing
 
-### Luôn làm những việc này:
-1. **Chạy `npm run lint`** trước khi commit để kiểm tra syntax errors
-2. **Chạy `npm run build`** để đảm bảo file build thành công
-3. **Kiểm tra JSX syntax** đặc biệt:
-   - Mọi thẻ JSX đều phải có opening và closing tag đúng
-   - Kiểm tra các thẻ tự đóng (self-closing tags) có đủ `/>`
-   - Đảm bảo không có ký tự lạ hoặc encoding issues
+### Always Do These
 
-### Các lỗi thường gặp:
-- **Missing `<` ở đầu thẻ**: `<Button` thay vì `Button`
-- **Unmatched tags**: Đếm số lượng `<` và `>` phải khớp nhau
-- **Self-closing tags**: `<input>` → `<input />`
-- **Comment trong JSX**: `{/* comment */}` thay vì `// comment`
+1. Run `npm run lint` before committing to catch syntax and lint issues.
+2. Run `npm run build` to make sure the production build succeeds.
+3. Check JSX syntax carefully:
+   - Every JSX tag must have the correct opening and closing tag.
+   - Self-closing tags must include `/>`.
+   - Avoid stray characters and encoding issues.
 
-## 🔍 Kiểm Tra Environment
+### Common Mistakes
 
-### Luôn test trên:
-- ✅ Local environment
-- ✅ Real build command (`npm run build`)
-- ✅ CI/CD environment (nếu có)
+- Missing `<` at the beginning of a tag: write `<Button`, not `Button`.
+- Unmatched tags: the number of opening and closing tags must match.
+- Incorrect self-closing tags: use `<input />`, not `<input>`.
+- Invalid JSX comments: use `{/* comment */}`, not `// comment`.
 
-### Các lệnh kiểm tra quan trọng:
+## Check the Environment
+
+### Always Test On
+
+- Local environment
+- Real build command: `npm run build`
+- CI/CD environment, when available
+
+### Important Commands
+
 ```bash
-# Kiểm tra syntax
+# Check syntax and lint rules
 npm run lint
 
-# Build toàn bộ project
+# Build the whole project
 npm run build
 
-# Kiểm tra TypeScript errors
+# Check TypeScript errors
 npx tsc --noEmit
 ```
 
-## 📝 Checklist Trước Commit
+## Pre-Commit Checklist
 
-- [ ] Chạy `npm run lint` - không lỗi
-- [ ] Chạy `npm run build` - build thành công
-- [ ] Kiểm tra các thẻ JSX trong file đã sửa
-- [ ] Đếm số lượng mở/đóng tag khớp nhau
-- [ ] Test functionality trên local
+- [ ] `npm run lint` passes
+- [ ] `npm run build` succeeds
+- [ ] JSX tags in changed files are valid
+- [ ] Opening and closing tags match
+- [ ] Changed functionality was tested locally
 
-## 🚨 Trường Hợp Cần Đặc Biệt Cẩn Thận
+## Production Toast Smoke Check
 
-1. **Khi sửa JSX**: Kiểm tra kỹ từng thẻ, nhất là các thẻ lồng nhau
-2. **Khi xóa code**: Đảm bảo không bỏ sót thẻ đóng hoặc comment
-3. **Khi copy-paste**: Kiểm tra lại toàn bộ syntax, không chỉ logic
+Use this after deploying when a change depends on visible toast feedback:
 
-## 💡 Công Cụ Hỗ Trợ
+1. Open the deployed `/register` page.
+2. Submit the form with an email that already exists.
+3. Confirm the request returns a 400 duplicate-email response.
+4. In the browser console, confirm a real Sonner toast exists:
+   ```js
+   document.querySelector('[data-sonner-toast]')
+   ```
+5. Confirm the duplicate-email error text is visible to the user.
 
-- **VSCode extensions**: ESLint, Prettier
-- **Terminal**: npm scripts, grep cho việc tìm lỗi
-- **Build pipeline**: CI/CD để phát hiện lỗi sớm
+Do not rely only on `[data-sonner-toaster]`; current Sonner builds expose individual toast items as `[data-sonner-toast]`, and the toaster container selector may not exist.
 
-## 📌 Bài Học Từ Thực Tế
+## Cases That Need Extra Care
 
-### Case Study: JSX Syntax Error (ProjectWorkspacePage.tsx)
-**Vấn đề**: Lỗi `Parsing error: Unexpected token. Did you mean `{'>'}` or `&gt;`?`
-**Nguyên nhân**: Thẻ `<Button>` thiếu ký tự `<` ở đầu
-**Khắc phục**: Thêm `<` vào đúng vị trí
-**Hậu quả**: Gây fail CI/CD, cần commit lại
+1. When editing JSX, inspect each tag carefully, especially nested tags.
+2. When deleting code, make sure no closing tags or comments are left broken.
+3. When copying and pasting, re-check the full syntax, not only the logic.
 
-**Điều học được**: 
-- "Better safe than sorry" - Kiểm tra kỹ hơn là phải sửa sau khi đã commit
-- Luôn verify syntax trên cả local và production environment
+## Helpful Tools
+
+- VS Code extensions: ESLint, Prettier
+- Terminal commands: npm scripts and `rg` for searching
+- Build pipeline: CI/CD catches problems early
+
+## Real-World Lesson
+
+### Case Study: JSX Syntax Error in `ProjectWorkspacePage.tsx`
+
+Problem: `Parsing error: Unexpected token. Did you mean {'>'} or &gt;?`
+
+Cause: a `<Button>` tag was missing the opening `<`.
+
+Fix: add the missing `<` in the correct place.
+
+Impact: the issue failed CI/CD and required another commit.
+
+Lesson:
+
+- Better safe than sorry: inspect carefully before pushing.
+- Always verify syntax in both local and production-like environments.
 
 ---
 
-*Ghi chú: Luôn nhớ - "Check twice, commit once!"*
+Remember: check twice, commit once.

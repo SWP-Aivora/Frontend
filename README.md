@@ -1,49 +1,49 @@
-# AIVORA Project
+# AIVORA Frontend
 
-Nền tảng frontend được xây dựng với React, TypeScript, Vite và TanStack Query theo kiến trúc Feature-Sliced Design (FSD).
+AIVORA is a React, TypeScript, Vite, and TanStack Query frontend built with a feature-based architecture.
 
-## 📌 Tổng quan
+## Overview
 
 - UI: React + TypeScript
 - Bundler: Vite
-- State, query: Zustand + React Query
+- State and data fetching: Zustand + TanStack Query
 - Router: React Router v6
-- Kiến trúc theo feature-based: `src/features/*`
-- Thành phần chung: `src/shared/*`
+- Feature-based source layout: `src/features/*`
+- Shared UI, hooks, and services: `src/shared/*`
 
-## ⚙️ Cài đặt và chạy
+## Install and Run
 
 ```bash
 npm install
 npm run dev
 ```
 
-Xây dựng production:
+Build and preview production output:
 
 ```bash
 npm run build
 npm run preview
 ```
 
-Chạy kiểm tra linter:
+Run lint checks:
 
 ```bash
 npm run lint
 ```
 
-## 📋 Checklist Trước Commit
+## Pre-Commit Checklist
 
-Luôn kiểm tra kỹ trước khi commit để tránh lỗi syntax và CI/CD fails:
+Always verify changes before committing to avoid syntax errors and CI/CD failures:
 
-1. **Chạy linter**: `npm run lint` - không lỗi
-2. **Build project**: `npm run build` - build thành công  
-3. **Check JSX syntax**: Đảm bảo mọi thẻ đều có opening/closing tag
-4. **Test functionality**: Chạy thử trên local environment
+1. Run lint: `npm run lint`
+2. Build the project: `npm run build`
+3. Check JSX syntax: make sure tags are opened, closed, and self-closed correctly
+4. Test the changed functionality locally
 
-Xem chi tiết: [README-CHECKLIST.md](README-CHECKLIST.md)
+See [README-CHECKLIST.md](README-CHECKLIST.md) for more detail.
 
-## ⚠️ Lưu Ý Quan Trọng
+## Important Notes
 
-- "Check twice, commit once!" - Luôn verify syntax trước khi commit
-- "Better safe than sorry" - Đảm bảo build thành công trên cả local và production
-- Ghi nhớ bài học từ các lỗi thực tế để tránh lặp lại
+- "Check twice, commit once."
+- Make sure the app builds locally and in production-like environments.
+- Keep lessons from real failures documented so they are not repeated.

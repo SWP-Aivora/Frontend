@@ -3,16 +3,86 @@ import { Button } from '@/shared/components/ui/Button';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { projectService } from '@/features/projects/services';
 import { ProjectStatus } from '@/shared/types/enums';
 import { isActiveProjectStatus } from '@/features/projects/utils';
+import { JobBoardCard } from '../components/JobBoardCard';
+import { type JobCard } from '../schema';
+import { JobInviteStatus, type Job, type JobInvite } from '../types';
+import { jobService } from '../services';
+import { toast } from 'sonner';
+import { getErrorMessage } from '@/lib/api-utils';
 
 
 type StatusFilter = 'all' | 'in-progress' | 'completed';
 type SortOrder = 'newest' | 'oldest';
 
+const normalizeBudgetType = (value: unknown) => {
+  if (value === 1 || String(value ?? '').toUpperCase() === 'HOURLY') return 1;
+  return 0;
+};
+
+const normalizeSkillLevel = (value: unknown) => {
+  if (value === 0 || String(value ?? '').toUpperCase() === 'BEGINNER') return 0;
+  if (value === 1 || String(value ?? '').toUpperCase() === 'INTERMEDIATE') return 1;
+  if (value === 2 || ['ADVANCED', 'EXPERIENCED'].includes(String(value ?? '').toUpperCase())) return 2;
+  if (value === 3 || String(value ?? '').toUpperCase() === 'EXPERT') return 3;
+  return null;
+};
+
+const isOpenJob = (status: unknown): boolean => {
+  if (typeof status === 'number') return status === 1;
+
+  const normalized = String(status ?? '').toUpperCase().replace(/[\s_-]/g, '');
+  return normalized === 'OPEN' || normalized === 'PUBLISHED';
+};
+
+const getNumberField = (value: Record<string, unknown>, ...keys: string[]): number | null => {
+  for (const key of keys) {
+    const fieldValue = value[key];
+    if (typeof fieldValue === 'number' && Number.isFinite(fieldValue)) return fieldValue;
+    if (typeof fieldValue === 'string' && fieldValue.trim() !== '' && Number.isFinite(Number(fieldValue))) {
+      return Number(fieldValue);
+    }
+  }
+
+  return null;
+};
+
+const getBooleanField = (value: Record<string, unknown>, ...keys: string[]): boolean | null => {
+  for (const key of keys) {
+    const fieldValue = value[key];
+    if (typeof fieldValue === 'boolean') return fieldValue;
+  }
+
+  return null;
+};
+
+const mapJobToJobCard = (job: Job): JobCard => {
+  const rawJob = job as Job & Record<string, unknown>;
+
+  return {
+    id: job.id,
+    status: job.status,
+    title: job.title,
+    description: job.finalDescription || job.originalDescription,
+    businessDomain: job.businessDomain,
+    budgetType: normalizeBudgetType(job.budgetType),
+    budgetMin: job.budgetMin,
+    budgetMax: job.budgetMax,
+    timelineDays: job.timelineDays,
+    experienceLevel: normalizeSkillLevel(job.experienceLevel),
+    createdAt: new Date(job.createdAt).toLocaleDateString(),
+    skills: job.skills?.map(skill => skill.name) || [],
+    proposalsCount: getNumberField(rawJob, 'proposalsCount', 'ProposalsCount'),
+    clientName: job.client?.fullName || 'Anonymous Client',
+    clientVerified: getBooleanField(rawJob, 'clientVerified', 'ClientVerified', 'isClientVerified', 'IsClientVerified'),
+  };
+};
+
 export const ExpertMyJobsPage = () => {
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState<StatusFilter>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
@@ -20,6 +90,84 @@ export const ExpertMyJobsPage = () => {
   const { data: projectsResponse, isLoading } = useQuery({
     queryKey: ['expertProjects'],
     queryFn: () => projectService.getProjects({ PageSize: 100 }),
+  });
+
+  const { data: invitesResponse } = useQuery({
+    queryKey: ['jobs', 'invites', 'me'],
+    queryFn: () => jobService.getMyInvites(),
+  });
+
+  const activeInvites = useMemo(() => {
+    const invites = Array.isArray(invitesResponse?.data) ? invitesResponse.data : [];
+    return invites.filter((invite) =>
+      invite.status === JobInviteStatus.PENDING || invite.status === JobInviteStatus.ACCEPTED
+    );
+  }, [invitesResponse?.data]);
+
+  const inviteJobIds = useMemo(() => activeInvites.map((invite) => invite.jobId), [activeInvites]);
+
+  const { data: invitedJobs = [], isLoading: isLoadingInvitedJobs } = useQuery({
+    queryKey: ['jobs', 'invited-open-details', inviteJobIds],
+    queryFn: async () => {
+      const results = await Promise.allSettled(inviteJobIds.map((jobId) => jobService.getJobById(jobId)));
+      return results.flatMap((result) => (
+        result.status === 'fulfilled' && result.value.data ? [result.value.data] : []
+      ));
+    },
+    enabled: inviteJobIds.length > 0,
+  });
+
+  const inviteByJobId = useMemo(() => (
+    new Map(activeInvites.map((invite) => [invite.jobId, invite]))
+  ), [activeInvites]);
+
+  const openInvitedJobs = useMemo(() => (
+    invitedJobs.filter((job) => isOpenJob(job.status) && inviteByJobId.has(job.id))
+  ), [inviteByJobId, invitedJobs]);
+
+  const acceptInviteMutation = useMutation({
+    mutationFn: (invite: JobInvite) => jobService.acceptInvite(invite.id),
+    onSuccess: (response, invite) => {
+      const acceptedInvite = response.data ?? invite;
+      queryClient.setQueryData<Awaited<ReturnType<typeof jobService.getMyInvites>>>(
+        ['jobs', 'invites', 'me'],
+        (current) => current
+          ? {
+              ...current,
+              data: (current.data ?? []).map((cachedInvite) =>
+                cachedInvite.id === acceptedInvite.id ? acceptedInvite : cachedInvite
+              ),
+            }
+          : current
+      );
+      queryClient.invalidateQueries({ queryKey: ['jobs', 'invites', 'me'] });
+      // Backend currently returns only the accepted invite and does not create/return
+      // a job conversation. When accept returns a conversationId, navigate to it here.
+      toast.success('Invite accepted.');
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Failed to accept invite.'));
+    },
+  });
+
+  const declineInviteMutation = useMutation({
+    mutationFn: (invite: JobInvite) => jobService.declineInvite(invite.id),
+    onSuccess: (_response, invite) => {
+      queryClient.setQueryData<Awaited<ReturnType<typeof jobService.getMyInvites>>>(
+        ['jobs', 'invites', 'me'],
+        (current) => current
+          ? {
+              ...current,
+              data: (current.data ?? []).filter((cachedInvite) => cachedInvite.id !== invite.id),
+            }
+          : current
+      );
+      queryClient.invalidateQueries({ queryKey: ['jobs', 'invites', 'me'] });
+      toast.success('Invite declined.');
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Failed to decline invite.'));
+    },
   });
 
   // Map API ProjectStatus to our UI filter statuses
@@ -86,6 +234,43 @@ export const ExpertMyJobsPage = () => {
           <p className="text-slate-500 font-medium mt-1">Manage your ongoing contracts and completed projects.</p>
         </div>
       </div>
+
+      {(isLoadingInvitedJobs || openInvitedJobs.length > 0) && (
+        <section className="space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-black text-slate-900">Job Invitations</h2>
+              <p className="text-sm font-medium text-slate-500">Open jobs where a client invited you directly.</p>
+            </div>
+          </div>
+
+          {isLoadingInvitedJobs ? (
+            <div className="bg-white border border-slate-100 rounded-lg p-8 text-sm font-bold text-slate-500">
+              Loading invitations...
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {openInvitedJobs.map((job) => {
+                const invite = inviteByJobId.get(job.id);
+                const isInviteActionPending =
+                  (acceptInviteMutation.variables?.id === invite?.id && acceptInviteMutation.isPending) ||
+                  (declineInviteMutation.variables?.id === invite?.id && declineInviteMutation.isPending);
+
+                return (
+                  <JobBoardCard
+                    key={job.id}
+                    job={mapJobToJobCard(job)}
+                    invite={invite}
+                    isInviteActionPending={isInviteActionPending}
+                    onAcceptInvite={(invite) => acceptInviteMutation.mutate(invite)}
+                    onDeclineInvite={(invite) => declineInviteMutation.mutate(invite)}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Toolbar */}
       <div className="bg-white border border-slate-100 rounded-[20px] p-2 flex flex-col md:flex-row gap-4 justify-between items-center shadow-sm relative z-10">

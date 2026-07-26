@@ -43,7 +43,10 @@ test.describe('Authentication & Authorization Flow', () => {
     // Submit
     await page.click('button[type="submit"]');
 
-    // Verify sonner toast displays the error
+    // Verify Sonner renders a real toast element and displays the error.
+    // Current Sonner versions expose individual toasts as [data-sonner-toast];
+    // [data-sonner-toaster] is not reliable across versions.
+    await expect(page.locator('[data-sonner-toast]')).toBeVisible();
     await expect(page.locator('text=Invalid email or password')).toBeVisible();
   });
 
