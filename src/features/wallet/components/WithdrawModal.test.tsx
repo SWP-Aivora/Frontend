@@ -66,7 +66,7 @@ describe('WithdrawModal', () => {
       expect(walletService.withdraw).toHaveBeenCalledWith({
         amount: 1200,
         paymentMethod: 'paypal',
-        description: 'Wallet withdrawal',
+        description: 'Withdrawal via PayPal',
       });
     });
   });

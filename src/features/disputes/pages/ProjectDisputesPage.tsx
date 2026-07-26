@@ -7,6 +7,7 @@ import { Button } from '@/shared/components/ui/Button';
 import { ConfirmActionDialog } from '@/shared/components/ui/ConfirmActionDialog';
 import { useAuthStore } from '@/features/auth/store';
 import { Role } from '@/shared/types/enums';
+import { getErrorMessage } from '@/lib/api-utils';
 import { DisputeStatusBadge } from '../components/DisputeStatusBadge';
 import { disputeService } from '../services';
 import type { Dispute } from '../types';
@@ -29,10 +30,6 @@ const getWorkspaceHref = (role: Role | undefined, projectId: string) => (
   role === Role.EXPERT
     ? `/expert/projects/${projectId}/workspace`
     : `/client/projects/${projectId}/workspace`
-);
-
-const getErrorMessage = (error: unknown, fallback: string): string => (
-  error instanceof Error ? error.message : fallback
 );
 
 const nonManageableDisputeStatuses: DisputeStatus[] = [DisputeStatus.RESOLVED, DisputeStatus.CLOSED];

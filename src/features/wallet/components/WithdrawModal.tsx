@@ -4,12 +4,19 @@ import { X } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { getErrorMessage } from '@/lib/api-utils';
 import { withdrawSchema } from '../schema';
 import { walletService } from '../services';
 
 interface WithdrawModalProps {
   maxBalance: number;
 }
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  bank: 'Bank transfer',
+  paypal: 'PayPal',
+  crypto: 'Crypto',
+};
 
 export const WithdrawModal = ({ maxBalance }: WithdrawModalProps) => {
   const [open, setOpen] = useState(false);
@@ -21,7 +28,7 @@ export const WithdrawModal = ({ maxBalance }: WithdrawModalProps) => {
     mutationFn: (values: { amount: number; paymentMethod: string }) => walletService.withdraw({
       amount: values.amount,
       paymentMethod: values.paymentMethod,
-      description: 'Wallet withdrawal',
+      description: `Withdrawal via ${PAYMENT_METHOD_LABELS[values.paymentMethod] ?? values.paymentMethod}`,
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['wallet'] });
@@ -31,8 +38,8 @@ export const WithdrawModal = ({ maxBalance }: WithdrawModalProps) => {
       setAmountStr('500');
       setPaymentMethod('bank');
     },
-    onError: (error: Error) => {
-      toast.error(error?.message || 'Failed to request withdrawal. Please try again.');
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Failed to request withdrawal. Please try again.'));
     },
   });
 

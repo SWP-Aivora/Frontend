@@ -118,6 +118,32 @@ describe('servicesFeatureApi', () => {
     });
   });
 
+  it('gets a service request by id through the by-id endpoint', async () => {
+    vi.mocked(apiClient.get).mockResolvedValueOnce({
+      data: {
+        success: true,
+        message: 'Service request retrieved successfully',
+        statusCode: 200,
+        data: {
+          id: 'request-1',
+          serviceId: 'service-1',
+          expertId: 'expert-1',
+          clientId: 'client-1',
+          packageId: 'package-1',
+          packageTitle: 'Basic',
+          packagePrice: 100,
+          packageDeliveryDays: 3,
+          status: 'PENDING',
+        },
+      },
+    });
+
+    const response = await servicesFeatureApi.getServiceRequestById('request-1');
+
+    expect(apiClient.get).toHaveBeenCalledWith('service-requests/request-1');
+    expect(response.data?.id).toBe('request-1');
+  });
+
   it('creates a final offer through the service request offer endpoint', async () => {
     vi.mocked(apiClient.post).mockResolvedValueOnce({
       data: {

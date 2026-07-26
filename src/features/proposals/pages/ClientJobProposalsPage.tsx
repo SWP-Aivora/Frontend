@@ -21,7 +21,7 @@ import { Button } from '@/shared/components/ui/Button';
 import { ConfirmActionDialog } from '@/shared/components/ui/ConfirmActionDialog';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { AxiosError } from 'axios';
+import { getErrorMessage } from '@/lib/api-utils';
 import type { Proposal } from '../types';
 import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
 import { QUERY_KEYS, REFETCH_INTERVALS } from '@/shared/constants';
@@ -59,18 +59,6 @@ const normalizeJobStatus = (status: unknown) => {
   if (status === 3 || String(status) === '3' || String(status).toUpperCase() === 'COMPLETED' || String(status).toUpperCase() === 'CLOSED') return 'completed';
   if (status === 4 || String(status) === '4' || String(status).toUpperCase() === 'CANCELLED') return 'cancelled';
   return 'draft';
-};
-
-const getErrorMessage = (error: unknown, fallback: string) => {
-  if (error instanceof AxiosError) {
-    const data = error.response?.data;
-
-    if (data && typeof data === 'object' && 'message' in data && typeof data.message === 'string') {
-      return data.message;
-    }
-  }
-
-  return error instanceof Error ? error.message : fallback;
 };
 
 export const ClientJobProposalsPage = () => {

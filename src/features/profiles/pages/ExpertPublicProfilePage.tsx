@@ -12,6 +12,7 @@ import { reviewService } from '@/features/reviews/services';
 import { projectService } from '@/features/projects/services';
 import type { Project } from '@/features/projects/types';
 import { chatService } from '@/features/chat/services';
+import { getErrorMessage } from '@/lib/api-utils';
 import { AvailabilityStatus, Role } from '@/shared/types/enums';
 import { useAuthStore } from '@/features/auth/store';
 import { DirectTransferModal } from '@/features/wallet';
@@ -100,7 +101,7 @@ export const ExpertPublicProfilePage = () => {
       navigate('/client/messages', { state: { conversationId: response.id } });
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to initiate conversation. Please try again.');
+      toast.error(getErrorMessage(error, 'Failed to initiate conversation. Please try again.'));
     }
   });
 

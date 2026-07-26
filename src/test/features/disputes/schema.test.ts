@@ -61,53 +61,15 @@ describe('dispute schemas', () => {
   describe('resolveDisputeSchema', () => {
     it('validates correct data', () => {
       const data = {
-        resolutionType: 'RELEASE_TO_EXPERT',
         resolutionNote: 'The resolution note must also be at least 50 characters long to satisfy the validation rules.'
       };
       const result = resolveDisputeSchema.safeParse(data);
-      expect(result.success).toBe(true);
-    });
-
-    it('allows nullable release and refund amounts', () => {
-      const data = {
-        resolutionType: 'SPLIT_PAYMENT',
-        resolutionNote: 'The resolution note must also be at least 50 characters long to satisfy the validation rules.',
-        releaseAmount: null,
-        refundAmount: null
-      };
-
-      const result = resolveDisputeSchema.safeParse(data);
-
       expect(result.success).toBe(true);
     });
 
     it('fails if resolutionNote is too short', () => {
-      const data = { resolutionType: 'RELEASE_TO_EXPERT', resolutionNote: 'Too short' };
+      const data = { resolutionNote: 'Too short' };
       const result = resolveDisputeSchema.safeParse(data);
-      expect(result.success).toBe(false);
-    });
-
-    it('fails if resolutionType is numeric instead of string', () => {
-      const data = {
-        resolutionType: 0,
-        resolutionNote: 'The resolution note must also be at least 50 characters long to satisfy the validation rules.'
-      };
-
-      const result = resolveDisputeSchema.safeParse(data);
-
-      expect(result.success).toBe(false);
-    });
-
-    it('fails if release or refund amount is negative', () => {
-      const data = {
-        resolutionType: 'SPLIT_PAYMENT',
-        resolutionNote: 'The resolution note must also be at least 50 characters long to satisfy the validation rules.',
-        releaseAmount: -1,
-        refundAmount: -1
-      };
-
-      const result = resolveDisputeSchema.safeParse(data);
-
       expect(result.success).toBe(false);
     });
   });

@@ -128,6 +128,7 @@ export interface AdminJobPostsQuery {
   PageSize?: number;
   SearchTerm?: string;
   categoryId?: string;
+  Status?: string;
 }
 
 export interface ReviewQueueItem {

@@ -168,13 +168,15 @@ export const JobPostManagementPage = () => {
       PageIndex: pageIndex,
       PageSize: PAGE_SIZE,
       SearchTerm: appliedSearchTerm.trim() || undefined,
+      Status: statusFilter === 'All' ? undefined : statusFilter,
     }),
-    [pageIndex, appliedSearchTerm]
+    [pageIndex, appliedSearchTerm, statusFilter]
   );
   const chartQueryParams = useMemo(
     () => ({
       PageIndex: 1,
       PageSize: CHART_PAGE_SIZE,
+      Status: 'OPEN',
     }),
     []
   );

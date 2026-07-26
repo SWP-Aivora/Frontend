@@ -6,6 +6,7 @@ export const adminJobPostStatusOptions = [
   { value: 'IN_PROGRESS', label: 'In Progress' },
   { value: 'COMPLETED', label: 'Completed' },
   { value: 'CANCELLED', label: 'Cancelled' },
+  { value: 'CLOSED', label: 'Closed' },
 ] as const;
 
 export const getAdminJobPostStatusKey = (status: AdminJobPostStatusValue): string => {

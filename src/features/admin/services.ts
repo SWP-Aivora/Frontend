@@ -655,7 +655,7 @@ export const formatActivityDate = (dateString: string): string => {
  */
 export const adminService = {
   getJobPosts: async (params?: AdminJobPostsQuery): Promise<PaginatedResponse<AdminJobPost>> => {
-    const response = await apiClient.get(API_ENDPOINTS.JOBS.BASE, { params });
+    const response = await apiClient.get(API_ENDPOINTS.ADMIN.JOB_POSTS, { params });
     const normalized = normalizePaginatedResponse<AdminRecord>(response, isMutableRecord);
 
     return {

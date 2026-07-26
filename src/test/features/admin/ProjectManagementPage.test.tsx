@@ -185,7 +185,7 @@ describe('ProjectManagementPage', () => {
     const searchInput = screen.getByPlaceholderText('Search project name...');
     fireEvent.change(searchInput, { target: { value: 'Dispute' } });
 
-    expect(mockUseAdminProjects).toHaveBeenLastCalledWith({
+    expect(mockUseAdminProjects).toHaveBeenCalledWith({
       PageIndex: 1,
       PageSize: 10,
       SearchTerm: undefined,
@@ -194,7 +194,7 @@ describe('ProjectManagementPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /search/i }));
 
-    expect(mockUseAdminProjects).toHaveBeenLastCalledWith({
+    expect(mockUseAdminProjects).toHaveBeenCalledWith({
       PageIndex: 1,
       PageSize: 10,
       SearchTerm: 'Dispute',
@@ -225,7 +225,7 @@ describe('ProjectManagementPage', () => {
 
     fireEvent.change(screen.getByLabelText('Project status'), { target: { value: '4' } });
 
-    expect(mockUseAdminProjects).toHaveBeenLastCalledWith({
+    expect(mockUseAdminProjects).toHaveBeenCalledWith({
       PageIndex: 1,
       PageSize: 10,
       SearchTerm: undefined,

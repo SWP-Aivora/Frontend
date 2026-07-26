@@ -6,6 +6,7 @@ import { projectService } from '../services';
 import { toast } from 'sonner';
 import type { CreateMilestoneFormValues } from '../schema';
 import { getDisputeGuardErrorMessage } from '../utils';
+import { getErrorMessage } from '@/lib/api-utils';
 
 interface UseCreateMilestoneOptions {
   projectId: string;
@@ -47,7 +48,7 @@ export const useCreateMilestone = ({ projectId, onSuccess }: UseCreateMilestoneO
             .find((v): v is string => typeof v === 'string' && v.trim() !== '');
           if (msg) return msg;
         }
-        return error instanceof Error ? error.message : 'Failed to create milestone.';
+        return getErrorMessage(error, 'Failed to create milestone.');
       })();
       toast.error(message);
     },
