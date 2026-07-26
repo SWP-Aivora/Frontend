@@ -1,5 +1,5 @@
-// Modal form để tạo milestone mới trong project đã hired (Client only).
-// Dùng react-hook-form + Zod để validate theo đúng contract của BE.
+// Modal form for creating a new milestone in a hired project (client only).
+// Uses react-hook-form + Zod to validate against the backend contract.
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';

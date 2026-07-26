@@ -199,7 +199,7 @@ const buildSuggestionFromJob = (job: Job): AiJobSuggestion => ({
 
 export const PostJobPage = () => {
   const queryClient = useQueryClient();
-  // Quản lý các bước tạo Job: PLANNING (Chat với AI) -> DRAFTING (Xem bản nháp) -> REVIEWING (Sửa thủ công) -> MATCHING (Tìm chuyên gia)
+  // Manage job creation steps: PLANNING (AI chat) -> DRAFTING (review draft) -> REVIEWING (manual edit) -> MATCHING (find experts)
   const [searchParams] = useSearchParams();
   const editJobId = searchParams.get('editJobId');
   const isEditingExistingJob = Boolean(editJobId);
@@ -232,7 +232,7 @@ export const PostJobPage = () => {
   const skipNextDraftSnapshotPersistRef = useRef(false);
 
   // --- Queries ---
-  // Tự động gọi API để tìm kiếm chuyên gia (Expert Match) khi đến bước MATCHING và đã có Job ID
+  // Automatically call the Expert Match API when reaching MATCHING and a Job ID exists.
   const { 
     data: recommendationsResponse, 
     isLoading: isMatching,
@@ -303,7 +303,7 @@ export const PostJobPage = () => {
 
   // --- Mutations ---
 
-  // Gửi Prompt đầu tiên cho AI để tạo ra bản nháp dự án (Khởi tạo phiên làm việc AI)
+  // Send the first prompt to AI to create the project draft and initialize the AI session.
   const initMutation = useMutation({
     mutationFn: (prompt: string) => jobService.initAiJobAssistant(prompt),
     onSuccess: (response) => {
@@ -1215,6 +1215,7 @@ export const PostJobPage = () => {
           ) : (
             <ExpertMatchInsights
               experts={recommendationsResponse?.data || []}
+              jobId={createdJobId}
             />
           )}
         </div>

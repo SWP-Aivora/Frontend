@@ -1,11 +1,13 @@
 import { type Dispatch, type FormEvent, type SetStateAction, useMemo, useState } from 'react';
 import { JobBoardCard } from '../components/JobBoardCard';
-import { type JobCard } from '../schema';
-import { type Job } from '../types';
+import { JobInviteStatus, type JobInvite } from '../types';
 import { Search, DollarSign, BrainCircuit, Loader2 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { jobService } from '../services';
+import { toast } from 'sonner';
+import { getErrorMessage } from '@/lib/api-utils';
+import { mapJobToJobCard, normalizeBudgetType, normalizeSkillLevel } from '../utils';
 
 const budgetTypeFilters = [
   { label: 'Fixed Price', value: 'FIXED' },
@@ -19,60 +21,8 @@ const skillLevelFilters = [
   { label: 'Expert', value: 'EXPERT' },
 ];
 
-const normalizeBudgetType = (value: unknown) => {
-  if (value === 0) return 'FIXED';
-  if (value === 1) return 'HOURLY';
-
-  const normalized = String(value ?? '').toUpperCase();
-  if (normalized === 'FIXED' || normalized === 'HOURLY') return normalized;
-
-  return null;
-};
-
-const normalizeSkillLevel = (value: unknown) => {
-  if (value === 0) return 'BEGINNER';
-  if (value === 1) return 'INTERMEDIATE';
-  if (value === 2) return 'ADVANCED';
-  if (value === 3) return 'EXPERT';
-
-  const normalized = String(value ?? '').toUpperCase();
-  if (['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT'].includes(normalized)) return normalized;
-
-  return null;
-};
-
-const mapBudgetTypeToCardValue = (value: unknown) => {
-  const normalized = normalizeBudgetType(value);
-  return normalized === 'HOURLY' ? 1 : 0;
-};
-
-const mapSkillLevelToCardValue = (value: unknown) => {
-  const normalized = normalizeSkillLevel(value);
-  if (normalized === 'BEGINNER') return 0;
-  if (normalized === 'INTERMEDIATE') return 1;
-  if (normalized === 'ADVANCED') return 2;
-  if (normalized === 'EXPERT') return 3;
-  return null;
-};
-
-const mapJobToJobCard = (job: Job): JobCard => ({
-  id: job.id,
-  title: job.title,
-  description: job.finalDescription || job.originalDescription,
-  businessDomain: job.businessDomain,
-  budgetType: mapBudgetTypeToCardValue(job.budgetType),
-  budgetMin: job.budgetMin,
-  budgetMax: job.budgetMax,
-  timelineDays: job.timelineDays,
-  experienceLevel: mapSkillLevelToCardValue(job.experienceLevel),
-  createdAt: new Date(job.createdAt).toLocaleDateString(),
-  skills: job.skills?.map(s => s.name) || [],
-  proposalsCount: 0,
-  clientName: job.client?.fullName || ('clientName' in job ? String(job.clientName || '') : '') || 'Anonymous Client',
-  clientVerified: true,
-});
-
 export const FindWorkPage = () => {
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
   const [selectedBudgetTypes, setSelectedBudgetTypes] = useState<string[]>([]);
@@ -88,6 +38,11 @@ export const FindWorkPage = () => {
       const meta = lastPage.metadata;
       return meta.hasNextPage ? meta.pageIndex + 1 : undefined;
     },
+  });
+
+  const { data: invitesResponse } = useQuery({
+    queryKey: ['jobs', 'invites', 'me'],
+    queryFn: () => jobService.getMyInvites(),
   });
 
   const loadedJobs = useMemo(() => {
@@ -127,6 +82,65 @@ export const FindWorkPage = () => {
         : firstCreatedAt - secondCreatedAt;
     });
   }, [loadedJobs, appliedSearchTerm, selectedBudgetTypes, selectedSkillLevels, sortOrder]);
+
+  const inviteByJobId = useMemo(() => {
+    const invites = Array.isArray(invitesResponse?.data) ? invitesResponse.data : [];
+
+    return invites.reduce((map, invite) => {
+      if (
+        (invite.status === JobInviteStatus.PENDING || invite.status === JobInviteStatus.ACCEPTED)
+      ) {
+        map.set(invite.jobId, invite);
+      }
+
+      return map;
+    }, new Map<string, JobInvite>());
+  }, [invitesResponse?.data]);
+
+  const acceptInviteMutation = useMutation({
+    mutationFn: (invite: JobInvite) => jobService.acceptInvite(invite.id),
+    onSuccess: (response, invite) => {
+      const acceptedInvite = response.data ?? invite;
+      queryClient.setQueryData<Awaited<ReturnType<typeof jobService.getMyInvites>>>(
+        ['jobs', 'invites', 'me'],
+        (current) => current
+          ? {
+              ...current,
+              data: (current.data ?? []).map((cachedInvite) =>
+                cachedInvite.id === acceptedInvite.id ? acceptedInvite : cachedInvite
+              ),
+            }
+          : current
+      );
+      queryClient.invalidateQueries({ queryKey: ['jobs', 'invites', 'me'] });
+      // Backend currently returns only the accepted invite and does not create/return
+      // a job conversation. When accept returns a conversationId, navigate to it here.
+      toast.success('Invite accepted.');
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Failed to accept invite.'));
+    },
+  });
+
+  const declineInviteMutation = useMutation({
+    mutationFn: (invite: JobInvite) => jobService.declineInvite(invite.id),
+    onSuccess: (_response, invite) => {
+      queryClient.setQueryData<Awaited<ReturnType<typeof jobService.getMyInvites>>>(
+        ['jobs', 'invites', 'me'],
+        (current) => current
+          ? {
+              ...current,
+              data: (current.data ?? []).filter((cachedInvite) => cachedInvite.id !== invite.id),
+            }
+          : current
+      );
+      queryClient.invalidateQueries({ queryKey: ['jobs', 'invites', 'me'] });
+      toast.success('Invite declined.');
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Failed to decline invite.'));
+    },
+  });
 
   const toggleSelectedValue = (
     value: string,
@@ -277,9 +291,23 @@ export const FindWorkPage = () => {
             <div className="text-center py-12 text-slate-500">No jobs found matching your criteria.</div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-               {filteredJobs.map(job => (
-                  <JobBoardCard key={job.id} job={mapJobToJobCard(job)} />
-               ))}
+               {filteredJobs.map(job => {
+                  const invite = inviteByJobId.get(job.id);
+                  const isInviteActionPending =
+                    (acceptInviteMutation.variables?.id === invite?.id && acceptInviteMutation.isPending) ||
+                    (declineInviteMutation.variables?.id === invite?.id && declineInviteMutation.isPending);
+
+                  return (
+                  <JobBoardCard
+                    key={job.id}
+                    job={mapJobToJobCard(job)}
+                    invite={invite}
+                    isInviteActionPending={isInviteActionPending}
+                    onAcceptInvite={(invite) => acceptInviteMutation.mutate(invite)}
+                    onDeclineInvite={(invite) => declineInviteMutation.mutate(invite)}
+                  />
+                  );
+               })}
             </div>
           )}
           

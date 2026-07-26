@@ -10,7 +10,7 @@ interface ProtectedRouteProps {
 }
 
 /**
- * HOC để bảo vệ các Route yêu cầu đăng nhập và phân quyền.
+ * HOC for protecting routes that require authentication and authorization.
  */
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
   const location = useLocation();
@@ -22,12 +22,12 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowe
     return <LoadingSpinner className="min-h-screen" size="xl" />;
   }
 
-  // Chưa đăng nhập -> redirect về login
+  // Not authenticated -> redirect to login.
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Đã đăng nhập nhưng không có quyền -> redirect về unauthorized
+  // Authenticated without permission -> redirect to unauthorized.
   if (allowedRoles && allowedRoles.length > 0) {
     if (!role || !allowedRoles.includes(role)) {
       return <Navigate to="/unauthorized" replace />;

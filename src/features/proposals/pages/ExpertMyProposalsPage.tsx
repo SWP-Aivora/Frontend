@@ -40,7 +40,7 @@ const getCoverLetterPreview = (coverLetter?: string) => {
 };
 
 export const ExpertMyProposalsPage = () => {
-  // Tự động gọi API lấy toàn bộ lịch sử nộp đơn của Expert đang đăng nhập
+  // Automatically fetch the submission history for the signed-in expert.
   const { data: response, isLoading, isError } = useQuery({
     queryKey: ['myProposals'],
     queryFn: proposalService.getMyProposals,
@@ -98,7 +98,7 @@ export const ExpertMyProposalsPage = () => {
     return project ? `/expert/projects/${project.id}/workspace` : '/expert/my-jobs';
   };
 
-  // Logic lọc các đơn báo giá theo trạng thái (Pending, Accepted, Declined)
+  // Filter proposals by status (Pending, Accepted, Declined).
   const filteredProposals = proposals.filter(p => {
     if (filter === 'all') return true;
     return getStatusKey(p.status) === filter;

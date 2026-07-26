@@ -1,16 +1,16 @@
 # Contributing to Aivora Frontend
 
 > Development setup, scripts, testing, code style, PR checklist.
-> Chuẩn kỹ thuật chi tiết (FSD folder layout, TypeScript rules, Tailwind v4, validation, security) xem [`../GEMINI.md`](../GEMINI.md) — file này không lặp lại.
+> For detailed engineering standards (FSD folder layout, TypeScript rules, Tailwind v4, validation, security), see [`../GEMINI.md`](../GEMINI.md). This file does not repeat them.
 
 ---
 
 ## Prerequisites
 
-| Tool | Version | Ghi chú |
+| Tool | Version | Notes |
 |---|---|---|
-| Node.js | 20 hoặc 22 | Không có `.nvmrc`/`engines` trong `package.json` — version suy ra từ CI matrix (`.github/workflows/frontend-ci.yml`) |
-| npm | bundled với Node | Dùng `package-lock.json`, không dùng yarn/pnpm |
+| Node.js | 20 or 22 | There is no `.nvmrc`/`engines` in `package.json`; versions are inferred from the CI matrix (`.github/workflows/frontend-ci.yml`) |
+| npm | bundled with Node | Use `package-lock.json`; do not use yarn/pnpm |
 
 ---
 
@@ -20,8 +20,8 @@
 git clone <repo-url>
 cd Aivora-Frontend
 npm install
-cp .env.example .env   # chỉnh VITE_API_URL cho khớp Backend — xem ENV.md
-npm run dev            # http://localhost:5173, tự mở browser
+cp .env.example .env   # adjust VITE_API_URL to match Backend; see ENV.md
+npm run dev            # http://localhost:5173, opens browser automatically
 ```
 
 ## Production Build
@@ -35,31 +35,31 @@ npm run preview
 
 ## Available Scripts
 
-| Command | Mô tả |
+| Command | Description |
 |---|---|
 | `npm run dev` | Vite dev server |
 | `npm run build` | Type-check + build production (`dist/`) |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run lint` | ESLint (flat config) |
-| `npm run preview` | Preview bản build |
-| `npm run test` | Chạy Vitest |
+| `npm run preview` | Preview the build |
+| `npm run test` | Run Vitest |
 
 ---
 
 ## Testing
 
 ### Unit / Component — Vitest
-- **Framework:** Vitest + Testing Library (`@testing-library/react`, `jest-dom`, `user-event`), môi trường jsdom
+- **Framework:** Vitest + Testing Library (`@testing-library/react`, `jest-dom`, `user-event`), jsdom environment
 - **Setup:** `src/test/setup.ts` (import `@testing-library/jest-dom`)
-- Test file nằm cạnh code, mirror theo feature structure (`*.test.ts(x)`)
+- Test files live next to code and mirror the feature structure (`*.test.ts(x)`)
 
 ```bash
 npm run test
 ```
 
 ### E2E — Playwright
-- Test ở `e2e/` (vd `e2e/auth.spec.ts`)
-- Config `playwright.config.ts`: baseURL `http://localhost:5173`, tự động start dev server, chạy trên 5 project (Chromium/Firefox/WebKit/Mobile Chrome/Mobile Safari)
+- Tests live in `e2e/` (for example, `e2e/auth.spec.ts`)
+- Config `playwright.config.ts`: baseURL `http://localhost:5173`, automatically starts the dev server, runs on 5 projects (Chromium/Firefox/WebKit/Mobile Chrome/Mobile Safari)
 
 ```bash
 npx playwright test
@@ -74,35 +74,35 @@ npm run lint        # ESLint
 npm run typecheck    # tsc --noEmit
 ```
 
-Không có Prettier config file — Prettier chỉ được khuyến nghị làm editor extension, không enforce qua CI.
+There is no Prettier config file. Prettier is recommended only as an editor extension and is not enforced by CI.
 
 ---
 
 ## Code Style
 
-Xem đầy đủ tại [`../GEMINI.md`](../GEMINI.md). Tóm tắt nhanh:
+See the full version in [`../GEMINI.md`](../GEMINI.md). Quick summary:
 
-- **FSD strict:** feature isolation trong `src/features/`, không import chéo giữa các feature
-- **TypeScript:** luôn dùng `import type` cho type-only import; **không dùng `enum`** — dùng `const X = {...} as const` (xem `src/shared/types/enums.ts`)
-- **Styling:** Tailwind v4 (`@theme` trong CSS, không có config file); ưu tiên CVA (`class-variance-authority`) cho variant
+- **FSD strict:** feature isolation in `src/features/`; no cross-feature imports
+- **TypeScript:** always use `import type` for type-only imports; **do not use `enum`** — use `const X = {...} as const` (see `src/shared/types/enums.ts`)
+- **Styling:** Tailwind v4 (`@theme` in CSS, no config file); prefer CVA (`class-variance-authority`) for variants
 - **Validation:** `zod` schema + `react-hook-form`
 
 ---
 
 ## CI
 
-**File:** `.github/workflows/frontend-ci.yml` — chạy trên push/PR vào `main`, matrix Node 20 & 22: `npm ci` → `npm run lint` → `npm run build` → upload `dist` artifact.
+**File:** `.github/workflows/frontend-ci.yml` — runs on push/PR to `main`, matrix Node 20 & 22: `npm ci` → `npm run lint` → `npm run build` → upload `dist` artifact.
 
 ---
 
-## Lưu ý trước khi commit (từ `README-CHECKLIST.md`)
+## Notes Before Commit (from `README-CHECKLIST.md`)
 
-Từng có case JSX syntax error lọt qua local dev nhưng làm CI fail (`ProjectWorkspacePage.tsx`). Trước khi commit:
+There was a case where a JSX syntax error slipped through local dev but failed CI (`ProjectWorkspacePage.tsx`). Before committing:
 
 1. `npm run lint`
-2. `npm run build` (bắt lỗi type + JSX mà dev server có thể bỏ qua)
-3. Kiểm tra kỹ JSX: tag thiếu `<`, tag không đóng/không tự đóng đúng, comment JSX sai cú pháp
-4. Test lại trên local build thật (không chỉ dev server) trước khi push
+2. `npm run build` (catches type + JSX errors that the dev server may miss)
+3. Carefully check JSX: missing `<`, unclosed or incorrectly self-closed tags, invalid JSX comment syntax
+4. Test again on a real local build, not only the dev server, before pushing
 
 ---
 
@@ -110,18 +110,18 @@ Từng có case JSX syntax error lọt qua local dev nhưng làm CI fail (`Proje
 
 ### Code quality
 - [ ] `npm run lint` pass
-- [ ] `npm run build` pass (type-check + JSX hợp lệ)
+- [ ] `npm run build` passes (type-check + valid JSX)
 - [ ] `npm run test` pass
-- [ ] Không có `TODO` sót trong code mới
-- [ ] Không hardcode secret/API key
+- [ ] No leftover `TODO` in new code
+- [ ] No hardcoded secrets/API keys
 
 ### Architecture
-- [ ] Feature mới tuân theo FSD layout (`components/hooks/pages/services.ts/types.ts`)
-- [ ] Không import chéo giữa các feature
-- [ ] API call qua `BaseService`/axios instance, không tạo fetch riêng
-- [ ] Route mới bọc đúng `ProtectedRoute`/`GuestRoute` nếu cần
+- [ ] New feature follows the FSD layout (`components/hooks/pages/services.ts/types.ts`)
+- [ ] No cross-feature imports
+- [ ] API calls go through `BaseService`/axios instance; no custom fetch wrappers
+- [ ] New routes are wrapped with `ProtectedRoute`/`GuestRoute` when needed
 
 ### Git
-- [ ] Branch up-to-date với `main`
-- [ ] Không còn merge conflict
-- [ ] Commit message theo conventional format: `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`
+- [ ] Branch is up to date with `main`
+- [ ] No merge conflicts remain
+- [ ] Commit message follows conventional format: `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`

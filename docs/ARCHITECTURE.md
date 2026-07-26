@@ -1,7 +1,7 @@
 # Architecture — Aivora Frontend
 
-> Feature-Sliced Design (FSD) overview, routing, API layer, state management, auth, và realtime.
-> Chuẩn kỹ thuật chi tiết (TypeScript rules, styling, validation) xem [`../GEMINI.md`](../GEMINI.md) — file này chỉ mô tả kiến trúc chạy thực tế.
+> Feature-Sliced Design (FSD) overview, routing, API layer, state management, auth, and realtime.
+> For detailed engineering standards (TypeScript rules, styling, validation), see [`../GEMINI.md`](../GEMINI.md). This file only describes the current runtime architecture.
 
 ---
 
@@ -9,17 +9,17 @@
 
 | Concern | Library |
 |---|---|
-| Framework | React 18 (SPA, không dùng Next.js) |
+| Framework | React 18 (SPA, no Next.js) |
 | Build tool | Vite 5 (`vite.config.ts`) |
-| Ngôn ngữ | TypeScript 5 |
+| Language | TypeScript 5 |
 | Routing | `react-router-dom` v6 (`createBrowserRouter`) |
 | Server state | `@tanstack/react-query` v5 |
-| Client state | `zustand` v4 (với `persist` middleware) |
+| Client state | `zustand` v4 (with `persist` middleware) |
 | HTTP client | `axios` |
 | Forms | `react-hook-form` + `@hookform/resolvers` |
 | Validation | `zod` |
-| Styling | Tailwind v4 (`@theme` trong CSS, không có config file) |
-| UI primitives | Radix UI (kiểu shadcn/ui) |
+| Styling | Tailwind v4 (`@theme` in CSS, no config file) |
+| UI primitives | Radix UI (shadcn/ui style) |
 | Realtime | `@microsoft/signalr` |
 
 ---
@@ -32,25 +32,25 @@ Entry point: `src/main.tsx` → `src/app/App.tsx`.
 src/
 ├── app/          # App layer: routing, providers, global store, global styles
 ├── lib/          # Core config layer: axios, env, react-query client, api-utils
-├── features/     # Feature modules, cô lập theo domain (auth, jobs, chat, wallet, ...)
+├── features/     # Feature modules, isolated by domain (auth, jobs, chat, wallet, ...)
 ├── shared/       # Shared layer: UI components, services, hooks, types, constants
-└── test/         # Test setup + test mirror theo feature structure
+└── test/         # Test setup + tests mirroring the feature structure
 ```
 
-**Quy tắc layer:** `app` → `lib` → `shared` → `features`. Mỗi feature trong `src/features/` cô lập, theo convention:
+**Layer rules:** `app` → `lib` → `shared` → `features`. Each feature in `src/features/` is isolated and follows this convention:
 ```
 features/{feature}/
 ├── components/
 ├── hooks/
 ├── pages/
-├── schema.ts     # zod schema (nếu có form)
-├── services.ts   # API calls của feature
-├── store.ts      # Zustand store riêng (nếu cần)
+├── schema.ts     # zod schema (when a form exists)
+├── services.ts   # Feature API calls
+├── store.ts      # Feature-specific Zustand store (when needed)
 ├── types.ts
 └── index.ts
 ```
 
-Danh sách features hiện có: `auth`, `admin`, `chat`, `dashboard`, `disputes`, `jobs`, `notifications`, `profiles`, `projects`, `proposals`, `reviews`, `settings`, `wallet`.
+Current feature list: `auth`, `admin`, `chat`, `dashboard`, `disputes`, `jobs`, `notifications`, `profiles`, `projects`, `proposals`, `reviews`, `settings`, `wallet`.
 
 ---
 
@@ -58,15 +58,15 @@ Danh sách features hiện có: `auth`, `admin`, `chat`, `dashboard`, `disputes`
 
 **File:** `src/app/router.tsx`
 
-`createBrowserRouter` với route group theo role: `/client`, `/expert`, `/admin`, mỗi group bọc trong `<ProtectedRoute allowedRoles={[Role.X]}>` + layout riêng (`ClientLayout`/`ExpertLayout`/`AdminLayout`).
+`createBrowserRouter` uses role-based route groups: `/client`, `/expert`, `/admin`. Each group is wrapped in `<ProtectedRoute allowedRoles={[Role.X]}>` plus its own layout (`ClientLayout`/`ExpertLayout`/`AdminLayout`).
 
 - Public routes: `/`, `/login`, `/register`
 - `*` → redirect `/`
-- `/unauthorized` → khi bị từ chối quyền
+- `/unauthorized` → when access is denied
 
 **Route guards** (`src/shared/components/common/`):
-- `ProtectedRoute.tsx` — chờ hydrate xong (hiện spinner), redirect chưa đăng nhập → `/login`, sai role → `/unauthorized`
-- `GuestRoute.tsx` — redirect user đã đăng nhập về trang chủ theo role
+- `ProtectedRoute.tsx` — waits for hydration (shows spinner), redirects unauthenticated users to `/login`, redirects wrong-role users to `/unauthorized`
+- `GuestRoute.tsx` — redirects authenticated users to the role-specific home page
 
 ---
 
@@ -74,41 +74,41 @@ Danh sách features hiện có: `auth`, `admin`, `chat`, `dashboard`, `disputes`
 
 **Axios instance:** `src/lib/axios.ts`
 - `baseURL: env.API_URL`, `withCredentials: true`
-- **Request interceptor:** gắn `Authorization: Bearer <accessToken>` từ `useAuthStore` nếu chưa có
-- **Response interceptor:** khi gặp 401 (trừ request login/refresh/logout) → thực hiện single-flight refresh token qua `POST auth/refresh-token` (refresh token nằm trong HttpOnly cookie), queue các request đang chờ (`failedQueue`), retry lại request gốc. Nếu refresh fail → gọi `logout()` và redirect `/login`.
+- **Request interceptor:** attaches `Authorization: Bearer <accessToken>` from `useAuthStore` when the header is missing
+- **Response interceptor:** on 401 (except login/refresh/logout requests), performs a single-flight token refresh via `POST auth/refresh-token` (refresh token is in an HttpOnly cookie), queues waiting requests (`failedQueue`), and retries the original request. If refresh fails, calls `logout()` and redirects to `/login`.
 
-**Generic CRUD:** `src/shared/services/BaseService.ts` — `getAll/getById/create/update/delete`. Feature services extend class này (vd `ChatService extends BaseService`).
+**Generic CRUD:** `src/shared/services/BaseService.ts` — `getAll/getById/create/update/delete`. Feature services extend this class (for example, `ChatService extends BaseService`).
 
-**Chuẩn hóa response:** `src/lib/api-utils.ts` — `normalizePaginatedResponse` / `normalizeBaseResponse` xử lý nhiều dạng envelope backend trả về (`{data:{items}}`, `{data:[]}`, raw array) và khác biệt camelCase/PascalCase. Kiểu chuẩn ở `src/shared/types/api.ts` (`BaseResponse<T>`, `PaginatedResponse<T>`).
+**Response normalization:** `src/lib/api-utils.ts` — `normalizePaginatedResponse` / `normalizeBaseResponse` handle multiple backend envelope shapes (`{data:{items}}`, `{data:[]}`, raw array) and camelCase/PascalCase differences. Standard types live in `src/shared/types/api.ts` (`BaseResponse<T>`, `PaginatedResponse<T>`).
 
-**Endpoint registry:** `src/shared/constants/index.ts` — toàn bộ `API_ENDPOINTS`, cùng `QUERY_KEYS` và `REFETCH_INTERVALS`.
+**Endpoint registry:** `src/shared/constants/index.ts` — all `API_ENDPOINTS`, plus `QUERY_KEYS` and `REFETCH_INTERVALS`.
 
 ---
 
 ## State Management
 
-**Server state — React Query:** `src/lib/queryClient.ts` — `retry: 1`, `refetchOnWindowFocus: false`, `staleTime: 5 phút`. Mỗi feature có hook riêng wrap query/mutation (vd `useNotifications`, `useConversations`, `useMessages`).
+**Server state — React Query:** `src/lib/queryClient.ts` — `retry: 1`, `refetchOnWindowFocus: false`, `staleTime: 5 minutes`. Each feature has its own hooks wrapping queries/mutations (for example, `useNotifications`, `useConversations`, `useMessages`).
 
 **Client state — Zustand:**
-- Global store `src/app/store.ts` — chỉ chứa theme, sync localStorage + lắng nghe cross-tab qua `storage` event
-- Auth store `src/features/auth/store.ts` — persisted (`name: aivora-auth-store`), persist `user`/`isAuthenticated`/`accessToken` qua `partialize`; `isHydrated` set trong `onRehydrateStorage`
+- Global store `src/app/store.ts` — only stores theme, syncs localStorage, and listens cross-tab through the `storage` event
+- Auth store `src/features/auth/store.ts` — persisted (`name: aivora-auth-store`), persists `user`/`isAuthenticated`/`accessToken` via `partialize`; `isHydrated` is set in `onRehydrateStorage`
 
 ---
 
 ## Auth
 
-- Access token vừa lưu trong memory vừa persist qua Zustand; refresh token nằm trong HttpOnly cookie (backend quản lý)
-- `src/features/auth/services.ts` — `login`, `register`, `getMe`, `logout`; validate chặt response backend, map role sang `Role` enum
-- `logout()` reset state + đóng kết nối SignalR
+- Access token is stored in memory and persisted through Zustand; refresh token is stored in an HttpOnly cookie managed by the backend
+- `src/features/auth/services.ts` — `login`, `register`, `getMe`, `logout`; strictly validates backend responses and maps roles to the `Role` enum
+- `logout()` resets state and closes the SignalR connection
 
 ---
 
 ## Realtime (SignalR)
 
-**File:** `src/features/chat/services.ts` — `ChatService` quản lý pool kết nối SignalR hub (LongPolling transport, `accessTokenFactory`, tự reconnect, tự join lại group khi reconnect).
+**File:** `src/features/chat/services.ts` — `ChatService` manages the SignalR hub connection pool (LongPolling transport, `accessTokenFactory`, automatic reconnect, and group rejoin after reconnect).
 
-**Events lắng nghe:** `ReceiveMessage`, `UserTyping`, `ReadConfirmation`, `JobStatusUpdated`, `NewJobPublished`.
+**Subscribed events:** `ReceiveMessage`, `UserTyping`, `ReadConfirmation`, `JobStatusUpdated`, `NewJobPublished`.
 
-**Hook global:** `src/shared/hooks/useGlobalRealtimeSync.ts` — gọi 1 lần trong `DashboardLayout`; duy trì kết nối khi đã đăng nhập và invalidate React Query cache khi có event job/project.
+**Global hook:** `src/shared/hooks/useGlobalRealtimeSync.ts` — called once in `DashboardLayout`; keeps the connection active while authenticated and invalidates React Query cache when job/project events arrive.
 
-> Backend hub docs (methods, event payload chi tiết) là nguồn sự thật — xem `docs/ARCHITECTURE.md` bên repo `Aivora-Backend`.
+> Backend hub docs (methods and detailed event payloads) are the source of truth. See `docs/ARCHITECTURE.md` in the `Aivora-Backend` repo.

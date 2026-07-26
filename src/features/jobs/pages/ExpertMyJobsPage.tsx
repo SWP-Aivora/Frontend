@@ -3,16 +3,21 @@ import { Button } from '@/shared/components/ui/Button';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { projectService } from '@/features/projects/services';
 import { ProjectStatus } from '@/shared/types/enums';
 import { isActiveProjectStatus } from '@/features/projects/utils';
+import { JobInviteStatus, type JobInvite } from '../types';
+import { jobService } from '../services';
+import { toast } from 'sonner';
+import { getErrorMessage } from '@/lib/api-utils';
 
 
 type StatusFilter = 'all' | 'in-progress' | 'completed';
 type SortOrder = 'newest' | 'oldest';
 
 export const ExpertMyJobsPage = () => {
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState<StatusFilter>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
@@ -20,6 +25,63 @@ export const ExpertMyJobsPage = () => {
   const { data: projectsResponse, isLoading } = useQuery({
     queryKey: ['expertProjects'],
     queryFn: () => projectService.getProjects({ PageSize: 100 }),
+  });
+
+  const { data: invitesResponse } = useQuery({
+    queryKey: ['jobs', 'invites', 'me'],
+    queryFn: () => jobService.getMyInvites(),
+  });
+
+  const activeInvites = useMemo(() => {
+    const invites = Array.isArray(invitesResponse?.data) ? invitesResponse.data : [];
+    return invites.filter((invite) =>
+      invite.status === JobInviteStatus.PENDING || invite.status === JobInviteStatus.ACCEPTED
+    );
+  }, [invitesResponse?.data]);
+
+  const acceptInviteMutation = useMutation({
+    mutationFn: (invite: JobInvite) => jobService.acceptInvite(invite.id),
+    onSuccess: (response, invite) => {
+      const acceptedInvite = response.data ?? invite;
+      queryClient.setQueryData<Awaited<ReturnType<typeof jobService.getMyInvites>>>(
+        ['jobs', 'invites', 'me'],
+        (current) => current
+          ? {
+              ...current,
+              data: (current.data ?? []).map((cachedInvite) =>
+                cachedInvite.id === acceptedInvite.id ? acceptedInvite : cachedInvite
+              ),
+            }
+          : current
+      );
+      queryClient.invalidateQueries({ queryKey: ['jobs', 'invites', 'me'] });
+      // Backend currently returns only the accepted invite and does not create/return
+      // a job conversation. When accept returns a conversationId, navigate to it here.
+      toast.success('Invite accepted.');
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Failed to accept invite.'));
+    },
+  });
+
+  const declineInviteMutation = useMutation({
+    mutationFn: (invite: JobInvite) => jobService.declineInvite(invite.id),
+    onSuccess: (_response, invite) => {
+      queryClient.setQueryData<Awaited<ReturnType<typeof jobService.getMyInvites>>>(
+        ['jobs', 'invites', 'me'],
+        (current) => current
+          ? {
+              ...current,
+              data: (current.data ?? []).filter((cachedInvite) => cachedInvite.id !== invite.id),
+            }
+          : current
+      );
+      queryClient.invalidateQueries({ queryKey: ['jobs', 'invites', 'me'] });
+      toast.success('Invite declined.');
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Failed to decline invite.'));
+    },
   });
 
   // Map API ProjectStatus to our UI filter statuses
@@ -86,6 +148,72 @@ export const ExpertMyJobsPage = () => {
           <p className="text-slate-500 font-medium mt-1">Manage your ongoing contracts and completed projects.</p>
         </div>
       </div>
+
+      {activeInvites.length > 0 && (
+        <section className="space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-black text-slate-900">Job Invitations</h2>
+              <p className="text-sm font-medium text-slate-500">Jobs where a client invited you directly.</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {activeInvites.map((invite) => {
+              const isPendingInvite = invite.status === JobInviteStatus.PENDING;
+              const isInviteActionPending =
+                (acceptInviteMutation.variables?.id === invite.id && acceptInviteMutation.isPending) ||
+                (declineInviteMutation.variables?.id === invite.id && declineInviteMutation.isPending);
+
+              return (
+                <article key={invite.id} className="rounded-lg border border-slate-100 bg-white p-5 shadow-sm">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-full bg-primary/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-primary">
+                          {invite.status === JobInviteStatus.ACCEPTED ? 'Invite Accepted' : 'Invited'}
+                        </span>
+                        <span className="text-xs font-bold text-slate-400">
+                          {new Date(invite.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <h3 className="mt-3 line-clamp-2 text-lg font-black text-slate-900">{invite.jobTitle}</h3>
+                    </div>
+                    <Button asChild variant="outline" className="shrink-0 rounded-full">
+                      <Link to={`/expert/jobs/${invite.jobId}`}>
+                        View Job
+                        <ChevronRight className="ml-1 size-4" />
+                      </Link>
+                    </Button>
+                  </div>
+
+                  {isPendingInvite && (
+                    <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={isInviteActionPending}
+                        onClick={() => declineInviteMutation.mutate(invite)}
+                        className="rounded-full"
+                      >
+                        {declineInviteMutation.variables?.id === invite.id && declineInviteMutation.isPending ? 'Declining...' : 'Decline'}
+                      </Button>
+                      <Button
+                        type="button"
+                        disabled={isInviteActionPending}
+                        onClick={() => acceptInviteMutation.mutate(invite)}
+                        className="rounded-full"
+                      >
+                        {acceptInviteMutation.variables?.id === invite.id && acceptInviteMutation.isPending ? 'Accepting...' : 'Accept'}
+                      </Button>
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Toolbar */}
       <div className="bg-white border border-slate-100 rounded-[20px] p-2 flex flex-col md:flex-row gap-4 justify-between items-center shadow-sm relative z-10">

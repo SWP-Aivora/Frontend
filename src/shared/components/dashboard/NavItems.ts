@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   LayoutGrid,
   ShoppingBag,
+  Inbox,
   type LucideIcon
 } from 'lucide-react';
 import { Role } from '@/shared/types/enums';
@@ -43,6 +44,7 @@ export const NAV_ITEMS: Record<string, NavItem[]> = {
     { label: 'Find Work', href: '/expert/jobs', icon: Search },
     { label: 'My Proposals', href: '/expert/proposals', icon: FileText },
     { label: 'My Services', href: '/expert/services', icon: ShoppingBag },
+    { label: 'Service Requests', href: '/expert/services/requests', icon: Inbox },
     { label: 'Messages', href: '/expert/messages', icon: MessageSquare },
     { label: 'Notifications', href: '/expert/notifications', icon: Bell },
     { label: 'Wallet', href: '/expert/wallet', icon: Wallet },

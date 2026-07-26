@@ -1,36 +1,37 @@
-# Aivora Frontend — Documentation Index
+# AIVORA Frontend Documentation Index
 
-> Tài liệu kỹ thuật cho `Aivora-Frontend`. Bắt đầu ở đây để tìm đúng file.
-> `../README.md` (root) là giới thiệu nhanh dự án; các file trong `docs/` này là tài liệu kỹ thuật chi tiết.
+This directory contains technical documentation for the AIVORA frontend. Start here when you need to find the right document.
 
-| Tôi muốn... | Đọc |
+The root [README.md](../README.md) is a quick project introduction. The files in this `docs/` directory contain more detailed technical documentation.
+
+| I want to... | Read |
 |---|---|
-| Hiểu tổng quan kiến trúc, layer (FSD), routing, state, API layer, auth, realtime | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
-| Biết cần set biến môi trường nào | [`ENV.md`](ENV.md) |
-| Setup máy dev, chạy test, quy tắc code style, PR checklist | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
-| Chuẩn kỹ thuật chi tiết: FSD folder layout, TypeScript rules, Tailwind v4, validation, security | [`../GEMINI.md`](../GEMINI.md) |
-| Tra cứu API contract (OpenAPI) | [`../Aivoraapi%20%20v1.json`](../Aivoraapi%20%20v1.json) |
-| Hiểu 4 luồng nghiệp vụ chính (business flow) | Xem `docs/flows/` trong repo `Aivora-Backend` — đó là nguồn sự thật, repo này không nhân bản lại (2 repo git độc lập nên không đặt hyperlink trực tiếp) |
+| Understand the architecture, layers, Feature-Sliced Design structure, routing, state, API layer, auth, and realtime behavior | [ARCHITECTURE.md](ARCHITECTURE.md) |
+| Know which environment variables are required | [ENV.md](ENV.md) |
+| Set up development, run tests, follow code style, and review the PR checklist | [CONTRIBUTING.md](CONTRIBUTING.md) |
+| Review detailed engineering standards: FSD layout, TypeScript rules, Tailwind v4, validation, and security | [../GEMINI.md](../GEMINI.md) |
+| Check the API contract | [../Aivoraapi%20%20v1.json](../Aivoraapi%20%20v1.json) |
+| Understand the four main business flows | See `docs/flows/` in the AIVORA backend repository. That repository is the source of truth for those flows, and this frontend repo does not duplicate them. |
 
 ---
 
-## Cấu trúc thư mục `docs/`
+## `docs/` Directory Structure
 
-```
+```text
 docs/
-├── README.md          ← file này
-├── ARCHITECTURE.md    ← kiến trúc FE (FSD, routing, API layer, state, auth, realtime)
-├── ENV.md             ← biến môi trường
-├── CONTRIBUTING.md    ← dev setup, test, code style, PR checklist
-└── agents/            ← config cho Claude Code skills (issue tracker, triage labels, domain docs)
+|-- README.md          # This file
+|-- ARCHITECTURE.md    # Frontend architecture: FSD, routing, API layer, state, auth, realtime
+|-- ENV.md             # Environment variables
+|-- CONTRIBUTING.md    # Development setup, tests, code style, PR checklist
+`-- agents/            # Agent context docs: issue tracker, triage labels, domain notes
 ```
 
-Các file khác ở root project (`../README.md`, `../README-CHECKLIST.md`, `../GEMINI.md`, `../Aivoraapi%20%20v1.json`) là context cho agent/dev, không lặp lại nội dung ở đây.
+Other root-level files such as [../README.md](../README.md), [../README-CHECKLIST.md](../README-CHECKLIST.md), [../GEMINI.md](../GEMINI.md), and [../Aivoraapi%20%20v1.json](../Aivoraapi%20%20v1.json) provide agent and developer context. This index does not duplicate their contents.
 
 ---
 
-## Nguyên tắc giữ docs không drift
+## Keep Documentation From Drifting
 
-1. Mọi thay đổi route/API layer/store **phải** cập nhật `ARCHITECTURE.md` trong cùng PR.
-2. `../GEMINI.md` là nguồn sự thật cho chuẩn kỹ thuật (FSD, TypeScript, styling, validation) — các doc khác tham chiếu tới đây, không định nghĩa lại.
-3. Không tạo file doc mới ở `docs/` mà không link từ bảng trên — file mồ côi sẽ bị bỏ sót lần rà soát sau.
+1. Any route, API layer, or store change must update [ARCHITECTURE.md](ARCHITECTURE.md) in the same PR.
+2. [../GEMINI.md](../GEMINI.md) is the source of truth for engineering standards. Other docs should link to it instead of redefining those standards.
+3. Do not add a new file under `docs/` unless it is linked from the table above. Unlinked documents are easy to miss during reviews.

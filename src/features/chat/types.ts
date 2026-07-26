@@ -15,8 +15,9 @@ export interface Conversation {
   lastMessage?: string;
   lastMessageAt?: string;
   unreadCount: number;
-  type: 'PROJECT' | 'PROPOSAL' | 'SUPPORT';
+  type: 'PROJECT' | 'PROPOSAL' | 'SERVICE_REQUEST' | 'SUPPORT';
   relatedTitle?: string;
+  jobId?: string;
   projectId?: string;
   serviceRequestId?: string;
 }

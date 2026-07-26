@@ -1,10 +1,12 @@
 import { type ComponentProps, type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
-import { Bot, ChevronDown, Loader2, Plus, Send, SlidersHorizontal, Sparkles, Trash2, User } from 'lucide-react';
+import { AlertTriangle, Bot, ChevronDown, Loader2, Plus, Send, SlidersHorizontal, Sparkles, Trash2, Upload, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
 import { Textarea } from '@/shared/components/ui/Textarea';
+import { getErrorMessage } from '@/lib/api-utils';
 import { cn } from '@/lib/utils';
+import { mediaService } from '@/shared/services/mediaService';
 import {
   aiServiceGenerationSchema,
   serviceFormSchema,
@@ -90,9 +92,12 @@ export const ServiceForm = ({ initialService, isSaving, isPublishing, isGenerati
     },
   ]);
   const [isAiSettingsOpen, setIsAiSettingsOpen] = useState(false);
+  const [lastGeneratedProvider, setLastGeneratedProvider] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const aiColumnRef = useRef<HTMLElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formPanelHeight, setFormPanelHeight] = useState<number>();
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const shouldShowPublishActions = showPublishActions ?? (!initialService || String(initialService.status).toUpperCase() === ServiceStatus.DRAFT);
 
   const packageTotal = useMemo(() => values.packages.reduce((sum, pkg) => sum + Number(pkg.price || 0), 0), [values.packages]);
@@ -155,6 +160,11 @@ export const ServiceForm = ({ initialService, isSaving, isPublishing, isGenerati
   };
 
   const submit = (publishAfterSave: boolean) => {
+    if (isUploadingAttachment) {
+      toast.error('Please wait for the attachment upload to finish.');
+      return;
+    }
+
     const result = serviceFormSchema.safeParse(values);
     if (!result.success) {
       const nextErrors: Record<string, string> = {};
@@ -230,6 +240,7 @@ export const ServiceForm = ({ initialService, isSaving, isPublishing, isGenerati
 
     if (!generated) return;
 
+    setLastGeneratedProvider(generated.provider ?? null);
     applyGeneratedService(generated);
     setAiMessages(current => [
       ...current,
@@ -246,6 +257,27 @@ export const ServiceForm = ({ initialService, isSaving, isPublishing, isGenerati
     const rawInput = aiInput.trim();
     if (!rawInput || isGenerating) return;
     void generate(rawInput);
+  };
+
+  const uploadAttachment = async (file: File) => {
+    setIsUploadingAttachment(true);
+    try {
+      const response = await mediaService.uploadFile(file, 'services');
+      if (!response.data?.url) {
+        toast.error(response.message || 'Attachment uploaded but no file URL was returned.');
+        return;
+      }
+
+      setField('attachmentUrl', response.data.url);
+      toast.success('Attachment uploaded.');
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Failed to upload attachment.'));
+    } finally {
+      setIsUploadingAttachment(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   return (
@@ -354,6 +386,15 @@ export const ServiceForm = ({ initialService, isSaving, isPublishing, isGenerati
               </div>
             )}
 
+            {lastGeneratedProvider?.toLowerCase() === 'mock' && (
+              <div className="mb-4 flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-900">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" />
+                <p className="text-xs font-bold leading-5">
+                  AI fallback provider is being used. Review this draft carefully before saving or publishing.
+                </p>
+              </div>
+            )}
+
             <form onSubmit={submitAiChat} className="relative">
               <input
                 type="text"
@@ -374,7 +415,7 @@ export const ServiceForm = ({ initialService, isSaving, isPublishing, isGenerati
             </form>
             <Button type="button" variant="outline" onClick={() => aiInput.trim() && void generate(aiInput.trim())} disabled={!aiInput.trim() || isGenerating} className="mt-3 w-full rounded-full">
               <Sparkles className="mr-2 size-4" />
-              {isGenerating ? 'Generating...' : 'Generate into form'}
+              {isGenerating ? 'Generating...' : 'Generate with AI'}
             </Button>
           </div>
         </section>
@@ -394,7 +435,33 @@ export const ServiceForm = ({ initialService, isSaving, isPublishing, isGenerati
               <AutoResizeTextarea value={values.description} onChange={event => setField('description', event.target.value)} rows={8} placeholder="Describe what clients get from this service" className="min-h-[220px]" />
             </FieldError>
             <FieldError message={errors.attachmentUrl}>
-              <Input value={values.attachmentUrl ?? ''} onChange={event => setField('attachmentUrl', event.target.value)} placeholder="Optional attachment URL" />
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Input
+                  value={values.attachmentUrl ?? ''}
+                  onChange={event => setField('attachmentUrl', event.target.value)}
+                  placeholder="Optional GitHub or attachment URL"
+                  className="flex-1"
+                />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={event => {
+                    const file = event.target.files?.[0];
+                    if (file) void uploadAttachment(file);
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isUploadingAttachment}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="rounded-lg"
+                >
+                  {isUploadingAttachment ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Upload className="mr-2 size-4" />}
+                  {isUploadingAttachment ? 'Uploading...' : 'Upload File'}
+                </Button>
+              </div>
             </FieldError>
           </div>
         </section>
@@ -496,15 +563,15 @@ export const ServiceForm = ({ initialService, isSaving, isPublishing, isGenerati
         <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
           {shouldShowPublishActions ? (
             <>
-              <Button type="button" variant="outline" disabled={isSaving || isPublishing} onClick={() => submit(false)} className="rounded-full px-8">
+              <Button type="button" variant="outline" disabled={isSaving || isPublishing || isUploadingAttachment} onClick={() => submit(false)} className="rounded-full px-8">
                 {isSaving ? 'Saving...' : 'Save Draft'}
               </Button>
-              <Button type="button" disabled={isSaving || isPublishing} onClick={() => submit(true)} className="rounded-full px-8 shadow-lg shadow-primary/20">
+              <Button type="button" disabled={isSaving || isPublishing || isUploadingAttachment} onClick={() => submit(true)} className="rounded-full px-8 shadow-lg shadow-primary/20">
                 {isPublishing ? 'Publishing...' : 'Save and Publish'}
               </Button>
             </>
           ) : (
-            <Button type="button" disabled={isSaving || isPublishing} onClick={() => submit(false)} className="rounded-full px-8 shadow-lg shadow-primary/20">
+            <Button type="button" disabled={isSaving || isPublishing || isUploadingAttachment} onClick={() => submit(false)} className="rounded-full px-8 shadow-lg shadow-primary/20">
               {isSaving ? 'Saving...' : 'Save'}
             </Button>
           )}

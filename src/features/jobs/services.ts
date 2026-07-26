@@ -1,4 +1,4 @@
-// Cấu hình các hàm gọi API (axios) liên quan đến Job (Công việc) và AI Assistant
+// Configure axios API calls related to jobs and AI Assistant.
 import apiClient from '@/lib/axios';
 import type {
   Job,
@@ -9,6 +9,7 @@ import type {
   RefineAiJobSuggestionResult,
   AcceptAiJobSuggestionRequest,
   AcceptAiJobSuggestionResult,
+  JobInvite,
   UserBasicInfo,
 } from './types';
 import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
@@ -105,6 +106,18 @@ const normalizeAcceptedJobResult = (result: AcceptAiJobSuggestionResult): Accept
   job: {
     ...result.job,
   },
+});
+
+const normalizeJobInvite = (value: JobInvite & Record<string, unknown>): JobInvite => ({
+  id: getOptionalStringValue(value, 'id', 'Id'),
+  jobId: getOptionalStringValue(value, 'jobId', 'JobId'),
+  jobTitle: getOptionalStringValue(value, 'jobTitle', 'JobTitle'),
+  expertId: getOptionalStringValue(value, 'expertId', 'ExpertId'),
+  expertName: getOptionalStringValue(value, 'expertName', 'ExpertName'),
+  clientId: getOptionalStringValue(value, 'clientId', 'ClientId'),
+  status: String(value.status ?? value.Status ?? 'PENDING').toUpperCase() as JobInvite['status'],
+  respondedAt: getOptionalStringValue(value, 'respondedAt', 'RespondedAt') || null,
+  createdAt: getOptionalStringValue(value, 'createdAt', 'CreatedAt'),
 });
 
 const getOptionalStringValue = (item: Record<string, unknown>, ...keys: string[]): string => {
@@ -255,6 +268,55 @@ export const jobService = {
     return {
       ...normalized,
       data: (normalized.data ?? []).map(normalizeJob),
+    };
+  },
+
+  getMyInvites: async (status?: JobInvite['status']): Promise<BaseResponse<JobInvite[]>> => {
+    const response = await apiClient.get('/experts/me/invites', { params: status ? { status } : undefined });
+    const normalized = normalizeBaseResponse<JobInvite[]>(response);
+    return {
+      ...normalized,
+      data: Array.isArray(normalized.data)
+        ? normalized.data.map((invite) => normalizeJobInvite(invite as JobInvite & Record<string, unknown>))
+        : [],
+    };
+  },
+
+  getInvitesByJob: async (jobId: string): Promise<BaseResponse<JobInvite[]>> => {
+    const response = await apiClient.get(`/jobs/${jobId}/invites`);
+    const normalized = normalizeBaseResponse<JobInvite[]>(response);
+    return {
+      ...normalized,
+      data: Array.isArray(normalized.data)
+        ? normalized.data.map((invite) => normalizeJobInvite(invite as JobInvite & Record<string, unknown>))
+        : [],
+    };
+  },
+
+  createInvite: async (jobId: string, expertId: string): Promise<BaseResponse<JobInvite>> => {
+    const response = await apiClient.post(`/jobs/${jobId}/invites`, { expertId });
+    const normalized = normalizeBaseResponse<JobInvite>(response);
+    return {
+      ...normalized,
+      data: normalized.data ? normalizeJobInvite(normalized.data as JobInvite & Record<string, unknown>) : null,
+    };
+  },
+
+  acceptInvite: async (id: string): Promise<BaseResponse<JobInvite>> => {
+    const response = await apiClient.post(`/invites/${id}/accept`);
+    const normalized = normalizeBaseResponse<JobInvite>(response);
+    return {
+      ...normalized,
+      data: normalized.data ? normalizeJobInvite(normalized.data as JobInvite & Record<string, unknown>) : null,
+    };
+  },
+
+  declineInvite: async (id: string): Promise<BaseResponse<JobInvite>> => {
+    const response = await apiClient.post(`/invites/${id}/decline`);
+    const normalized = normalizeBaseResponse<JobInvite>(response);
+    return {
+      ...normalized,
+      data: normalized.data ? normalizeJobInvite(normalized.data as JobInvite & Record<string, unknown>) : null,
     };
   },
 

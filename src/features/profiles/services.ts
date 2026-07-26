@@ -1,4 +1,4 @@
-// Cấu hình các hàm gọi API (axios) liên quan đến Hồ sơ (Profile) và Tìm kiếm chuyên gia
+// Configure axios API calls related to profiles and expert search.
 import apiClient from '@/lib/axios';
 import axios from 'axios';
 import type { UserProfile, ClientProfile, ExpertProfile, ExpertProfileResponse } from './types';

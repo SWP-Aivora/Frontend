@@ -1,31 +1,31 @@
 # Environment Variables Reference
 
 > **Source of truth:** `.env.example`, `src/lib/env.ts` (validate fail-fast).
-> Vite chỉ expose biến bắt đầu bằng `VITE_` ra client qua `import.meta.env`.
+> Vite only exposes variables starting with `VITE_` to the client through `import.meta.env`.
 
 ---
 
-## Biến ứng dụng
+## App Variables
 
-| Variable | Bắt buộc | Mô tả |
+| Variable | Required | Description |
 |---|---|---|
-| `VITE_API_URL` | ✅ (production) | Base URL của Backend API. Validate ở `src/lib/env.ts`, throw lỗi nếu thiếu khi build production; dev fallback `http://localhost:5176/api/v1`. Dùng ở `src/lib/axios.ts` (baseURL) và `src/features/chat/services.ts` (SignalR hub URL). |
+| `VITE_API_URL` | Yes (production) | Backend API base URL. Validated in `src/lib/env.ts`; throws an error when missing in production builds. Dev fallback is `http://localhost:5176/api/v1`. Used in `src/lib/axios.ts` (baseURL) and `src/features/chat/services.ts` (SignalR hub URL). |
 
-## Biến Vite built-in
+## Built-In Vite Variables
 
-| Variable | Mô tả |
+| Variable | Description |
 |---|---|
-| `import.meta.env.MODE` | Expose qua `env.NODE_ENV` trong `src/lib/env.ts` |
-| `import.meta.env.DEV` | Bật cảnh báo/behavior chỉ chạy ở dev — dùng ở `src/lib/env.ts`, `src/features/admin/services.ts` |
+| `import.meta.env.MODE` | Exposed through `env.NODE_ENV` in `src/lib/env.ts` |
+| `import.meta.env.DEV` | Enables warnings/behavior that run only in dev; used in `src/lib/env.ts`, `src/features/admin/services.ts` |
 
 ---
 
-## File env hiện có
+## Existing Env Files
 
 - **`.env`** — `VITE_API_URL=http://localhost:8080/api/v1`
-- **`.env.example`** — `VITE_API_URL=http://localhost:5176/api/v1` (kèm comment `VITE_APP_NAME`, `VITE_DEBUG_MODE` — chưa dùng thật)
+- **`.env.example`** — `VITE_API_URL=http://localhost:5176/api/v1` (includes comments for `VITE_APP_NAME`, `VITE_DEBUG_MODE`; not actually used yet)
 
-> **Lưu ý:** `.env` và `.env.example` đang lệch port (8080 vs 5176). Khi setup máy mới, kiểm tra Backend đang chạy port nào rồi chỉnh `.env` cho khớp.
+> **Note:** `.env` and `.env.example` currently use different ports (8080 vs 5176). When setting up a new machine, check which port the Backend is running on and adjust `.env` to match.
 
 ---
 
@@ -33,15 +33,15 @@
 
 ```bash
 cp .env.example .env
-# sửa VITE_API_URL cho khớp Backend đang chạy
+# edit VITE_API_URL to match the running Backend
 ```
 
 ## Deploy (Vercel)
 
-Set `VITE_API_URL` trong Vercel dashboard (Project Settings → Environment Variables) trỏ về Backend production/staging URL. `vercel.json` chỉ config SPA rewrite, không chứa env.
+Set `VITE_API_URL` in the Vercel dashboard (Project Settings → Environment Variables) to point to the Backend production/staging URL. `vercel.json` only configures the SPA rewrite and does not contain env variables.
 
 ---
 
-## CI secret (không phải app runtime)
+## CI Secret (Not App Runtime)
 
-`GEMINI_AI_KEY` — dùng cho GitHub Actions workflow review PR bằng Gemini (`.github/workflows/gemini-review*.yml`), không liên quan đến app chạy thực tế.
+`GEMINI_AI_KEY` — used by GitHub Actions workflows that review PRs with Gemini (`.github/workflows/gemini-review*.yml`); unrelated to the app runtime.

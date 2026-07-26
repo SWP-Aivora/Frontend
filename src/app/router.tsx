@@ -38,7 +38,6 @@ import { ExpertDashboardPage } from '../features/dashboard/pages/ExpertDashboard
 import { ClientServicesModulePage } from '../features/services/pages/ClientServicesModulePage';
 import { BrowseServicesPage } from '../features/services/pages/BrowseServicesPage';
 import { ServiceDetailPage } from '../features/services/pages/ServiceDetailPage';
-import { RequestServicePage } from '../features/services/pages/RequestServicePage';
 import { ClientServiceRequestsPage } from '../features/services/pages/ClientServiceRequestsPage';
 import { ClientServiceRequestDetailPage } from '../features/services/pages/ClientServiceRequestDetailPage';
 import { ExpertServicesPage } from '../features/services/pages/ExpertServicesPage';
@@ -69,6 +68,12 @@ const LegacyClientJobProposalsRedirect = () => {
 const LegacyClientServiceRequestDetailRedirect = () => {
   const { requestId } = useParams();
   return <Navigate to={`/client/services/requests/${requestId ?? ''}`} replace />;
+};
+
+// eslint-disable-next-line react-refresh/only-export-components
+const LegacyRequestServiceRedirect = () => {
+  const { serviceId } = useParams();
+  return <Navigate to={`/client/services/${serviceId ?? ''}`} replace />;
 };
 
 export const router = createBrowserRouter([
@@ -127,7 +132,7 @@ export const router = createBrowserRouter([
       { path: 'services/requests', element: <ClientServicesModulePage><ClientServiceRequestsPage showHeader={false} /></ClientServicesModulePage> },
       { path: 'services/requests/:requestId', element: <ClientServicesModulePage><ClientServiceRequestDetailPage /></ClientServicesModulePage> },
       { path: 'services/:serviceId', element: <ServiceDetailPage /> },
-      { path: 'services/:serviceId/request', element: <RequestServicePage /> },
+      { path: 'services/:serviceId/request', element: <LegacyRequestServiceRedirect /> },
       { path: 'service-requests', element: <Navigate to="/client/services/requests" replace /> },
       { path: 'service-requests/:requestId', element: <LegacyClientServiceRequestDetailRedirect /> },
       { path: 'experts', element: <SearchExpertsPage /> },
@@ -159,7 +164,7 @@ export const router = createBrowserRouter([
       { path: 'proposals/:proposalId', element: <ProposalDetailsPage /> },
       { path: 'services', element: <ExpertServicesPage /> },
       { path: 'services/new', element: <ExpertServiceFormPage /> },
-      { path: 'services/requests', element: <Navigate to="/expert/services" replace /> },
+      { path: 'services/requests', element: <ExpertServiceRequestsPage /> },
       { path: 'services/requests/:requestId', element: <Navigate to="/expert/services" replace /> },
       { path: 'services/:serviceId/edit', element: <ExpertServiceFormPage /> },
       { path: 'services/:serviceId/requests', element: <ExpertServiceRequestsPage /> },

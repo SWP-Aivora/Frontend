@@ -66,7 +66,7 @@ describe('BrowseServicesPage', () => {
     expect(screen.getByText('Services')).toBeInTheDocument();
     expect(await screen.findByText('AI dashboard build')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'View details' })).toHaveAttribute('href', '/client/services/service-1');
-    expect(screen.getByRole('link', { name: /Request/i })).toHaveAttribute('href', '/client/services/service-1/request');
+    expect(screen.getByRole('link', { name: /Request/i })).toHaveAttribute('href', '/client/services/service-1');
     expect(servicesFeatureApi.getServices).toHaveBeenCalledWith({ PageIndex: 1, PageSize: 12, SearchTerm: undefined });
   });
 });

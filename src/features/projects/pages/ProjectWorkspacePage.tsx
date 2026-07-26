@@ -185,7 +185,7 @@ export const ProjectWorkspacePage = () => {
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
   const [milestoneIdToApprove, setMilestoneIdToApprove] = useState<string | null>(null);
 
-  // Fetch toàn bộ thông tin chi tiết của Project (Hợp đồng làm việc)
+  // Fetch the full project details.
   const { data: projectResponse, isLoading: isLoadingProject } = useQuery({
     queryKey: ['project', id],
     queryFn: () => projectService.getProjectById(id!),
@@ -380,7 +380,7 @@ export const ProjectWorkspacePage = () => {
     },
   });
 
-  // API Nộp sản phẩm (Expert bấm Submit)
+  // Submit deliverable API, triggered by the expert.
   const submitMutation = useMutation({
     mutationFn: ({ milestoneId, data }: { milestoneId: string; data: { description: string; fileUrl: string; demoUrl: string; sourceCodeUrl: string; note: string } }) => projectService.submitDeliverable(milestoneId, data),
     onSuccess: () => {
