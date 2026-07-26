@@ -16,17 +16,21 @@ const buildApiUrl = (endpoint: string): string => (
   `${env.API_URL.replace(/\/$/, '')}/${endpoint.replace(/^\//, '')}`
 );
 
-const getRequestPath = (url?: string): string => {
+export const getRequestPath = (url?: string): string => {
   if (!url) return '';
 
   try {
-    return new URL(url, env.API_URL).pathname.replace(/\/+$/, '').toLowerCase();
+    // env.API_URL may be relative (same-origin proxy, avoids CORS). URL() needs an
+    // absolute base, so resolve API_URL against a dummy origin first — if API_URL is
+    // already absolute, new URL(absoluteUrl, dummyBase) ignores the dummy and keeps it.
+    const absoluteBase = new URL(env.API_URL, 'http://localhost').toString();
+    return new URL(url, absoluteBase).pathname.replace(/\/+$/, '').toLowerCase();
   } catch {
-    return url.split('?')[0].split('#')[0].replace(/\/+$/, '').toLowerCase();
+    return `/${url.split('?')[0].split('#')[0].replace(/^\/+/, '').replace(/\/+$/, '')}`.toLowerCase();
   }
 };
 
-const matchesEndpoint = (url: string | undefined, endpoint: string): boolean => {
+export const matchesEndpoint = (url: string | undefined, endpoint: string): boolean => {
   const requestPath = getRequestPath(url);
   const endpointPath = `/${endpoint.replace(/^\/+/, '').replace(/\/+$/, '').toLowerCase()}`;
 
