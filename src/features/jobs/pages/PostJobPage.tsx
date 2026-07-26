@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useBlocker, useSearchParams } from 'react-router-dom';
 import { Sparkles, Rocket, Loader2, AlertCircle } from 'lucide-react';
@@ -26,7 +26,31 @@ import {  CANCELLED_JOB_POST_LOCKED_MESSAGE,
 
 type FlowStep = 'PLANNING' | 'DRAFTING' | 'REVIEWING' | 'MATCHING';
 
-const DRAFT_STORAGE_KEY = 'aivora:post-job:suggestion-id';
+const DRAFT_SNAPSHOT_KEY = 'aivora:post-job:unsaved-draft';
+const LEGACY_DRAFT_STORAGE_KEY = 'aivora:post-job:suggestion-id';
+const DRAFT_SNAPSHOT_VERSION = 1;
+
+type DraftSnapshotStep = Extract<FlowStep, 'DRAFTING' | 'REVIEWING'>;
+
+interface PostJobDraftSnapshot {
+  version: typeof DRAFT_SNAPSHOT_VERSION;
+  savedAt: string;
+  suggestion: AiJobSuggestion;
+  draftValues: JobDraftFormValues | null;
+  selectedSkillIds: string[];
+  step: DraftSnapshotStep;
+  createdJobId: string | null;
+  isDraftSaved: boolean;
+  pendingPatch: PatchAiJobSuggestionRequest;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> => (
+  value !== null && typeof value === 'object' && !Array.isArray(value)
+);
+
+const getSnapshotStep = (value: unknown): DraftSnapshotStep => (
+  value === 'REVIEWING' ? 'REVIEWING' : 'DRAFTING'
+);
 
 const getDateAfterDays = (days: number | null | undefined): string | null => {
   if (!days || days < 1) {
@@ -80,6 +104,67 @@ const getUniqueSkillIds = (skills: Array<{ id?: string | null } | string> | null
 const toNullableFiniteNumber = (value: number | null | undefined): number | null => (
   typeof value === 'number' && Number.isFinite(value) ? value : null
 );
+
+const applyDraftValuesToSuggestion = (suggestion: AiJobSuggestion, values: JobDraftFormValues): AiJobSuggestion => ({
+  ...suggestion,
+  suggestedTitle: values.title,
+  suggestedDescription: values.description,
+  businessDomain: values.businessDomain.trim(),
+  budgetType: values.budgetType,
+  suggestedBudgetMin: toNullableFiniteNumber(values.budgetMin),
+  suggestedBudgetMax: toNullableFiniteNumber(values.budgetMax),
+  suggestedTimelineDays: toNullableFiniteNumber(values.timelineDays),
+  suggestedMilestones: values.milestones.map((milestone, index) => ({
+    ...milestone,
+    amount: toNullableFiniteNumber(milestone.amount),
+    dueDays: toNullableFiniteNumber(milestone.dueDays),
+    orderIndex: milestone.orderIndex ?? index,
+  })),
+});
+
+const buildPendingPatchFromSuggestion = (suggestion: AiJobSuggestion): PatchAiJobSuggestionRequest => ({
+  suggestedTitle: suggestion.suggestedTitle,
+  suggestedDescription: suggestion.suggestedDescription,
+  businessDomain: suggestion.businessDomain,
+  budgetType: suggestion.budgetType,
+  suggestedBudgetMin: suggestion.suggestedBudgetMin,
+  suggestedBudgetMax: suggestion.suggestedBudgetMax,
+  suggestedTimelineDays: suggestion.suggestedTimelineDays,
+  suggestedMilestones: suggestion.suggestedMilestones,
+});
+
+const readDraftSnapshot = (): PostJobDraftSnapshot | null => {
+  const rawSnapshot = localStorage.getItem(DRAFT_SNAPSHOT_KEY);
+  if (!rawSnapshot) return null;
+
+  try {
+    const snapshot = JSON.parse(rawSnapshot) as unknown;
+    if (!isRecord(snapshot) || snapshot.version !== DRAFT_SNAPSHOT_VERSION || !isRecord(snapshot.suggestion)) {
+      return null;
+    }
+
+    return {
+      version: DRAFT_SNAPSHOT_VERSION,
+      savedAt: typeof snapshot.savedAt === 'string' ? snapshot.savedAt : new Date().toISOString(),
+      suggestion: snapshot.suggestion as AiJobSuggestion,
+      draftValues: isRecord(snapshot.draftValues) ? snapshot.draftValues as JobDraftFormValues : null,
+      selectedSkillIds: Array.isArray(snapshot.selectedSkillIds)
+        ? snapshot.selectedSkillIds.filter((skillId): skillId is string => typeof skillId === 'string')
+        : [],
+      step: getSnapshotStep(snapshot.step),
+      createdJobId: typeof snapshot.createdJobId === 'string' && snapshot.createdJobId.trim() ? snapshot.createdJobId : null,
+      isDraftSaved: snapshot.isDraftSaved === true,
+      pendingPatch: isRecord(snapshot.pendingPatch) ? snapshot.pendingPatch as PatchAiJobSuggestionRequest : {},
+    };
+  } catch {
+    return null;
+  }
+};
+
+const clearDraftSnapshot = () => {
+  localStorage.removeItem(DRAFT_SNAPSHOT_KEY);
+  localStorage.removeItem(LEGACY_DRAFT_STORAGE_KEY);
+};
 
 const buildSuggestionFromJob = (job: Job): AiJobSuggestion => ({
   id: '',
@@ -135,6 +220,7 @@ export const PostJobPage = () => {
   const [rejectReason, setRejectReason] = useState('');
   const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([]);
   const [hasAttemptedSkillValidation, setHasAttemptedSkillValidation] = useState(false);
+  const [draftFormValues, setDraftFormValues] = useState<JobDraftFormValues | null>(null);
 
   // --- Refs for stale closure guards ---
   const isBusyRef = useRef(false);
@@ -142,6 +228,8 @@ export const PostJobPage = () => {
   const isDiscardingUnsavedDraftRef = useRef(false);
   const prevSuggestionRef = useRef<AiJobSuggestion | null>(null);
   const hydratedEditJobIdRef = useRef<string | null>(null);
+  const pendingPatchRef = useRef<PatchAiJobSuggestionRequest>({});
+  const skipNextDraftSnapshotPersistRef = useRef(false);
 
   // --- Queries ---
   // Tự động gọi API để tìm kiếm chuyên gia (Expert Match) khi đến bước MATCHING và đã có Job ID
@@ -220,6 +308,7 @@ export const PostJobPage = () => {
     mutationFn: (prompt: string) => jobService.initAiJobAssistant(prompt),
     onSuccess: (response) => {
       setSuggestion(response.data);
+      setDraftFormValues(null);
       setIsDraftSaved(false);
       setStep('DRAFTING');
       setMessages(prev => [
@@ -255,6 +344,7 @@ export const PostJobPage = () => {
       }
 
       setSuggestion(data.suggestion);
+      setDraftFormValues(null);
       setIsDraftSaved(false);
       setMessages(prev => [
         ...prev,
@@ -288,6 +378,7 @@ export const PostJobPage = () => {
           ...data.suggestion,
           jobId: data.suggestion?.jobId ?? targetJobId,
         }));
+        setDraftFormValues(null);
       } else if (targetJobId) {
         try {
           const latestJobResponse = await queryClient.fetchQuery({
@@ -298,6 +389,7 @@ export const PostJobPage = () => {
 
           if (latestJobResponse.data) {
             setSuggestion(buildSuggestionFromJob(latestJobResponse.data));
+            setDraftFormValues(null);
           }
         } catch {
           toast.error('AI responded, but the latest job details could not be refreshed.');
@@ -341,6 +433,7 @@ export const PostJobPage = () => {
     onSuccess: () => {
       setStep('MATCHING');
       setIsDraftSaved(true);
+      clearDraftSnapshot();
       queryClient.invalidateQueries({ queryKey: ['clientJobs'] });
       queryClient.invalidateQueries({ queryKey: ['clientProjects'] });
       toast.success('Job post published successfully!');
@@ -366,6 +459,7 @@ export const PostJobPage = () => {
       if (data.job.id) {
         setJobId(data.job.id);
         setIsDraftSaved(true);
+        clearDraftSnapshot();
         queryClient.invalidateQueries({ queryKey: ['clientJobs'] });
         queryClient.invalidateQueries({ queryKey: ['clientProjects'] });
         setSuggestion(prev => {
@@ -413,8 +507,10 @@ export const PostJobPage = () => {
       setIsRejectModalOpen(false);
       setRejectReason('');
       setSuggestion(null);
+      setDraftFormValues(null);
       setJobId(null);
       setIsDraftSaved(false);
+      clearDraftSnapshot();
       setStep('PLANNING');
       setMessages([
         {
@@ -440,6 +536,7 @@ export const PostJobPage = () => {
 
       setJobId(response.data.id);
       setIsDraftSaved(true);
+      clearDraftSnapshot();
       queryClient.invalidateQueries({ queryKey: ['clientJobs'] });
       queryClient.invalidateQueries({ queryKey: ['clientProjects'] });
     },
@@ -470,6 +567,7 @@ export const PostJobPage = () => {
     }) => jobService.updateJob(payload.jobId, payload.data),
     onSuccess: () => {
       setIsDraftSaved(true);
+      clearDraftSnapshot();
       // Invalidate cache to refresh jobs list immediately
       queryClient.invalidateQueries({ queryKey: ['clientJobs'] });
       queryClient.invalidateQueries({ queryKey: ['clientProjects'] });
@@ -502,43 +600,60 @@ export const PostJobPage = () => {
   ]);
 
   // Restore an unsaved draft left over from a previous session (reload/close tab).
-  // Must run before the persist effect below, so it reads the stored id before that
-  // effect's mount-time cleanup (suggestion is still null on the very first render) clears it.
   useEffect(() => {
     if (editJobId) return;
 
-    const storedSuggestionId = localStorage.getItem(DRAFT_STORAGE_KEY);
-    if (!storedSuggestionId) return;
+    const snapshot = readDraftSnapshot();
+    if (!snapshot) {
+      clearDraftSnapshot();
+      return;
+    }
 
-    jobService.getAiJobSuggestion(storedSuggestionId)
-      .then((response) => {
-        if (!response.data) {
-          localStorage.removeItem(DRAFT_STORAGE_KEY);
-          return;
-        }
+    const restoredSuggestion = snapshot.draftValues
+      ? applyDraftValuesToSuggestion(snapshot.suggestion, snapshot.draftValues)
+      : snapshot.suggestion;
 
-        setSuggestion(response.data);
-        setStep('DRAFTING');
-        toast.info('Restored your unsaved job draft.');
-      })
-      .catch(() => {
-        localStorage.removeItem(DRAFT_STORAGE_KEY);
-      });
+    skipNextDraftSnapshotPersistRef.current = true;
+    setSuggestion(restoredSuggestion);
+    setDraftFormValues(snapshot.draftValues);
+    setSelectedSkillIds(snapshot.selectedSkillIds);
+    setJobId(snapshot.createdJobId);
+    setIsDraftSaved(snapshot.isDraftSaved);
+    setStep(snapshot.step);
+    pendingPatchRef.current = Object.keys(snapshot.pendingPatch).length > 0
+      ? snapshot.pendingPatch
+      : buildPendingPatchFromSuggestion(restoredSuggestion);
+    toast.info('Restored your unsaved job draft.');
     // Runs once on mount only; editJobId doesn't change without a fresh page load.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Persist the unsaved draft's id so it survives an accidental reload/close; cleared once
-  // the draft is saved, rejected, or the user confirms leaving without saving.
+  // Persist the full visible draft, including live form edits that have not been saved yet.
   useEffect(() => {
     if (editJobId) return;
-
-    if (hasUnsavedAiDraft && suggestion?.id) {
-      localStorage.setItem(DRAFT_STORAGE_KEY, suggestion.id);
-    } else {
-      localStorage.removeItem(DRAFT_STORAGE_KEY);
+    if (skipNextDraftSnapshotPersistRef.current) {
+      skipNextDraftSnapshotPersistRef.current = false;
+      return;
     }
-  }, [editJobId, hasUnsavedAiDraft, suggestion?.id]);
+
+    if (hasUnsavedAiDraft && suggestion) {
+      const snapshot: PostJobDraftSnapshot = {
+        version: DRAFT_SNAPSHOT_VERSION,
+        savedAt: new Date().toISOString(),
+        suggestion,
+        draftValues: draftFormValues,
+        selectedSkillIds,
+        step: step === 'REVIEWING' ? 'REVIEWING' : 'DRAFTING',
+        createdJobId,
+        isDraftSaved,
+        pendingPatch: pendingPatchRef.current,
+      };
+      localStorage.setItem(DRAFT_SNAPSHOT_KEY, JSON.stringify(snapshot));
+      localStorage.removeItem(LEGACY_DRAFT_STORAGE_KEY);
+    } else {
+      clearDraftSnapshot();
+    }
+  }, [createdJobId, draftFormValues, editJobId, hasUnsavedAiDraft, isDraftSaved, selectedSkillIds, step, suggestion]);
 
   // --- Blocking navigation when busy or an AI-generated draft has not been saved ---
   useEffect(() => {
@@ -568,10 +683,6 @@ export const PostJobPage = () => {
   const handleLeaveWithoutSaving = () => {
     isDiscardingUnsavedDraftRef.current = true;
     hasUnsavedAiDraftRef.current = false;
-    setIsDraftSaved(true);
-    // Clear synchronously here too: navigation below can unmount the page before the
-    // persist effect (keyed on hasUnsavedAiDraft) gets a chance to run.
-    localStorage.removeItem(DRAFT_STORAGE_KEY);
     if (unsavedDraftBlocker.state === 'blocked') {
       unsavedDraftBlocker.proceed();
     }
@@ -602,6 +713,7 @@ export const PostJobPage = () => {
     const shouldResetEditChat = hydratedEditJobIdRef.current !== job.id;
 
     setSuggestion(buildSuggestionFromJob(job));
+    setDraftFormValues(null);
     setJobId(job.id);
     setSelectedSkillIds(getUniqueSkillIds(job.skills));
     setIsDraftSaved(true);
@@ -651,8 +763,6 @@ export const PostJobPage = () => {
     return refineMutation.mutateAsync(text);
   };
 
-  const pendingPatchRef = useRef<PatchAiJobSuggestionRequest>({});
-
   const handleCategoryChange = (categoryId: string) => {
     if (isExistingJobLocked) {
       showLockedJobPostMessage();
@@ -675,42 +785,35 @@ export const PostJobPage = () => {
     setHasAttemptedSkillValidation(false);
   };
 
+  const handleDraftFormChange = useCallback((values: JobDraftFormValues) => {
+    if (!suggestion || isEditingExistingJob || isExistingJobLocked) {
+      return;
+    }
+
+    const liveSuggestion = applyDraftValuesToSuggestion(suggestion, values);
+    setDraftFormValues(values);
+    setIsDraftSaved(false);
+    pendingPatchRef.current = {
+      ...pendingPatchRef.current,
+      ...buildPendingPatchFromSuggestion(liveSuggestion),
+    };
+  }, [isEditingExistingJob, isExistingJobLocked, suggestion]);
+
   const applyDraftFormValuesToSuggestion = (values: JobDraftFormValues): AiJobSuggestion | null => {
     if (!suggestion) {
       return null;
     }
 
-    const nextSuggestion: AiJobSuggestion = {
-      ...suggestion,
-      suggestedTitle: values.title,
-      suggestedDescription: values.description,
-      businessDomain: values.businessDomain.trim(),
-      budgetType: values.budgetType,
-      suggestedBudgetMin: toNullableFiniteNumber(values.budgetMin),
-      suggestedBudgetMax: toNullableFiniteNumber(values.budgetMax),
-      suggestedTimelineDays: toNullableFiniteNumber(values.timelineDays),
-      suggestedMilestones: values.milestones.map((milestone, index) => ({
-        ...milestone,
-        amount: toNullableFiniteNumber(milestone.amount),
-        dueDays: toNullableFiniteNumber(milestone.dueDays),
-        orderIndex: milestone.orderIndex ?? index,
-      })),
-    };
+    const nextSuggestion = applyDraftValuesToSuggestion(suggestion, values);
 
     setIsDraftSaved(false);
+    setDraftFormValues(values);
     setSuggestion(nextSuggestion);
 
     if (!isEditingExistingJob) {
       pendingPatchRef.current = {
         ...pendingPatchRef.current,
-        suggestedTitle: nextSuggestion.suggestedTitle,
-        suggestedDescription: nextSuggestion.suggestedDescription,
-        businessDomain: nextSuggestion.businessDomain,
-        budgetType: nextSuggestion.budgetType,
-        suggestedBudgetMin: nextSuggestion.suggestedBudgetMin,
-        suggestedBudgetMax: nextSuggestion.suggestedBudgetMax,
-        suggestedTimelineDays: nextSuggestion.suggestedTimelineDays,
-        suggestedMilestones: nextSuggestion.suggestedMilestones,
+        ...buildPendingPatchFromSuggestion(nextSuggestion),
       };
     }
 
@@ -1443,11 +1546,12 @@ export const PostJobPage = () => {
                 selectedSkillIds={selectedSkillIds}
                 onSkillChange={handleSkillChange}
                 skillError={hasAttemptedSkillValidation && selectedSkillIds.length === 0 ? 'Select at least one required skill.' : undefined}
-               onCategoryChange={handleCategoryChange}
-               onAccept={handleAccept}
-                 onSaveDraft={handleSaveDraft}
-                 onReject={!isEditingExistingJob && !createdJobId ? () => setIsRejectModalOpen(true) : undefined}
-                 isAccepting={acceptMutation.isPending}
+                onCategoryChange={handleCategoryChange}
+                onDraftChange={handleDraftFormChange}
+                onAccept={handleAccept}
+                onSaveDraft={handleSaveDraft}
+                onReject={!isEditingExistingJob && !createdJobId ? () => setIsRejectModalOpen(true) : undefined}
+                isAccepting={acceptMutation.isPending}
                isDraftSaved={isDraftSaved}
                canContinueToReview={!isPublishedExistingJob}
               isGenerating={initMutation.isPending || refineMutation.isPending || refineExistingJobMutation.isPending || patchMutation.isPending}

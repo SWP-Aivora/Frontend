@@ -6,7 +6,7 @@ export const depositSchema = z.object({
 
 export const withdrawSchema = z.object({
   amount: z.coerce.number().int().min(1).max(100000).finite(),
-  paymentMethod: z.enum(['bank', 'paypal', 'crypto']),
+  paymentMethod: z.enum(['vnpay_sandbox']),
 });
 
 export const transferSchema = z.object({

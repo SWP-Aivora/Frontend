@@ -8,6 +8,7 @@ import { normalizePaginatedResponse, normalizeBaseResponse, getErrorMessage } fr
 import { Role } from '@/shared/types/enums';
 import type { AxiosResponse } from 'axios';
 import * as signalR from '@microsoft/signalr';
+import { CHAT_SEND_TIMEOUT_MS } from './constants';
 
 interface NewMessagePayload {
   id: string;
@@ -27,6 +28,20 @@ const getSignalRErrorMessage = (error: unknown): string => (
 const createSignalRError = (operation: string, error: unknown): Error => (
   new Error(`${operation}: ${getSignalRErrorMessage(error)}`)
 );
+
+const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, timeoutMessage: string): Promise<T> => {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+};
 
 const buildApiUrl = (endpoint: string): string => (
   `${env.API_URL.replace(/\/$/, '')}/${endpoint.replace(/^\//, '')}`
@@ -440,11 +455,15 @@ class ChatService extends BaseService<Conversation> {
     const connection = await this.ensureChatConnection();
 
     try {
-      await connection.invoke('SendMessage', {
-        conversationId,
-        content,
-        attachmentUrl: payload.attachmentUrl,
-      });
+      await withTimeout(
+        connection.invoke('SendMessage', {
+          conversationId,
+          content,
+          attachmentUrl: payload.attachmentUrl,
+        }),
+        CHAT_SEND_TIMEOUT_MS,
+        'Message send timed out. Please try again.'
+      );
     } catch (error: unknown) {
       throw createSignalRError('Unable to send chat message', error);
     }

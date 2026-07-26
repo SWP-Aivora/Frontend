@@ -134,6 +134,7 @@ interface JobDraftFormProps {
   onSkillChange?: (skillId: string) => void;
   skillError?: string;
   onCategoryChange: (categoryId: string) => void;
+  onDraftChange?: (values: JobDraftFormValues) => void;
   onAccept: (values: JobDraftFormValues) => void;
   onSaveDraft: (values: JobDraftFormValues) => void;
   onReject?: () => void;
@@ -154,6 +155,7 @@ export const JobDraftForm = ({
   onSkillChange,
   skillError,
   onCategoryChange,
+  onDraftChange,
   onAccept,
   onSaveDraft,
   onReject,
@@ -165,11 +167,12 @@ export const JobDraftForm = ({
   readOnlyStatusLabel,
   readOnlyMessage
 }: JobDraftFormProps) => {
-  const { register, control, handleSubmit, getValues, reset, setValue, formState: { errors } } = useForm<JobDraftFormValues>({
+  const { register, control, handleSubmit, getValues, reset, setValue, formState: { errors, isDirty } } = useForm<JobDraftFormValues>({
     resolver: zodResolver(jobDraftSchema),
     defaultValues: getFormValuesFromSuggestion(suggestion),
   });
   const lastSuggestionVersionRef = useRef<string | null>(null);
+  const lastDraftChangeSnapshotRef = useRef<string | null>(null);
   const { fields: milestoneFields, append, remove } = useFieldArray({
     control,
     name: 'milestones',
@@ -179,6 +182,7 @@ export const JobDraftForm = ({
   const watchedBudgetMax = useWatch({ control, name: 'budgetMax' });
   const watchedBudgetType = useWatch({ control, name: 'budgetType' });
   const watchedMilestones = useWatch({ control, name: 'milestones' });
+  const watchedDraftValues = useWatch({ control });
   const milestoneBudgetValidation = validateMilestoneBudgetTotal(
     watchedBudgetMin,
     watchedBudgetMax,
@@ -193,8 +197,24 @@ export const JobDraftForm = ({
     }
 
     lastSuggestionVersionRef.current = suggestionVersion;
+    lastDraftChangeSnapshotRef.current = null;
     reset(getFormValuesFromSuggestion(suggestion));
   }, [reset, suggestion]);
+
+  useEffect(() => {
+    if (!onDraftChange || !isDirty || isReadOnly) {
+      return;
+    }
+
+    const values = getValues();
+    const serializedValues = JSON.stringify(values);
+    if (lastDraftChangeSnapshotRef.current === serializedValues) {
+      return;
+    }
+
+    lastDraftChangeSnapshotRef.current = serializedValues;
+    onDraftChange(values);
+  }, [getValues, isDirty, isReadOnly, onDraftChange, watchedDraftValues]);
   const titleField = register('title');
   const descriptionField = register('description');
   const businessDomainField = register('businessDomain');

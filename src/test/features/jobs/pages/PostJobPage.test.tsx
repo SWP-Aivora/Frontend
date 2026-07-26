@@ -80,6 +80,7 @@ vi.mock('../../../../features/jobs/components/JobDraftForm', () => {
       onAccept,
       onReject,
       onSaveDraft,
+      onDraftChange,
       onSkillChange,
       isReadOnly,
       readOnlyStatusLabel,
@@ -93,6 +94,7 @@ vi.mock('../../../../features/jobs/components/JobDraftForm', () => {
       return (
       <div data-testid="job-draft-form">
         JobDraftForm
+        <span data-testid="mock-draft-title">{suggestion?.suggestedTitle}</span>
         {isReadOnly && (
           <div>
             {readOnlyStatusLabel && <span>{readOnlyStatusLabel}</span>}
@@ -104,6 +106,16 @@ vi.mock('../../../../features/jobs/components/JobDraftForm', () => {
         )}
         <button data-testid="mock-skill-btn" onClick={() => onSkillChange('skill-1')}>
           Select Skill
+        </button>
+        <button
+          data-testid="mock-live-edit-btn"
+          onClick={() => onDraftChange?.({
+            ...toMockDraftFormValues(suggestion),
+            title: 'Recovered edited draft',
+            description: 'A locally edited project description with enough detail to recover.',
+          })}
+        >
+          Live Edit
         </button>
         {isReadOnly ? (
           <>
@@ -162,6 +174,8 @@ const findMutation = (identifier: string) => {
   }
   return found;
 };
+
+const POST_JOB_DRAFT_SNAPSHOT_KEY = 'aivora:post-job:unsaved-draft';
 
 const publishReadySuggestion = {
   id: 'suggest-123',
@@ -685,16 +699,26 @@ describe('PostJobPage unsaved AI draft protection', () => {
     const router = createMemoryRouter(
       [
         { path: '/client/post-job', element: <PostJobRouteShell /> },
-        { path: '/client/job-posts', element: <div>Job Posts Route</div> },
+        {
+          path: '/client/job-posts',
+          element: (
+            <div>
+              Job Posts Route
+              <Link to="/client/post-job">Back to post job</Link>
+            </div>
+          ),
+        },
       ],
       { initialEntries: ['/client/post-job'] }
     );
 
-    return render(
+    const view = render(
       <QueryClientProvider client={queryClient}>
         <RouterProvider router={router} />
       </QueryClientProvider>
     );
+
+    return { ...view, router };
   };
 
   const generateDraft = () => {
@@ -732,6 +756,45 @@ describe('PostJobPage unsaved AI draft protection', () => {
     expect(event.defaultPrevented).toBe(true);
   });
 
+  it('restores an unsaved local draft snapshot after remount', async () => {
+    const view = renderRoutedComponent();
+    generateDraft();
+
+    fireEvent.click(await screen.findByTestId('mock-live-edit-btn'));
+
+    await waitFor(() => {
+      expect(localStorage.getItem(POST_JOB_DRAFT_SNAPSHOT_KEY)).toContain('Recovered edited draft');
+    });
+
+    view.unmount();
+    renderRoutedComponent();
+
+    expect(await screen.findByTestId('job-draft-form')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-draft-title')).toHaveTextContent('Recovered edited draft');
+  });
+
+  it('keeps the snapshot after confirmed navigation away and restores when returning', async () => {
+    renderRoutedComponent();
+    generateDraft();
+
+    fireEvent.click(await screen.findByTestId('mock-live-edit-btn'));
+    await waitFor(() => {
+      expect(localStorage.getItem(POST_JOB_DRAFT_SNAPSHOT_KEY)).toContain('Recovered edited draft');
+    });
+
+    fireEvent.click(screen.getByRole('link', { name: /go to job posts/i }));
+    expect(await screen.findByText('Leave without saving?')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /leave without saving/i }));
+
+    expect(await screen.findByText('Job Posts Route')).toBeInTheDocument();
+    expect(localStorage.getItem(POST_JOB_DRAFT_SNAPSHOT_KEY)).toContain('Recovered edited draft');
+
+    fireEvent.click(screen.getByRole('link', { name: /back to post job/i }));
+
+    expect(await screen.findByTestId('job-draft-form')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-draft-title')).toHaveTextContent('Recovered edited draft');
+  });
+
   it('successful save clears beforeunload protection', async () => {
     renderRoutedComponent();
     generateDraft();
@@ -741,6 +804,7 @@ describe('PostJobPage unsaved AI draft protection', () => {
     await waitFor(() => {
       expect(jobService.createJob).toHaveBeenCalled();
     });
+    expect(localStorage.getItem(POST_JOB_DRAFT_SNAPSHOT_KEY)).toBeNull();
 
     const event = new Event('beforeunload', { cancelable: true });
     window.dispatchEvent(event);

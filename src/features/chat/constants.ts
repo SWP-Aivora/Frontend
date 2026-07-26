@@ -1,0 +1,2 @@
+export const CHAT_MESSAGE_MAX_LENGTH = 4000;
+export const CHAT_SEND_TIMEOUT_MS = 15000;

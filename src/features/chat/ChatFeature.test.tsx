@@ -7,6 +7,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { mediaService } from '@/shared/services/mediaService';
+import { CHAT_MESSAGE_MAX_LENGTH } from './constants';
 
 // Mock hooks
 vi.mock('./hooks/useConversations', () => ({
@@ -142,6 +143,94 @@ describe('Chat Feature', () => {
       await waitFor(() => {
         expect(onSendMessage).toHaveBeenCalledWith('Hello world');
       });
+    });
+
+    it('sends a message at exactly the max message length', async () => {
+      const onSendMessage = vi.fn().mockResolvedValue(undefined);
+      const exactLimitMessage = 'a'.repeat(CHAT_MESSAGE_MAX_LENGTH);
+
+      render(
+        <MessageInput onSendMessage={onSendMessage} disabled={false} />,
+        { wrapper }
+      );
+
+      const input = screen.getByPlaceholderText(/message/i);
+      fireEvent.change(input, { target: { value: exactLimitMessage } });
+      fireEvent.click(screen.getByRole('button', { name: /send message/i }));
+
+      await waitFor(() => {
+        expect(onSendMessage).toHaveBeenCalledWith(exactLimitMessage);
+      });
+    });
+
+    it('blocks over-limit input with visible feedback', () => {
+      const onSendMessage = vi.fn();
+      const overLimitMessage = 'a'.repeat(CHAT_MESSAGE_MAX_LENGTH + 1);
+
+      render(
+        <MessageInput onSendMessage={onSendMessage} disabled={false} />,
+        { wrapper }
+      );
+
+      const input = screen.getByPlaceholderText(/message/i) as HTMLTextAreaElement;
+      fireEvent.change(input, { target: { value: overLimitMessage } });
+
+      expect(input).toHaveValue('');
+      expect(screen.getByText(/message is too long/i)).toBeInTheDocument();
+      expect(screen.getByText(`0 / ${CHAT_MESSAGE_MAX_LENGTH.toLocaleString()}`)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /send message/i })).toBeDisabled();
+      expect(onSendMessage).not.toHaveBeenCalled();
+    });
+
+    it('rejects an oversized paste without replacing existing text', () => {
+      const onSendMessage = vi.fn();
+      const existingMessage = 'Keep this draft';
+
+      render(
+        <MessageInput onSendMessage={onSendMessage} disabled={false} />,
+        { wrapper }
+      );
+
+      const input = screen.getByPlaceholderText(/message/i) as HTMLTextAreaElement;
+      fireEvent.change(input, { target: { value: existingMessage } });
+      input.setSelectionRange(existingMessage.length, existingMessage.length);
+
+      fireEvent.paste(input, {
+        clipboardData: {
+          getData: () => 'a'.repeat(CHAT_MESSAGE_MAX_LENGTH + 1),
+        },
+      });
+
+      expect(input).toHaveValue(existingMessage);
+      expect(screen.getByText(/message is too long/i)).toBeInTheDocument();
+      expect(onSendMessage).not.toHaveBeenCalled();
+    });
+
+    it('keeps composer content and resets sending state after send failure', async () => {
+      let rejectSend: (error: Error) => void = () => {};
+      const onSendMessage = vi.fn(() => new Promise<void>((_, reject) => {
+        rejectSend = reject;
+      }));
+
+      render(
+        <MessageInput onSendMessage={onSendMessage} disabled={false} />,
+        { wrapper }
+      );
+
+      const input = screen.getByPlaceholderText(/message/i) as HTMLTextAreaElement;
+      const sendButton = screen.getByRole('button', { name: /send message/i });
+
+      fireEvent.change(input, { target: { value: 'Retry this message' } });
+      fireEvent.click(sendButton);
+
+      expect(sendButton).toBeDisabled();
+
+      rejectSend(new Error('Send failed'));
+
+      await waitFor(() => {
+        expect(sendButton).toBeEnabled();
+      });
+      expect(input).toHaveValue('Retry this message');
     });
 
     it('disables send button when input is empty', () => {

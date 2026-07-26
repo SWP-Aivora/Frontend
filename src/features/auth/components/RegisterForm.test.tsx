@@ -142,4 +142,27 @@ describe('RegisterForm Component', () => {
     expect(checkboxFrame).not.toHaveClass('border-red-500');
     expect(termsContainer).not.toHaveClass('border-red-500');
   });
+
+  it('toggles the terms checkbox when clicking the visible checkbox box', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <BrowserRouter>
+        <RegisterForm selectedRole={Role.CLIENT} />
+      </BrowserRouter>
+    );
+
+    const termsCheckbox = screen.getByLabelText(/i agree to the/i);
+    const checkboxFrame = termsCheckbox.parentElement;
+
+    expect(checkboxFrame).toBeTruthy();
+    expect(termsCheckbox).not.toBeChecked();
+
+    await user.click(checkboxFrame!);
+    expect(termsCheckbox).toBeChecked();
+
+    termsCheckbox.focus();
+    await user.keyboard('[Space]');
+    expect(termsCheckbox).not.toBeChecked();
+  });
 });

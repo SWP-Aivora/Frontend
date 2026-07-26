@@ -168,7 +168,7 @@ export const JobPostManagementPage = () => {
       PageIndex: pageIndex,
       PageSize: PAGE_SIZE,
       SearchTerm: appliedSearchTerm.trim() || undefined,
-      Status: statusFilter === 'All' ? undefined : statusFilter,
+      status: statusFilter === 'All' ? undefined : statusFilter,
     }),
     [pageIndex, appliedSearchTerm, statusFilter]
   );
@@ -176,7 +176,7 @@ export const JobPostManagementPage = () => {
     () => ({
       PageIndex: 1,
       PageSize: CHART_PAGE_SIZE,
-      Status: 'OPEN',
+      status: 'OPEN',
     }),
     []
   );
