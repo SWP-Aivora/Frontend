@@ -30,6 +30,29 @@ const getInviteButtonLabel = (invite: JobInvite | undefined, isSending: boolean,
   return 'Invite Unavailable';
 };
 
+interface InviteButtonProps {
+  jobId?: string | null;
+  invite?: JobInvite;
+  isLoadingInvites: boolean;
+  isSending: boolean;
+  onInvite: () => void;
+}
+
+const InviteButton = ({ jobId, invite, isLoadingInvites, isSending, onInvite }: InviteButtonProps) => {
+  // Backend rejects duplicate invites for the same job/expert regardless of status.
+  const hasExistingInvite = Boolean(invite);
+
+  return (
+    <Button
+      disabled={!jobId || isLoadingInvites || isSending || hasExistingInvite}
+      onClick={onInvite}
+      className="w-full rounded-xl font-black shadow-lg shadow-primary/20"
+    >
+      {getInviteButtonLabel(invite, isSending, Boolean(jobId))}
+    </Button>
+  );
+};
+
 export const ExpertMatchInsights = ({ experts, jobId }: ExpertMatchInsightsProps) => {
   const queryClient = useQueryClient();
   const inviteQueryKey = ['jobs', jobId ?? 'missing-job', 'invites'] as const;
@@ -151,22 +174,13 @@ export const ExpertMatchInsights = ({ experts, jobId }: ExpertMatchInsightsProps
               </div>
 
               <div className="w-full pt-4 space-y-2">
-                {(() => {
-                  const existingInvite = inviteByExpertId.get(expert.id);
-                  const isSending = inviteMutation.isPending && inviteMutation.variables === expert.id;
-                  // Backend rejects duplicate invites for the same job/expert regardless of status.
-                  const hasExistingInvite = Boolean(existingInvite);
-
-                  return (
-                    <Button
-                      disabled={!jobId || isLoadingInvites || isSending || hasExistingInvite}
-                      onClick={() => inviteMutation.mutate(expert.id)}
-                      className="w-full rounded-xl font-black shadow-lg shadow-primary/20"
-                    >
-                      {getInviteButtonLabel(existingInvite, isSending, Boolean(jobId))}
-                    </Button>
-                  );
-                })()}
+                <InviteButton
+                  jobId={jobId}
+                  invite={inviteByExpertId.get(expert.id)}
+                  isLoadingInvites={isLoadingInvites}
+                  isSending={inviteMutation.isPending && inviteMutation.variables === expert.id}
+                  onInvite={() => inviteMutation.mutate(expert.id)}
+                />
                 <Button variant="ghost" asChild className="w-full rounded-xl font-bold text-slate-500 hover:text-primary">
                   <Link to={`/client/experts/${expert.id}`}>
                     View Profile <ChevronRight className="size-4 ml-1" />
