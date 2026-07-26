@@ -7,7 +7,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { jobService } from '../services';
 import { toast } from 'sonner';
 import { getErrorMessage } from '@/lib/api-utils';
-import { isOpenJob, mapJobToJobCard, normalizeBudgetType, normalizeSkillLevel } from '../utils';
+import { mapJobToJobCard, normalizeBudgetType, normalizeSkillLevel } from '../utils';
 
 const budgetTypeFilters = [
   { label: 'Fixed Price', value: 'FIXED' },
