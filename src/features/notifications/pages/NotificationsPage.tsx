@@ -70,7 +70,7 @@ export const NotificationsPage = () => {
   const disputeNotifications = notifications.filter(isDisputeNotification);
   const hasError = !!listError || !!unreadError;
 
-  const handlePriorityClick = (linkUrl?: string | null) => {
+  const navigateToNotificationTarget = (linkUrl?: string | null) => {
     const targetUrl = linkUrl ? resolveNotificationPath(linkUrl, role) : null;
     if (!targetUrl) return;
 
@@ -80,6 +80,15 @@ export const NotificationsPage = () => {
     }
 
     navigate(targetUrl.startsWith('/') ? targetUrl : `/${targetUrl}`);
+  };
+
+  const handleNotificationClick = (notification: Notification) => {
+    const isRead = notification.isRead || notification.status === NotificationStatus.READ;
+    if (!isRead) {
+      markAsRead(notification.id);
+    }
+
+    navigateToNotificationTarget(notification.linkUrl);
   };
 
   return (
@@ -126,6 +135,7 @@ export const NotificationsPage = () => {
               notifications={filteredNotifications}
               isLoading={isLoading}
               onMarkAsRead={markAsRead}
+              onNotificationClick={handleNotificationClick}
               onMarkAllAsRead={markAllAsRead}
               isMarkingAllAsRead={isMarkingAllAsRead}
             />
@@ -157,7 +167,7 @@ export const NotificationsPage = () => {
                     <button
                       key={notification.id}
                       type="button"
-                      onClick={() => handlePriorityClick(notification.linkUrl)}
+                      onClick={() => handleNotificationClick(notification)}
                       disabled={!hasLink}
                       className="bg-white border border-red-100 rounded-lg p-4 text-left transition-colors enabled:hover:bg-red-50 disabled:cursor-default"
                     >

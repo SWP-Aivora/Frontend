@@ -1,4 +1,4 @@
-import { TransactionType, TransactionStatus } from '../types';
+import { TransactionDirection, TransactionType, TransactionStatus } from '../types';
 import type { Transaction } from '../types';
 import { ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -9,17 +9,35 @@ interface TransactionTableProps {
 }
 
 export const TransactionTable = ({ transactions, isClient }: TransactionTableProps) => {
-  const isIncomingTransaction = (transaction: Transaction): boolean =>
-    transaction.type === TransactionType.DEPOSIT ||
-    transaction.type === TransactionType.REFUND ||
-    (!isClient && transaction.type === TransactionType.PAYMENT);
+  const isIncomingTransaction = (transaction: Transaction): boolean => {
+    if (transaction.direction === TransactionDirection.CREDIT) return true;
+    if (transaction.direction === TransactionDirection.DEBIT) return false;
+
+    return transaction.type === TransactionType.DEMO_DEPOSIT ||
+      transaction.type === TransactionType.DEPOSIT ||
+      transaction.type === TransactionType.REFUND ||
+      (!isClient && (
+        transaction.type === TransactionType.PAYMENT ||
+        transaction.type === TransactionType.PAYMENT_RELEASE ||
+        transaction.type === TransactionType.MILESTONE_RELEASE ||
+        transaction.type === TransactionType.TRANSFER
+      ));
+  };
 
   const getTransactionTypeInfo = (type: TransactionType) => {
     switch (type) {
+      case TransactionType.DEMO_DEPOSIT: return { label: 'Demo Deposit', icon: ArrowDownLeft, color: 'text-emerald-600', bg: 'bg-emerald-50' };
       case TransactionType.DEPOSIT: return { label: 'Deposit', icon: ArrowDownLeft, color: 'text-emerald-600', bg: 'bg-emerald-50' };
-      case TransactionType.WITHDRAWAL: return { label: 'Withdrawal', icon: ArrowUpRight, color: 'text-rose-600', bg: 'bg-rose-50' };
+      case TransactionType.ESCROW_HOLD: return { label: 'Escrow Hold', icon: ArrowUpRight, color: 'text-amber-600', bg: 'bg-amber-50' };
+      case TransactionType.PAYMENT_RELEASE: return { label: 'Payment Release', icon: ArrowDownLeft, color: 'text-blue-600', bg: 'bg-blue-50' };
       case TransactionType.PAYMENT: return { label: 'Payment', icon: ArrowUpRight, color: 'text-blue-600', bg: 'bg-blue-50' };
       case TransactionType.REFUND: return { label: 'Refund', icon: ArrowDownLeft, color: 'text-emerald-600', bg: 'bg-emerald-50' };
+      case TransactionType.WITHDRAWAL: return { label: 'Withdrawal', icon: ArrowUpRight, color: 'text-rose-600', bg: 'bg-rose-50' };
+      case TransactionType.WITHDRAWAL_REQUEST: return { label: 'Withdrawal Request', icon: ArrowUpRight, color: 'text-rose-600', bg: 'bg-rose-50' };
+      case TransactionType.WITHDRAWAL_COMPLETED: return { label: 'Withdrawal Completed', icon: ArrowUpRight, color: 'text-rose-600', bg: 'bg-rose-50' };
+      case TransactionType.TRANSFER: return { label: 'Transfer', icon: ArrowUpRight, color: 'text-indigo-600', bg: 'bg-indigo-50' };
+      case TransactionType.MILESTONE_RELEASE: return { label: 'Milestone Release', icon: ArrowDownLeft, color: 'text-blue-600', bg: 'bg-blue-50' };
+      case TransactionType.PLATFORM_FEE: return { label: 'Platform Fee', icon: ArrowUpRight, color: 'text-slate-600', bg: 'bg-slate-100' };
       default: return { label: 'Unknown', icon: ArrowUpRight, color: 'text-slate-600', bg: 'bg-slate-50' };
     }
   };
@@ -40,10 +58,11 @@ export const TransactionTable = ({ transactions, isClient }: TransactionTablePro
   };
 
   return (
-    <table className="min-w-[880px] w-full text-left">
+    <table className="min-w-[980px] w-full text-left">
       <thead>
         <tr className="border-b border-slate-100 bg-slate-50/50">
           <th className="px-6 py-4 text-[11px] font-black uppercase tracking-widest text-slate-400">Transaction</th>
+          <th className="px-6 py-4 text-[11px] font-black uppercase tracking-widest text-slate-400">Type</th>
           <th className="px-6 py-4 text-[11px] font-black uppercase tracking-widest text-slate-400">Date</th>
           <th className="px-6 py-4 text-[11px] font-black uppercase tracking-widest text-slate-400">Status</th>
           <th className="px-6 py-4 text-right text-[11px] font-black uppercase tracking-widest text-slate-400">Amount</th>
@@ -74,6 +93,16 @@ export const TransactionTable = ({ transactions, isClient }: TransactionTablePro
                 </div>
               </td>
               <td className="px-6 py-5">
+                <div className={cn(
+                  "inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-[11px] font-black uppercase",
+                  typeInfo.bg,
+                  typeInfo.color
+                )}>
+                  <typeInfo.icon className="size-3.5" />
+                  <span>{typeInfo.label}</span>
+                </div>
+              </td>
+              <td className="px-6 py-5">
                 <span className="text-[11px] font-bold text-slate-500">
                   {formatDate(t.createdAt)}
                 </span>
@@ -100,7 +129,7 @@ export const TransactionTable = ({ transactions, isClient }: TransactionTablePro
         })}
         {transactions.length === 0 && (
           <tr>
-            <td colSpan={4} className="px-8 py-10 text-center text-sm font-medium text-slate-400">
+            <td colSpan={5} className="px-8 py-10 text-center text-sm font-medium text-slate-400">
               No transactions found.
             </td>
           </tr>

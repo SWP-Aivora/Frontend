@@ -22,4 +22,20 @@ describe('resolveNotificationPath', () => {
   it('maps project disputes to the admin dispute route', () => {
     expect(resolveNotificationPath('/api/v1/projects/project-1/disputes?status=open', Role.ADMIN)).toBe('/admin/projects/project-1/disputes?status=open');
   });
+
+  it('maps job proposal API links to the client proposal list route', () => {
+    expect(resolveNotificationPath('/api/v1/jobs/job-1/proposals', Role.CLIENT)).toBe('/client/job-posts/job-1/proposals');
+  });
+
+  it('maps job API links to the expert job detail route', () => {
+    expect(resolveNotificationPath('/api/v1/jobs/job-1', Role.EXPERT)).toBe('/expert/jobs/job-1');
+  });
+
+  it('maps service request links to the client request detail route', () => {
+    expect(resolveNotificationPath('/api/v1/service-requests/request-1', Role.CLIENT)).toBe('/client/services/requests/request-1');
+  });
+
+  it('maps service scoped requests to the expert request list route', () => {
+    expect(resolveNotificationPath('/api/v1/services/service-1/requests', Role.EXPERT)).toBe('/expert/services/service-1/requests');
+  });
 });

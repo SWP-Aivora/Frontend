@@ -1,8 +1,16 @@
 export const TransactionType = {
-  DEPOSIT: 0,
-  WITHDRAWAL: 1,
-  PAYMENT: 2,
-  REFUND: 3,
+  DEMO_DEPOSIT: 'DEMO_DEPOSIT',
+  DEPOSIT: 'DEPOSIT',
+  ESCROW_HOLD: 'ESCROW_HOLD',
+  PAYMENT_RELEASE: 'PAYMENT_RELEASE',
+  PAYMENT: 'PAYMENT',
+  REFUND: 'REFUND',
+  WITHDRAWAL: 'WITHDRAWAL',
+  WITHDRAWAL_REQUEST: 'WITHDRAWAL_REQUEST',
+  WITHDRAWAL_COMPLETED: 'WITHDRAWAL_COMPLETED',
+  TRANSFER: 'TRANSFER',
+  MILESTONE_RELEASE: 'MILESTONE_RELEASE',
+  PLATFORM_FEE: 'PLATFORM_FEE',
 } as const;
 export type TransactionType = (typeof TransactionType)[keyof typeof TransactionType];
 
@@ -14,11 +22,25 @@ export const TransactionStatus = {
 export type TransactionStatus = (typeof TransactionStatus)[keyof typeof TransactionStatus];
 
 export const WalletTransactionType = {
+  DEMO_DEPOSIT: TransactionType.DEMO_DEPOSIT,
   DEPOSIT: TransactionType.DEPOSIT,
+  ESCROW_HOLD: TransactionType.ESCROW_HOLD,
+  PAYMENT_RELEASE: TransactionType.PAYMENT_RELEASE,
   WITHDRAWAL: TransactionType.WITHDRAWAL,
   PAYMENT: TransactionType.PAYMENT,
   REFUND: TransactionType.REFUND,
+  WITHDRAWAL_REQUEST: TransactionType.WITHDRAWAL_REQUEST,
+  WITHDRAWAL_COMPLETED: TransactionType.WITHDRAWAL_COMPLETED,
+  TRANSFER: TransactionType.TRANSFER,
+  MILESTONE_RELEASE: TransactionType.MILESTONE_RELEASE,
+  PLATFORM_FEE: TransactionType.PLATFORM_FEE,
 } as const satisfies Record<string, TransactionType>;
+
+export const TransactionDirection = {
+  CREDIT: 'CREDIT',
+  DEBIT: 'DEBIT',
+} as const;
+export type TransactionDirection = (typeof TransactionDirection)[keyof typeof TransactionDirection];
 
 export const WalletTransactionStatus = {
   PENDING: TransactionStatus.PENDING,
@@ -40,6 +62,7 @@ export interface Transaction {
   walletId: string;
   amount: number;
   type: TransactionType;
+  direction?: TransactionDirection | null;
   status: TransactionStatus;
   description: string | null;
   referenceId: string | null; // e.g., milestoneId

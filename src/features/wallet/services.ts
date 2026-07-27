@@ -1,5 +1,5 @@
 import apiClient from '@/lib/axios';
-import { TransactionStatus, TransactionType } from './types';
+import { TransactionDirection, TransactionStatus, TransactionType } from './types';
 import type { Wallet, Transaction, DepositRequest, DepositDemoRequest, VnPayDepositRequest, WithdrawRequest, TransferRequest, TransferResult } from './types';
 import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
 import { API_ENDPOINTS } from '@/shared/constants';
@@ -25,17 +25,61 @@ const toNumber = (value: unknown): number | null => {
 const toStringValue = (value: unknown): string | null =>
   typeof value === 'string' && value.trim() !== '' ? value : null;
 
+const TRANSACTION_TYPE_BY_NUMERIC_VALUE: Record<number, Transaction['type']> = {
+  0: TransactionType.DEMO_DEPOSIT,
+  1: TransactionType.DEPOSIT,
+  2: TransactionType.ESCROW_HOLD,
+  3: TransactionType.PAYMENT_RELEASE,
+  4: TransactionType.REFUND,
+  5: TransactionType.WITHDRAWAL,
+  6: TransactionType.WITHDRAWAL_REQUEST,
+  7: TransactionType.WITHDRAWAL_COMPLETED,
+  8: TransactionType.TRANSFER,
+  9: TransactionType.MILESTONE_RELEASE,
+  10: TransactionType.PLATFORM_FEE,
+};
+
+const TRANSACTION_TYPE_BY_TEXT: Record<string, Transaction['type']> = Object.values(TransactionType)
+  .reduce<Record<string, Transaction['type']>>((types, type) => {
+    types[type] = type;
+    return types;
+  }, {});
+
+const TRANSACTION_TYPE_KEYWORDS: Array<[string, Transaction['type']]> = [
+  ['DEMO_DEPOSIT', TransactionType.DEMO_DEPOSIT],
+  ['DEPOSIT', TransactionType.DEPOSIT],
+  ['WITHDRAW', TransactionType.WITHDRAWAL],
+  ['REFUND', TransactionType.REFUND],
+  ['TRANSFER', TransactionType.TRANSFER],
+  ['RELEASE', TransactionType.PAYMENT_RELEASE],
+  ['ESCROW', TransactionType.ESCROW_HOLD],
+  ['FEE', TransactionType.PLATFORM_FEE],
+];
+
 const normalizeTransactionType = (value: unknown): Transaction['type'] => {
   const numeric = toNumber(value);
-  if (numeric === TransactionType.DEPOSIT || numeric === TransactionType.WITHDRAWAL || numeric === TransactionType.PAYMENT || numeric === TransactionType.REFUND) {
-    return numeric;
+  if (numeric !== null && numeric in TRANSACTION_TYPE_BY_NUMERIC_VALUE) {
+    return TRANSACTION_TYPE_BY_NUMERIC_VALUE[numeric];
   }
 
-  const text = toStringValue(value)?.toLowerCase();
-  if (text?.includes('deposit')) return TransactionType.DEPOSIT;
-  if (text?.includes('withdraw')) return TransactionType.WITHDRAWAL;
-  if (text?.includes('refund')) return TransactionType.REFUND;
+  const text = toStringValue(value)?.trim().toUpperCase().replace(/[\s-]+/g, '_');
+  if (text && text in TRANSACTION_TYPE_BY_TEXT) {
+    return TRANSACTION_TYPE_BY_TEXT[text];
+  }
+
+  const keywordMatch = text
+    ? TRANSACTION_TYPE_KEYWORDS.find(([keyword]) => text.includes(keyword))
+    : null;
+  if (keywordMatch) return keywordMatch[1];
+
   return TransactionType.PAYMENT;
+};
+
+const normalizeTransactionDirection = (value: unknown): Transaction['direction'] => {
+  const text = toStringValue(value)?.trim().toUpperCase();
+  if (text === TransactionDirection.CREDIT) return TransactionDirection.CREDIT;
+  if (text === TransactionDirection.DEBIT) return TransactionDirection.DEBIT;
+  return null;
 };
 
 const normalizeTransactionStatus = (
@@ -127,6 +171,7 @@ const mapHistoryItemToTransaction = (item: unknown, index: number): Transaction 
       item.WalletTransactionType ??
       description,
     ),
+    direction: normalizeTransactionDirection(item.direction ?? item.Direction),
     status: normalizeTransactionStatus(
       item.status ??
       item.Status ??

@@ -4,6 +4,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useNotifications, useUnreadCount } from '../hooks/useNotifications';
 import { useNotificationActions } from '../hooks/useNotificationActions';
 import { NotificationStatus } from '../types';
+import type { Notification } from '../types';
+import { resolveNotificationPath } from '../utils/notificationRoutes';
 import { cn } from '@/lib/utils';
 
 interface NotificationDropdownProps {
@@ -43,9 +45,22 @@ export const NotificationDropdown = ({ role }: NotificationDropdownProps) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleNotificationClick = (notificationId: string) => {
-    markAsRead(notificationId);
-    handleViewDetail();
+  const handleNotificationClick = (notification: Notification) => {
+    markAsRead(notification.id);
+    setIsOpen(false);
+
+    const targetUrl = notification.linkUrl ? resolveNotificationPath(notification.linkUrl, role) : null;
+    if (!targetUrl) {
+      handleViewDetail();
+      return;
+    }
+
+    if (/^https?:\/\//i.test(targetUrl)) {
+      window.location.assign(targetUrl);
+      return;
+    }
+
+    navigate(targetUrl.startsWith('/') ? targetUrl : `/${targetUrl}`);
   };
 
   const handleViewDetail = () => {
@@ -103,7 +118,7 @@ export const NotificationDropdown = ({ role }: NotificationDropdownProps) => {
                   <div 
                     key={notification.id}
                     className="p-4 hover:bg-slate-50 cursor-pointer transition-colors"
-                    onClick={() => handleNotificationClick(notification.id)}
+                    onClick={() => handleNotificationClick(notification)}
                   >
                     <div className="flex gap-3">
                       <div className="size-2 mt-1.5 shrink-0 rounded-full bg-primary" />

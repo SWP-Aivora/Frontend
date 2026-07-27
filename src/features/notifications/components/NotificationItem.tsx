@@ -4,6 +4,7 @@ import { NotificationType, NotificationStatus, NotificationPriority } from '../t
 interface NotificationItemProps {
   notification: Notification;
   onMarkAsRead: (id: string) => void;
+  onNotificationClick?: (notification: Notification) => void;
 }
 
 const getIconConfig = (type: string | NotificationType) => {
@@ -42,9 +43,10 @@ const getPriorityBadge = (priority: string | NotificationPriority) => {
   }
 };
 
-export const NotificationItem = ({ notification, onMarkAsRead }: NotificationItemProps) => {
+export const NotificationItem = ({ notification, onMarkAsRead, onNotificationClick }: NotificationItemProps) => {
   const iconConfig = getIconConfig(notification.type);
   const isUnread = notification.status === NotificationStatus.UNREAD || !notification.isRead;
+  const hasLink = !!notification.linkUrl?.trim();
 
   // Function to format date safely
   const formatTime = (dateString: string) => {
@@ -58,7 +60,16 @@ export const NotificationItem = ({ notification, onMarkAsRead }: NotificationIte
 
   return (
     <div 
-      className="relative bg-white border border-slate-200 h-24 overflow-hidden rounded-lg shadow-sm flex items-center transition-colors hover:bg-slate-50"
+      role={hasLink ? 'button' : undefined}
+      tabIndex={hasLink ? 0 : undefined}
+      onClick={hasLink ? () => onNotificationClick?.(notification) : undefined}
+      onKeyDown={hasLink ? (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onNotificationClick?.(notification);
+        }
+      } : undefined}
+      className={`relative bg-white border border-slate-200 h-24 overflow-hidden rounded-lg shadow-sm flex items-center transition-colors hover:bg-slate-50 ${hasLink ? 'cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/30' : ''}`}
     >
       {/* Unread Stripe */}
       {isUnread && (

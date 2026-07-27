@@ -36,9 +36,23 @@ export const resolveNotificationPath = (linkUrl: string, role?: string) => {
   }
 
   const segments = normalizedPath.split('/').filter(Boolean);
-  const [resource, id, child] = segments;
+  const [resource, id, child, childId] = segments;
   const normalizedResource = resource?.toLowerCase();
   const normalizedChild = child?.toLowerCase();
+
+  if (normalizedResource === 'jobs' && id) {
+    if (normalizedChild === 'proposals') {
+      return role === Role.CLIENT
+        ? `/client/job-posts/${id}/proposals${suffix}`
+        : `${roleBasePath}/proposals${suffix}`;
+    }
+
+    return role === Role.EXPERT
+      ? `/expert/jobs/${id}${suffix}`
+      : role === Role.ADMIN
+        ? `/admin/job-posts${suffix}`
+        : `/client/job-posts${suffix}`;
+  }
 
   if (normalizedResource === 'projects' && id) {
     if (normalizedChild === 'disputes') {
@@ -50,6 +64,36 @@ export const resolveNotificationPath = (linkUrl: string, role?: string) => {
     return role === Role.ADMIN
       ? `/admin/projects${suffix}`
       : `${roleBasePath}/projects/${id}/workspace${suffix}`;
+  }
+
+  if (normalizedResource === 'service-requests') {
+    return role === Role.CLIENT && id
+      ? `/client/services/requests/${id}${suffix}`
+      : `${roleBasePath}/services${suffix}`;
+  }
+
+  if (normalizedResource === 'services') {
+    if (normalizedChild === 'requests') {
+      if (role === Role.EXPERT) {
+        return childId
+          ? `/expert/services/${id}/requests/${childId}${suffix}`
+          : `/expert/services/${id}/requests${suffix}`;
+      }
+
+      return `/client/services/requests${suffix}`;
+    }
+
+    return role === Role.EXPERT
+      ? `/expert/services${suffix}`
+      : id
+        ? `/client/services/${id}${suffix}`
+        : `/client/services${suffix}`;
+  }
+
+  if (normalizedResource === 'disputes') {
+    return role === Role.ADMIN
+      ? `/admin/projects${suffix}`
+      : `${roleBasePath}/projects${suffix}`;
   }
 
   if (normalizedResource === 'profile') {

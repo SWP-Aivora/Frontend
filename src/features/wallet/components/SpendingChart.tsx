@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { WalletTransactionType } from '../types';
+import { TransactionDirection, WalletTransactionType } from '../types';
 import type { Transaction } from '../types';
 import { formatCompactAxisValue, getNiceYAxisScale } from './spendingChartAxis';
 
@@ -32,11 +32,19 @@ const getSignedAmount = (transaction: Transaction, isClient: boolean): number =>
     return transaction.amount;
   }
 
-  if (transaction.type === WalletTransactionType.DEPOSIT || transaction.type === WalletTransactionType.REFUND) {
+  if (transaction.direction === TransactionDirection.CREDIT) {
     return transaction.amount;
   }
 
-  if (transaction.type === WalletTransactionType.WITHDRAWAL) {
+  if (transaction.direction === TransactionDirection.DEBIT) {
+    return -transaction.amount;
+  }
+
+  if (transaction.type === WalletTransactionType.DEMO_DEPOSIT || transaction.type === WalletTransactionType.DEPOSIT || transaction.type === WalletTransactionType.REFUND) {
+    return transaction.amount;
+  }
+
+  if (transaction.type === WalletTransactionType.WITHDRAWAL || transaction.type === WalletTransactionType.PLATFORM_FEE || transaction.type === WalletTransactionType.ESCROW_HOLD) {
     return -transaction.amount;
   }
 
