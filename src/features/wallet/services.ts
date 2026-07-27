@@ -25,39 +25,53 @@ const toNumber = (value: unknown): number | null => {
 const toStringValue = (value: unknown): string | null =>
   typeof value === 'string' && value.trim() !== '' ? value : null;
 
+const TRANSACTION_TYPE_BY_NUMERIC_VALUE: Record<number, Transaction['type']> = {
+  0: TransactionType.DEMO_DEPOSIT,
+  1: TransactionType.DEPOSIT,
+  2: TransactionType.ESCROW_HOLD,
+  3: TransactionType.PAYMENT_RELEASE,
+  4: TransactionType.REFUND,
+  5: TransactionType.WITHDRAWAL,
+  6: TransactionType.WITHDRAWAL_REQUEST,
+  7: TransactionType.WITHDRAWAL_COMPLETED,
+  8: TransactionType.TRANSFER,
+  9: TransactionType.MILESTONE_RELEASE,
+  10: TransactionType.PLATFORM_FEE,
+};
+
+const TRANSACTION_TYPE_BY_TEXT: Record<string, Transaction['type']> = Object.values(TransactionType)
+  .reduce<Record<string, Transaction['type']>>((types, type) => {
+    types[type] = type;
+    return types;
+  }, {});
+
+const TRANSACTION_TYPE_KEYWORDS: Array<[string, Transaction['type']]> = [
+  ['DEMO_DEPOSIT', TransactionType.DEMO_DEPOSIT],
+  ['DEPOSIT', TransactionType.DEPOSIT],
+  ['WITHDRAW', TransactionType.WITHDRAWAL],
+  ['REFUND', TransactionType.REFUND],
+  ['TRANSFER', TransactionType.TRANSFER],
+  ['RELEASE', TransactionType.PAYMENT_RELEASE],
+  ['ESCROW', TransactionType.ESCROW_HOLD],
+  ['FEE', TransactionType.PLATFORM_FEE],
+];
+
 const normalizeTransactionType = (value: unknown): Transaction['type'] => {
   const numeric = toNumber(value);
-  switch (numeric) {
-    case 0: return TransactionType.DEMO_DEPOSIT;
-    case 1: return TransactionType.DEPOSIT;
-    case 2: return TransactionType.ESCROW_HOLD;
-    case 3: return TransactionType.PAYMENT_RELEASE;
-    case 4: return TransactionType.REFUND;
-    case 5: return TransactionType.WITHDRAWAL;
-    case 6: return TransactionType.WITHDRAWAL_REQUEST;
-    case 7: return TransactionType.WITHDRAWAL_COMPLETED;
-    case 8: return TransactionType.TRANSFER;
-    case 9: return TransactionType.MILESTONE_RELEASE;
-    case 10: return TransactionType.PLATFORM_FEE;
+  if (numeric !== null && numeric in TRANSACTION_TYPE_BY_NUMERIC_VALUE) {
+    return TRANSACTION_TYPE_BY_NUMERIC_VALUE[numeric];
   }
 
   const text = toStringValue(value)?.trim().toUpperCase().replace(/[\s-]+/g, '_');
-  if (text === TransactionType.DEMO_DEPOSIT) return TransactionType.DEMO_DEPOSIT;
-  if (text === TransactionType.DEPOSIT) return TransactionType.DEPOSIT;
-  if (text === TransactionType.ESCROW_HOLD) return TransactionType.ESCROW_HOLD;
-  if (text === TransactionType.PAYMENT_RELEASE) return TransactionType.PAYMENT_RELEASE;
-  if (text === TransactionType.REFUND) return TransactionType.REFUND;
-  if (text === TransactionType.WITHDRAWAL) return TransactionType.WITHDRAWAL;
-  if (text === TransactionType.WITHDRAWAL_REQUEST) return TransactionType.WITHDRAWAL_REQUEST;
-  if (text === TransactionType.WITHDRAWAL_COMPLETED) return TransactionType.WITHDRAWAL_COMPLETED;
-  if (text === TransactionType.TRANSFER) return TransactionType.TRANSFER;
-  if (text === TransactionType.MILESTONE_RELEASE) return TransactionType.MILESTONE_RELEASE;
-  if (text === TransactionType.PLATFORM_FEE) return TransactionType.PLATFORM_FEE;
-  if (text?.includes('DEPOSIT')) return TransactionType.DEPOSIT;
-  if (text?.includes('WITHDRAW')) return TransactionType.WITHDRAWAL;
-  if (text?.includes('REFUND')) return TransactionType.REFUND;
-  if (text?.includes('TRANSFER')) return TransactionType.TRANSFER;
-  if (text?.includes('RELEASE')) return TransactionType.PAYMENT_RELEASE;
+  if (text && text in TRANSACTION_TYPE_BY_TEXT) {
+    return TRANSACTION_TYPE_BY_TEXT[text];
+  }
+
+  const keywordMatch = text
+    ? TRANSACTION_TYPE_KEYWORDS.find(([keyword]) => text.includes(keyword))
+    : null;
+  if (keywordMatch) return keywordMatch[1];
+
   return TransactionType.PAYMENT;
 };
 
