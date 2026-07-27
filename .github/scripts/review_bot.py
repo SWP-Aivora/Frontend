@@ -190,6 +190,17 @@ def strip_json_fences(text):
     return re.sub(r'^```json\s*|^```\s*|```$', '', text.strip(), flags=re.MULTILINE)
 
 
+def escape_invalid_json_backslashes(text):
+    """Double backslashes that are not valid JSON escape prefixes.
+
+    Gemini sometimes emits Windows-style paths such as src\\features\\Foo.tsx
+    inside JSON strings. Raw "\\f" is technically valid JSON but changes the
+    path to a form-feed character, while raw "\\w" fails parsing outright.
+    This keeps structural JSON escapes intact and preserves path separators.
+    """
+    return re.sub(r'\\(?!["\\/u])', r'\\\\', text)
+
+
 def parse_json_response(text):
     try:
         return json.loads(text)
@@ -197,7 +208,10 @@ def parse_json_response(text):
         cleaned = strip_json_fences(text)
         # Gemini occasionally appends extra content after the JSON object
         # (e.g. a repeated/explanatory second blob) - take just the first value.
-        obj, _ = json.JSONDecoder().raw_decode(cleaned)
+        try:
+            obj, _ = json.JSONDecoder().raw_decode(cleaned)
+        except json.JSONDecodeError:
+            obj, _ = json.JSONDecoder().raw_decode(escape_invalid_json_backslashes(cleaned))
         return obj
 
 
