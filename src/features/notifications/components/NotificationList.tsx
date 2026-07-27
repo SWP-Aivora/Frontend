@@ -5,6 +5,7 @@ interface NotificationListProps {
   notifications: Notification[];
   isLoading: boolean;
   onMarkAsRead: (id: string) => void;
+  onNotificationClick?: (notification: Notification) => void;
   onMarkAllAsRead: () => void;
   isMarkingAllAsRead?: boolean;
 }
@@ -13,6 +14,7 @@ export const NotificationList = ({
   notifications, 
   isLoading, 
   onMarkAsRead, 
+  onNotificationClick,
   onMarkAllAsRead,
   isMarkingAllAsRead = false,
 }: NotificationListProps) => {
@@ -53,6 +55,7 @@ export const NotificationList = ({
               key={notification.id} 
               notification={notification} 
               onMarkAsRead={onMarkAsRead}
+              onNotificationClick={onNotificationClick}
             />
           ))}
         </div>

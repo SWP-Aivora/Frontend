@@ -5,6 +5,8 @@ import { Button } from '@/shared/components/ui/Button';
 import { useAuthStore } from '@/features/auth/store';
 import { Role } from '@/shared/types/enums';
 import { walletService } from '../services';
+import { TransactionType } from '../types';
+import type { Transaction } from '../types';
 import { DepositModal } from '../components/DepositModal';
 import { WithdrawModal } from '../components/WithdrawModal';
 import { TransactionTable } from '../components/TransactionTable';
@@ -14,6 +16,27 @@ import { StagedPaymentInfoCard } from '../components/EscrowInfoCard';
 import { ErrorBoundary } from '@/shared/components/common';
 
 const TRANSACTIONS_PER_PAGE = 10;
+const ALL_TRANSACTION_TYPES = 'all';
+
+type TransactionTypeFilter = Transaction['type'] | typeof ALL_TRANSACTION_TYPES;
+
+const getTransactionTypeLabel = (type: Transaction['type']) => {
+  switch (type) {
+    case TransactionType.DEMO_DEPOSIT: return 'Demo Deposit';
+    case TransactionType.DEPOSIT: return 'Deposit';
+    case TransactionType.ESCROW_HOLD: return 'Escrow Hold';
+    case TransactionType.PAYMENT_RELEASE: return 'Payment Release';
+    case TransactionType.PAYMENT: return 'Payment';
+    case TransactionType.REFUND: return 'Refund';
+    case TransactionType.WITHDRAWAL: return 'Withdrawal';
+    case TransactionType.WITHDRAWAL_REQUEST: return 'Withdrawal Request';
+    case TransactionType.WITHDRAWAL_COMPLETED: return 'Withdrawal Completed';
+    case TransactionType.TRANSFER: return 'Transfer';
+    case TransactionType.MILESTONE_RELEASE: return 'Milestone Release';
+    case TransactionType.PLATFORM_FEE: return 'Platform Fee';
+    default: return 'Unknown';
+  }
+};
 
 const toNumber = (value: unknown): number | null => {
   if (typeof value === 'number' && !isNaN(value)) return value;
@@ -52,6 +75,7 @@ export const WalletPage = () => {
   const isClient = user?.role === Role.CLIENT;
   const isExpert = user?.role === Role.EXPERT;
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+  const [typeFilter, setTypeFilter] = useState<TransactionTypeFilter>(ALL_TRANSACTION_TYPES);
   const [transactionPage, setTransactionPage] = useState(1);
 
   const { 
@@ -83,8 +107,16 @@ export const WalletPage = () => {
     transactions.filter(t => typeof t.amount === 'number' && !isNaN(t.amount)), 
     [transactions]
   );
+  const transactionTypeOptions = useMemo(() => {
+    return Array.from(new Set(validTx.map(transaction => transaction.type)))
+      .sort((first, second) => getTransactionTypeLabel(first).localeCompare(getTransactionTypeLabel(second)));
+  }, [validTx]);
+  const filteredTx = useMemo(() => {
+    if (typeFilter === ALL_TRANSACTION_TYPES) return validTx;
+    return validTx.filter(transaction => transaction.type === typeFilter);
+  }, [typeFilter, validTx]);
   const sortedTx = useMemo(() => {
-    return [...validTx].sort((a, b) => {
+    return [...filteredTx].sort((a, b) => {
       const firstDate = new Date(a.createdAt).getTime();
       const secondDate = new Date(b.createdAt).getTime();
       const safeFirstDate = isNaN(firstDate) ? 0 : firstDate;
@@ -94,7 +126,7 @@ export const WalletPage = () => {
         ? safeSecondDate - safeFirstDate
         : safeFirstDate - safeSecondDate;
     });
-  }, [sortOrder, validTx]);
+  }, [filteredTx, sortOrder]);
   const transactionPageCount = Math.max(1, Math.ceil(sortedTx.length / TRANSACTIONS_PER_PAGE));
   const currentTransactionPage = Math.min(transactionPage, transactionPageCount);
   const paginatedTx = useMemo(() => {
@@ -160,25 +192,46 @@ export const WalletPage = () => {
 
       {/* Transaction History Section */}
       <div className="space-y-6">
-         <div className="flex items-center justify-between">
+         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h3 className="text-xl font-black text-slate-900 tracking-tight">Transaction History</h3>
-            <div className="flex items-center gap-2 rounded-md border border-slate-100 bg-white px-3 py-2 shadow-sm">
-               <ArrowUpDown className="size-4 text-slate-400" />
-               <label htmlFor="transaction-sort" className="text-[11px] font-black uppercase tracking-widest text-slate-400">
-                 Sort
-               </label>
-               <select
-                 id="transaction-sort"
-                 value={sortOrder}
-                 onChange={(event) => {
-                   setSortOrder(event.target.value as 'newest' | 'oldest');
-                   setTransactionPage(1);
-                 }}
-                 className="bg-transparent text-xs font-bold text-slate-700 outline-none"
-               >
-                 <option value="newest">Newest first</option>
-                 <option value="oldest">Oldest first</option>
-               </select>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+               <div className="flex items-center gap-2 rounded-md border border-slate-100 bg-white px-3 py-2 shadow-sm">
+                 <label htmlFor="transaction-type-filter" className="text-[11px] font-black uppercase tracking-widest text-slate-400">
+                   Type
+                 </label>
+                 <select
+                   id="transaction-type-filter"
+                   value={typeFilter}
+                   onChange={(event) => {
+                     setTypeFilter(event.target.value as TransactionTypeFilter);
+                     setTransactionPage(1);
+                   }}
+                   className="bg-transparent text-xs font-bold text-slate-700 outline-none"
+                 >
+                   <option value={ALL_TRANSACTION_TYPES}>All types</option>
+                   {transactionTypeOptions.map(type => (
+                     <option key={type} value={type}>{getTransactionTypeLabel(type)}</option>
+                   ))}
+                 </select>
+               </div>
+               <div className="flex items-center gap-2 rounded-md border border-slate-100 bg-white px-3 py-2 shadow-sm">
+                 <ArrowUpDown className="size-4 text-slate-400" />
+                 <label htmlFor="transaction-sort" className="text-[11px] font-black uppercase tracking-widest text-slate-400">
+                   Sort
+                 </label>
+                 <select
+                   id="transaction-sort"
+                   value={sortOrder}
+                   onChange={(event) => {
+                     setSortOrder(event.target.value as 'newest' | 'oldest');
+                     setTransactionPage(1);
+                   }}
+                   className="bg-transparent text-xs font-bold text-slate-700 outline-none"
+                 >
+                   <option value="newest">Newest first</option>
+                   <option value="oldest">Oldest first</option>
+                 </select>
+               </div>
             </div>
          </div>
 

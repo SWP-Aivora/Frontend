@@ -1,5 +1,5 @@
 import apiClient from '@/lib/axios';
-import { TransactionStatus, TransactionType } from './types';
+import { TransactionDirection, TransactionStatus, TransactionType } from './types';
 import type { Wallet, Transaction, DepositRequest, DepositDemoRequest, VnPayDepositRequest, WithdrawRequest, TransferRequest, TransferResult } from './types';
 import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
 import { API_ENDPOINTS } from '@/shared/constants';
@@ -27,15 +27,45 @@ const toStringValue = (value: unknown): string | null =>
 
 const normalizeTransactionType = (value: unknown): Transaction['type'] => {
   const numeric = toNumber(value);
-  if (numeric === TransactionType.DEPOSIT || numeric === TransactionType.WITHDRAWAL || numeric === TransactionType.PAYMENT || numeric === TransactionType.REFUND) {
-    return numeric;
+  switch (numeric) {
+    case 0: return TransactionType.DEMO_DEPOSIT;
+    case 1: return TransactionType.DEPOSIT;
+    case 2: return TransactionType.ESCROW_HOLD;
+    case 3: return TransactionType.PAYMENT_RELEASE;
+    case 4: return TransactionType.REFUND;
+    case 5: return TransactionType.WITHDRAWAL;
+    case 6: return TransactionType.WITHDRAWAL_REQUEST;
+    case 7: return TransactionType.WITHDRAWAL_COMPLETED;
+    case 8: return TransactionType.TRANSFER;
+    case 9: return TransactionType.MILESTONE_RELEASE;
+    case 10: return TransactionType.PLATFORM_FEE;
   }
 
-  const text = toStringValue(value)?.toLowerCase();
-  if (text?.includes('deposit')) return TransactionType.DEPOSIT;
-  if (text?.includes('withdraw')) return TransactionType.WITHDRAWAL;
-  if (text?.includes('refund')) return TransactionType.REFUND;
+  const text = toStringValue(value)?.trim().toUpperCase().replace(/[\s-]+/g, '_');
+  if (text === TransactionType.DEMO_DEPOSIT) return TransactionType.DEMO_DEPOSIT;
+  if (text === TransactionType.DEPOSIT) return TransactionType.DEPOSIT;
+  if (text === TransactionType.ESCROW_HOLD) return TransactionType.ESCROW_HOLD;
+  if (text === TransactionType.PAYMENT_RELEASE) return TransactionType.PAYMENT_RELEASE;
+  if (text === TransactionType.REFUND) return TransactionType.REFUND;
+  if (text === TransactionType.WITHDRAWAL) return TransactionType.WITHDRAWAL;
+  if (text === TransactionType.WITHDRAWAL_REQUEST) return TransactionType.WITHDRAWAL_REQUEST;
+  if (text === TransactionType.WITHDRAWAL_COMPLETED) return TransactionType.WITHDRAWAL_COMPLETED;
+  if (text === TransactionType.TRANSFER) return TransactionType.TRANSFER;
+  if (text === TransactionType.MILESTONE_RELEASE) return TransactionType.MILESTONE_RELEASE;
+  if (text === TransactionType.PLATFORM_FEE) return TransactionType.PLATFORM_FEE;
+  if (text?.includes('DEPOSIT')) return TransactionType.DEPOSIT;
+  if (text?.includes('WITHDRAW')) return TransactionType.WITHDRAWAL;
+  if (text?.includes('REFUND')) return TransactionType.REFUND;
+  if (text?.includes('TRANSFER')) return TransactionType.TRANSFER;
+  if (text?.includes('RELEASE')) return TransactionType.PAYMENT_RELEASE;
   return TransactionType.PAYMENT;
+};
+
+const normalizeTransactionDirection = (value: unknown): Transaction['direction'] => {
+  const text = toStringValue(value)?.trim().toUpperCase();
+  if (text === TransactionDirection.CREDIT) return TransactionDirection.CREDIT;
+  if (text === TransactionDirection.DEBIT) return TransactionDirection.DEBIT;
+  return null;
 };
 
 const normalizeTransactionStatus = (
@@ -127,6 +157,7 @@ const mapHistoryItemToTransaction = (item: unknown, index: number): Transaction 
       item.WalletTransactionType ??
       description,
     ),
+    direction: normalizeTransactionDirection(item.direction ?? item.Direction),
     status: normalizeTransactionStatus(
       item.status ??
       item.Status ??

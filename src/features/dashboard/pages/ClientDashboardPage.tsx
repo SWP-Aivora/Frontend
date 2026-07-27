@@ -1,13 +1,28 @@
 import { useQuery } from '@tanstack/react-query';
+import { Fragment, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
-  Plus, Search, Briefcase, DollarSign, Clock, ChevronRight, Activity, Wallet, Star, CheckCircle2
+  Plus, Search, Briefcase, DollarSign, Clock, ChevronLeft, ChevronRight, Activity, Wallet, Star,
+  Sparkles, FileText, MessageSquare, ListChecks, ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { projectService } from '@/features/projects/services';
 import { walletService } from '@/features/wallet/services';
+import { jobService } from '@/features/jobs/services';
+import { servicesFeatureApi } from '@/features/services/services';
+import { ServiceRequestStatus } from '@/features/services/types';
 import { ProjectStatus } from '@/shared/types/enums';
 import { useAuthStore } from '@/features/auth/store';
+import type { PaginatedResponse } from '@/shared/types/api';
+import { AccountOverviewSection, type AccountOverviewCard } from '../components/AccountOverviewSection';
+
+const CLIENT_POST_JOB_PATH = '/client/post-job';
+const CLIENT_EXPERTS_PATH = '/client/experts';
+const CLIENT_SERVICES_PATH = '/client/services';
+const ACTIVITY_COUNT_PARAMS = { PageIndex: 1, PageSize: 1 };
+const OPEN_JOB_POST_COUNT_PARAMS = { ...ACTIVITY_COUNT_PARAMS, status: 1 };
+const PENDING_SERVICE_REQUEST_COUNT_PARAMS = { ...ACTIVITY_COUNT_PARAMS, status: ServiceRequestStatus.PENDING };
+const RECENT_PROJECTS_PAGE_SIZE = 4;
 
 const toNumber = (value: unknown): number | null => {
   if (typeof value === 'number' && !isNaN(value)) return value;
@@ -52,19 +67,110 @@ const getWalletBalance = (wallet: unknown): number => {
   return 0;
 };
 
+const getTotalCount = <T,>(response: PaginatedResponse<T> | undefined): number => (
+  response?.metadata?.totalCount ?? response?.data?.length ?? 0
+);
+
+const hasSuccessfulResponse = (response: { success?: boolean } | undefined): boolean => response?.success === true;
+
+const getSafeDisplayName = (user: {
+  id?: unknown;
+  email?: unknown;
+  fullName?: unknown;
+  displayName?: unknown;
+  firstName?: unknown;
+  username?: unknown;
+} | null | undefined) => {
+  const email = typeof user?.email === 'string' ? user.email : '';
+  const id = typeof user?.id === 'string' ? user.id : '';
+  const emailName = email.split('@')[0]?.trim().toLowerCase();
+  const invalidNames = new Set(['null', 'undefined', 'none', 'n/a', 'na']);
+  const candidates = [user?.fullName, user?.displayName, user?.firstName, user?.username];
+
+  for (const candidate of candidates) {
+    if (typeof candidate !== 'string') continue;
+
+    const name = candidate.trim();
+    const normalizedName = name.toLowerCase();
+
+    if (
+      name &&
+      !invalidNames.has(normalizedName) &&
+      !name.includes('@') &&
+      normalizedName !== emailName &&
+      name !== id
+    ) {
+      return name.split(/\s+/)[0] || 'there';
+    }
+  }
+
+  return 'there';
+};
+
 export const ClientDashboardPage = () => {
   const { user } = useAuthStore();
+  const [recentProjectsPage, setRecentProjectsPage] = useState(0);
 
-  const { data: projectsResponse, isLoading: isProjectsLoading } = useQuery({
+  const {
+    data: projectsResponse,
+    isLoading: isProjectsLoading,
+    isSuccess: isProjectsSuccess,
+  } = useQuery({
     queryKey: ['clientProjects'],
     queryFn: () => projectService.getProjects(),
     refetchInterval: 15000,
     refetchOnWindowFocus: true,
   });
 
-  const { data: walletResponse, isLoading: isWalletLoading } = useQuery({
+  const {
+    data: walletResponse,
+    isLoading: isWalletLoading,
+    isSuccess: isWalletSuccess,
+  } = useQuery({
     queryKey: ['wallet'],
     queryFn: () => walletService.getWallet(),
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true,
+  });
+
+  const {
+    data: jobPostsResponse,
+    isLoading: isJobPostsLoading,
+    isSuccess: isJobPostsSuccess,
+  } = useQuery({
+    queryKey: ['clientJobs', 'activity-count'],
+    queryFn: () => jobService.getMyJobs(ACTIVITY_COUNT_PARAMS),
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true,
+  });
+
+  const {
+    data: serviceRequestsResponse,
+    isLoading: isServiceRequestsLoading,
+    isSuccess: isServiceRequestsSuccess,
+  } = useQuery({
+    queryKey: ['clientServiceRequests', 'activity-count'],
+    queryFn: () => servicesFeatureApi.getClientServiceRequests(ACTIVITY_COUNT_PARAMS),
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true,
+  });
+
+  const {
+    data: openJobPostsResponse,
+    isSuccess: isOpenJobPostsSuccess,
+  } = useQuery({
+    queryKey: ['clientJobs', 'open-count'],
+    queryFn: () => jobService.getMyJobs(OPEN_JOB_POST_COUNT_PARAMS),
+    refetchInterval: 15000,
+    refetchOnWindowFocus: true,
+  });
+
+  const {
+    data: pendingServiceRequestsResponse,
+    isSuccess: isPendingServiceRequestsSuccess,
+  } = useQuery({
+    queryKey: ['clientServiceRequests', 'pending-count'],
+    queryFn: () => servicesFeatureApi.getClientServiceRequests(PENDING_SERVICE_REQUEST_COUNT_PARAMS),
     refetchInterval: 15000,
     refetchOnWindowFocus: true,
   });
@@ -72,11 +178,83 @@ export const ClientDashboardPage = () => {
   const projects = Array.isArray(projectsResponse?.data) ? projectsResponse.data : [];
   const wallet = walletResponse?.data;
   const walletBalance = getWalletBalance(wallet);
+  const jobPostCount = getTotalCount(jobPostsResponse);
+  const projectCount = getTotalCount(projectsResponse);
+  const serviceRequestCount = getTotalCount(serviceRequestsResponse);
+  const openJobPostCount = isOpenJobPostsSuccess && hasSuccessfulResponse(openJobPostsResponse)
+    ? getTotalCount(openJobPostsResponse)
+    : null;
+  const pendingServiceRequestCount = isPendingServiceRequestsSuccess && hasSuccessfulResponse(pendingServiceRequestsResponse)
+    ? getTotalCount(pendingServiceRequestsResponse)
+    : null;
   
   const activeProjects = projects.filter(p => p.status === ProjectStatus.IN_PROGRESS || p.status === ProjectStatus.PENDING_FUNDING);
-  const completedProjects = projects.filter(p => p.status === ProjectStatus.COMPLETED);
+  const totalRecentProjectPages = Math.max(1, Math.ceil(activeProjects.length / RECENT_PROJECTS_PAGE_SIZE));
+  const currentRecentProjectPage = Math.min(recentProjectsPage, totalRecentProjectPages - 1);
+  const visibleActiveProjects = activeProjects.slice(
+    currentRecentProjectPage * RECENT_PROJECTS_PAGE_SIZE,
+    currentRecentProjectPage * RECENT_PROJECTS_PAGE_SIZE + RECENT_PROJECTS_PAGE_SIZE
+  );
 
-  const isLoading = isProjectsLoading || isWalletLoading;
+  const isLoading = isProjectsLoading || isWalletLoading || isJobPostsLoading || isServiceRequestsLoading;
+  const activityQueriesSucceeded = isJobPostsSuccess
+    && isProjectsSuccess
+    && isServiceRequestsSuccess
+    && isWalletSuccess
+    && hasSuccessfulResponse(jobPostsResponse)
+    && hasSuccessfulResponse(projectsResponse)
+    && hasSuccessfulResponse(serviceRequestsResponse)
+    && hasSuccessfulResponse(walletResponse);
+  const isNewUser = activityQueriesSucceeded
+    && jobPostCount === 0
+    && projectCount === 0
+    && serviceRequestCount === 0
+    && walletBalance === 0;
+  const displayName = getSafeDisplayName(user);
+  const openJobPostOverviewCount = openJobPostCount ?? (jobPostCount === 0 ? 0 : null);
+  const pendingServiceRequestOverviewCount = pendingServiceRequestCount ?? (serviceRequestCount === 0 ? 0 : null);
+  const summaryCards: AccountOverviewCard[] = [
+    {
+      label: 'Wallet Balance',
+      value: `${walletBalance.toLocaleString()} Aivora Coin`,
+      description: 'Manage your funds',
+      href: '/client/wallet',
+      action: 'Top up',
+      icon: Wallet,
+      iconClassName: 'text-primary',
+      iconBgClassName: 'bg-blue-50',
+    },
+    {
+      label: 'Active Projects',
+      value: activeProjects.length.toString(),
+      description: 'Currently running',
+      href: '/client/projects',
+      action: 'View all',
+      icon: Activity,
+      iconClassName: 'text-amber-600',
+      iconBgClassName: 'bg-amber-50',
+    },
+    {
+      label: 'Open Job Posts',
+      value: openJobPostOverviewCount === null ? '-' : openJobPostOverviewCount.toString(),
+      description: 'Published and awaiting proposals',
+      href: '/client/job-posts',
+      action: 'View posts',
+      icon: FileText,
+      iconClassName: 'text-primary',
+      iconBgClassName: 'bg-blue-50',
+    },
+    {
+      label: 'Service Requests',
+      value: pendingServiceRequestOverviewCount === null ? '-' : pendingServiceRequestOverviewCount.toString(),
+      description: 'Sent and awaiting expert response',
+      href: '/client/services/requests',
+      action: 'View requests',
+      icon: Sparkles,
+      iconClassName: 'text-teal-600',
+      iconBgClassName: 'bg-teal-50',
+    },
+  ];
 
   if (isLoading) {
     return (
@@ -86,161 +264,332 @@ export const ClientDashboardPage = () => {
     );
   }
 
+  if (isNewUser) {
+    const pathCards = [
+      {
+        title: 'Post a Job',
+        description: 'Choose this path when you have a custom requirement or project idea. Describe what you need and receive proposals from suitable experts.',
+        steps: [
+          'Describe your project',
+          'Receive proposals',
+          'Choose an expert',
+          'Accept and start',
+        ],
+        note: 'A project is created after you accept a proposal.',
+        cta: 'Post Your First Job',
+        path: CLIENT_POST_JOB_PATH,
+        icon: FileText,
+        accentClassName: 'bg-primary',
+        iconClassName: 'text-primary',
+        buttonVariant: 'primary' as const,
+        buttonClassName: 'h-11 px-6 shadow-sm shadow-primary/10',
+      },
+      {
+        title: 'Find a Service',
+        description: 'Choose this path when an expert already provides a service or package that matches your needs. Send a request, review the final offer, and accept it to start a project.',
+        steps: [
+          'Browse expert services',
+          'Choose a package',
+          'Send a request',
+          'Accept the final offer',
+        ],
+        note: 'A project is created after you accept the expert\'s final offer.',
+        cta: 'Explore Services',
+        path: CLIENT_SERVICES_PATH,
+        icon: Sparkles,
+        accentClassName: 'bg-teal-500',
+        iconClassName: 'text-teal-600',
+        buttonVariant: 'outline' as const,
+        buttonClassName: 'h-11 border-teal-200 bg-white px-6 text-teal-700 shadow-none hover:bg-teal-50 focus-visible:ring-teal-200',
+      },
+    ];
+    const projectWorkspaceFeatures = [
+      {
+        title: 'Milestones',
+        description: 'Plan stages, deadlines, and payment amounts.',
+        icon: ListChecks,
+      },
+      {
+        title: 'Messages',
+        description: 'Discuss requirements and share project updates.',
+        icon: MessageSquare,
+      },
+      {
+        title: 'Submitted Deliverables',
+        description: 'Review work, request revisions, and approve submissions.',
+        icon: FileText,
+      },
+      {
+        title: 'Staged Milestone Payments',
+        description: 'Pay 30% when work begins and 70% after deliverable approval. A 10% platform commission applies.',
+        icon: ShieldCheck,
+      },
+    ];
+
+    return (
+      <div className="space-y-7 animate-in fade-in duration-500">
+        <section>
+          <h1 className="text-3xl font-black tracking-tight text-slate-900">Welcome to Aivora, {displayName}</h1>
+          <p className="mt-2 text-base font-medium text-slate-500">
+            Turn your idea into a project with the right AI expert.
+          </p>
+
+          <div className="mt-7">
+            <AccountOverviewSection cards={summaryCards} />
+          </div>
+
+          <h2 className="mt-7 text-lg font-bold text-slate-900">Choose how to get started</h2>
+
+          <div className="mt-5 rounded-2xl bg-white/70 px-5 py-6 sm:px-6 lg:px-7">
+            <div className="grid gap-y-7 lg:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] lg:gap-x-8">
+              {pathCards.map((card, index) => {
+                const CardIcon = card.icon;
+
+                return (
+                  <Fragment key={card.title}>
+                    {index === 1 && (
+                      <div className="hidden self-stretch py-1 lg:block">
+                        <div className="h-full w-px bg-slate-200/80" aria-hidden="true" />
+                      </div>
+                    )}
+                    <section
+                      className={`flex flex-col ${index === 1 ? 'border-t border-slate-200 pt-7 lg:border-t-0 lg:pt-0' : ''}`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className={`h-5 w-1 rounded-full ${card.accentClassName}`} aria-hidden="true" />
+                        <CardIcon className={`size-5 shrink-0 ${card.iconClassName}`} />
+                        <h2 className="text-xl font-bold text-slate-900">{card.title}</h2>
+                      </div>
+
+                      <p className="mt-3 max-w-md text-sm leading-6 text-slate-500 lg:min-h-[72px]">
+                        {card.description}
+                      </p>
+
+                      <ul className="mt-5 flex-1 space-y-2.5">
+                        {card.steps.map((step, index) => (
+                          <li key={step} className="flex items-center gap-3 text-sm leading-6 text-slate-700">
+                            <span className="w-6 shrink-0 text-xs font-bold tabular-nums text-slate-400">
+                              {String(index + 1).padStart(2, '0')}
+                            </span>
+                            <span>{step}</span>
+                          </li>
+                        ))}
+                      </ul>
+
+                      <p className="mt-5 text-xs font-medium leading-5 text-slate-500">{card.note}</p>
+
+                      <Button asChild variant={card.buttonVariant} className={`mt-5 w-full rounded-full sm:w-fit sm:self-start ${card.buttonClassName}`}>
+                        <Link to={card.path}>{card.cta}</Link>
+                      </Button>
+                    </section>
+                  </Fragment>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-center gap-2 text-sm font-medium text-slate-500">
+            <Search className="size-4 shrink-0 text-primary" />
+            <span>Not sure which path is right for you?</span>
+            <Link to={CLIENT_EXPERTS_PATH} className="inline-flex items-center gap-1 font-black text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30">
+              Browse Experts <ChevronRight className="size-4" />
+            </Link>
+          </div>
+        </section>
+
+        <section className="rounded-2xl bg-white/70 px-5 py-6 sm:px-6 lg:px-7">
+          <div className="max-w-3xl">
+            <h2 className="text-lg font-bold text-slate-900">Manage your project in one workspace</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Once a project begins, track progress, communicate with your expert, review submitted work, and manage milestone payments in one place.
+            </p>
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            {projectWorkspaceFeatures.map((feature) => {
+              const FeatureIcon = feature.icon;
+
+              return (
+                <div key={feature.title} className="flex items-start gap-3 rounded-lg bg-slate-50/75 p-3">
+                  <FeatureIcon className="mt-0.5 size-4 shrink-0 text-primary" />
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-800">{feature.title}</h3>
+                    <p className="mt-1 text-xs font-medium leading-5 text-slate-500">{feature.description}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  const quickActions = [
+    {
+      title: 'Browse Experts',
+      description: 'Find specialized AI and automation experts.',
+      href: CLIENT_EXPERTS_PATH,
+      icon: Search,
+      iconClassName: 'text-primary',
+      iconBgClassName: 'bg-blue-50',
+    },
+    {
+      title: 'Explore Services',
+      description: 'Review packaged expert services.',
+      href: CLIENT_SERVICES_PATH,
+      icon: Sparkles,
+      iconClassName: 'text-teal-600',
+      iconBgClassName: 'bg-teal-50',
+    },
+    {
+      title: 'Deposit Funds',
+      description: 'Add balance for upcoming milestones.',
+      href: '/client/wallet',
+      icon: DollarSign,
+      iconClassName: 'text-emerald-600',
+      iconBgClassName: 'bg-emerald-50',
+    },
+    {
+      title: 'Update Profile',
+      description: 'Keep your client details current.',
+      href: '/client/profile',
+      icon: Star,
+      iconClassName: 'text-primary',
+      iconBgClassName: 'bg-blue-50',
+    },
+  ];
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Welcome back, {user?.fullName?.split(' ')[0] || 'Client'}</h1>
-          <p className="text-slate-500 font-medium mt-1">Here is what's happening with your projects today.</p>
+    <div className="space-y-7 animate-in fade-in duration-500">
+      <section className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="max-w-3xl">
+          <h1 className="text-3xl font-black tracking-tight text-slate-900">Welcome back, {displayName}</h1>
+          <p className="mt-2 text-base font-medium text-slate-500">
+            Here is what is happening with your projects today.
+          </p>
         </div>
-        <Button asChild className="rounded-full px-6 shadow-lg shadow-primary/20">
-          <Link to="/client/post-job" className="flex items-center gap-2">
-            <Plus className="size-4" />
-            Post New Job
-          </Link>
-        </Button>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-brand-blue-dark rounded-2xl p-6 shadow-lg shadow-blue-900/20 text-white relative overflow-hidden">
-          <div className="absolute -right-4 -top-4 size-24 bg-white/10 rounded-full blur-xl" />
-          <div className="flex justify-between items-start relative z-10">
-            <div>
-              <p className="text-blue-100 font-bold text-sm uppercase tracking-wider mb-1">Wallet Balance</p>
-              <h3 className="text-4xl font-black">{walletBalance.toLocaleString()} Aivora Coin</h3>
-            </div>
-            <div className="size-12 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
-              <Wallet className="size-6 text-white" />
-            </div>
-          </div>
-          <div className="mt-6 pt-4 border-t border-white/20 flex justify-between items-center relative z-10">
-            <span className="text-sm font-medium text-blue-50">Manage your funds</span>
-            <Link to="/client/wallet" className="text-sm font-bold text-white flex items-center gap-1 hover:underline">
-              Top up <ChevronRight className="size-3" />
+        <div className="flex flex-wrap items-center gap-3">
+          <Button asChild className="rounded-full px-6 shadow-sm shadow-primary/10">
+            <Link to={CLIENT_POST_JOB_PATH} className="flex items-center gap-2">
+              <Plus className="size-4" />
+              Post New Job
             </Link>
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-slate-400 font-bold text-sm uppercase tracking-wider mb-1">Active Projects</p>
-              <h3 className="text-4xl font-black text-slate-900">{activeProjects.length}</h3>
-            </div>
-            <div className="size-12 rounded-xl bg-amber-50 flex items-center justify-center">
-              <Activity className="size-6 text-amber-600" />
-            </div>
-          </div>
-          <div className="mt-6 pt-4 border-t border-slate-50 flex justify-between items-center">
-            <span className="text-sm font-medium text-slate-500">Currently running</span>
-            <Link to="/client/projects" className="text-sm font-bold text-primary flex items-center gap-1 hover:underline">
-              View all <ChevronRight className="size-3" />
+          </Button>
+          <Button asChild variant="outline" className="rounded-full border-primary/20 bg-white px-6 text-primary hover:bg-primary/5">
+            <Link to={CLIENT_EXPERTS_PATH} className="flex items-center gap-2">
+              <Search className="size-4" />
+              Browse Experts
             </Link>
-          </div>
+          </Button>
         </div>
+      </section>
 
-        <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-slate-400 font-bold text-sm uppercase tracking-wider mb-1">Completed</p>
-              <h3 className="text-4xl font-black text-slate-900">{completedProjects.length}</h3>
-            </div>
-            <div className="size-12 rounded-xl bg-emerald-50 flex items-center justify-center">
-              <CheckCircle2 className="size-6 text-emerald-600" />
-            </div>
-          </div>
-          <div className="mt-6 pt-4 border-t border-slate-50 flex justify-between items-center">
-            <span className="text-sm font-medium text-slate-500">Successfully delivered</span>
-          </div>
-        </div>
-      </div>
+      <AccountOverviewSection cards={summaryCards} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Recent Activity / Projects */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-black text-slate-900">Recent Projects</h2>
-            <Link to="/client/projects" className="text-sm font-bold text-primary hover:underline">See all</Link>
+      <div className="grid gap-7 xl:grid-cols-[minmax(0,65fr)_minmax(320px,35fr)]">
+        <section className="rounded-2xl bg-white/70 px-5 py-6 sm:px-6 lg:px-7">
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="text-lg font-bold text-slate-900">Recent Projects</h2>
+            <Link to="/client/projects" className="text-sm font-black text-primary hover:underline">See all</Link>
           </div>
           
-          <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+          <div className="mt-5 overflow-hidden rounded-lg bg-slate-50/75">
             {activeProjects.length > 0 ? (
-              <div className="divide-y divide-slate-50">
-                {activeProjects.slice(0, 5).map((project) => (
-                  <div key={project.id} className="p-6 hover:bg-slate-50/50 transition-colors flex flex-col sm:flex-row justify-between gap-4 sm:items-center">
-                    <div className="flex items-start gap-4">
-                      <div className="size-10 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-                        <Briefcase className="size-5 text-primary" />
+              <div className="divide-y divide-slate-200/70">
+                {visibleActiveProjects.map((project) => (
+                  <div key={project.id} className="flex flex-col gap-4 p-4 transition-colors hover:bg-white/70 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-blue-50">
+                        <Briefcase className="size-4 text-primary" />
                       </div>
-                      <div>
-                        <h4 className="font-bold text-slate-900 mb-1">{project.title}</h4>
-                        <div className="flex items-center gap-3 text-xs font-medium text-slate-500">
+                      <div className="min-w-0">
+                        <h3 className="truncate text-sm font-bold text-slate-900">{project.title}</h3>
+                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium text-slate-500">
                           <span className="flex items-center gap-1"><Clock className="size-3" /> {new Date(project.createdAt).toLocaleDateString()}</span>
-                          <span className="flex items-center gap-1 text-emerald-600 font-bold"><DollarSign className="size-3" /> {project.totalBudget.toLocaleString()} Aivora Coin</span>
+                          <span className="flex items-center gap-1 font-bold text-emerald-600"><DollarSign className="size-3" /> {project.totalBudget.toLocaleString()} Aivora Coin</span>
                         </div>
                       </div>
                     </div>
-                    <Button asChild variant="outline" size="sm" className="rounded-full border-slate-200">
+                    <Button asChild variant="outline" size="sm" className="w-full rounded-full border-slate-200 bg-white sm:w-fit">
                       <Link to={`/client/projects/${project.id}/workspace`}>
                         Workspace
                       </Link>
                     </Button>
                   </div>
                 ))}
+                <div className="flex items-center justify-between gap-3 bg-white/50 px-4 py-3">
+                  <span className="text-xs font-bold text-slate-400">
+                    Page {currentRecentProjectPage + 1} of {totalRecentProjectPages}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      aria-label="Previous recent projects page"
+                      disabled={currentRecentProjectPage === 0}
+                      onClick={() => setRecentProjectsPage((page) => Math.max(page - 1, 0))}
+                      className="size-8 rounded-full border-slate-200 bg-white p-0 disabled:pointer-events-none disabled:opacity-40"
+                    >
+                      <ChevronLeft className="size-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      aria-label="Next recent projects page"
+                      disabled={currentRecentProjectPage >= totalRecentProjectPages - 1}
+                      onClick={() => setRecentProjectsPage((page) => Math.min(page + 1, totalRecentProjectPages - 1))}
+                      className="size-8 rounded-full border-slate-200 bg-white p-0 disabled:pointer-events-none disabled:opacity-40"
+                    >
+                      <ChevronRight className="size-4" />
+                    </Button>
+                  </div>
+                </div>
               </div>
             ) : (
-              <div className="p-12 text-center">
-                <Briefcase className="size-12 text-slate-200 mx-auto mb-3" />
-                <h3 className="text-lg font-bold text-slate-900 mb-1">No active projects</h3>
-                <p className="text-sm text-slate-500 mb-4">You don't have any running projects yet.</p>
-                <Button asChild size="sm" className="rounded-full shadow-md shadow-primary/20">
-                  <Link to="/client/post-job">Post a Job</Link>
+              <div className="p-8 text-center">
+                <Briefcase className="mx-auto mb-3 size-9 text-slate-300" />
+                <h3 className="text-base font-bold text-slate-900">No active projects</h3>
+                <p className="mx-auto mt-1 max-w-sm text-sm font-medium text-slate-500">You don't have any running projects yet.</p>
+                <Button asChild size="sm" className="mt-4 rounded-full shadow-sm shadow-primary/10">
+                  <Link to={CLIENT_POST_JOB_PATH}>Post a Job</Link>
                 </Button>
               </div>
             )}
           </div>
-        </div>
+        </section>
 
-        {/* Explore Experts / Quick Links */}
-        <div className="space-y-6">
-          <h2 className="text-xl font-black text-slate-900">Explore</h2>
-          
-          <div className="bg-gradient-to-b from-slate-900 to-slate-800 rounded-2xl p-6 text-white relative overflow-hidden shadow-lg">
-            <div className="absolute -right-4 -bottom-4 size-32 bg-white/5 rounded-full blur-2xl" />
-            <Search className="size-8 text-blue-400 mb-4" />
-            <h3 className="text-xl font-black mb-2 relative z-10">Find Top AI Experts</h3>
-            <p className="text-sm text-slate-300 mb-6 relative z-10">Browse our vetted marketplace of specialized AI and automation experts.</p>
-            <Button asChild className="w-full bg-white text-slate-900 hover:bg-slate-50 rounded-full font-bold relative z-10">
-              <Link to="/client/experts">Search Directory</Link>
-            </Button>
+        <section className="rounded-2xl bg-white/70 px-5 py-6 sm:px-6 lg:px-7">
+          <div className="max-w-3xl">
+            <h2 className="text-lg font-bold text-slate-900">Discover and quick actions</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Move between expert discovery, services, wallet funding, and profile updates.
+            </p>
           </div>
 
-          <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
-            <h3 className="font-bold text-slate-900 mb-4">Quick Links</h3>
-            <div className="space-y-2">
-              <Link to="/client/wallet" className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors group">
-                <div className="flex items-center gap-3">
-                  <div className="size-8 rounded-lg bg-emerald-50 flex items-center justify-center">
-                    <DollarSign className="size-4 text-emerald-600" />
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+            {quickActions.map((action) => {
+              const ActionIcon = action.icon;
+
+              return (
+                <Link key={action.title} to={action.href} className="group flex min-h-[68px] items-center justify-between gap-3 rounded-lg bg-slate-50/75 px-3 py-2.5 transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${action.iconBgClassName}`}>
+                      <ActionIcon className={`size-4 ${action.iconClassName}`} />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-bold text-slate-800 group-hover:text-primary">{action.title}</h3>
+                      <p className="mt-1 text-xs font-medium leading-5 text-slate-500">{action.description}</p>
+                    </div>
                   </div>
-                  <span className="font-bold text-sm text-slate-700 group-hover:text-primary">Deposit Funds</span>
-                </div>
-                <ChevronRight className="size-4 text-slate-300 group-hover:text-primary" />
-              </Link>
-              <Link to="/client/profile" className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors group">
-                <div className="flex items-center gap-3">
-                  <div className="size-8 rounded-lg bg-blue-50 flex items-center justify-center">
-                    <Star className="size-4 text-primary" />
-                  </div>
-                  <span className="font-bold text-sm text-slate-700 group-hover:text-primary">Update Profile</span>
-                </div>
-                <ChevronRight className="size-4 text-slate-300 group-hover:text-primary" />
-              </Link>
-            </div>
+                  <ChevronRight className="mt-0.5 size-4 shrink-0 text-slate-300 group-hover:text-primary" />
+                </Link>
+              );
+            })}
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );
