@@ -10,19 +10,19 @@ import { projectService } from '@/features/projects/services';
 import { walletService } from '@/features/wallet/services';
 import { jobService } from '@/features/jobs/services';
 import { servicesFeatureApi } from '@/features/services/services';
-import { ServiceRequestStatus } from '@/features/services/types';
 import { ProjectStatus } from '@/shared/types/enums';
 import { useAuthStore } from '@/features/auth/store';
 import type { PaginatedResponse } from '@/shared/types/api';
 import { AccountOverviewSection, type AccountOverviewCard } from '../components/AccountOverviewSection';
-
-const CLIENT_POST_JOB_PATH = '/client/post-job';
-const CLIENT_EXPERTS_PATH = '/client/experts';
-const CLIENT_SERVICES_PATH = '/client/services';
-const ACTIVITY_COUNT_PARAMS = { PageIndex: 1, PageSize: 1 };
-const OPEN_JOB_POST_COUNT_PARAMS = { ...ACTIVITY_COUNT_PARAMS, status: 1 };
-const PENDING_SERVICE_REQUEST_COUNT_PARAMS = { ...ACTIVITY_COUNT_PARAMS, status: ServiceRequestStatus.PENDING };
-const RECENT_PROJECTS_PAGE_SIZE = 4;
+import {
+  CLIENT_EXPERTS_PATH,
+  CLIENT_OPEN_JOB_POST_COUNT_PARAMS,
+  CLIENT_PENDING_SERVICE_REQUEST_COUNT_PARAMS,
+  CLIENT_POST_JOB_PATH,
+  CLIENT_SERVICES_PATH,
+  DASHBOARD_ACTIVITY_COUNT_PARAMS,
+  DASHBOARD_RECENT_PROJECTS_PAGE_SIZE,
+} from '../constants';
 
 const toNumber = (value: unknown): number | null => {
   if (typeof value === 'number' && !isNaN(value)) return value;
@@ -139,7 +139,7 @@ export const ClientDashboardPage = () => {
     isSuccess: isJobPostsSuccess,
   } = useQuery({
     queryKey: ['clientJobs', 'activity-count'],
-    queryFn: () => jobService.getMyJobs(ACTIVITY_COUNT_PARAMS),
+    queryFn: () => jobService.getMyJobs(DASHBOARD_ACTIVITY_COUNT_PARAMS),
     refetchInterval: 15000,
     refetchOnWindowFocus: true,
   });
@@ -150,7 +150,7 @@ export const ClientDashboardPage = () => {
     isSuccess: isServiceRequestsSuccess,
   } = useQuery({
     queryKey: ['clientServiceRequests', 'activity-count'],
-    queryFn: () => servicesFeatureApi.getClientServiceRequests(ACTIVITY_COUNT_PARAMS),
+    queryFn: () => servicesFeatureApi.getClientServiceRequests(DASHBOARD_ACTIVITY_COUNT_PARAMS),
     refetchInterval: 15000,
     refetchOnWindowFocus: true,
   });
@@ -160,7 +160,7 @@ export const ClientDashboardPage = () => {
     isSuccess: isOpenJobPostsSuccess,
   } = useQuery({
     queryKey: ['clientJobs', 'open-count'],
-    queryFn: () => jobService.getMyJobs(OPEN_JOB_POST_COUNT_PARAMS),
+    queryFn: () => jobService.getMyJobs(CLIENT_OPEN_JOB_POST_COUNT_PARAMS),
     refetchInterval: 15000,
     refetchOnWindowFocus: true,
   });
@@ -170,7 +170,7 @@ export const ClientDashboardPage = () => {
     isSuccess: isPendingServiceRequestsSuccess,
   } = useQuery({
     queryKey: ['clientServiceRequests', 'pending-count'],
-    queryFn: () => servicesFeatureApi.getClientServiceRequests(PENDING_SERVICE_REQUEST_COUNT_PARAMS),
+    queryFn: () => servicesFeatureApi.getClientServiceRequests(CLIENT_PENDING_SERVICE_REQUEST_COUNT_PARAMS),
     refetchInterval: 15000,
     refetchOnWindowFocus: true,
   });
@@ -189,11 +189,11 @@ export const ClientDashboardPage = () => {
     : null;
   
   const activeProjects = projects.filter(p => p.status === ProjectStatus.IN_PROGRESS || p.status === ProjectStatus.PENDING_FUNDING);
-  const totalRecentProjectPages = Math.max(1, Math.ceil(activeProjects.length / RECENT_PROJECTS_PAGE_SIZE));
+  const totalRecentProjectPages = Math.max(1, Math.ceil(activeProjects.length / DASHBOARD_RECENT_PROJECTS_PAGE_SIZE));
   const currentRecentProjectPage = Math.min(recentProjectsPage, totalRecentProjectPages - 1);
   const visibleActiveProjects = activeProjects.slice(
-    currentRecentProjectPage * RECENT_PROJECTS_PAGE_SIZE,
-    currentRecentProjectPage * RECENT_PROJECTS_PAGE_SIZE + RECENT_PROJECTS_PAGE_SIZE
+    currentRecentProjectPage * DASHBOARD_RECENT_PROJECTS_PAGE_SIZE,
+    currentRecentProjectPage * DASHBOARD_RECENT_PROJECTS_PAGE_SIZE + DASHBOARD_RECENT_PROJECTS_PAGE_SIZE
   );
 
   const isLoading = isProjectsLoading || isWalletLoading || isJobPostsLoading || isServiceRequestsLoading;

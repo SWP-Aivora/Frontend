@@ -15,11 +15,12 @@ import { ProjectStatus } from '@/shared/types/enums';
 import { useAuthStore } from '@/features/auth/store';
 import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
 import { AccountOverviewSection, type AccountOverviewCard } from '../components/AccountOverviewSection';
-
-const EXPERT_FIND_WORK_PATH = '/expert/jobs';
-const EXPERT_CREATE_SERVICE_PATH = '/expert/services/new';
-const EXPERT_PROFILE_PATH = '/expert/profile';
-const RECENT_PROJECTS_PAGE_SIZE = 4;
+import {
+  DASHBOARD_RECENT_PROJECTS_PAGE_SIZE,
+  EXPERT_CREATE_SERVICE_PATH,
+  EXPERT_FIND_WORK_PATH,
+  EXPERT_PROFILE_PATH,
+} from '../constants';
 
 const toNumber = (value: unknown): number | null => {
   if (typeof value === 'number' && !isNaN(value)) return value;
@@ -167,11 +168,11 @@ export const ExpertDashboardPage = () => {
     .length;
   
   const activeProjects = projects.filter(p => p.status === ProjectStatus.IN_PROGRESS);
-  const totalRecentProjectPages = Math.max(1, Math.ceil(activeProjects.length / RECENT_PROJECTS_PAGE_SIZE));
+  const totalRecentProjectPages = Math.max(1, Math.ceil(activeProjects.length / DASHBOARD_RECENT_PROJECTS_PAGE_SIZE));
   const currentRecentProjectPage = Math.min(recentProjectsPage, totalRecentProjectPages - 1);
   const visibleActiveProjects = activeProjects.slice(
-    currentRecentProjectPage * RECENT_PROJECTS_PAGE_SIZE,
-    currentRecentProjectPage * RECENT_PROJECTS_PAGE_SIZE + RECENT_PROJECTS_PAGE_SIZE
+    currentRecentProjectPage * DASHBOARD_RECENT_PROJECTS_PAGE_SIZE,
+    currentRecentProjectPage * DASHBOARD_RECENT_PROJECTS_PAGE_SIZE + DASHBOARD_RECENT_PROJECTS_PAGE_SIZE
   );
 
   const isLoading = isProjectsLoading || isWalletLoading || isProposalsLoading || isServicesLoading;
