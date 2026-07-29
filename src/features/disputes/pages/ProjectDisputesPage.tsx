@@ -64,6 +64,7 @@ export const ProjectDisputesPage = () => {
     onSuccess: () => {
       toast.success('Project canceled.');
       setIsCancelDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['dispute'] });
       queryClient.invalidateQueries({ queryKey: ['project-disputes', id] });
       queryClient.invalidateQueries({ queryKey: ['project', id] });
       queryClient.invalidateQueries({ queryKey: ['project', id, 'active-disputes'] });

@@ -38,6 +38,9 @@ export const useProjectRealtime = (projectId?: string) => {
       queryClient.invalidateQueries({ queryKey: ['project-disputes', projectId] });
       queryClient.invalidateQueries({ queryKey: ['dispute', data.disputeId] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'project-disputes', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project', projectId, 'milestones'] });
+      queryClient.invalidateQueries({ queryKey: ['project', projectId, 'active-disputes'] });
     });
 
     return () => {
