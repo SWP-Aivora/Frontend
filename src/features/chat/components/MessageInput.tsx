@@ -3,6 +3,7 @@ import { FileImage, FilePlus, Loader2, Plus, Send, X, FileIcon } from 'lucide-re
 import { Button } from '@/shared/components/ui/Button';
 import { mediaService } from '@/shared/services/mediaService';
 import { CHAT_MESSAGE_MAX_LENGTH } from '../constants';
+import { withAttachmentFilename } from '../utils';
 
 interface MessageInputProps {
   onSendMessage: (content: string, attachmentUrl?: string) => Promise<void>;
@@ -11,11 +12,6 @@ interface MessageInputProps {
   disabledReason?: string;
   maxLength?: number;
 }
-
-const withOriginalFilename = (url: string, filename: string): string => {
-  const separator = url.includes('#') ? '&' : '#';
-  return `${url}${separator}filename=${encodeURIComponent(filename)}`;
-};
 
 export const MessageInput = ({ onSendMessage, onTyping, disabled, disabledReason = 'Please wait before sending.', maxLength = CHAT_MESSAGE_MAX_LENGTH }: MessageInputProps) => {
   const [content, setContent] = useState('');
@@ -96,7 +92,7 @@ export const MessageInput = ({ onSendMessage, onTyping, disabled, disabledReason
         throw new Error(response.message || 'Upload failed');
       }
 
-      setAttachmentUrl(withOriginalFilename(url, file.name));
+      setAttachmentUrl(withAttachmentFilename(url, file.name));
       setAttachmentName(file.name);
     } catch {
       setUploadError('Upload failed. Please try again.');

@@ -4,21 +4,7 @@ import { chatService } from '../services';
 import type { SendMessagePayload, NewMessagePayload } from '../types';
 import type { Message } from '../types';
 import { useAuthStore } from '@/features/auth/store';
-
-const getAttachmentFilename = (attachmentUrl?: string): string | undefined => {
-  if (!attachmentUrl) return undefined;
-
-  const filenameMatch = attachmentUrl.match(/[#&?]filename=([^&#]+)/);
-  if (filenameMatch?.[1]) {
-    try {
-      return decodeURIComponent(filenameMatch[1]);
-    } catch {
-      return filenameMatch[1];
-    }
-  }
-
-  return attachmentUrl.split('#')[0].split('?')[0].split('/').pop() || undefined;
-};
+import { getAttachmentFilename } from '../utils';
 
 export const useMessages = (conversationId: string, params?: Record<string, unknown>) => {
   return useQuery({

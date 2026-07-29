@@ -9,6 +9,7 @@ import { Role } from '@/shared/types/enums';
 import type { AxiosResponse } from 'axios';
 import * as signalR from '@microsoft/signalr';
 import { CHAT_SEND_TIMEOUT_MS } from './constants';
+import { getAttachmentFilename } from './utils';
 
 interface NewMessagePayload {
   id: string;
@@ -110,21 +111,6 @@ const getConversationRelatedTitle = (item: Record<string, unknown>, type: Conver
     default:
       return 'General Inquiry';
   }
-};
-
-const getAttachmentFilename = (attachmentUrl: unknown): string | undefined => {
-  if (typeof attachmentUrl !== 'string' || !attachmentUrl.trim()) return undefined;
-
-  const filenameMatch = attachmentUrl.match(/[#&?]filename=([^&#]+)/);
-  if (filenameMatch?.[1]) {
-    try {
-      return decodeURIComponent(filenameMatch[1]);
-    } catch {
-      return filenameMatch[1];
-    }
-  }
-
-  return attachmentUrl.split('#')[0].split('?')[0].split('/').pop() || undefined;
 };
 
 const mapConversationResponse = (item: Record<string, unknown>, currentUserId?: string): Conversation => {

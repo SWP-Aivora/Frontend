@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { useLocation } from 'react-router-dom';
 import { serviceRequestContextService } from '@/shared/services/serviceRequestContextService';
 import { QUERY_KEYS } from '@/shared/constants';
+import { getAttachmentFilename } from '../utils';
 
 export const ChatWorkspacePage = () => {
   const location = useLocation();
@@ -175,7 +176,7 @@ export const ChatWorkspacePage = () => {
       .map((message) => ({
         id: message.id,
         url: message.fileUrl!,
-        name: message.fileName || message.fileUrl!.split('#')[0].split('?')[0].split('/').pop() || 'Attached File',
+        name: message.fileName || getAttachmentFilename(message.fileUrl) || 'Attached File',
         senderName: message.senderName,
         createdAt: message.createdAt,
       }));
