@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ListChecks, Plus, Sparkles, X } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { ConfirmActionDialog } from '@/shared/components/ui/ConfirmActionDialog';
-import type { MilestoneStep } from '../types';
+import type { Milestone, MilestoneStep } from '../types';
 import { MilestoneStepStatus } from '@/shared/types/enums';
 import { useMilestoneSteps } from '../hooks/useMilestoneSteps';
 import { useCreateMilestoneStep } from '../hooks/useCreateMilestoneStep';
@@ -11,18 +11,32 @@ import { useDeleteMilestoneStep } from '../hooks/useDeleteMilestoneStep';
 import { useUpdateStepStatus } from '../hooks/useUpdateStepStatus';
 import { useReorderMilestoneSteps } from '../hooks/useReorderMilestoneSteps';
 import { useSuggestMilestoneSteps } from '../hooks/useSuggestMilestoneSteps';
-import { StepCard } from './StepCard';
+import { StepCard, getStepDueDateError } from './StepCard';
 
 interface DraftStep {
   title: string;
   description: string;
+  dueDate: string;
 }
 
 interface StepBoardProps {
   milestoneId: string;
+  milestone: Milestone | null;
   isExpert: boolean;
   isClient: boolean;
 }
+
+// Anchor for AI day-estimates: "today + estimatedDays", formatted for
+// <input type="date"> using local date parts (avoids the UTC-shift that
+// toISOString() would introduce).
+const estimateDueDate = (estimatedDays: number): string => {
+  const date = new Date();
+  date.setDate(date.getDate() + estimatedDays);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 const STATUS_ORDER: MilestoneStepStatus[] = [
   MilestoneStepStatus.PENDING,
@@ -41,7 +55,7 @@ const STATUS_SECTION_LABEL: Record<MilestoneStepStatus, string> = {
 
 const getStepOrderIndex = (step: MilestoneStep): number => step.orderIndex ?? 0;
 
-export const StepBoard = ({ milestoneId, isExpert, isClient }: StepBoardProps) => {
+export const StepBoard = ({ milestoneId, milestone, isExpert, isClient }: StepBoardProps) => {
   const [isAdding, setIsAdding] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
@@ -59,9 +73,11 @@ export const StepBoard = ({ milestoneId, isExpert, isClient }: StepBoardProps) =
   const suggestSteps = useSuggestMilestoneSteps(milestoneId);
 
   const steps = (stepsResponse?.data ?? []).slice().sort((a, b) => getStepOrderIndex(a) - getStepOrderIndex(b));
+  const milestoneDueDate = milestone?.dueDate ?? null;
+  const newDueDateError = getStepDueDateError(newDueDate, milestoneDueDate);
 
   const handleAddStep = () => {
-    if (!newTitle.trim()) return;
+    if (!newTitle.trim() || newDueDateError) return;
     createStep.mutate(
       { title: newTitle.trim(), description: newDescription.trim() || undefined, dueDate: newDueDate || undefined, orderIndex: Math.max(0, ...steps.map(getStepOrderIndex)) + 1 },
       { onSuccess: () => { setIsAdding(false); setNewTitle(''); setNewDescription(''); setNewDueDate(''); } }
@@ -81,7 +97,11 @@ export const StepBoard = ({ milestoneId, isExpert, isClient }: StepBoardProps) =
   const handleSuggestSteps = () => {
     suggestSteps.mutate(undefined, {
       onSuccess: (res) => {
-        setDraftSteps((res.data ?? []).map((s) => ({ title: s.title, description: s.description ?? '' })));
+        setDraftSteps((res.data ?? []).map((s) => ({
+          title: s.title,
+          description: s.description ?? '',
+          dueDate: typeof s.estimatedDays === 'number' ? estimateDueDate(s.estimatedDays) : '',
+        })));
       },
     });
   };
@@ -99,18 +119,22 @@ export const StepBoard = ({ milestoneId, isExpert, isClient }: StepBoardProps) =
   };
 
   const addDraftStep = () => {
-    setDraftSteps((prev) => [...(prev ?? []), { title: '', description: '' }]);
+    setDraftSteps((prev) => [...(prev ?? []), { title: '', description: '', dueDate: '' }]);
   };
 
+  const hasInvalidDraftDueDate = (draftSteps ?? []).some(
+    (s) => s.title.trim() && getStepDueDateError(s.dueDate, milestoneDueDate)
+  );
+
   const handleSaveDraftSteps = async () => {
-    if (!draftSteps) return;
+    if (!draftSteps || hasInvalidDraftDueDate) return;
     const kept = draftSteps.filter((s) => s.title.trim());
     setIsSavingDraft(true);
     try {
       let orderIndex = Math.max(0, ...steps.map(getStepOrderIndex));
       for (const step of kept) {
         orderIndex += 1;
-        await createStep.mutateAsync({ title: step.title.trim(), description: step.description.trim() || undefined, orderIndex });
+        await createStep.mutateAsync({ title: step.title.trim(), description: step.description.trim() || undefined, dueDate: step.dueDate || undefined, orderIndex });
         // Drop the just-saved entry so a mid-loop failure leaves only the
         // unsaved remainder in the panel — retrying "Save" can't re-create
         // entries that already persisted.
@@ -170,6 +194,15 @@ export const StepBoard = ({ milestoneId, isExpert, isClient }: StepBoardProps) =
                   placeholder="Description (optional)"
                   rows={2}
                 />
+                <input
+                  type="date"
+                  value={step.dueDate}
+                  onChange={(e) => updateDraftStep(index, { dueDate: e.target.value })}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                />
+                {getStepDueDateError(step.dueDate, milestoneDueDate) && (
+                  <p className="text-xs font-semibold text-rose-600">{getStepDueDateError(step.dueDate, milestoneDueDate)}</p>
+                )}
               </div>
             ))}
           </div>
@@ -182,7 +215,7 @@ export const StepBoard = ({ milestoneId, isExpert, isClient }: StepBoardProps) =
               <Button
                 size="sm"
                 onClick={handleSaveDraftSteps}
-                disabled={isSavingDraft || !draftSteps.some((s) => s.title.trim())}
+                disabled={isSavingDraft || !draftSteps.some((s) => s.title.trim()) || hasInvalidDraftDueDate}
               >
                 {isSavingDraft ? 'Saving...' : `Save ${draftSteps.filter((s) => s.title.trim()).length} step(s)`}
               </Button>
@@ -213,9 +246,10 @@ export const StepBoard = ({ milestoneId, isExpert, isClient }: StepBoardProps) =
             onChange={(e) => setNewDueDate(e.target.value)}
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
           />
+          {newDueDateError && <p className="text-xs font-semibold text-rose-600">{newDueDateError}</p>}
           <div className="flex gap-2 justify-end">
             <Button variant="outline" size="sm" onClick={() => setIsAdding(false)}>Cancel</Button>
-            <Button size="sm" onClick={handleAddStep} disabled={!newTitle.trim() || createStep.isPending}>
+            <Button size="sm" onClick={handleAddStep} disabled={!newTitle.trim() || Boolean(newDueDateError) || createStep.isPending}>
               {createStep.isPending ? 'Adding...' : 'Add'}
             </Button>
           </div>
@@ -244,6 +278,7 @@ export const StepBoard = ({ milestoneId, isExpert, isClient }: StepBoardProps) =
                     step={step}
                     isExpert={isExpert}
                     isClient={isClient}
+                    milestoneDueDate={milestoneDueDate}
                     isFirst={steps[0]?.id === step.id}
                     isLast={steps[steps.length - 1]?.id === step.id}
                     onStart={() => updateStatus.mutate({ stepId: step.id, status: MilestoneStepStatus.IN_PROGRESS })}

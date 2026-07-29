@@ -112,7 +112,19 @@ vi.mock('@/features/disputes/services', () => ({
 vi.mock('@/features/chat/services', () => ({
   chatService: {
     initializeConversation: vi.fn(),
+    connect: vi.fn().mockResolvedValue(undefined),
+    joinProject: vi.fn().mockResolvedValue(undefined),
+    leaveProject: vi.fn().mockResolvedValue(undefined),
+    onMilestoneUpdate: vi.fn().mockReturnValue(vi.fn()),
   },
+}));
+
+vi.mock('@/features/disputes/components/CreateDisputeModal', () => ({
+  CreateDisputeModal: (props: { isOpen: boolean; onSuccess: () => void }) => (
+    props.isOpen ? (
+      <button type="button" onClick={props.onSuccess}>Trigger Dispute Created</button>
+    ) : null
+  ),
 }));
 
 describe('ProjectWorkspacePage', () => {
@@ -583,6 +595,68 @@ describe('ProjectWorkspacePage', () => {
       // After fix, calling with a plain string should not work correctly.
       // We test that the function expects an object with milestoneId property.
       expect(revisionMutationConfig.mutationFn.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe('Fund Milestone dispute guard', () => {
+    const pendingMilestone = {
+      id: 'ms-pending',
+      projectId: 'project-101',
+      title: 'Pending milestone',
+      description: 'Awaiting funding',
+      amount: 500,
+      currency: 'AICOIN',
+      status: MilestoneStatus.PENDING,
+      dueDate: null,
+      orderIndex: 0,
+      createdAt: '2026-07-14T10:00:00Z',
+      updatedAt: '2026-07-14T10:00:00Z',
+    };
+
+    const activeDispute = [{
+      id: 'dispute-1',
+      projectId: 'project-101',
+      milestoneId: 'ms-pending',
+      status: 'OPEN',
+    }];
+
+    it('disables the side-panel Fund Milestone button while a project dispute is open', () => {
+      setupWorkspaceQueries({ milestones: [pendingMilestone] }, activeDispute);
+
+      renderComponent();
+      fireEvent.click(screen.getByRole('button', { name: 'Pending milestone' }));
+
+      const fundButton = screen.getByRole('button', { name: /fund milestone/i });
+      expect(fundButton).toBeDisabled();
+      expect(fundButton).toHaveAttribute('title', 'Actions are unavailable while there is an open dispute.');
+    });
+
+    it('disables the timeline-view Fund Milestone button while a project dispute is open', () => {
+      setupWorkspaceQueries({ milestones: [pendingMilestone] }, activeDispute);
+
+      renderComponent();
+      fireEvent.click(screen.getByRole('button', { name: 'Timeline' }));
+      fireEvent.change(screen.getByRole('combobox'), { target: { value: 'ms-pending' } });
+      fireEvent.click(screen.getByRole('button', { name: /view timeline/i }));
+
+      const fundButton = screen.getByRole('button', { name: /fund milestone/i });
+      expect(fundButton).toBeDisabled();
+      expect(fundButton).toHaveAttribute('title', 'Actions are unavailable while there is an open dispute.');
+    });
+  });
+
+  describe('Dispute created invalidation', () => {
+    it('invalidates the active-disputes query after a dispute is created', () => {
+      setupWorkspaceQueries();
+
+      renderComponent();
+      fireEvent.click(screen.getByRole('button', { name: /open dispute/i }));
+      fireEvent.click(screen.getByRole('button', { name: 'Trigger Dispute Created' }));
+
+      const { invalidateQueries } = reactQuery.useQueryClient();
+      expect(invalidateQueries).toHaveBeenCalledWith(
+        expect.objectContaining({ queryKey: ['project', 'project-101', 'active-disputes'] })
+      );
     });
   });
 });

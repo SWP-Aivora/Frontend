@@ -71,6 +71,7 @@ export interface MilestoneStep {
 export interface SuggestedMilestoneStep {
   title: string;
   description: string | null;
+  estimatedDays?: number;
 }
 
 export interface Deliverable {

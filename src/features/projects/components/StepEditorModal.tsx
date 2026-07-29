@@ -44,6 +44,7 @@ export const StepEditorModal = ({
         <div className="overflow-y-auto p-6">
           <StepBoard
             milestoneId={milestone.id}
+            milestone={milestone}
             isExpert={canEditSteps}
             isClient={false}
           />

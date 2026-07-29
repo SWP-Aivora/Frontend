@@ -144,10 +144,13 @@ class ChatService extends BaseService<Conversation> {
   // Conversations currently joined; re-joined after a reconnect since a new
   // ConnectionId loses all server-side group membership.
   private readonly activeConversations = new Set<string>();
+  // Projects currently joined for milestone updates; same re-join-after-reconnect need.
+  private readonly activeProjects = new Set<string>();
   private messageIdCounter = 0;
   private typingIdCounter = 0;
   private jobIdCounter = 0;
   private newJobPublishedIdCounter = 0;
+  private milestoneIdCounter = 0;
   private listenersSetup = new Set<string>();
 
   // Separate callback registries to prevent interference between components
@@ -156,6 +159,7 @@ class ChatService extends BaseService<Conversation> {
   private jobStatusCallbacks = new Map<string, (data: { jobId: string; status: string; title?: string }) => void>();
   private newJobPublishedCallbacks = new Map<string, (data: { jobId: string; title?: string }) => void>();
   private readCallbacks = new Map<string, (data: { conversationId: string; userId: string }) => void>();
+  private milestoneCallbacks = new Map<string, (data: { projectId: string; milestoneId: string }) => void>();
   private readIdCounter = 0;
 
   constructor() {
@@ -223,6 +227,18 @@ class ChatService extends BaseService<Conversation> {
     };
   }
 
+  /**
+   * Listen to milestone updates
+   */
+  onMilestoneUpdate(callback: (data: { projectId: string; milestoneId: string }) => void): () => void {
+    const id = `milestone_${++this.milestoneIdCounter}`;
+    this.milestoneCallbacks.set(id, callback);
+
+    return () => {
+      this.milestoneCallbacks.delete(id);
+    };
+  }
+
   private getChatConnectionKey(): string {
     return CHAT_HUB_URL;
   }
@@ -241,6 +257,7 @@ class ChatService extends BaseService<Conversation> {
     if (!this.listenersSetup.has(connectionKey)) {
       this.setupMessageListeners(connection);
       this.setupJobStatusListeners(connection);
+      this.setupMilestoneListeners(connection);
       this.listenersSetup.add(connectionKey);
     }
 
@@ -324,6 +341,13 @@ class ChatService extends BaseService<Conversation> {
           console.warn('Failed to re-join conversation after reconnect', conversationId, rejoinError);
         });
       });
+
+      // Same re-join requirement for project milestone-update groups.
+      this.activeProjects.forEach((projectId) => {
+        connection.invoke('JoinProject', projectId).catch((rejoinError: unknown) => {
+          console.warn('Failed to re-join project after reconnect', projectId, rejoinError);
+        });
+      });
     });
 
     connection.onreconnecting(() => {
@@ -343,6 +367,14 @@ class ChatService extends BaseService<Conversation> {
     // Listen for new job published
     connection.on('NewJobPublished', (data: { jobId: string; title?: string }) => {
       this.newJobPublishedCallbacks.forEach(callback => callback(data));
+    });
+  }
+
+  private setupMilestoneListeners(connection: signalR.HubConnection): void {
+    connection.off('MilestoneUpdated');
+
+    connection.on('MilestoneUpdated', (data: { projectId: string; milestoneId: string }) => {
+      this.milestoneCallbacks.forEach(callback => callback(data));
     });
   }
 
@@ -429,6 +461,34 @@ class ChatService extends BaseService<Conversation> {
       await entry.connection.invoke('LeaveConversation', conversationId);
     } catch (leaveError: unknown) {
       console.warn('Failed to leave chat conversation group', leaveError);
+    }
+  }
+
+  /**
+   * Join the SignalR group for a project. Required for MilestoneUpdated
+   * broadcasts to reach this connection.
+   */
+  async joinProject(projectId: string): Promise<void> {
+    const connection = await this.ensureChatConnection();
+    await connection.invoke('JoinProject', projectId);
+    this.activeProjects.add(projectId);
+  }
+
+  async leaveProject(projectId: string): Promise<void> {
+    this.activeProjects.delete(projectId);
+
+    const entry = this.activeChatConnectionKey
+      ? this.chatConnectionPool.get(this.activeChatConnectionKey)
+      : undefined;
+
+    if (entry?.connection.state !== signalR.HubConnectionState.Connected) {
+      return;
+    }
+
+    try {
+      await entry.connection.invoke('LeaveProject', projectId);
+    } catch (leaveError: unknown) {
+      console.warn('Failed to leave project group', leaveError);
     }
   }
 
