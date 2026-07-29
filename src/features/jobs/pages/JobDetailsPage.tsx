@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/components/ui/Button';
 import {
@@ -28,6 +28,13 @@ import { Role } from '@/shared/types/enums';
 type ProposalFormMilestone = NonNullable<CreateProposalFormValues['milestones']>[number];
 type PendingJobAction = 'cancel' | 'delete' | null;
 
+const FALLBACK_PROPOSAL_MILESTONE: ProposalFormMilestone = {
+  title: 'Discovery & implementation plan',
+  amount: 1,
+  dueDays: 1,
+  orderIndex: 0,
+};
+
 const toSafeNumber = (value: unknown): number => {
   if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
   if (typeof value === 'string' && value.trim() !== '') {
@@ -47,6 +54,32 @@ const getProposalMilestoneTotals = (milestones: ProposalFormMilestone[] | null |
     { proposedBudget: 0, proposedTimelineDays: 0 }
   )
 );
+
+const toProposalMilestones = (
+  milestones: Array<{
+    title: string;
+    description?: string | null;
+    amount?: number | null;
+    dueDays?: number | null;
+    acceptanceCriteria?: string | null;
+    orderIndex?: number | null;
+  }> | null | undefined,
+): ProposalFormMilestone[] => {
+  if (!milestones?.length) {
+    return [{ ...FALLBACK_PROPOSAL_MILESTONE }];
+  }
+
+  return [...milestones]
+    .sort((left, right) => (left.orderIndex ?? 0) - (right.orderIndex ?? 0))
+    .map((milestone, index) => ({
+      title: milestone.title,
+      description: milestone.description ?? null,
+      amount: Math.max(1, toSafeNumber(milestone.amount)),
+      dueDays: Math.max(1, toSafeNumber(milestone.dueDays)),
+      acceptanceCriteria: milestone.acceptanceCriteria ?? null,
+      orderIndex: milestone.orderIndex ?? index,
+    }));
+};
 
 const normalizeJobStatus = (status: unknown): string => {
   if (status === 0 || String(status).toUpperCase() === 'DRAFT') return 'draft';
@@ -92,6 +125,7 @@ export const JobDetailsPage = () => {
   const isEditMode = Boolean(proposalId);
   const [hasSubmitted, setHasSubmitted] = useState(() => localStorage.getItem(`submitted_proposal_${id}`) === 'true');
   const [pendingJobAction, setPendingJobAction] = useState<PendingJobAction>(null);
+  const seededJobMilestonesForJobIdRef = useRef<string | null>(null);
 
   const { data: jobResponse, isLoading } = useQuery({
     queryKey: ['job', id],
@@ -132,9 +166,7 @@ export const JobDetailsPage = () => {
       coverLetter: '',
       proposedBudget: 0,
       proposedTimelineDays: 0,
-      milestones: [
-        { title: 'Discovery & implementation plan', amount: 1, dueDays: 1, orderIndex: 0 }
-      ],
+      milestones: [{ ...FALLBACK_PROPOSAL_MILESTONE }],
     }
   });
 
@@ -142,15 +174,15 @@ export const JobDetailsPage = () => {
     if (!proposal) return;
 
     const proposalMilestones = proposal.milestones.length > 0
-      ? proposal.milestones.map((milestone, index) => ({
+      ? toProposalMilestones(proposal.milestones.map((milestone, index) => ({
           title: milestone.title,
           description: milestone.description,
           amount: milestone.amount,
           dueDays: milestone.dueDays,
           acceptanceCriteria: milestone.acceptanceCriteria,
           orderIndex: milestone.orderIndex ?? index,
-        }))
-      : [{ title: 'Discovery & implementation plan', amount: 1, dueDays: 1, orderIndex: 0 }];
+        })))
+      : [{ ...FALLBACK_PROPOSAL_MILESTONE }];
     const proposalTotals = getProposalMilestoneTotals(proposalMilestones);
 
     reset({
@@ -160,6 +192,27 @@ export const JobDetailsPage = () => {
       milestones: proposalMilestones,
     });
   }, [proposal, reset]);
+
+  useEffect(() => {
+    if (isEditMode || hasSubmitted || !job?.id || seededJobMilestonesForJobIdRef.current === job.id) {
+      return;
+    }
+
+    const hasJobMilestoneBase = Boolean(job.milestones?.length);
+    const jobMilestones = toProposalMilestones(job.milestones);
+    const jobMilestoneTotals = getProposalMilestoneTotals(jobMilestones);
+
+    if (hasJobMilestoneBase) {
+      seededJobMilestonesForJobIdRef.current = job.id;
+    }
+
+    reset({
+      coverLetter: '',
+      proposedBudget: jobMilestoneTotals.proposedBudget,
+      proposedTimelineDays: jobMilestoneTotals.proposedTimelineDays,
+      milestones: jobMilestones,
+    });
+  }, [hasSubmitted, isEditMode, job?.id, job?.milestones, reset]);
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -451,6 +504,62 @@ export const JobDetailsPage = () => {
                   </div>
                 </section>
              </div>
+
+             <section className="mt-4 rounded-lg border border-slate-100 bg-white p-5 shadow-sm">
+               <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                 <h3 className="text-xs font-black text-slate-500 uppercase tracking-[0.2em]">Job Milestones</h3>
+                 {job.milestones && job.milestones.length > 0 && (
+                   <span className="text-xs font-bold text-slate-400">
+                     {job.milestones.length} {job.milestones.length === 1 ? 'milestone' : 'milestones'}
+                   </span>
+                 )}
+               </div>
+
+               {job.milestones && job.milestones.length > 0 ? (
+                 <div className="space-y-3">
+                   {[...job.milestones]
+                     .sort((left, right) => left.orderIndex - right.orderIndex)
+                     .map((milestone, index) => (
+                       <div key={milestone.id || `${milestone.title}-${index}`} className="rounded-lg border border-slate-100 bg-slate-50/60 p-4">
+                         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                           <div className="flex min-w-0 gap-3">
+                             <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-xs font-black text-slate-400">
+                               {index + 1}
+                             </div>
+                             <div className="min-w-0">
+                               <h4 className="font-black text-slate-900">{milestone.title}</h4>
+                               {milestone.description && (
+                                 <p className="mt-1 whitespace-pre-wrap text-sm font-medium leading-6 text-slate-600">
+                                   {milestone.description}
+                                 </p>
+                               )}
+                               {milestone.acceptanceCriteria && (
+                                 <p className="mt-2 text-xs font-bold text-slate-500">
+                                   Acceptance criteria: <span className="font-medium text-slate-600">{milestone.acceptanceCriteria}</span>
+                                 </p>
+                               )}
+                             </div>
+                           </div>
+                           <div className="grid shrink-0 grid-cols-2 gap-2 md:w-56">
+                             <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2">
+                               <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Amount</p>
+                               <p className="mt-0.5 text-sm font-black text-slate-900">{milestone.amount.toLocaleString()} Aivora Coin</p>
+                             </div>
+                             <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2">
+                               <p className="text-[10px] font-black uppercase tracking-widest text-blue-600">Due Days</p>
+                               <p className="mt-0.5 text-sm font-black text-slate-900">{milestone.dueDays}</p>
+                             </div>
+                           </div>
+                         </div>
+                       </div>
+                     ))}
+                 </div>
+               ) : (
+                 <p className="text-sm font-medium text-slate-500">
+                   No job milestones were provided for this post.
+                 </p>
+               )}
+             </section>
           </div>
 
           {/* Proposal Form */}

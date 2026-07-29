@@ -12,6 +12,11 @@ interface MessageInputProps {
   maxLength?: number;
 }
 
+const withOriginalFilename = (url: string, filename: string): string => {
+  const separator = url.includes('#') ? '&' : '#';
+  return `${url}${separator}filename=${encodeURIComponent(filename)}`;
+};
+
 export const MessageInput = ({ onSendMessage, onTyping, disabled, disabledReason = 'Please wait before sending.', maxLength = CHAT_MESSAGE_MAX_LENGTH }: MessageInputProps) => {
   const [content, setContent] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -91,7 +96,7 @@ export const MessageInput = ({ onSendMessage, onTyping, disabled, disabledReason
         throw new Error(response.message || 'Upload failed');
       }
 
-      setAttachmentUrl(url);
+      setAttachmentUrl(withOriginalFilename(url, file.name));
       setAttachmentName(file.name);
     } catch {
       setUploadError('Upload failed. Please try again.');

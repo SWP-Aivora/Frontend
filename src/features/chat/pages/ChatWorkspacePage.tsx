@@ -6,7 +6,7 @@ import { EmptyState } from '../components/EmptyState';
 import { useConversations } from '../hooks/useConversations';
 import { useMessages, useRealTimeMessages, useMarkRead, useSendMessage, useTyping } from '../hooks/useMessages';
 import type { Conversation } from '../types';
-import { Info, ChevronRight, AlertCircle, RefreshCw } from 'lucide-react';
+import { ChevronRight, AlertCircle, RefreshCw, ExternalLink, FileText } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { cn } from '@/lib/utils';
 import { getErrorMessage } from '@/lib/api-utils';
@@ -80,20 +80,48 @@ export const ChatWorkspacePage = () => {
     return new Map(projects.map((project) => [project.id, project.title]));
   }, [projectsResponse]);
 
+  const serviceRequestIds = useMemo(() => {
+    return Array.from(new Set(
+      conversations
+        .filter((conversation) => conversation.type === 'SERVICE_REQUEST' && conversation.serviceRequestId)
+        .map((conversation) => conversation.serviceRequestId!),
+    ));
+  }, [conversations]);
+
+  const { data: serviceRequestTitleResponses } = useQuery({
+    queryKey: ['service-requests', 'conversation-labels', serviceRequestIds],
+    queryFn: async () => Promise.all(serviceRequestIds.map((id) => serviceRequestContextService.getById(id))),
+    enabled: serviceRequestIds.length > 0,
+  });
+
+  const serviceRequestTitleById = useMemo(() => {
+    const entries = (serviceRequestTitleResponses ?? [])
+      .map((response) => response.data)
+      .filter((request): request is NonNullable<typeof request> => Boolean(request))
+      .map((request) => [request.id, request.serviceTitle || request.packageTitle || ''] as const)
+      .filter(([, title]) => Boolean(title));
+
+    return new Map(entries);
+  }, [serviceRequestTitleResponses]);
+
   const conversationsWithProjectTitles = useMemo(() => {
     return conversations.map((conversation) => {
       const projectTitle = conversation.projectId
         ? projectTitleById.get(conversation.projectId)
         : undefined;
+      const serviceRequestTitle = conversation.serviceRequestId
+        ? serviceRequestTitleById.get(conversation.serviceRequestId)
+        : undefined;
 
-      if (!projectTitle) return conversation;
+      const relatedTitle = projectTitle || serviceRequestTitle;
+      if (!relatedTitle) return conversation;
 
       return {
         ...conversation,
-        relatedTitle: projectTitle,
+        relatedTitle,
       };
     });
-  }, [conversations, projectTitleById]);
+  }, [conversations, projectTitleById, serviceRequestTitleById]);
 
   const targetConversationId = useMemo(() => {
     const stateConversationId = (location.state as { conversationId?: string; serviceRequestId?: string; jobId?: string } | null)?.conversationId;
@@ -134,10 +162,6 @@ export const ChatWorkspacePage = () => {
     conversationsWithProjectTitles.find((c: Conversation) => c.id === selectedConversationId),
   [conversationsWithProjectTitles, selectedConversationId]);
 
-  const selectedProjectId = useMemo(() => {
-    return typeof selectedConversation?.projectId === 'string' ? selectedConversation.projectId.trim() : '';
-  }, [selectedConversation?.projectId]);
-
   const selectedServiceRequestId = useMemo(() => {
     return typeof selectedConversation?.serviceRequestId === 'string' ? selectedConversation.serviceRequestId.trim() : '';
   }, [selectedConversation?.serviceRequestId]);
@@ -145,6 +169,17 @@ export const ChatWorkspacePage = () => {
   const messages = useMemo(() => {
     return selectedConversationId ? (Array.isArray(messagesData?.data) ? messagesData.data : []) : [];
   }, [messagesData, selectedConversationId]);
+  const sharedFiles = useMemo(() => {
+    return messages
+      .filter((message) => Boolean(message.fileUrl))
+      .map((message) => ({
+        id: message.id,
+        url: message.fileUrl!,
+        name: message.fileName || message.fileUrl!.split('#')[0].split('?')[0].split('/').pop() || 'Attached File',
+        senderName: message.senderName,
+        createdAt: message.createdAt,
+      }));
+  }, [messages]);
 
   // Mark as read when conversation is selected and has unread messages
   useEffect(() => {
@@ -152,22 +187,6 @@ export const ChatWorkspacePage = () => {
       markAsRead(selectedConversationId);
     }
   }, [selectedConversationId, selectedConversation?.unreadCount, markAsRead]);
-
-  // Fetch project context only when the selected conversation has a valid project id.
-  const { 
-    data: projectResponse,
-    isError: isProjectError,
-    error: projectError,
-    refetch: refetchProject
-  } = useQuery({
-    queryKey: ['project', selectedProjectId],
-    queryFn: () => projectService.getProjectById(selectedProjectId),
-    enabled: !!selectedProjectId,
-  });
-
-  const project = projectResponse?.data;
-  const milestones = Array.isArray(project?.milestones) ? project.milestones : [];
-  const currentMilestone = milestones.find(m => m.status === 1 || m.status === 2) || milestones[0];
 
   const {
     data: serviceRequestResponse,
@@ -179,6 +198,28 @@ export const ChatWorkspacePage = () => {
   });
 
   const serviceRequest = serviceRequestResponse?.data;
+  const serviceRequestTitle = useMemo(() => {
+    if (!serviceRequest) return '';
+
+    return serviceRequest.serviceTitle
+      || serviceRequest.packageTitle
+      || 'Service Request';
+  }, [serviceRequest]);
+  const selectedConversationForDisplay = useMemo(() => {
+    if (
+      !selectedConversation
+      || selectedConversation.type !== 'SERVICE_REQUEST'
+      || !serviceRequestTitle
+      || selectedConversation.relatedTitle === serviceRequestTitle
+    ) {
+      return selectedConversation;
+    }
+
+    return {
+      ...selectedConversation,
+      relatedTitle: serviceRequestTitle,
+    };
+  }, [selectedConversation, serviceRequestTitle]);
 
   const handleSendMessage = async (content: string, attachmentUrl?: string) => {
     if (!selectedConversationId) return;
@@ -205,25 +246,6 @@ export const ChatWorkspacePage = () => {
         <RefreshCw className="size-3 mr-2" />
         Retry
       </Button>
-    </div>
-  );
-
-  const ProjectContextNotice = ({ message, onRetry }: { message: string, onRetry: () => void }) => (
-    <div className="rounded-lg border border-amber-100 bg-amber-50 p-4">
-      <div className="flex items-start gap-3">
-        <AlertCircle className="size-4 text-amber-500 shrink-0 mt-0.5" />
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-black text-amber-800 uppercase tracking-wider">Project context unavailable</p>
-          <p className="text-xs text-amber-700 font-medium mt-1">{message}</p>
-          <button
-            type="button"
-            onClick={() => onRetry()}
-            className="mt-3 text-[10px] font-black uppercase tracking-widest text-amber-800 hover:text-amber-900"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
     </div>
   );
 
@@ -263,14 +285,14 @@ export const ChatWorkspacePage = () => {
                   onRetry={refetchMessages} 
                 />
              </div>
-          ) : selectedConversation ? (
+          ) : selectedConversationForDisplay ? (
             <>
               <ChatHeader 
-                recipient={selectedConversation.recipient} 
-                type={selectedConversation.type}
-                relatedTitle={selectedConversation.relatedTitle}
-                projectId={selectedConversation.projectId}
-                serviceRequestId={selectedConversation.serviceRequestId}
+                recipient={selectedConversationForDisplay.recipient} 
+                type={selectedConversationForDisplay.type}
+                relatedTitle={selectedConversationForDisplay.relatedTitle}
+                projectId={selectedConversationForDisplay.projectId}
+                serviceRequestId={selectedConversationForDisplay.serviceRequestId}
                 serviceId={serviceRequest?.serviceId}
                 isServiceRequestLoading={isServiceRequestLoading}
                 isRightPanelCollapsed={isRightPanelCollapsed}
@@ -293,8 +315,8 @@ export const ChatWorkspacePage = () => {
           )}
         </div>
 
-        {/* Right Column: Context & Files (Only for project/proposal) */}
-        {selectedConversation && selectedConversation.type !== 'SUPPORT' && (
+        {/* Right Column: Shared Files */}
+        {selectedConversation && (
           <div className={cn(
             "hidden lg:flex flex-col bg-white transition-all duration-300 ease-in-out relative shrink-0 h-full overflow-hidden",
             isRightPanelCollapsed ? "w-0 border-l-0" : "w-80 border-l border-slate-200"
@@ -315,81 +337,38 @@ export const ChatWorkspacePage = () => {
               "flex-1 flex flex-col w-80 shrink-0 overflow-y-auto scrollbar-hide transition-opacity duration-300 h-full",
               isRightPanelCollapsed ? "opacity-0 pointer-events-none" : "opacity-100"
             )}>
-              <div className="p-6 border-b border-slate-100">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="font-black text-slate-900 tracking-tight uppercase text-xs">Project Context</h3>
-                  {project && (
-                    <div className="flex items-center gap-2">
-                      <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-0.5 rounded uppercase">
-                        {project.status === 1 ? 'Active' : 'Pending'}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                
-                {project ? (
-                  <div className="space-y-6">
-                    <div>
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Project Title</p>
-                      <p className="text-sm font-black text-slate-900 leading-tight">{project.title}</p>
-                    </div>
-                    
-                    {currentMilestone && (
-                      <div>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Current Milestone</p>
-                        <p className="text-sm font-bold text-slate-800">{currentMilestone.title}</p>
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Total Budget</p>
-                        <p className="text-xs font-bold text-slate-900 bg-blue-50 px-2 py-1 rounded inline-block">
-                          {project.totalBudget?.toLocaleString()} Aivora Coin
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Deadline</p>
-                        <p className="text-xs font-bold text-slate-900">
-                          {project.endDate ? new Date(project.endDate).toLocaleDateString() : 'N/A'}
-                        </p>
-                      </div>
-                    </div>
-
-                    {isProjectError && (
-                      <ProjectContextNotice
-                        message={(projectError as Error)?.message || 'Project data unavailable'}
-                        onRetry={refetchProject}
-                      />
-                    )}
-                  </div>
-                ) : isProjectError ? (
-                  <ProjectContextNotice
-                    message={(projectError as Error)?.message || 'Project data unavailable'}
-                    onRetry={refetchProject}
-                  />
-                ) : (
-                  <p className="text-xs text-slate-500 font-medium italic">No project context available yet.</p>
-                )}
-
-                <div className="mt-8 p-4 bg-slate-50 rounded-lg border border-slate-100">
-                  <div className="flex gap-3">
-                    <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                    <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                      This context is visible to both parties to ensure alignment on project goals.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="font-black text-slate-900 tracking-tight uppercase text-xs">Shared Files</h3>
                 </div>
 
-                <div className="space-y-4">
-                  <p className="text-xs text-slate-500 font-medium italic">Project files will appear here when available.</p>
-                </div>
+                {sharedFiles.length > 0 ? (
+                  <div className="space-y-3">
+                    {sharedFiles.map((file) => (
+                      <a
+                        key={file.id}
+                        href={file.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="group flex items-start gap-3 rounded-lg border border-slate-100 bg-slate-50 p-3 transition-colors hover:border-blue-100 hover:bg-blue-50"
+                      >
+                        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white text-blue-600 shadow-sm">
+                          <FileText className="size-4" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-black text-slate-900 group-hover:text-blue-700">{file.name}</span>
+                          <span className="mt-1 block text-xs font-medium text-slate-500">
+                            {file.senderName}
+                            {file.createdAt ? ` - ${new Date(file.createdAt).toLocaleDateString()}` : ''}
+                          </span>
+                        </span>
+                        <ExternalLink className="mt-1 size-4 shrink-0 text-slate-300 group-hover:text-blue-500" />
+                      </a>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500 font-medium italic">Shared files will appear here when available.</p>
+                )}
               </div>
             </div>
           </div>

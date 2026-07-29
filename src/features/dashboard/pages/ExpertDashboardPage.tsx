@@ -11,6 +11,7 @@ import { walletService } from '@/features/wallet/services';
 import { proposalService } from '@/features/proposals/services';
 import { servicesFeatureApi } from '@/features/services/services';
 import { ServiceStatus } from '@/features/services/types';
+import { JobInvitationsSection } from '@/features/jobs/components/JobInvitationsSection';
 import { ProjectStatus } from '@/shared/types/enums';
 import { useAuthStore } from '@/features/auth/store';
 import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
@@ -315,6 +316,10 @@ export const ExpertDashboardPage = () => {
             <AccountOverviewSection cards={summaryCards} />
           </div>
 
+          <div className="mt-7">
+            <JobInvitationsSection />
+          </div>
+
           <h2 className="mt-7 text-lg font-bold text-slate-900">Choose how to get started</h2>
 
           <div className="mt-5 rounded-2xl bg-white/70 px-5 py-6 sm:px-6 lg:px-7">
@@ -461,6 +466,8 @@ export const ExpertDashboardPage = () => {
       </section>
 
       <AccountOverviewSection cards={summaryCards} />
+
+      <JobInvitationsSection />
 
       <div className="grid gap-7 xl:grid-cols-[minmax(0,65fr)_minmax(320px,35fr)]">
         <section className="rounded-2xl bg-white/70 px-5 py-6 sm:px-6 lg:px-7">

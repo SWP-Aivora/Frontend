@@ -12,6 +12,12 @@ interface ClientServiceRequestsPageProps {
 
 const requestListParams = { PageIndex: 1, PageSize: 20 };
 
+const formatCoin = (value: unknown) => (
+  typeof value === 'number' && Number.isFinite(value)
+    ? `${value.toLocaleString()} Aivora Coin`
+    : 'Not specified'
+);
+
 export const ClientServiceRequestsPage = ({ showHeader = true }: ClientServiceRequestsPageProps) => {
   const { data, isLoading, isError } = useQuery({
     queryKey: QUERY_KEYS.SERVICES.CLIENT_REQUESTS(requestListParams),
@@ -54,7 +60,7 @@ export const ClientServiceRequestsPage = ({ showHeader = true }: ClientServiceRe
                 </div>
                 <h2 className="mt-3 text-xl font-black text-slate-900">{request.serviceTitle || 'Service request'}</h2>
                 <p className="mt-1 text-sm font-medium text-slate-500">Expert: {request.expertName || request.expertId}</p>
-                <p className="mt-2 text-sm font-bold text-emerald-700">{request.packageTitle} - {request.packagePrice.toLocaleString()} Aivora Coin</p>
+                <p className="mt-2 text-sm font-bold text-emerald-700">{request.packageTitle} - {formatCoin(request.packagePrice)}</p>
                 {request.note && <p className="mt-2 line-clamp-2 text-sm font-medium leading-6 text-slate-500">{request.note}</p>}
               </div>
               <Button asChild className="rounded-full">

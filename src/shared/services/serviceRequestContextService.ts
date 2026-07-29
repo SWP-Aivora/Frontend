@@ -8,6 +8,8 @@ type ApiRecord = Record<string, unknown>;
 export interface ServiceRequestContext {
   id: string;
   serviceId: string;
+  serviceTitle?: string | null;
+  packageTitle?: string | null;
 }
 
 const getRecord = (value: unknown): ApiRecord => (
@@ -29,6 +31,8 @@ const normalizeServiceRequestContext = (value: unknown): ServiceRequestContext =
   return {
     id: getString(item, 'id', 'Id'),
     serviceId: getString(item, 'serviceId', 'ServiceId'),
+    serviceTitle: getString(item, 'serviceTitle', 'ServiceTitle') || null,
+    packageTitle: getString(item, 'packageTitle', 'PackageTitle') || null,
   };
 };
 

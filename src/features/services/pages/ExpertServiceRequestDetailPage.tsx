@@ -8,7 +8,7 @@ import { Input } from '@/shared/components/ui/Input';
 import { Textarea } from '@/shared/components/ui/Textarea';
 import { QUERY_KEYS } from '@/shared/constants';
 import { servicesFeatureApi } from '../services';
-import { ServiceRequestStatus, type CreateServiceOfferPayload, type ServiceOffer, type ServiceOfferMilestone } from '../types';
+import { ServiceOfferStatus, ServiceRequestStatus, type CreateServiceOfferPayload, type ServiceOffer, type ServiceOfferMilestone } from '../types';
 import { ServiceRequestStatusBadge } from '../components/ServiceStatusBadge';
 import { serviceOfferSchema } from '../schema';
 
@@ -16,16 +16,44 @@ const createDefaultMilestones = (): ServiceOfferMilestone[] => [
   { title: '', description: '', amount: 1, dueDays: 7, acceptanceCriteria: '', orderIndex: 0 },
 ];
 
+const cloneOfferMilestones = (offer: ServiceOffer): ServiceOfferMilestone[] => (
+  offer.milestones.length > 0
+    ? offer.milestones.map((milestone, index) => ({
+        id: milestone.id,
+        title: milestone.title,
+        description: milestone.description ?? '',
+        amount: milestone.amount,
+        dueDays: milestone.dueDays,
+        acceptanceCriteria: milestone.acceptanceCriteria ?? '',
+        orderIndex: milestone.orderIndex ?? index,
+      }))
+    : createDefaultMilestones()
+);
+
+const formatCoin = (value: unknown) => (
+  typeof value === 'number' && Number.isFinite(value)
+    ? `${value.toLocaleString()} Aivora Coin`
+    : 'Not specified'
+);
+
+const formatDays = (value: unknown) => (
+  typeof value === 'number' && Number.isFinite(value)
+    ? `${value} days`
+    : 'Not specified'
+);
+
 export const ExpertServiceRequestDetailPage = () => {
   const { serviceId = '', requestId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [milestones, setMilestones] = useState<ServiceOfferMilestone[]>(createDefaultMilestones);
   const [sentOffer, setSentOffer] = useState<ServiceOffer | null>(null);
+  const [isEditingOffer, setIsEditingOffer] = useState(false);
 
   useEffect(() => {
     setMilestones(createDefaultMilestones());
     setSentOffer(null);
+    setIsEditingOffer(false);
   }, [requestId]);
 
   const { data: serviceData, isLoading: isServiceLoading } = useQuery({
@@ -50,6 +78,17 @@ export const ExpertServiceRequestDetailPage = () => {
   const offerValidationMessage = offerValidation.success ? null : offerValidation.error.issues[0]?.message ?? 'Please complete the final offer fields.';
   const isPending = String(request?.status ?? '').toUpperCase() === ServiceRequestStatus.PENDING;
   const isAccepted = String(request?.status ?? '').toUpperCase() === ServiceRequestStatus.ACCEPTED;
+  const displayOffer = sentOffer ?? request?.offer ?? null;
+  const displayOfferStatus = String(displayOffer?.status ?? '').toUpperCase();
+  const canReviseOffer = Boolean(displayOffer && displayOfferStatus !== ServiceOfferStatus.ACCEPTED);
+  const shouldShowOfferForm = isAccepted && (!displayOffer || isEditingOffer);
+
+  useEffect(() => {
+    if (!request?.offer) return;
+    setSentOffer(request.offer);
+    setMilestones(cloneOfferMilestones(request.offer));
+    setIsEditingOffer(false);
+  }, [request?.offer?.id]);
 
   const acceptMutation = useMutation({
     mutationFn: () => servicesFeatureApi.acceptServiceRequest(requestId!),
@@ -78,7 +117,9 @@ export const ExpertServiceRequestDetailPage = () => {
     onSuccess: (response) => {
       if (response.data) {
         setSentOffer(response.data);
+        setMilestones(cloneOfferMilestones(response.data));
       }
+      setIsEditingOffer(false);
       toast.success('Final offer sent to client.');
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SERVICES.SERVICE_REQUESTS(serviceId) });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SERVICES.REQUEST_DETAIL(requestId ?? '') });
@@ -88,8 +129,6 @@ export const ExpertServiceRequestDetailPage = () => {
   });
 
   const submitOffer = () => {
-    if (sentOffer) return;
-
     if (!offerValidation.success) {
       toast.error(offerValidationMessage ?? 'Please check final offer fields.');
       return;
@@ -117,7 +156,7 @@ export const ExpertServiceRequestDetailPage = () => {
     return (
       <div className="space-y-6">
         <Button variant="outline" onClick={() => navigate(`/expert/services/${serviceId}/requests`)} className="rounded-full">
-          Back to requests
+          Back to Service Page
         </Button>
         <section className="rounded-lg border border-slate-100 bg-white p-8 text-center shadow-sm">
           <h1 className="text-2xl font-black text-slate-900">Service request not found</h1>
@@ -143,7 +182,7 @@ export const ExpertServiceRequestDetailPage = () => {
         </nav>
         <button onClick={() => navigate(`/expert/services/${serviceId}/requests`)} className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-primary">
           <ArrowLeft className="size-4" />
-          Back to Requests
+          Back to Service Page
         </button>
       </div>
 
@@ -158,8 +197,7 @@ export const ExpertServiceRequestDetailPage = () => {
             <Button
               type="button"
               variant="outline"
-              disabled
-              title="Opening the existing General Inquiry chat from here requires a direct conversation lookup API."
+              onClick={() => navigate(`/expert/messages?serviceRequestId=${request.id}`)}
               className="rounded-full"
             >
               <MessageSquare className="mr-2 size-4" />
@@ -178,9 +216,9 @@ export const ExpertServiceRequestDetailPage = () => {
           </div>
         </div>
         <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <Info label="Package" value={request.packageTitle} />
-          <Info label="Package Price" value={`${request.packagePrice.toLocaleString()} Aivora Coin`} />
-          <Info label="Delivery" value={`${request.packageDeliveryDays} days`} />
+          <Info label="Package" value={request.packageTitle || 'Not specified'} />
+          <Info label="Package Price" value={formatCoin(request.packagePrice)} />
+          <Info label="Delivery" value={formatDays(request.packageDeliveryDays)} />
         </div>
         <div className="mt-5 rounded-lg bg-slate-50 p-4">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Client note</p>
@@ -188,28 +226,63 @@ export const ExpertServiceRequestDetailPage = () => {
         </div>
       </section>
 
-      {isAccepted && (
+      {(isAccepted || displayOffer) && (
         <section className="rounded-lg border border-slate-100 bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-xl font-black text-slate-900">Create final offer</h2>
+              <h2 className="text-xl font-black text-slate-900">Final offer</h2>
               <p className="mt-1 text-sm font-medium text-slate-500">
-                {sentOffer ? 'Final offer has been sent to the client.' : 'Send a final offer with milestones for this accepted request.'}
+                {displayOffer ? 'Review the offer sent for this request, or revise it before the client accepts.' : 'Send a final offer with milestones for this accepted request.'}
               </p>
             </div>
           </div>
-          {sentOffer && (
+
+          {displayOffer && !isEditingOffer && (
             <div className="mt-5 rounded-lg border border-emerald-100 bg-emerald-50 p-4">
-              <h3 className="flex items-center gap-2 text-base font-black text-emerald-900">
-                <CheckCircle2 className="size-5 text-emerald-600" />
-                Final offer sent
-              </h3>
-              <p className="mt-2 text-sm font-medium text-emerald-800">
-                Total: {sentOffer.amount.toLocaleString()} Aivora Coin · {sentOffer.milestones.length} milestone{sentOffer.milestones.length === 1 ? '' : 's'}
-              </p>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h3 className="flex items-center gap-2 text-base font-black text-emerald-900">
+                    <CheckCircle2 className="size-5 text-emerald-600" />
+                    {displayOfferStatus === ServiceOfferStatus.ACCEPTED ? 'Final offer accepted' : 'Final offer sent'}
+                  </h3>
+                  <p className="mt-2 text-sm font-medium text-emerald-800">
+                    Total: {formatCoin(displayOffer.amount)} - {displayOffer.milestones.length} milestone{displayOffer.milestones.length === 1 ? '' : 's'}
+                  </p>
+                </div>
+                {canReviseOffer && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setMilestones(cloneOfferMilestones(displayOffer));
+                      setIsEditingOffer(true);
+                    }}
+                    className="rounded-full border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50"
+                  >
+                    Revise Offer
+                  </Button>
+                )}
+              </div>
+              {displayOffer.milestones.length > 0 && (
+                <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
+                  {displayOffer.milestones.map((milestone, index) => (
+                    <div key={milestone.id ?? index} className="rounded-lg border border-emerald-100 bg-white/80 p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="font-black text-slate-900">{milestone.title}</p>
+                        <p className="shrink-0 text-sm font-black text-emerald-700">{formatCoin(milestone.amount)}</p>
+                      </div>
+                      <p className="mt-1 text-xs font-bold uppercase tracking-widest text-slate-400">{formatDays(milestone.dueDays)}</p>
+                      {milestone.description && (
+                        <p className="mt-2 text-sm font-medium leading-6 text-slate-600">{milestone.description}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
-          {!sentOffer && (
+
+          {shouldShowOfferForm && (
             <fieldset disabled={offerMutation.isPending} className="mt-5 space-y-4 disabled:opacity-60">
               <FinalOfferField label="Final offer amount">
                 <Input
@@ -221,6 +294,11 @@ export const ExpertServiceRequestDetailPage = () => {
                   className="cursor-not-allowed bg-slate-50 font-bold text-slate-700"
                 />
               </FinalOfferField>
+              {displayOffer && (
+                <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm font-semibold text-blue-800">
+                  You are revising the sent offer. Sending will create a new final offer for the client to review.
+                </div>
+              )}
               {milestones.map((milestone, index) => (
                 <div key={index} className="rounded-lg border border-slate-100 bg-slate-50/60 p-4">
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_120px_120px_40px]">
@@ -255,6 +333,19 @@ export const ExpertServiceRequestDetailPage = () => {
                   Add Milestone
                 </Button>
                 <div className="flex flex-col items-start gap-2 sm:items-end">
+                  {displayOffer && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => {
+                        setMilestones(cloneOfferMilestones(displayOffer));
+                        setIsEditingOffer(false);
+                      }}
+                      className="rounded-full"
+                    >
+                      Cancel Revision
+                    </Button>
+                  )}
                   <Button
                     type="button"
                     disabled={offerMutation.isPending || !offerValidation.success}
@@ -263,7 +354,7 @@ export const ExpertServiceRequestDetailPage = () => {
                     title={!offerValidation.success ? offerValidationMessage ?? undefined : undefined}
                   >
                     <Send className="mr-2 size-4" />
-                    {offerMutation.isPending ? 'Sending...' : 'Send Final Offer'}
+                    {offerMutation.isPending ? 'Sending...' : displayOffer ? 'Send Revised Offer' : 'Send Final Offer'}
                   </Button>
                   {offerValidationMessage && (
                     <p className="max-w-sm text-left text-xs font-bold text-amber-700 sm:text-right">{offerValidationMessage}</p>

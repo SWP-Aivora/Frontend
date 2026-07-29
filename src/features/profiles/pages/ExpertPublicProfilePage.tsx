@@ -1,10 +1,11 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import * as Dialog from '@radix-ui/react-dialog';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { 
   Star, MapPin, ShieldCheck, 
-  Briefcase, Clock, ChevronLeft, X, Calendar, DollarSign, Users
+  Briefcase, Clock, ChevronLeft, X, Calendar, DollarSign, Users, UserPlus
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { profileService } from '../services';
@@ -12,6 +13,8 @@ import { reviewService } from '@/features/reviews/services';
 import { projectService } from '@/features/projects/services';
 import type { Project } from '@/features/projects/types';
 import { chatService } from '@/features/chat/services';
+import { jobService } from '@/features/jobs/services';
+import type { Job } from '@/features/jobs/types';
 import { getErrorMessage } from '@/lib/api-utils';
 import { AvailabilityStatus, Role } from '@/shared/types/enums';
 import { useAuthStore } from '@/features/auth/store';
@@ -35,6 +38,8 @@ export const ExpertPublicProfilePage = () => {
   const currentUserId = useAuthStore((state) => state.user?.id);
   const isClient = useAuthStore((state) => state.user?.role === Role.CLIENT);
   const [selectedCompletedProject, setSelectedCompletedProject] = useState<Project | null>(null);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [selectedInviteJobId, setSelectedInviteJobId] = useState('');
 
   const expertId = id || '';
 
@@ -73,6 +78,16 @@ export const ExpertPublicProfilePage = () => {
     enabled: !!selectedCompletedProject?.id,
   });
 
+  const { data: openJobsResponse, isLoading: isLoadingOpenJobs } = useQuery({
+    queryKey: ['jobs', 'my', 'open', 'invite-expert'],
+    queryFn: () => jobService.getMyJobs({ PageIndex: 1, PageSize: 100, status: 1 }),
+    enabled: isClient && isInviteModalOpen,
+  });
+  const openJobs = (openJobsResponse?.data ?? []).filter((job: Job) => {
+    const normalizedStatus = String(job.status ?? '').toUpperCase();
+    return job.status === 1 || normalizedStatus === 'OPEN' || normalizedStatus === 'PUBLISHED';
+  });
+
   // 4. Initialize Chat Mutation
   const initChatMutation = useMutation({
     mutationFn: async () => {
@@ -103,6 +118,19 @@ export const ExpertPublicProfilePage = () => {
     onError: (error) => {
       toast.error(getErrorMessage(error, 'Failed to initiate conversation. Please try again.'));
     }
+  });
+
+  const inviteMutation = useMutation({
+    mutationFn: (jobId: string) => jobService.createInvite(jobId, expertId),
+    onSuccess: () => {
+      toast.success('Job invite sent.');
+      setIsInviteModalOpen(false);
+      setSelectedInviteJobId('');
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Failed to invite expert to this job.'));
+    },
   });
 
   const isLoading = isProfileLoading || isReviewsLoading || isProjectsLoading;
@@ -393,10 +421,93 @@ export const ExpertPublicProfilePage = () => {
                 </Button>
 
                 {isClient && currentUserId !== profile?.userId && (
-                  <DirectTransferModal 
-                    recipientId={profile?.userId || ''} 
-                    recipientName={name} 
-                  />
+                  <>
+                    <DirectTransferModal 
+                      recipientId={profile?.userId || ''} 
+                      recipientName={name} 
+                    />
+                    <Dialog.Root
+                      open={isInviteModalOpen}
+                      onOpenChange={(open) => {
+                        if (inviteMutation.isPending) return;
+                        setIsInviteModalOpen(open);
+                        if (!open) setSelectedInviteJobId('');
+                      }}
+                    >
+                      <Dialog.Trigger asChild>
+                        <Button className="w-full rounded-lg bg-emerald-600 hover:bg-emerald-700 font-bold h-11 text-sm">
+                          <UserPlus className="mr-2 size-4" />
+                          Invite to Job
+                        </Button>
+                      </Dialog.Trigger>
+                      <Dialog.Portal>
+                        <Dialog.Overlay className="fixed inset-0 z-[60] bg-slate-900/40 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0" />
+                        <Dialog.Content className="fixed left-1/2 top-1/2 z-[61] w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95">
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <Dialog.Title className="text-xl font-black text-slate-900">
+                                Invite to Job
+                              </Dialog.Title>
+                              <Dialog.Description className="mt-1 text-sm font-medium leading-6 text-slate-500">
+                                Choose one of your published open job posts for {name || 'this expert'}.
+                              </Dialog.Description>
+                            </div>
+                            <Dialog.Close asChild>
+                              <button
+                                type="button"
+                                disabled={inviteMutation.isPending}
+                                className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-400 transition-colors hover:text-slate-900 disabled:opacity-50"
+                                aria-label="Close invite dialog"
+                              >
+                                <X className="size-4" />
+                              </button>
+                            </Dialog.Close>
+                          </div>
+
+                          <div className="mt-5 space-y-2">
+                            <label htmlFor="invite-job-select" className="text-xs font-black uppercase tracking-widest text-slate-500">
+                              Open job post
+                            </label>
+                            <select
+                              id="invite-job-select"
+                              value={selectedInviteJobId}
+                              onChange={(event) => setSelectedInviteJobId(event.target.value)}
+                              disabled={isLoadingOpenJobs || inviteMutation.isPending || openJobs.length === 0}
+                              className="h-12 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-bold text-slate-800 outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              <option value="">
+                                {isLoadingOpenJobs ? 'Loading open jobs...' : openJobs.length > 0 ? 'Select job post' : 'No open job posts available'}
+                              </option>
+                              {openJobs.map((job) => (
+                                <option key={job.id} value={job.id}>
+                                  {job.title}
+                                </option>
+                              ))}
+                            </select>
+                            <p className="text-xs font-medium leading-5 text-slate-500">
+                              Only published jobs that are still open for proposals can be invited.
+                            </p>
+                          </div>
+
+                          <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                            <Dialog.Close asChild>
+                              <Button type="button" variant="outline" disabled={inviteMutation.isPending} className="rounded-full px-6">
+                                Close
+                              </Button>
+                            </Dialog.Close>
+                            <Button
+                              type="button"
+                              disabled={!selectedInviteJobId || inviteMutation.isPending}
+                              onClick={() => inviteMutation.mutate(selectedInviteJobId)}
+                              className="rounded-full px-6"
+                            >
+                              {inviteMutation.isPending ? 'Inviting...' : 'Invite'}
+                            </Button>
+                          </div>
+                        </Dialog.Content>
+                      </Dialog.Portal>
+                    </Dialog.Root>
+                  </>
                 )}
               </div>
             </div>
