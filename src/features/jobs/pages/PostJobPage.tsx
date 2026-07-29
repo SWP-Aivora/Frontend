@@ -957,8 +957,12 @@ export const PostJobPage = () => {
         return null;
       }
 
-      const response = await createDraftJobMutation.mutateAsync(createData);
-      return response.data?.id ? { id: response.data.id } : null;
+      try {
+        const response = await createDraftJobMutation.mutateAsync(createData);
+        return response.data?.id ? { id: response.data.id } : null;
+      } catch {
+        return null;
+      }
     }
 
     const acceptRequest = buildAcceptRequest();
@@ -966,8 +970,12 @@ export const PostJobPage = () => {
       return null;
     }
 
-    const response = await acceptMutation.mutateAsync(acceptRequest);
-    return response.data?.job ?? null;
+    try {
+      const response = await acceptMutation.mutateAsync(acceptRequest);
+      return response.data?.job ?? null;
+    } catch {
+      return null;
+    }
   };
 
   const handleSaveDraft = async (values: JobDraftFormValues) => {
@@ -1150,10 +1158,14 @@ export const PostJobPage = () => {
         return;
       }
 
-      await updateDraftJobMutation.mutateAsync({
-        jobId,
-        data: updateData,
-      });
+      try {
+        await updateDraftJobMutation.mutateAsync({
+          jobId,
+          data: updateData,
+        });
+      } catch {
+        return;
+      }
       publishMutation.mutate(jobId);
     }
   };
