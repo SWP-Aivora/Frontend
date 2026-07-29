@@ -10,7 +10,7 @@ import {
   Loader2, 
   ArrowRight, 
   Search,
-  Filter,
+  ArrowDownUp,
   Calendar,
   Briefcase
 } from 'lucide-react';
@@ -56,6 +56,9 @@ export const ExpertMyProposalsPage = () => {
   const proposals = response?.data || [];
   const projects = projectsResponse?.data || [];
   const [filter, setFilter] = useState<'all' | 'pending' | 'accepted' | 'declined'>('all');
+  const [searchInput, setSearchInput] = useState('');
+  const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
+  const [sortMode, setSortMode] = useState<'none' | 'submittedDay'>('none');
   const [proposalIdToWithdraw, setProposalIdToWithdraw] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
@@ -98,11 +101,36 @@ export const ExpertMyProposalsPage = () => {
     return project ? `/expert/projects/${project.id}/workspace` : '/expert/my-jobs';
   };
 
-  // Filter proposals by status (Pending, Accepted, Declined).
-  const filteredProposals = proposals.filter(p => {
-    if (filter === 'all') return true;
-    return getStatusKey(p.status) === filter;
-  });
+  const handleSearch = () => {
+    setAppliedSearchTerm(searchInput.trim());
+  };
+
+  // Filter proposals by status (Pending, Accepted, Declined) and the last submitted search.
+  const filteredProposals = proposals
+    .filter(p => {
+      if (filter !== 'all' && getStatusKey(p.status) !== filter) return false;
+
+      const normalizedSearch = appliedSearchTerm.toLowerCase();
+      if (!normalizedSearch) return true;
+
+      const searchableText = [
+        getDisplayJobTitle(p.jobTitle, p.jobId),
+        getCoverLetterPreview(p.coverLetter),
+        p.jobId,
+        String(p.proposedBudget ?? ''),
+        String(p.proposedTimelineDays ?? ''),
+      ].join(' ').toLowerCase();
+
+      return searchableText.includes(normalizedSearch);
+    })
+    .sort((a, b) => {
+      if (sortMode === 'none') return 0;
+
+      const dateA = new Date(a.createdAt || a.submittedAt || 0).getTime();
+      const dateB = new Date(b.createdAt || b.submittedAt || 0).getTime();
+
+      return dateB - dateA;
+    });
 
   if (isLoading || isProjectsLoading) {
     return (
@@ -182,12 +210,31 @@ export const ExpertMyProposalsPage = () => {
               <input 
                 type="text" 
                 placeholder="Search proposals..." 
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
                 className="w-full h-11 pl-10 pr-4 rounded-lg bg-slate-50 border-none focus:ring-2 focus:ring-brand-blue-dark/20 text-sm"
               />
            </div>
-           <Button variant="outline" size="icon" className="h-11 w-11 rounded-lg border-slate-100 shrink-0">
-              <Filter className="size-4 text-slate-500" />
+           <Button
+             type="button"
+             onClick={handleSearch}
+             className="h-11 rounded-lg px-5 bg-brand-blue-dark hover:bg-brand-blue-dark/90 shrink-0"
+           >
+              <Search className="size-4 mr-2" />
+              Search
            </Button>
+           <div className="relative shrink-0">
+              <ArrowDownUp className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-500" />
+              <select
+                value={sortMode}
+                onChange={(event) => setSortMode(event.target.value as 'none' | 'submittedDay')}
+                aria-label="Sort proposals"
+                className="h-11 rounded-lg border border-slate-100 bg-white pl-9 pr-8 text-sm font-bold text-slate-600 focus:ring-2 focus:ring-brand-blue-dark/20"
+              >
+                <option value="none">No sorted</option>
+                <option value="submittedDay">Day submitted</option>
+              </select>
+           </div>
         </div>
       </div>
 

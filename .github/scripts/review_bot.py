@@ -86,8 +86,11 @@ PASS_INSTRUCTIONS = {
 }
 
 OUTPUT_FORMAT_INSTRUCTIONS = """## Output Format
-Respond with ONLY valid JSON, no markdown fences, no extra text. Only report issues you have at least
-moderate confidence in (skip pure style nits or things a linter would catch):
+Respond with ONLY one valid JSON object. Do not wrap it in Markdown fences. Do not include any
+explanation before or after the JSON. Use double-quoted JSON strings, no comments, and no trailing
+commas. The response must be parseable by Python `json.loads()` exactly as returned.
+
+Only report issues you have at least moderate confidence in (skip pure style nits or things a linter would catch):
 {
   "summary": "Brief 1-2 sentence summary of the PR changes",
   "issues": [
@@ -187,7 +190,11 @@ def changed_files(diff):
 
 
 def strip_json_fences(text):
-    return re.sub(r'^```json\s*|^```\s*|```$', '', text.strip(), flags=re.MULTILINE)
+    stripped = text.strip()
+    fence_match = re.fullmatch(r'```(?:json|JSON)?\s*(.*?)\s*```', stripped, flags=re.DOTALL)
+    if fence_match:
+        return fence_match.group(1).strip()
+    return re.sub(r'^```(?:json|JSON)?\s*|^```\s*|```$', '', stripped, flags=re.MULTILINE).strip()
 
 
 def escape_invalid_json_backslashes(text):
@@ -202,10 +209,10 @@ def escape_invalid_json_backslashes(text):
 
 
 def parse_json_response(text):
+    cleaned = strip_json_fences(text)
     try:
-        return json.loads(text)
+        return json.loads(cleaned)
     except json.JSONDecodeError:
-        cleaned = strip_json_fences(text)
         # Gemini occasionally appends extra content after the JSON object
         # (e.g. a repeated/explanatory second blob) - take just the first value.
         try:
@@ -241,6 +248,17 @@ def b64_decode_str(s):
 
 def b64_decode_json(s):
     return json.loads(b64_decode_str(s))
+
+
+def log_raw_gemini_response(label, text, max_chars=4000):
+    """Log enough raw model output to debug parse failures without flooding CI logs."""
+    safe_label = re.sub(r'[^A-Za-z0-9_.:-]+', '-', label)
+    preview = text[:max_chars]
+    if len(text) > max_chars:
+        preview += f"\n... [truncated raw response: {len(text)} chars total] ..."
+    print(f"::group::Raw Gemini response ({safe_label})")
+    print(json.dumps(preview, ensure_ascii=False))
+    print("::endgroup::")
 
 
 # ---------------------------------------------------------------------------
@@ -422,6 +440,31 @@ def call_gemini(prompt, api_key, primary_model, fallback_model=FALLBACK_MODEL_DE
             print(f"::warning::Gemini call with model {model} failed: {e}")
             last_err = e
     raise RuntimeError(f"Gemini call failed on all attempted models {models_to_try}: {last_err}")
+
+
+def call_gemini_json(prompt, api_key, primary_model, fallback_model=FALLBACK_MODEL_DEFAULT, label="json", max_parse_attempts=2):
+    retry_prompt = prompt
+    last_err = None
+
+    for attempt in range(1, max_parse_attempts + 1):
+        response_text = call_gemini(retry_prompt, api_key, primary_model, fallback_model)
+        try:
+            return parse_json_response(response_text)
+        except json.JSONDecodeError as e:
+            last_err = e
+            log_raw_gemini_response(f"{label}-parse-failure-attempt-{attempt}", response_text)
+            if attempt == max_parse_attempts:
+                break
+
+            retry_prompt = (
+                f"{prompt}\n\n"
+                "## Retry Instruction\n"
+                "Your previous response was not valid JSON and failed Python json.loads(). "
+                f"The parser error was: {e}. Return ONLY the corrected JSON object, with no "
+                "Markdown code fences, no prose, no comments, no trailing commas, and no truncated strings."
+            )
+
+    raise RuntimeError(f"Gemini returned invalid JSON after {max_parse_attempts} attempt(s): {last_err}")
 
 
 # ---------------------------------------------------------------------------
@@ -610,8 +653,7 @@ def cmd_pass(args):
 
     print(f"Calling Gemini ({model}) for pass '{args.pass_name}'...")
     try:
-        response_text = call_gemini(prompt, api_key, model, fallback_model)
-        result = parse_json_response(response_text)
+        result = call_gemini_json(prompt, api_key, model, fallback_model, label=f"pass-{args.pass_name}")
         issues = result.get("issues", [])
     except Exception as e:
         print(f"::error::Pass '{args.pass_name}' failed: {e}")
@@ -659,8 +701,7 @@ def cmd_verify(_args):
     )
     print(f"Calling Gemini ({model}) to verify {len(all_issues)} candidate issue(s)...")
     try:
-        response_text = call_gemini(prompt, api_key, model, fallback_model)
-        result = parse_json_response(response_text)
+        result = call_gemini_json(prompt, api_key, model, fallback_model, label="verify")
         summary = result.get("summary", "No summary provided.")
         scored_issues = result.get("issues", [])
     except Exception as e:

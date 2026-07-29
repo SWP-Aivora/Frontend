@@ -8,6 +8,18 @@ import { servicesFeatureApi } from '../services';
 import { ServiceOfferStatus, type ServiceOfferMilestone } from '../types';
 import { ServiceRequestStatusBadge } from '../components/ServiceStatusBadge';
 
+const formatCoin = (value: unknown) => (
+  typeof value === 'number' && Number.isFinite(value)
+    ? `${value.toLocaleString()} Aivora Coin`
+    : 'Not specified'
+);
+
+const formatDays = (value: unknown) => (
+  typeof value === 'number' && Number.isFinite(value)
+    ? `${value} days`
+    : 'Not specified'
+);
+
 export const ClientServiceRequestDetailPage = () => {
   const navigate = useNavigate();
   const { requestId = '' } = useParams();
@@ -93,8 +105,8 @@ export const ClientServiceRequestDetailPage = () => {
 
             <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
               <Info label="Package" value={request.packageTitle} />
-              <Info label="Package Price" value={`${request.packagePrice.toLocaleString()} Aivora Coin`} />
-              <Info label="Delivery" value={`${request.packageDeliveryDays} days`} />
+              <Info label="Package Price" value={formatCoin(request.packagePrice)} />
+              <Info label="Delivery" value={formatDays(request.packageDeliveryDays)} />
             </div>
 
             <div className="mt-5 rounded-lg bg-slate-50 p-4">

@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate, useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { LoginPage } from '../features/auth/pages/LoginPage';
 import { RegisterPage } from '../features/auth/pages/RegisterPage';
 import { ProfilePage } from '../features/profiles/pages/ProfilePage';
@@ -48,6 +49,8 @@ import { ExpertServiceRequestDetailPage } from '../features/services/pages/Exper
 import { ProtectedRoute } from '../shared/components/common/ProtectedRoute';
 import { ClientLayout, ExpertLayout, AdminLayout } from '../shared/layouts';
 import { Role } from '../shared/types/enums';
+import { QUERY_KEYS } from '../shared/constants';
+import { servicesFeatureApi } from '../features/services/services';
 
 /**
  * Global Router Configuration
@@ -68,6 +71,27 @@ const LegacyClientJobProposalsRedirect = () => {
 const LegacyClientServiceRequestDetailRedirect = () => {
   const { requestId } = useParams();
   return <Navigate to={`/client/services/requests/${requestId ?? ''}`} replace />;
+};
+
+// eslint-disable-next-line react-refresh/only-export-components
+const ExpertServiceRequestDetailRedirect = () => {
+  const { requestId = '' } = useParams();
+  const { data, isLoading } = useQuery({
+    queryKey: QUERY_KEYS.SERVICES.REQUEST_DETAIL(requestId),
+    queryFn: () => servicesFeatureApi.getServiceRequestById(requestId),
+    enabled: Boolean(requestId),
+  });
+
+  if (!requestId) {
+    return <Navigate to="/expert/services" replace />;
+  }
+
+  if (isLoading) {
+    return <div className="flex justify-center py-20"><div className="size-12 animate-spin rounded-full border-4 border-primary/20 border-t-primary" /></div>;
+  }
+
+  const serviceId = data?.data?.serviceId;
+  return <Navigate to={serviceId ? `/expert/services/${serviceId}/requests/${requestId}` : '/expert/services'} replace />;
 };
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -165,7 +189,7 @@ export const router = createBrowserRouter([
       { path: 'services', element: <ExpertServicesPage /> },
       { path: 'services/new', element: <ExpertServiceFormPage /> },
       { path: 'services/requests', element: <ExpertServiceRequestsPage /> },
-      { path: 'services/requests/:requestId', element: <Navigate to="/expert/services" replace /> },
+      { path: 'services/requests/:requestId', element: <ExpertServiceRequestDetailRedirect /> },
       { path: 'services/:serviceId/edit', element: <ExpertServiceFormPage /> },
       { path: 'services/:serviceId/requests', element: <ExpertServiceRequestsPage /> },
       { path: 'services/:serviceId/requests/:requestId', element: <ExpertServiceRequestDetailPage /> },

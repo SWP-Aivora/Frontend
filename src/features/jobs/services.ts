@@ -11,6 +11,7 @@ import type {
   AcceptAiJobSuggestionResult,
   JobInvite,
   UserBasicInfo,
+  AcceptedJobMilestone,
 } from './types';
 import type { BaseResponse, PaginatedResponse } from '@/shared/types/api';
 import { normalizePaginatedResponse, normalizeBaseResponse } from '@/lib/api-utils';
@@ -68,6 +69,7 @@ const normalizeSkillLevel = (value: unknown): SkillLevel | null => {
 const normalizeJob = (job: Job): Job => {
   const rawJob = job as RawJob;
   const rawClient = rawJob.client ?? rawJob.Client;
+  const rawMilestones = rawJob.milestones ?? rawJob.Milestones;
   const normalizedClient = normalizeJobClient(rawClient, job.client);
   const rootClientName = getOptionalStringValue(
     rawJob,
@@ -87,6 +89,9 @@ const normalizeJob = (job: Job): Job => {
       : normalizedClient,
     budgetType: normalizeBudgetType(job.budgetType),
     experienceLevel: normalizeSkillLevel(job.experienceLevel),
+    milestones: Array.isArray(rawMilestones)
+      ? rawMilestones.map((milestone, index) => normalizeAcceptedJobMilestone(milestone, index))
+      : job.milestones ?? [],
   };
 };
 
@@ -145,6 +150,25 @@ const getOptionalNumberValue = (item: Record<string, unknown>, ...keys: string[]
   }
 
   return 0;
+};
+
+const getNullableStringValue = (item: Record<string, unknown>, ...keys: string[]): string | null => {
+  const value = getOptionalStringValue(item, ...keys);
+  return value || null;
+};
+
+const normalizeAcceptedJobMilestone = (value: unknown, index: number): AcceptedJobMilestone => {
+  const milestone = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+
+  return {
+    id: getOptionalStringValue(milestone, 'id', 'Id'),
+    title: getOptionalStringValue(milestone, 'title', 'Title'),
+    description: getNullableStringValue(milestone, 'description', 'Description'),
+    amount: getOptionalNumberValue(milestone, 'amount', 'Amount'),
+    dueDays: getOptionalNumberValue(milestone, 'dueDays', 'DueDays'),
+    acceptanceCriteria: getNullableStringValue(milestone, 'acceptanceCriteria', 'AcceptanceCriteria'),
+    orderIndex: getOptionalNumberValue(milestone, 'orderIndex', 'OrderIndex') || index,
+  };
 };
 
 const normalizeJobClient = (value: unknown, fallback?: UserBasicInfo | null): UserBasicInfo => {

@@ -4,6 +4,7 @@ import { chatService } from '../services';
 import type { SendMessagePayload, NewMessagePayload } from '../types';
 import type { Message } from '../types';
 import { useAuthStore } from '@/features/auth/store';
+import { getAttachmentFilename } from '../utils';
 
 export const useMessages = (conversationId: string, params?: Record<string, unknown>) => {
   return useQuery({
@@ -43,7 +44,7 @@ export const useRealTimeMessages = (conversationId?: string) => {
           isRead: false,
           type: message.attachmentUrl ? 'FILE' : 'TEXT',
           fileUrl: message.attachmentUrl,
-          fileName: message.attachmentUrl ? (message.attachmentUrl as string).split('/').pop() : undefined
+          fileName: getAttachmentFilename(message.attachmentUrl)
         };
 
         queryClient.setQueriesData(

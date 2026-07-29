@@ -11,7 +11,7 @@ import { Button } from '@/shared/components/ui/Button';
 import { Input } from '@/shared/components/ui/Input';
 import { cn } from '@/lib/utils';
 import type { AiJobSuggestion, SuggestedMilestone } from '../types';
-import { BudgetType } from '@/shared/types/enums';
+import { BudgetType, SkillLevel } from '@/shared/types/enums';
 import type { Category } from '@/shared/services/categoryService';
 import type { Skill } from '@/shared/services/skillService';
 import { BUDGET_RANGE_INVALID_MESSAGE, validateMilestoneBudgetTotal } from '../budgetValidation';
@@ -36,10 +36,41 @@ const requiredPositiveNumberField = (label: string) =>
   )
   .refine((value): value is number => value !== null, `${label} is required`);
 
+const coerceDraftSkillLevel = (value: unknown): SkillLevel | null => {
+  if (value === '' || value === null || value === undefined) {
+    return null;
+  }
+
+  if (value === SkillLevel.BEGINNER || value === '0' || String(value).toUpperCase() === 'BEGINNER') {
+    return SkillLevel.BEGINNER;
+  }
+
+  if (value === SkillLevel.INTERMEDIATE || value === '1' || String(value).toUpperCase() === 'INTERMEDIATE') {
+    return SkillLevel.INTERMEDIATE;
+  }
+
+  const normalized = String(value).toUpperCase();
+  if (value === SkillLevel.EXPERIENCED || value === '2' || normalized === 'EXPERIENCED' || normalized === 'ADVANCED') {
+    return SkillLevel.EXPERIENCED;
+  }
+
+  if (value === SkillLevel.EXPERT || value === '3' || normalized === 'EXPERT') {
+    return SkillLevel.EXPERT;
+  }
+
+  return null;
+};
+
 const jobDraftSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters'),
   description: z.string().min(20, 'Description must be at least 20 characters').max(5000, 'Description is too long'),
   businessDomain: z.string().trim().min(1, 'Business domain is required'),
+  experienceLevel: z
+    .preprocess(
+      coerceDraftSkillLevel,
+      z.union([z.nativeEnum(SkillLevel), z.null()])
+    )
+    .refine((value): value is SkillLevel => value !== null, 'Skill level is required'),
   budgetType: z.nativeEnum(BudgetType),
   budgetMin: requiredPositiveNumberField('Minimum budget'),
   budgetMax: requiredPositiveNumberField('Maximum budget'),
@@ -51,7 +82,7 @@ const jobDraftSchema = z.object({
     amount: requiredPositiveNumberField('Milestone amount'),
     dueDays: requiredPositiveNumberField('Milestone due days'),
     acceptanceCriteria: z.string().nullable().optional(),
-    orderIndex: z.number(),
+    orderIndex: z.number().optional(),
   })),
 }).superRefine((data, ctx) => {
   if (data.budgetMin !== null && data.budgetMax !== null && data.budgetMin > data.budgetMax) {
@@ -81,6 +112,7 @@ export type JobDraftFormValues = {
   title: string;
   description: string;
   businessDomain: string;
+  experienceLevel: SkillLevel | null;
   budgetType: BudgetType;
   budgetMin: number | null;
   budgetMax: number | null;
@@ -92,6 +124,7 @@ const getFormValuesFromSuggestion = (suggestion: AiJobSuggestion): JobDraftFormV
   title: suggestion.suggestedTitle,
   description: suggestion.suggestedDescription,
   businessDomain: suggestion.businessDomain ?? '',
+  experienceLevel: suggestion.experienceLevel,
   budgetType: suggestion.budgetType,
   budgetMin: suggestion.suggestedBudgetMin ?? null,
   budgetMax: suggestion.suggestedBudgetMax ?? null,
@@ -167,7 +200,8 @@ export const JobDraftForm = ({
   readOnlyStatusLabel,
   readOnlyMessage
 }: JobDraftFormProps) => {
-  const { register, control, handleSubmit, getValues, reset, setValue, formState: { errors, isDirty } } = useForm<JobDraftFormValues>({
+  const isFormDisabled = isReadOnly;
+  const { register, control, handleSubmit, getValues, reset, setValue, formState: { errors, isDirty, submitCount } } = useForm<JobDraftFormValues>({
     resolver: zodResolver(jobDraftSchema),
     defaultValues: getFormValuesFromSuggestion(suggestion),
   });
@@ -202,7 +236,7 @@ export const JobDraftForm = ({
   }, [reset, suggestion]);
 
   useEffect(() => {
-    if (!onDraftChange || !isDirty || isReadOnly) {
+    if (!onDraftChange || !isDirty || isFormDisabled) {
       return;
     }
 
@@ -214,16 +248,26 @@ export const JobDraftForm = ({
 
     lastDraftChangeSnapshotRef.current = serializedValues;
     onDraftChange(values);
-  }, [getValues, isDirty, isReadOnly, onDraftChange, watchedDraftValues]);
+  }, [getValues, isDirty, isFormDisabled, onDraftChange, watchedDraftValues]);
   const titleField = register('title');
   const descriptionField = register('description');
   const businessDomainField = register('businessDomain');
+  const experienceLevelField = register('experienceLevel', {
+    setValueAs: coerceDraftSkillLevel,
+  });
   const budgetMinField = register('budgetMin', { valueAsNumber: true });
   const budgetMaxField = register('budgetMax', { valueAsNumber: true });
   const timelineDaysField = register('timelineDays', { valueAsNumber: true });
   const titleErrorId = errors.title ? 'job-draft-title-error' : undefined;
   const descriptionErrorId = errors.description ? 'job-draft-description-error' : undefined;
   const businessDomainErrorId = errors.businessDomain ? 'job-draft-business-domain-error' : undefined;
+  const hasAttemptedSubmit = submitCount > 0;
+  const categoryErrorMessage = hasAttemptedSubmit && !suggestion.categoryId ? 'Category is required' : undefined;
+  const categoryErrorId = categoryErrorMessage ? 'job-draft-category-error' : undefined;
+  const experienceLevelErrorId = errors.experienceLevel ? 'job-draft-skill-level-error' : undefined;
+  const shouldRequireSkillSelection = Boolean(suggestion.categoryId && skills.length > 0 && onSkillChange);
+  const visibleSkillError = skillError
+    ?? (hasAttemptedSubmit && shouldRequireSkillSelection && selectedSkillIds.length === 0 ? 'Select at least one required skill.' : undefined);
   const budgetMinErrorId = errors.budgetMin ? 'job-draft-budget-min-error' : undefined;
   const budgetMaxErrorId = errors.budgetMax ? 'job-draft-budget-max-error' : undefined;
   const timelineErrorId = errors.timelineDays ? 'job-draft-timeline-error' : undefined;
@@ -234,6 +278,16 @@ export const JobDraftForm = ({
 
   const onSubmit: SubmitHandler<JobDraftFormValues> = (data) => {
     if (data.budgetMin === null || data.budgetMax === null || data.timelineDays === null) {
+      return;
+    }
+
+    if (!suggestion.categoryId) {
+      toast.error('Category is required');
+      return;
+    }
+
+    if (shouldRequireSkillSelection && selectedSkillIds.length === 0) {
+      toast.error('Select at least one required skill.');
       return;
     }
 
@@ -319,54 +373,57 @@ export const JobDraftForm = ({
 
             <div className="space-y-2">
               <label htmlFor="job-draft-title" className="text-xs font-bold text-slate-500 ml-1 uppercase">Job Title</label>
+              {errors.title && <p id={titleErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{errors.title.message}</p>}
               <Input 
                 id="job-draft-title"
                 {...titleField}
                 placeholder="Job Title"
                 aria-invalid={errors.title ? 'true' : 'false'}
                 aria-describedby={titleErrorId}
-                disabled={isReadOnly}
+                disabled={isFormDisabled}
                 className="h-12 rounded-lg bg-slate-50 border-slate-100 focus:bg-white text-base font-bold text-slate-900" 
               />
-              {errors.title && <p id={titleErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{errors.title.message}</p>}
             </div>
 
             <div className="space-y-2">
               <label htmlFor="job-draft-description" className="text-xs font-bold text-slate-500 ml-1 uppercase">Project Description</label>
+              {errors.description && <p id={descriptionErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{errors.description.message}</p>}
               <textarea 
                 id="job-draft-description"
                 {...descriptionField}
                 rows={6}
                 aria-invalid={errors.description ? 'true' : 'false'}
                 aria-describedby={descriptionErrorId}
-                disabled={isReadOnly}
+                disabled={isFormDisabled}
                 className="w-full p-4 rounded-lg bg-slate-50 border border-slate-100 focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all text-sm leading-relaxed text-slate-700"
               />
-              {errors.description && <p id={descriptionErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{errors.description.message}</p>}
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <label htmlFor="job-draft-business-domain" className="text-xs font-bold text-slate-500 ml-1 uppercase">Business Domain</label>
+                {errors.businessDomain && <p id={businessDomainErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{errors.businessDomain.message}</p>}
                 <Input
                   id="job-draft-business-domain"
                   {...businessDomainField}
                   placeholder="e.g., E-commerce, Healthcare"
                   aria-invalid={errors.businessDomain ? 'true' : 'false'}
                   aria-describedby={businessDomainErrorId}
-                  disabled={isReadOnly}
+                  disabled={isFormDisabled}
                   className="h-12 rounded-lg bg-slate-50 border-slate-100 focus:bg-white text-sm font-medium text-slate-900"
                 />
-                {errors.businessDomain && <p id={businessDomainErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{errors.businessDomain.message}</p>}
               </div>
 
               <div className="space-y-2">
                 <label htmlFor="job-draft-category" className="text-xs font-bold text-slate-500 ml-1 uppercase">Category</label>
+                {categoryErrorMessage && <p id={categoryErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{categoryErrorMessage}</p>}
                 <select
                   id="job-draft-category"
                   value={suggestion.categoryId ?? ''}
                   onChange={(e) => onCategoryChange(e.target.value)}
-                  disabled={isReadOnly}
+                  aria-invalid={categoryErrorMessage ? 'true' : 'false'}
+                  aria-describedby={categoryErrorId}
+                  disabled={isFormDisabled}
                   className="h-12 w-full rounded-lg border border-slate-100 bg-slate-50 px-4 text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary/5"
                 >
                   <option value="">Select category</option>
@@ -382,6 +439,11 @@ export const JobDraftForm = ({
             {suggestion.categoryId && skills.length > 0 && onSkillChange && (
               <div className="space-y-3 pt-2 text-left">
                 <label className="text-xs font-bold text-slate-500 ml-1 uppercase">Required Skills</label>
+                {visibleSkillError && (
+                  <p className="text-xs text-rose-500 font-bold ml-1" role="alert">
+                    {visibleSkillError}
+                  </p>
+                )}
                 <div className="flex flex-wrap gap-2">
                   {skills.map((skill) => {
                     const isSelected = selectedSkillIds.includes(skill.id);
@@ -390,7 +452,7 @@ export const JobDraftForm = ({
                         key={skill.id}
                         type="button"
                         aria-pressed={isSelected}
-                        disabled={isReadOnly}
+                        disabled={isFormDisabled}
                         onClick={() => onSkillChange(skill.id)}
                         className={cn(
                           "px-4 py-2 rounded-xl text-xs font-bold transition-all border duration-200",
@@ -404,13 +466,27 @@ export const JobDraftForm = ({
                     );
                   })}
                 </div>
-                {skillError && (
-                  <p className="text-xs text-rose-500 font-bold ml-1" role="alert">
-                    {skillError}
-                  </p>
-                )}
               </div>
             )}
+
+            <div className="space-y-2 pt-2">
+              <label htmlFor="job-draft-skill-level" className="text-xs font-bold text-slate-500 ml-1 uppercase">Skill Level</label>
+              {errors.experienceLevel && <p id={experienceLevelErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{errors.experienceLevel.message}</p>}
+              <select
+                id="job-draft-skill-level"
+                {...experienceLevelField}
+                aria-invalid={errors.experienceLevel ? 'true' : 'false'}
+                aria-describedby={experienceLevelErrorId}
+                disabled={isFormDisabled}
+                className="h-12 w-full rounded-lg border border-slate-100 bg-slate-50 px-4 text-sm font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary/5"
+              >
+                <option value="">Select skill level</option>
+                <option value={SkillLevel.BEGINNER}>Beginner</option>
+                <option value={SkillLevel.INTERMEDIATE}>Intermediate</option>
+                <option value={SkillLevel.EXPERIENCED}>Experienced</option>
+                <option value={SkillLevel.EXPERT}>Expert</option>
+              </select>
+            </div>
           </section>
 
           {/* Section: Budget & Timeline */}
@@ -424,36 +500,36 @@ export const JobDraftForm = ({
                   <div className="flex gap-4">
                      <div className="flex-1 space-y-2">
                         <label htmlFor="job-draft-budget-min" className="text-[10px] font-bold text-slate-400 uppercase ml-1">Min (Aivora Coin)</label>
+                        {errors.budgetMin && <p id={budgetMinErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{errors.budgetMin.message}</p>}
                         <Input
                           id="job-draft-budget-min"
                           type="number"
                           {...budgetMinField}
                           aria-invalid={errors.budgetMin ? 'true' : 'false'}
                           aria-describedby={budgetMinErrorId}
-                          disabled={isReadOnly}
+                          disabled={isFormDisabled}
                           className="h-11 rounded-lg bg-slate-50"
                         />
-                        {errors.budgetMin && <p id={budgetMinErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{errors.budgetMin.message}</p>}
                      </div>
                      <div className="flex-1 space-y-2">
                         <label htmlFor="job-draft-budget-max" className="text-[10px] font-bold text-slate-400 uppercase ml-1">Max (Aivora Coin)</label>
+                        {errors.budgetMax && <p id={budgetMaxErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{errors.budgetMax.message}</p>}
                         <Input
                           id="job-draft-budget-max"
                           type="number"
                           {...budgetMaxField}
                           aria-invalid={errors.budgetMax ? 'true' : 'false'}
                           aria-describedby={budgetMaxErrorId}
-                          disabled={isReadOnly}
+                          disabled={isFormDisabled}
                           className="h-11 rounded-lg bg-slate-50"
                         />
-                        {errors.budgetMax && <p id={budgetMaxErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{errors.budgetMax.message}</p>}
                      </div>
                   </div>
                   <div className="flex bg-slate-50 p-1 rounded-lg border border-slate-100" role="group" aria-label="Budget type">
                      <button 
                        type="button"
                        aria-pressed={watchedBudgetType === BudgetType.FIXED}
-                       disabled={isReadOnly}
+                       disabled={isFormDisabled}
                        onClick={() => {
                          setValue('budgetType', BudgetType.FIXED, { shouldValidate: true });
                       }}
@@ -465,7 +541,7 @@ export const JobDraftForm = ({
                      <button 
                        type="button"
                        aria-pressed={watchedBudgetType === BudgetType.HOURLY}
-                       disabled={isReadOnly}
+                       disabled={isFormDisabled}
                        onClick={() => {
                          setValue('budgetType', BudgetType.HOURLY, { shouldValidate: true });
                       }}
@@ -485,16 +561,16 @@ export const JobDraftForm = ({
               </div>
               <div className="space-y-2">
                 <label htmlFor="job-draft-timeline-days" className="text-[10px] font-bold text-slate-400 uppercase ml-1">Days to Complete</label>
+                {errors.timelineDays && <p id={timelineErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{errors.timelineDays.message}</p>}
                 <Input
                   id="job-draft-timeline-days"
                   type="number"
                   {...timelineDaysField}
                   aria-invalid={errors.timelineDays ? 'true' : 'false'}
                   aria-describedby={timelineErrorId}
-                  disabled={isReadOnly}
+                  disabled={isFormDisabled}
                   className="h-11 rounded-lg bg-slate-50"
                 />
-                {errors.timelineDays && <p id={timelineErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{errors.timelineDays.message}</p>}
               </div>
             </section>
           </div>
@@ -506,7 +582,7 @@ export const JobDraftForm = ({
                 <ListChecks className="size-4" />
                 <h4 id="job-draft-milestones-heading" className="text-xs font-black uppercase tracking-widest text-left">Suggested Milestones</h4>
               </div>
-              {!isReadOnly && (
+              {!isFormDisabled && (
                 <Button type="button" onClick={handleAddMilestone} variant="ghost" size="sm" className="h-8 rounded-lg text-primary text-xs font-bold gap-1">
                   <Plus className="size-3" /> Add Milestone
                 </Button>
@@ -558,50 +634,50 @@ export const JobDraftForm = ({
                             <label htmlFor={`milestone-title-${idx}`} className="text-[10px] font-bold text-slate-400 uppercase">
                               Title
                             </label>
+                            {milestoneFieldErrors?.title && <p id={milestoneTitleErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{milestoneFieldErrors.title.message}</p>}
                             <Input
                               id={`milestone-title-${idx}`}
                               title={ms.title}
                               {...register(`milestones.${idx}.title`)}
                               aria-invalid={milestoneFieldErrors?.title ? 'true' : 'false'}
                               aria-describedby={milestoneTitleErrorId}
-                              disabled={isReadOnly}
+                              disabled={isFormDisabled}
                               className="h-10 rounded-lg bg-white border-slate-200 text-sm font-bold text-slate-900"
                             />
-                            {milestoneFieldErrors?.title && <p id={milestoneTitleErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{milestoneFieldErrors.title.message}</p>}
                           </div>
                           <div className="space-y-2">
                             <label htmlFor={`milestone-amount-${idx}`} className="text-[10px] font-bold text-slate-400 uppercase">
                               Amount (Aivora Coin)
                             </label>
+                            {milestoneFieldErrors?.amount && <p id={milestoneAmountErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{milestoneFieldErrors.amount.message}</p>}
                             <Input
                               id={`milestone-amount-${idx}`}
                               type="number"
                               {...register(`milestones.${idx}.amount`, { valueAsNumber: true })}
                               aria-invalid={milestoneFieldErrors?.amount ? 'true' : 'false'}
                               aria-describedby={milestoneAmountErrorId}
-                              disabled={isReadOnly}
+                              disabled={isFormDisabled}
                               className="h-10 rounded-lg bg-white border-slate-200 text-sm font-bold text-slate-900"
                             />
-                            {milestoneFieldErrors?.amount && <p id={milestoneAmountErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{milestoneFieldErrors.amount.message}</p>}
                           </div>
                           <div className="space-y-2">
                             <label htmlFor={`milestone-due-days-${idx}`} className="text-[10px] font-bold text-slate-400 uppercase">
                               Due Days
                             </label>
+                            {milestoneFieldErrors?.dueDays && <p id={milestoneDueDaysErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{milestoneFieldErrors.dueDays.message}</p>}
                             <Input
                               id={`milestone-due-days-${idx}`}
                               type="number"
                               {...register(`milestones.${idx}.dueDays`, { valueAsNumber: true })}
                               aria-invalid={milestoneFieldErrors?.dueDays ? 'true' : 'false'}
                               aria-describedby={milestoneDueDaysErrorId}
-                              disabled={isReadOnly}
+                              disabled={isFormDisabled}
                               className="h-10 rounded-lg bg-white border-slate-200 text-sm font-bold text-slate-900"
                             />
-                            {milestoneFieldErrors?.dueDays && <p id={milestoneDueDaysErrorId} role="alert" className="text-xs text-rose-500 font-bold ml-1">{milestoneFieldErrors.dueDays.message}</p>}
                           </div>
                         </div>
                       </div>
-                      {!isReadOnly && (
+                      {!isFormDisabled && (
                         <button 
                           type="button" 
                           onClick={() => handleRemoveMilestone(idx)}
@@ -620,7 +696,7 @@ export const JobDraftForm = ({
                         id={`milestone-description-${idx}`}
                         {...register(`milestones.${idx}.description`)}
                         rows={2}
-                        disabled={isReadOnly}
+                        disabled={isFormDisabled}
                         className="w-full rounded-lg border border-slate-200 bg-white p-3 text-sm leading-relaxed text-slate-700 focus:outline-none focus:ring-4 focus:ring-primary/5"
                       />
                     </div>
@@ -642,7 +718,7 @@ export const JobDraftForm = ({
               {isReadOnly ? readOnlyStatusLabel ?? 'Locked' : canContinueToReview ? 'Review & Publish' : 'Save changes'}
             </p>
          </div>
-         {!isReadOnly && (
+         {!isFormDisabled && (
          <div className="flex items-center gap-3 w-full sm:w-auto">
             {onReject && (
               <Button

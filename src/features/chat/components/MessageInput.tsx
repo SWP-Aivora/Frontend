@@ -3,6 +3,7 @@ import { FileImage, FilePlus, Loader2, Plus, Send, X, FileIcon } from 'lucide-re
 import { Button } from '@/shared/components/ui/Button';
 import { mediaService } from '@/shared/services/mediaService';
 import { CHAT_MESSAGE_MAX_LENGTH } from '../constants';
+import { withAttachmentFilename } from '../utils';
 
 interface MessageInputProps {
   onSendMessage: (content: string, attachmentUrl?: string) => Promise<void>;
@@ -91,7 +92,7 @@ export const MessageInput = ({ onSendMessage, onTyping, disabled, disabledReason
         throw new Error(response.message || 'Upload failed');
       }
 
-      setAttachmentUrl(url);
+      setAttachmentUrl(withAttachmentFilename(url, file.name));
       setAttachmentName(file.name);
     } catch {
       setUploadError('Upload failed. Please try again.');

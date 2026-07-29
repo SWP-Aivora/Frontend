@@ -79,7 +79,12 @@ const normalizeServiceStatus = (value: unknown): string => {
 };
 
 const normalizeRequestStatus = (value: unknown): string => {
+  if (value === 1) return ServiceRequestStatus.ACCEPTED;
+  if (value === 2) return ServiceRequestStatus.DECLINED;
+
   const normalized = String(value ?? '').toUpperCase();
+  if (normalized === '1') return ServiceRequestStatus.ACCEPTED;
+  if (normalized === '2') return ServiceRequestStatus.DECLINED;
   if (normalized === ServiceRequestStatus.ACCEPTED) return ServiceRequestStatus.ACCEPTED;
   if (normalized === ServiceRequestStatus.DECLINED) return ServiceRequestStatus.DECLINED;
   return ServiceRequestStatus.PENDING;

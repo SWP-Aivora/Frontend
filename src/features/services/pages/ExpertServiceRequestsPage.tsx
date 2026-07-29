@@ -21,6 +21,12 @@ const filters: Filter[] = [
   ServiceRequestStatus.DECLINED,
 ];
 
+const formatCoin = (value: unknown) => (
+  typeof value === 'number' && Number.isFinite(value)
+    ? `${value.toLocaleString()} Aivora Coin`
+    : 'Not specified'
+);
+
 export const ExpertServiceRequestsPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -217,7 +223,7 @@ export const ExpertServiceRequestsPage = () => {
                   <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
                     <Info label="Client" value={request.clientName || request.clientId} />
                     <Info label="Service" value={request.serviceTitle || request.serviceId} />
-                    <Info label="Package" value={`${request.packageTitle} - ${request.packagePrice.toLocaleString()} Aivora Coin`} />
+                    <Info label="Package" value={`${request.packageTitle} - ${formatCoin(request.packagePrice)}`} />
                   </div>
                   <div className="mt-4 rounded-lg bg-slate-50 p-4">
                     <p className="text-xs font-black uppercase tracking-widest text-slate-400">Client note</p>

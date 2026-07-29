@@ -13,6 +13,7 @@ from review_bot import (
     filter_high_confidence,
     parse_json_response,
     parse_linked_issue,
+    strip_json_fences,
     truncate_diff,
 )
 
@@ -51,6 +52,11 @@ def test_parse_json_response_plain():
 def test_parse_json_response_with_markdown_fence():
     text = '```json\n{"summary": "ok", "issues": []}\n```'
     assert parse_json_response(text) == {"summary": "ok", "issues": []}
+
+
+def test_strip_json_fences_handles_uppercase_and_plain_fences():
+    assert strip_json_fences('```JSON\n{"ok": true}\n```') == '{"ok": true}'
+    assert strip_json_fences('```\n{"ok": true}\n```') == '{"ok": true}'
 
 
 def test_parse_json_response_with_trailing_extra_data():

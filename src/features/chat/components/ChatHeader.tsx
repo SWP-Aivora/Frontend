@@ -79,8 +79,8 @@ export const ChatHeader = ({
     if (isExpert) {
       return {
         label: 'Send Final Offer',
-        target: serviceId ? `/expert/services/${serviceId}/requests/${serviceRequestId}` : '',
-        disabled: !serviceId,
+        target: serviceId ? `/expert/services/${serviceId}/requests/${serviceRequestId}` : `/expert/services/requests/${serviceRequestId}`,
+        disabled: false,
       };
     }
 

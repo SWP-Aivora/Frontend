@@ -108,7 +108,7 @@ export interface SuggestedMilestone {
   amount?: number | null;
   dueDays?: number | null;
   acceptanceCriteria?: string | null;
-  orderIndex: number;
+  orderIndex?: number;
 }
 
 export interface AiJobSuggestion {
@@ -166,7 +166,7 @@ export interface AcceptAiJobSuggestionResult {
   job: AcceptedJobResponse;
 }
 
-export type PatchAiJobSuggestionRequest = Partial<Pick<AiJobSuggestion, 
+export type PatchAiJobSuggestionRequest = Partial<Omit<Pick<AiJobSuggestion, 
   | 'suggestedTitle' 
   | 'suggestedDescription' 
   | 'businessDomain' 
@@ -179,7 +179,10 @@ export type PatchAiJobSuggestionRequest = Partial<Pick<AiJobSuggestion,
   | 'experienceLevel' 
   | 'suggestedSkills' 
   | 'suggestedMilestones'
->>;
+>, 'budgetType' | 'experienceLevel'> & {
+  budgetType: CreateJobBudgetType | null;
+  experienceLevel: CreateJobSkillLevel | null;
+}>;
 
 export interface ExpertMatch {
   id: string;

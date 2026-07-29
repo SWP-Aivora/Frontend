@@ -9,6 +9,7 @@ import { Role } from '@/shared/types/enums';
 import type { AxiosResponse } from 'axios';
 import * as signalR from '@microsoft/signalr';
 import { CHAT_SEND_TIMEOUT_MS } from './constants';
+import { getAttachmentFilename } from './utils';
 
 interface NewMessagePayload {
   id: string;
@@ -60,8 +61,61 @@ type ChatConnectionPoolEntry = {
   startPromise: Promise<void> | null;
 };
 
+const getStringField = (item: Record<string, unknown>, ...keys: string[]): string => {
+  for (const key of keys) {
+    const value = item[key];
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return '';
+};
+
+const getConversationType = (item: Record<string, unknown>): Conversation['type'] => {
+  if (item.projectId) return 'PROJECT';
+  if (item.jobId) return 'PROPOSAL';
+  if (item.serviceRequestId) return 'SERVICE_REQUEST';
+  return 'SUPPORT';
+};
+
+const getConversationRelatedTitle = (item: Record<string, unknown>, type: Conversation['type']): string => {
+  const title = getStringField(
+    item,
+    'projectTitle',
+    'ProjectTitle',
+    'jobTitle',
+    'JobTitle',
+    'serviceRequestTitle',
+    'ServiceRequestTitle',
+    'serviceTitle',
+    'ServiceTitle',
+    'packageTitle',
+    'PackageTitle',
+    'relatedTitle',
+    'RelatedTitle',
+    'title',
+    'Title',
+  );
+
+  if (title) return title;
+
+  switch (type) {
+    case 'PROJECT':
+      return 'Project';
+    case 'PROPOSAL':
+      return 'Job Proposal';
+    case 'SERVICE_REQUEST':
+      return 'Service Request';
+    case 'SUPPORT':
+    default:
+      return 'General Inquiry';
+  }
+};
+
 const mapConversationResponse = (item: Record<string, unknown>, currentUserId?: string): Conversation => {
   const isClient = item.clientId === currentUserId;
+  const type = getConversationType(item);
 
   return {
     id: item.id as string,
@@ -76,8 +130,8 @@ const mapConversationResponse = (item: Record<string, unknown>, currentUserId?: 
     lastMessage: (item.lastMessage as string) || 'No messages yet',
     lastMessageAt: item.updatedAt as string,
     unreadCount: (item.unreadCount as number) || 0,
-    type: item.projectId ? 'PROJECT' : (item.jobId ? 'PROPOSAL' : (item.serviceRequestId ? 'SERVICE_REQUEST' : 'SUPPORT')),
-    relatedTitle: (item.projectTitle || item.jobTitle || 'General Inquiry') as string,
+    type,
+    relatedTitle: getConversationRelatedTitle(item, type),
     jobId: item.jobId as string,
     projectId: item.projectId as string,
     serviceRequestId: item.serviceRequestId as string,
@@ -434,7 +488,7 @@ class ChatService extends BaseService<Conversation> {
       isRead: item.isRead as boolean,
       type: item.attachmentUrl ? 'FILE' : 'TEXT',
       fileUrl: item.attachmentUrl as string,
-      fileName: item.attachmentUrl ? (item.attachmentUrl as string).split('/').pop() : undefined
+      fileName: getAttachmentFilename(item.attachmentUrl)
     } as Message));
 
     return {
