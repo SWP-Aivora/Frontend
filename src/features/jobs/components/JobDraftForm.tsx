@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useForm, useFieldArray, useWatch, type FieldErrors, type SubmitErrorHandler, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -200,9 +200,8 @@ export const JobDraftForm = ({
   readOnlyStatusLabel,
   readOnlyMessage
 }: JobDraftFormProps) => {
-  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const isFormDisabled = isReadOnly;
-  const { register, control, handleSubmit, getValues, reset, setValue, formState: { errors, isDirty } } = useForm<JobDraftFormValues>({
+  const { register, control, handleSubmit, getValues, reset, setValue, formState: { errors, isDirty, submitCount } } = useForm<JobDraftFormValues>({
     resolver: zodResolver(jobDraftSchema),
     defaultValues: getFormValuesFromSuggestion(suggestion),
   });
@@ -262,6 +261,7 @@ export const JobDraftForm = ({
   const titleErrorId = errors.title ? 'job-draft-title-error' : undefined;
   const descriptionErrorId = errors.description ? 'job-draft-description-error' : undefined;
   const businessDomainErrorId = errors.businessDomain ? 'job-draft-business-domain-error' : undefined;
+  const hasAttemptedSubmit = submitCount > 0;
   const categoryErrorMessage = hasAttemptedSubmit && !suggestion.categoryId ? 'Category is required' : undefined;
   const categoryErrorId = categoryErrorMessage ? 'job-draft-category-error' : undefined;
   const experienceLevelErrorId = errors.experienceLevel ? 'job-draft-skill-level-error' : undefined;
@@ -277,8 +277,6 @@ export const JobDraftForm = ({
   const milestoneBudgetErrorId = milestoneBudgetErrorMessage ? 'job-draft-milestone-budget-error' : undefined;
 
   const onSubmit: SubmitHandler<JobDraftFormValues> = (data) => {
-    setHasAttemptedSubmit(true);
-
     if (data.budgetMin === null || data.budgetMax === null || data.timelineDays === null) {
       return;
     }
@@ -297,7 +295,6 @@ export const JobDraftForm = ({
   };
 
   const onInvalid: SubmitErrorHandler<JobDraftFormValues> = (validationErrors) => {
-    setHasAttemptedSubmit(true);
     toast.error(getFirstValidationMessage(validationErrors) ?? 'Please fix the highlighted draft fields before continuing.');
   };
 

@@ -321,13 +321,6 @@ export const PostJobPage = () => {
   ), [suggestion]);
   const draftPanelSuggestion = suggestion ?? manualDraftSuggestion;
   const isDraftPanelPlaceholder = !suggestion;
-  const draftPanelMilestoneBudgetValidation = useMemo(() => (
-    validateMilestoneBudgetTotal(
-      draftPanelSuggestion.suggestedBudgetMin,
-      draftPanelSuggestion.suggestedBudgetMax,
-      draftPanelSuggestion.suggestedMilestones,
-    )
-  ), [draftPanelSuggestion]);
 
   const showLockedJobPostMessage = () => {
     toast.error(lockedJobPostMessage);
@@ -1082,15 +1075,15 @@ export const PostJobPage = () => {
   };
 
   const getMissingRequiredFields = () => {
-    if (!suggestion) return [];
+    const draft = draftPanelSuggestion;
 
     const missing = [];
-    if (!suggestion.businessDomain?.trim()) missing.push('Business Domain');
-    if (!suggestion.suggestedBudgetMin || !suggestion.suggestedBudgetMax) missing.push('Budget Min/Max');
-    if (!suggestion.suggestedTimelineDays) missing.push('Timeline (Days)');
-    if (!suggestion.categoryId) missing.push('Category');
+    if (!draft.businessDomain?.trim()) missing.push('Business Domain');
+    if (!draft.suggestedBudgetMin || !draft.suggestedBudgetMax) missing.push('Budget Min/Max');
+    if (!draft.suggestedTimelineDays) missing.push('Timeline (Days)');
+    if (!draft.categoryId) missing.push('Category');
     if (selectedSkillIds.length === 0) missing.push('Required Skills');
-    if (suggestion.experienceLevel === null || suggestion.experienceLevel === undefined) missing.push('Skill Level');
+    if (draft.experienceLevel === null || draft.experienceLevel === undefined) missing.push('Skill Level');
 
     return missing;
   };
@@ -1566,7 +1559,7 @@ export const PostJobPage = () => {
         </div>
 
          {/* Right: Preview Form */}
-         {(step === 'PLANNING' || step === 'DRAFTING') && draftPanelMilestoneBudgetValidation && (
+         {(step === 'PLANNING' || step === 'DRAFTING') && (
            <div className="lg:col-span-7 flex min-h-0 animate-in slide-in-from-right-10 duration-700">
               <JobDraftForm 
                  suggestion={draftPanelSuggestion}
