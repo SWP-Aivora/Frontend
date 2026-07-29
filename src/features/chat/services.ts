@@ -151,6 +151,7 @@ class ChatService extends BaseService<Conversation> {
   private jobIdCounter = 0;
   private newJobPublishedIdCounter = 0;
   private milestoneIdCounter = 0;
+  private disputeIdCounter = 0;
   private listenersSetup = new Set<string>();
 
   // Separate callback registries to prevent interference between components
@@ -160,6 +161,7 @@ class ChatService extends BaseService<Conversation> {
   private newJobPublishedCallbacks = new Map<string, (data: { jobId: string; title?: string }) => void>();
   private readCallbacks = new Map<string, (data: { conversationId: string; userId: string }) => void>();
   private milestoneCallbacks = new Map<string, (data: { projectId: string; milestoneId: string }) => void>();
+  private disputeCallbacks = new Map<string, (data: { projectId: string; disputeId: string }) => void>();
   private readIdCounter = 0;
 
   constructor() {
@@ -239,6 +241,18 @@ class ChatService extends BaseService<Conversation> {
     };
   }
 
+  /**
+   * Listen to dispute updates
+   */
+  onDisputeUpdate(callback: (data: { projectId: string; disputeId: string }) => void): () => void {
+    const id = `dispute_${++this.disputeIdCounter}`;
+    this.disputeCallbacks.set(id, callback);
+
+    return () => {
+      this.disputeCallbacks.delete(id);
+    };
+  }
+
   private getChatConnectionKey(): string {
     return CHAT_HUB_URL;
   }
@@ -258,6 +272,7 @@ class ChatService extends BaseService<Conversation> {
       this.setupMessageListeners(connection);
       this.setupJobStatusListeners(connection);
       this.setupMilestoneListeners(connection);
+      this.setupDisputeListeners(connection);
       this.listenersSetup.add(connectionKey);
     }
 
@@ -375,6 +390,14 @@ class ChatService extends BaseService<Conversation> {
 
     connection.on('MilestoneUpdated', (data: { projectId: string; milestoneId: string }) => {
       this.milestoneCallbacks.forEach(callback => callback(data));
+    });
+  }
+
+  private setupDisputeListeners(connection: signalR.HubConnection): void {
+    connection.off('DisputeUpdated');
+
+    connection.on('DisputeUpdated', (data: { projectId: string; disputeId: string }) => {
+      this.disputeCallbacks.forEach(callback => callback(data));
     });
   }
 

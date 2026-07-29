@@ -24,7 +24,7 @@ export const useProjectRealtime = (projectId?: string) => {
         }
       });
 
-    const unsubscribe = chatService.onMilestoneUpdate((data) => {
+    const unsubscribeMilestone = chatService.onMilestoneUpdate((data) => {
       if (data.projectId !== projectId) return;
 
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
@@ -32,9 +32,18 @@ export const useProjectRealtime = (projectId?: string) => {
       queryClient.invalidateQueries({ queryKey: ['project', projectId, 'active-disputes'] });
     });
 
+    const unsubscribeDispute = chatService.onDisputeUpdate((data) => {
+      if (data.projectId !== projectId) return;
+
+      queryClient.invalidateQueries({ queryKey: ['project-disputes', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['dispute', data.disputeId] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'project-disputes', projectId] });
+    });
+
     return () => {
       isSubscribed = false;
-      unsubscribe();
+      unsubscribeMilestone();
+      unsubscribeDispute();
       chatService.leaveProject(projectId);
     };
   }, [projectId, queryClient, isAuthenticated]);

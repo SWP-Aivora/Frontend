@@ -7,6 +7,7 @@ import { Button } from '@/shared/components/ui/Button';
 import { DisputeStatusBadge } from '@/features/disputes/components/DisputeStatusBadge';
 import { disputeService } from '@/features/disputes/services';
 import type { Dispute } from '@/features/disputes/types';
+import { useProjectRealtime } from '@/features/projects/hooks/useProjectRealtime';
 import { getErrorMessage } from '@/lib/api-utils';
 import { AdminPageTitle } from '../components/AdminPageTitle';
 import { adminService } from '../services';
@@ -22,6 +23,8 @@ const formatDate = (value?: string | null) => {
 export const AdminProjectDisputesPage = () => {
   const { projectId } = useParams();
   const resolvedProjectId = projectId ?? '';
+
+  useProjectRealtime(projectId);
 
   const {
     data: projectResponse,

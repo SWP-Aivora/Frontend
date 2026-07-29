@@ -116,6 +116,7 @@ vi.mock('@/features/chat/services', () => ({
     joinProject: vi.fn().mockResolvedValue(undefined),
     leaveProject: vi.fn().mockResolvedValue(undefined),
     onMilestoneUpdate: vi.fn().mockReturnValue(vi.fn()),
+    onDisputeUpdate: vi.fn().mockReturnValue(vi.fn()),
   },
 }));
 

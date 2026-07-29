@@ -7,6 +7,7 @@ const mockConnect = vi.fn().mockResolvedValue(undefined);
 const mockJoinProject = vi.fn().mockResolvedValue(undefined);
 const mockLeaveProject = vi.fn().mockResolvedValue(undefined);
 const mockOnMilestoneUpdate = vi.fn().mockReturnValue(vi.fn());
+const mockOnDisputeUpdate = vi.fn().mockReturnValue(vi.fn());
 
 vi.mock('@/features/chat', () => ({
   chatService: {
@@ -14,6 +15,7 @@ vi.mock('@/features/chat', () => ({
     joinProject: (...args: unknown[]) => mockJoinProject(...args),
     leaveProject: (...args: unknown[]) => mockLeaveProject(...args),
     onMilestoneUpdate: (...args: unknown[]) => mockOnMilestoneUpdate(...args),
+    onDisputeUpdate: (...args: unknown[]) => mockOnDisputeUpdate(...args),
   },
 }));
 
@@ -34,6 +36,7 @@ describe('useProjectRealtime', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockOnMilestoneUpdate.mockReturnValue(vi.fn());
+    mockOnDisputeUpdate.mockReturnValue(vi.fn());
     mockAuthState = { isAuthenticated: true };
     queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   });
@@ -63,6 +66,39 @@ describe('useProjectRealtime', () => {
     expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['project', 'project-1'] }));
     expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['project', 'project-1', 'milestones'] }));
     expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['project', 'project-1', 'active-disputes'] }));
+  });
+
+  it('invalidates the 3 expected query keys on a matching DisputeUpdated event', async () => {
+    const { useProjectRealtime } = await import('../../../../features/projects/hooks/useProjectRealtime');
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+    renderHook(() => useProjectRealtime('project-1'), { wrapper: createWrapper(queryClient) });
+
+    expect(mockOnDisputeUpdate).toHaveBeenCalledTimes(1);
+    const registeredCallback = mockOnDisputeUpdate.mock.calls[0][0] as (data: { projectId: string; disputeId: string }) => void;
+
+    act(() => {
+      registeredCallback({ projectId: 'project-1', disputeId: 'dispute-1' });
+    });
+
+    expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['project-disputes', 'project-1'] }));
+    expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['dispute', 'dispute-1'] }));
+    expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['admin', 'project-disputes', 'project-1'] }));
+  });
+
+  it('ignores DisputeUpdated events for a different project', async () => {
+    const { useProjectRealtime } = await import('../../../../features/projects/hooks/useProjectRealtime');
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+    renderHook(() => useProjectRealtime('project-1'), { wrapper: createWrapper(queryClient) });
+
+    const registeredCallback = mockOnDisputeUpdate.mock.calls[0][0] as (data: { projectId: string; disputeId: string }) => void;
+
+    act(() => {
+      registeredCallback({ projectId: 'other-project', disputeId: 'dispute-1' });
+    });
+
+    expect(invalidateSpy).not.toHaveBeenCalled();
   });
 
   it('ignores MilestoneUpdated events for a different project', async () => {

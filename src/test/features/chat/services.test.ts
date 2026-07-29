@@ -80,4 +80,22 @@ describe('chatService project realtime (Task 242)', () => {
 
     expect(mockConnection.invoke).toHaveBeenCalledWith('JoinProject', 'project-9');
   });
+
+  it('dispatches DisputeUpdated events to onDisputeUpdate subscribers', async () => {
+    const { chatService } = await import('../../../features/chat/services');
+    const callback = vi.fn();
+    const unsubscribe = chatService.onDisputeUpdate(callback);
+
+    await chatService.connect();
+
+    const registeredHandler = mockConnection.on.mock.calls.find(([event]) => event === 'DisputeUpdated')?.[1];
+    expect(registeredHandler).toBeDefined();
+
+    registeredHandler!({ projectId: 'project-9', disputeId: 'dispute-1' });
+    expect(callback).toHaveBeenCalledWith({ projectId: 'project-9', disputeId: 'dispute-1' });
+
+    unsubscribe();
+    registeredHandler!({ projectId: 'project-9', disputeId: 'dispute-2' });
+    expect(callback).toHaveBeenCalledTimes(1);
+  });
 });
