@@ -960,7 +960,8 @@ export const PostJobPage = () => {
       try {
         const response = await createDraftJobMutation.mutateAsync(createData);
         return response.data?.id ? { id: response.data.id } : null;
-      } catch {
+      } catch (error) {
+        console.warn('Failed to create draft job before publishing', error);
         return null;
       }
     }
@@ -973,7 +974,8 @@ export const PostJobPage = () => {
     try {
       const response = await acceptMutation.mutateAsync(acceptRequest);
       return response.data?.job ?? null;
-    } catch {
+    } catch (error) {
+      console.warn('Failed to accept draft before publishing', error);
       return null;
     }
   };
@@ -1163,7 +1165,8 @@ export const PostJobPage = () => {
           jobId,
           data: updateData,
         });
-      } catch {
+      } catch (error) {
+        console.warn('Failed to update draft job before publishing', error);
         return;
       }
       publishMutation.mutate(jobId);
