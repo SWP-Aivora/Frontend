@@ -11,7 +11,7 @@ import { useDeleteMilestoneStep } from '../hooks/useDeleteMilestoneStep';
 import { useUpdateStepStatus } from '../hooks/useUpdateStepStatus';
 import { useReorderMilestoneSteps } from '../hooks/useReorderMilestoneSteps';
 import { useSuggestMilestoneSteps } from '../hooks/useSuggestMilestoneSteps';
-import { StepCard, getStepDueDateError } from './StepCard';
+import { StepCard, StepDueDateField, getStepDueDateError } from './StepCard';
 
 interface DraftStep {
   title: string;
@@ -75,6 +75,11 @@ export const StepBoard = ({ milestoneId, milestone, isExpert, isClient }: StepBo
   const steps = (stepsResponse?.data ?? []).slice().sort((a, b) => getStepOrderIndex(a) - getStepOrderIndex(b));
   const milestoneDueDate = milestone?.dueDate ?? null;
   const newDueDateError = getStepDueDateError(newDueDate, milestoneDueDate);
+  const milestoneDueDateInput = milestoneDueDate?.slice(0, 10) || undefined;
+  const todayInput = estimateDueDate(0);
+  // Skip `min` when the milestone is already overdue — otherwise min > max
+  // leaves the picker with zero selectable dates.
+  const minDueDateInput = milestoneDueDateInput && todayInput > milestoneDueDateInput ? undefined : todayInput;
 
   const handleAddStep = () => {
     if (!newTitle.trim() || newDueDateError) return;
@@ -194,15 +199,13 @@ export const StepBoard = ({ milestoneId, milestone, isExpert, isClient }: StepBo
                   placeholder="Description (optional)"
                   rows={2}
                 />
-                <input
-                  type="date"
+                <StepDueDateField
+                  id={`step-draft-due-date-${index}`}
                   value={step.dueDate}
-                  onChange={(e) => updateDraftStep(index, { dueDate: e.target.value })}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  onChange={(value) => updateDraftStep(index, { dueDate: value })}
+                  min={minDueDateInput}
+                  milestoneDueDate={milestoneDueDate}
                 />
-                {getStepDueDateError(step.dueDate, milestoneDueDate) && (
-                  <p className="text-xs font-semibold text-rose-600">{getStepDueDateError(step.dueDate, milestoneDueDate)}</p>
-                )}
               </div>
             ))}
           </div>
@@ -240,13 +243,13 @@ export const StepBoard = ({ milestoneId, milestone, isExpert, isClient }: StepBo
             placeholder="Description (optional)"
             rows={2}
           />
-          <input
-            type="date"
+          <StepDueDateField
+            id="new-step-due-date"
             value={newDueDate}
-            onChange={(e) => setNewDueDate(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            onChange={setNewDueDate}
+            min={minDueDateInput}
+            milestoneDueDate={milestoneDueDate}
           />
-          {newDueDateError && <p className="text-xs font-semibold text-rose-600">{newDueDateError}</p>}
           <div className="flex gap-2 justify-end">
             <Button variant="outline" size="sm" onClick={() => setIsAdding(false)}>Cancel</Button>
             <Button size="sm" onClick={handleAddStep} disabled={!newTitle.trim() || Boolean(newDueDateError) || createStep.isPending}>

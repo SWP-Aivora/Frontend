@@ -5,6 +5,15 @@ import { Circle, Clock, CheckCircle2, XCircle, Pencil, Trash2, ArrowUp, ArrowDow
 import { cn } from '@/lib/utils';
 import { Button } from '@/shared/components/ui/Button';
 
+// Formats a YYYY-MM-DD (or ISO) date string for display without shifting
+// across the UTC/local boundary — new Date(iso).toLocaleDateString() can
+// roll the date back a day for negative UTC offsets.
+const formatDateOnly = (dateStr: string): string => {
+  const [year, month, day] = dateStr.slice(0, 10).split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  return Number.isNaN(date.getTime()) ? dateStr.slice(0, 10) : date.toLocaleDateString();
+};
+
 // Mirrors the backend's `step.dueDate > milestone.dueDate` guard so the UI can
 // reject invalid input before round-tripping to the API. Returns null when the
 // date is valid or there's nothing to validate against (no milestone due date).
@@ -19,7 +28,45 @@ export const getStepDueDateError = (stepDueDate: string, milestoneDueDate: strin
   milestone.setHours(0, 0, 0, 0);
   if (step.getTime() <= milestone.getTime()) return null;
 
-  return `Due date must be on or before the milestone due date (${milestone.toLocaleDateString()}).`;
+  return `Due date must be on or before the milestone due date (${formatDateOnly(milestoneDueDate)}).`;
+};
+
+interface StepDueDateFieldProps {
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+  min?: string;
+  milestoneDueDate: string | null;
+}
+
+// Shared label + input + "Milestone due X" hint + inline error, used by the
+// add-step, AI-draft-step, and edit-step forms so all three stay in sync.
+export const StepDueDateField = ({ id, value, onChange, min, milestoneDueDate }: StepDueDateFieldProps) => {
+  const max = milestoneDueDate?.slice(0, 10) || undefined;
+  const error = getStepDueDateError(value, milestoneDueDate);
+
+  return (
+    <>
+      <label htmlFor={id} className="block text-xs font-bold text-slate-500">
+        Due date
+      </label>
+      <input
+        id={id}
+        type="date"
+        value={value}
+        min={min}
+        max={max}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+      />
+      {milestoneDueDate && (
+        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+          Milestone due {formatDateOnly(milestoneDueDate)}
+        </p>
+      )}
+      {error && <p className="text-xs font-semibold text-rose-600">{error}</p>}
+    </>
+  );
 };
 
 interface StepCardProps {
@@ -78,13 +125,12 @@ export const StepCard = ({ step, isExpert, isClient, milestoneDueDate, isFirst, 
           placeholder="Description (optional)"
           rows={2}
         />
-        <input
-          type="date"
+        <StepDueDateField
+          id={`step-due-date-${step.id}`}
           value={dueDate}
-          onChange={(e) => setDueDate(e.target.value)}
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+          onChange={setDueDate}
+          milestoneDueDate={milestoneDueDate}
         />
-        {dueDateError && <p className="text-xs font-semibold text-rose-600">{dueDateError}</p>}
         <div className="flex gap-2 justify-end">
           <Button variant="outline" size="sm" onClick={() => setIsEditing(false)}>Cancel</Button>
           <Button
@@ -163,7 +209,7 @@ export const StepCard = ({ step, isExpert, isClient, milestoneDueDate, isFirst, 
         {step.description && <p className="mt-1 text-xs font-medium text-slate-500">{step.description}</p>}
         {step.dueDate && (
           <p className="mt-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-            Due {new Date(step.dueDate).toLocaleDateString()}
+            Due {formatDateOnly(step.dueDate)}
           </p>
         )}
         {isBlocked && step.blockedReason && (

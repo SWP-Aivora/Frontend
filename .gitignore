@@ -34,4 +34,7 @@ dist-ssr
 MEMORY.md
 *.heapsnapshot
 trace.json
+
+# User-tester scratch reports
+docs/user-tester/
   
