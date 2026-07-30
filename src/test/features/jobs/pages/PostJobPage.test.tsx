@@ -68,6 +68,7 @@ vi.mock('../../../../features/jobs/components/JobDraftForm', () => {
     description: suggestion?.suggestedDescription,
     businessDomain: suggestion?.businessDomain ?? '',
     budgetType: suggestion?.budgetType,
+    experienceLevel: suggestion?.experienceLevel ?? null,
     budgetMin: suggestion?.suggestedBudgetMin ?? null,
     budgetMax: suggestion?.suggestedBudgetMax ?? null,
     timelineDays: suggestion?.suggestedTimelineDays ?? null,
@@ -82,6 +83,7 @@ vi.mock('../../../../features/jobs/components/JobDraftForm', () => {
       onSaveDraft,
       onDraftChange,
       onSkillChange,
+      onCategoryChange,
       isReadOnly,
       readOnlyStatusLabel,
       readOnlyMessage,
@@ -107,6 +109,11 @@ vi.mock('../../../../features/jobs/components/JobDraftForm', () => {
         <button data-testid="mock-skill-btn" onClick={() => onSkillChange('skill-1')}>
           Select Skill
         </button>
+        {onCategoryChange && (
+          <button data-testid="mock-category-btn" onClick={() => onCategoryChange('cat-1')}>
+            Select Category
+          </button>
+        )}
         <button
           data-testid="mock-live-edit-btn"
           onClick={() => onDraftChange?.({
@@ -439,6 +446,15 @@ describe('PostJobPage publish confirmation flow', () => {
     const initMutationCall = findMutation('initAiJobAssistant');
     act(() => {
       initMutationCall.onSuccess({ data: suggestion });
+    });
+
+    // PostJobPage clears the AI-suggested category for new jobs
+    // (clearNewJobSuggestedCategory) so the client must pick one explicitly
+    // before publishing is allowed — otherwise validateRequiredFields blocks
+    // it. Must run before skill selection: handleCategoryChange resets
+    // selectedSkillIds (the available skills list depends on the category).
+    act(() => {
+      view.getByTestId('mock-category-btn').click();
     });
 
     act(() => {
@@ -799,7 +815,10 @@ describe('PostJobPage unsaved AI draft protection', () => {
     renderRoutedComponent();
     generateDraft();
 
-    fireEvent.click(await screen.findByTestId('mock-save-btn'));
+    // createJob rejects without a category (clearNewJobSuggestedCategory
+    // strips the AI-suggested one for new jobs), so pick one first.
+    fireEvent.click(await screen.findByTestId('mock-category-btn'));
+    fireEvent.click(screen.getByTestId('mock-save-btn'));
 
     await waitFor(() => {
       expect(jobService.createJob).toHaveBeenCalled();

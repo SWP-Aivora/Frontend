@@ -28,6 +28,29 @@ type FlowStep = 'PLANNING' | 'DRAFTING' | 'REVIEWING' | 'MATCHING';
 
 const DRAFT_SNAPSHOT_KEY = 'aivora:post-job:unsaved-draft';
 const LEGACY_DRAFT_STORAGE_KEY = 'aivora:post-job:suggestion-id';
+const DRAFT_SNAPSHOT_VERSION = 1;
+
+type DraftSnapshotStep = Extract<FlowStep, 'DRAFTING' | 'REVIEWING'>;
+
+interface PostJobDraftSnapshot {
+  version: typeof DRAFT_SNAPSHOT_VERSION;
+  savedAt: string;
+  suggestion: AiJobSuggestion;
+  draftValues: JobDraftFormValues | null;
+  selectedSkillIds: string[];
+  step: DraftSnapshotStep;
+  createdJobId: string | null;
+  isDraftSaved: boolean;
+  pendingPatch: PatchAiJobSuggestionRequest;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> => (
+  value !== null && typeof value === 'object' && !Array.isArray(value)
+);
+
+const getSnapshotStep = (value: unknown): DraftSnapshotStep => (
+  value === 'REVIEWING' ? 'REVIEWING' : 'DRAFTING'
+);
 
 const getDateAfterDays = (days: number | null | undefined): string | null => {
   if (!days || days < 1) {
@@ -157,6 +180,38 @@ const clearNewJobSuggestedCategory = (suggestion: AiJobSuggestion | null): AiJob
     : null
 );
 
+const readDraftSnapshot = (): PostJobDraftSnapshot | null => {
+  if (typeof localStorage === 'undefined') {
+    return null;
+  }
+
+  const rawSnapshot = localStorage.getItem(DRAFT_SNAPSHOT_KEY);
+  if (!rawSnapshot) return null;
+
+  try {
+    const snapshot = JSON.parse(rawSnapshot) as unknown;
+    if (!isRecord(snapshot) || snapshot.version !== DRAFT_SNAPSHOT_VERSION || !isRecord(snapshot.suggestion)) {
+      return null;
+    }
+
+    return {
+      version: DRAFT_SNAPSHOT_VERSION,
+      savedAt: typeof snapshot.savedAt === 'string' ? snapshot.savedAt : new Date().toISOString(),
+      suggestion: snapshot.suggestion as unknown as AiJobSuggestion,
+      draftValues: isRecord(snapshot.draftValues) ? snapshot.draftValues as JobDraftFormValues : null,
+      selectedSkillIds: Array.isArray(snapshot.selectedSkillIds)
+        ? snapshot.selectedSkillIds.filter((skillId): skillId is string => typeof skillId === 'string')
+        : [],
+      step: getSnapshotStep(snapshot.step),
+      createdJobId: typeof snapshot.createdJobId === 'string' && snapshot.createdJobId.trim() ? snapshot.createdJobId : null,
+      isDraftSaved: snapshot.isDraftSaved === true,
+      pendingPatch: isRecord(snapshot.pendingPatch) ? snapshot.pendingPatch as PatchAiJobSuggestionRequest : {},
+    };
+  } catch {
+    return null;
+  }
+};
+
 const clearDraftSnapshot = () => {
   if (typeof localStorage === 'undefined') {
     return;
@@ -245,6 +300,7 @@ export const PostJobPage = () => {
   const [hasAttemptedSkillValidation, setHasAttemptedSkillValidation] = useState(false);
   const [manualDraftSuggestion, setManualDraftSuggestion] = useState<AiJobSuggestion>(EMPTY_JOB_DRAFT_PREVIEW);
   const [hasManualDraftChanges, setHasManualDraftChanges] = useState(false);
+  const [draftFormValues, setDraftFormValues] = useState<JobDraftFormValues | null>(null);
 
   // --- Refs for stale closure guards ---
   const isBusyRef = useRef(false);
@@ -253,6 +309,7 @@ export const PostJobPage = () => {
   const prevSuggestionRef = useRef<AiJobSuggestion | null>(null);
   const hydratedEditJobIdRef = useRef<string | null>(null);
   const pendingPatchRef = useRef<PatchAiJobSuggestionRequest>({});
+  const skipNextDraftSnapshotPersistRef = useRef(false);
 
   // --- Queries ---
   // Automatically call the Expert Match API when reaching MATCHING and a Job ID exists.
@@ -333,6 +390,8 @@ export const PostJobPage = () => {
     mutationFn: (prompt: string) => jobService.initAiJobAssistant(prompt),
     onSuccess: (response) => {
       setSuggestion(clearNewJobSuggestedCategory(response.data));
+      setDraftFormValues(null);
+      pendingPatchRef.current = {};
       setManualDraftSuggestion(EMPTY_JOB_DRAFT_PREVIEW);
       setHasManualDraftChanges(false);
       setSelectedSkillIds([]);
@@ -376,6 +435,8 @@ export const PostJobPage = () => {
         categoryId: prev?.categoryId ?? null,
         categoryName: prev?.categoryName ?? null,
       }));
+      setDraftFormValues(null);
+      pendingPatchRef.current = {};
       setIsDraftSaved(false);
       setMessages(prev => [
         ...prev,
@@ -639,12 +700,61 @@ export const PostJobPage = () => {
     hasUnsavedAiDraft,
   ]);
 
-  // New job posts always start fresh. Unsaved drafts are guarded by the route blocker,
-  // but are intentionally discarded after the client leaves without saving.
+  // Restore an unsaved draft left over from a previous session (reload/close tab).
   useEffect(() => {
     if (editJobId) return;
-    clearDraftSnapshot();
-  }, [editJobId]);
+
+    const snapshot = readDraftSnapshot();
+    if (!snapshot) {
+      clearDraftSnapshot();
+      return;
+    }
+
+    const restoredSuggestion = snapshot.draftValues
+      ? applyDraftValuesToSuggestion(snapshot.suggestion, snapshot.draftValues)
+      : snapshot.suggestion;
+
+    skipNextDraftSnapshotPersistRef.current = true;
+    setSuggestion(restoredSuggestion);
+    setDraftFormValues(snapshot.draftValues);
+    setSelectedSkillIds(snapshot.selectedSkillIds);
+    setJobId(snapshot.createdJobId);
+    setIsDraftSaved(snapshot.isDraftSaved);
+    setStep(snapshot.step);
+    pendingPatchRef.current = Object.keys(snapshot.pendingPatch).length > 0
+      ? snapshot.pendingPatch
+      : buildPendingPatchFromSuggestion(restoredSuggestion);
+    toast.info('Restored your unsaved job draft.');
+    // Runs once on mount only; editJobId doesn't change without a fresh page load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist the full visible draft, including live form edits that have not been saved yet.
+  useEffect(() => {
+    if (editJobId) return;
+    if (skipNextDraftSnapshotPersistRef.current) {
+      skipNextDraftSnapshotPersistRef.current = false;
+      return;
+    }
+
+    if (hasUnsavedAiDraft && suggestion) {
+      const snapshot: PostJobDraftSnapshot = {
+        version: DRAFT_SNAPSHOT_VERSION,
+        savedAt: new Date().toISOString(),
+        suggestion,
+        draftValues: draftFormValues,
+        selectedSkillIds,
+        step: step === 'REVIEWING' ? 'REVIEWING' : 'DRAFTING',
+        createdJobId,
+        isDraftSaved,
+        pendingPatch: pendingPatchRef.current,
+      };
+      localStorage.setItem(DRAFT_SNAPSHOT_KEY, JSON.stringify(snapshot));
+      localStorage.removeItem(LEGACY_DRAFT_STORAGE_KEY);
+    } else {
+      clearDraftSnapshot();
+    }
+  }, [createdJobId, draftFormValues, editJobId, hasUnsavedAiDraft, isDraftSaved, selectedSkillIds, step, suggestion]);
 
   // --- Blocking navigation when busy or an AI-generated draft has not been saved ---
   useEffect(() => {
@@ -792,6 +902,7 @@ export const PostJobPage = () => {
     }
 
     const liveSuggestion = applyDraftValuesToSuggestion(suggestion, values);
+    setDraftFormValues(values);
     pendingPatchRef.current = {
       ...pendingPatchRef.current,
       ...buildPendingPatchFromSuggestion(liveSuggestion),
