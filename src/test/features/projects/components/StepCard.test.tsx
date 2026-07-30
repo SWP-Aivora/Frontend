@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { StepCard, getStepDueDateError } from '../../../../features/projects/components/StepCard';
+import { StepCard } from '../../../../features/projects/components/StepCard';
+import { getStepDueDateError } from '../../../../features/projects/utils';
 import { MilestoneStepStatus } from '../../../../shared/types/enums';
 import type { MilestoneStep } from '../../../../features/projects/types';
 

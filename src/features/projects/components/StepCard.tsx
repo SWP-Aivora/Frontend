@@ -4,6 +4,7 @@ import { MilestoneStepStatus } from '@/shared/types/enums';
 import { Circle, Clock, CheckCircle2, XCircle, Pencil, Trash2, ArrowUp, ArrowDown, Play, Ban, AlertTriangle, Unlock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/shared/components/ui/Button';
+import { getStepDueDateError } from '../utils';
 
 // Formats a YYYY-MM-DD (or ISO) date string for display without shifting
 // across the UTC/local boundary — new Date(iso).toLocaleDateString() can
@@ -14,22 +15,6 @@ const formatDateOnly = (dateStr: string): string => {
   return Number.isNaN(date.getTime()) ? dateStr.slice(0, 10) : date.toLocaleDateString();
 };
 
-// Mirrors the backend's `step.dueDate > milestone.dueDate` guard so the UI can
-// reject invalid input before round-tripping to the API. Returns null when the
-// date is valid or there's nothing to validate against (no milestone due date).
-export const getStepDueDateError = (stepDueDate: string, milestoneDueDate: string | null): string | null => {
-  if (!milestoneDueDate || !stepDueDate) return null;
-
-  const step = new Date(stepDueDate);
-  const milestone = new Date(milestoneDueDate);
-  if (Number.isNaN(step.getTime()) || Number.isNaN(milestone.getTime())) return null;
-
-  step.setHours(0, 0, 0, 0);
-  milestone.setHours(0, 0, 0, 0);
-  if (step.getTime() <= milestone.getTime()) return null;
-
-  return `Due date must be on or before the milestone due date (${formatDateOnly(milestoneDueDate)}).`;
-};
 
 interface StepDueDateFieldProps {
   id: string;

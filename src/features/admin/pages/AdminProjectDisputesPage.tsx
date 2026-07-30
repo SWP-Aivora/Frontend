@@ -205,7 +205,8 @@ export const AdminProjectDisputesPage = () => {
                   </div>
                 </div>
               </div>
-            </section>
+            </div>
+          </section>
           );
         })}
       </div>

@@ -11,7 +11,8 @@ import { useDeleteMilestoneStep } from '../hooks/useDeleteMilestoneStep';
 import { useUpdateStepStatus } from '../hooks/useUpdateStepStatus';
 import { useReorderMilestoneSteps } from '../hooks/useReorderMilestoneSteps';
 import { useSuggestMilestoneSteps } from '../hooks/useSuggestMilestoneSteps';
-import { StepCard, StepDueDateField, getStepDueDateError } from './StepCard';
+import { StepCard, StepDueDateField } from './StepCard';
+import { getStepDueDateError } from '../utils';
 
 interface DraftStep {
   title: string;

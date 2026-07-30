@@ -173,3 +173,36 @@ export const getMilestoneStatusText = (status: MilestoneStatus): string => {
       return 'N/A';
   }
 };
+
+export const getDueLabel = (dueDate?: string | null): string => {
+  if (!dueDate) return 'No deadline';
+
+  const due = new Date(dueDate);
+  if (Number.isNaN(due.getTime())) return 'No deadline';
+
+  const today = new Date();
+  due.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+
+  const days = Math.ceil((due.getTime() - today.getTime()) / 86400000);
+  if (days === 0) return 'Due today';
+  if (days < 0) return `Overdue by ${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'}`;
+  return `Due in ${days} day${days === 1 ? '' : 's'}`;
+};
+
+export const getStepDueDateError = (stepDueDate: string, milestoneDueDate: string | null): string | null => {
+  if (!milestoneDueDate || !stepDueDate) return null;
+
+  const step = new Date(stepDueDate);
+  const milestone = new Date(milestoneDueDate);
+  if (Number.isNaN(step.getTime()) || Number.isNaN(milestone.getTime())) return null;
+
+  step.setHours(0, 0, 0, 0);
+  milestone.setHours(0, 0, 0, 0);
+
+  if (step > milestone) {
+    return 'Step due date must be on or before the milestone due date';
+  }
+  return null;
+};
+

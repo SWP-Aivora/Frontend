@@ -88,6 +88,7 @@ export const ExpertServiceRequestDetailPage = () => {
     setSentOffer(request.offer);
     setMilestones(cloneOfferMilestones(request.offer));
     setIsEditingOffer(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [request?.offer?.id]);
 
   const acceptMutation = useMutation({
