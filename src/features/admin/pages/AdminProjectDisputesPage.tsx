@@ -1,12 +1,14 @@
 import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQueries, useQuery } from '@tanstack/react-query';
-import { AlertCircle, FileText, MessageSquareWarning, UserRound } from 'lucide-react';
+import { AlertCircle, Clock, FileText, MessageSquareWarning, UserRound } from 'lucide-react';
 import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
 import { Button } from '@/shared/components/ui/Button';
 import { DisputeStatusBadge } from '@/features/disputes/components/DisputeStatusBadge';
 import { disputeService } from '@/features/disputes/services';
 import type { Dispute } from '@/features/disputes/types';
+import { DisputeStatus } from '@/features/disputes/types';
+import { calculateDisputeAutoCloseDate, calculateTotalMilestoneDays } from '@/features/disputes/utils';
 import { useProjectRealtime } from '@/features/projects/hooks/useProjectRealtime';
 import { getErrorMessage } from '@/lib/api-utils';
 import { AdminPageTitle } from '../components/AdminPageTitle';
@@ -70,6 +72,11 @@ export const AdminProjectDisputesPage = () => {
   });
 
   const project = projectResponse?.data;
+  const totalMilestoneDays = useMemo(
+    () => calculateTotalMilestoneDays(project?.milestones, project?.startDate),
+    [project?.milestones, project?.startDate]
+  );
+
   const allReturnedDisputes = useMemo(() => [
     ...(disputesResponse?.data ?? []),
     ...additionalDisputePageQueries.flatMap(query => query.data?.data ?? []),
@@ -156,20 +163,35 @@ export const AdminProjectDisputesPage = () => {
       )}
 
       <div className="space-y-4">
-        {disputes.map(dispute => (
-          <section key={dispute.id} className="overflow-hidden rounded-lg border border-slate-100 bg-white shadow-sm">
-            <div className="border-b border-slate-100 p-5">
-              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                <div className="min-w-0 flex-1">
-                  <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <DisputeStatusBadge status={dispute.status} />
-                    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-slate-500">
-                      {formatDate(dispute.createdAt)}
-                    </span>
-                  </div>
-                  <h2 className="text-lg font-black text-slate-900">{dispute.reason}</h2>
-                  <p className="mt-1 text-sm font-medium leading-6 text-slate-500">{dispute.description || 'No description returned.'}</p>
-                  <div className="mt-4 grid gap-3 lg:grid-cols-2">
+        {disputes.map(dispute => {
+          const isUnresolved = dispute.status === DisputeStatus.OPEN || dispute.status === DisputeStatus.UNDER_REVIEW;
+          const autoCloseDate = calculateDisputeAutoCloseDate(dispute.createdAt, totalMilestoneDays);
+
+          return (
+            <section key={dispute.id} className="overflow-hidden rounded-lg border border-slate-100 bg-white shadow-sm">
+              <div className="border-b border-slate-100 p-5">
+                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <DisputeStatusBadge status={dispute.status} />
+                      <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-slate-500">
+                        {formatDate(dispute.createdAt)}
+                      </span>
+                    </div>
+                    <h2 className="text-lg font-black text-slate-900">{dispute.reason}</h2>
+                    <p className="mt-1 text-sm font-medium leading-6 text-slate-500">{dispute.description || 'No description returned.'}</p>
+                    {isUnresolved && totalMilestoneDays > 0 && (
+                      <div className="mt-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                        <Clock className="mt-0.5 size-5 shrink-0 text-amber-600" />
+                        <div>
+                          <p className="text-sm font-bold text-amber-900">Auto-close deadline</p>
+                          <p className="mt-1 text-sm font-medium leading-relaxed text-amber-800">
+                            This dispute has a resolution time limit based on the total project milestone duration of <strong>{totalMilestoneDays} days</strong>. If not resolved, it will automatically close on <strong>{autoCloseDate.toLocaleDateString()}</strong>.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    <div className="mt-4 grid gap-3 lg:grid-cols-2">
                     <div className="rounded-lg border border-slate-100 bg-slate-50 p-4">
                       <FileText className="mb-2 size-4 text-primary" />
                       <p className="text-xs font-black uppercase tracking-wider text-slate-400">Milestone</p>
@@ -185,7 +207,8 @@ export const AdminProjectDisputesPage = () => {
               </div>
             </div>
           </section>
-        ))}
+          );
+        })}
       </div>
 
       <Button asChild variant="outline" className="rounded-full font-bold">

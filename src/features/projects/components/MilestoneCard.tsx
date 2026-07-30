@@ -2,28 +2,13 @@ import type { Milestone } from '../types';
 import { Clock, DollarSign, CheckCircle2, AlertCircle, FileText, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MilestoneStatus } from '@/shared/types/enums';
+import { getDueLabel } from '../utils';
 
 interface MilestoneCardProps {
   milestone: Milestone;
   role: 'CLIENT' | 'EXPERT';
   onClick: (milestone: Milestone) => void;
 }
-
-export const getDueLabel = (dueDate?: string | null): string => {
-  if (!dueDate) return 'No deadline';
-
-  const due = new Date(dueDate);
-  if (Number.isNaN(due.getTime())) return 'No deadline';
-
-  const today = new Date();
-  due.setHours(0, 0, 0, 0);
-  today.setHours(0, 0, 0, 0);
-
-  const days = Math.ceil((due.getTime() - today.getTime()) / 86400000);
-  if (days === 0) return 'Due today';
-  if (days < 0) return `Overdue by ${Math.abs(days)} day${Math.abs(days) === 1 ? '' : 's'}`;
-  return `Due in ${days} day${days === 1 ? '' : 's'}`;
-};
 
 export const MilestoneCard = ({ milestone, role, onClick }: MilestoneCardProps) => {
   const getStatusConfig = (status: number) => {

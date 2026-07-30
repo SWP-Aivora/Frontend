@@ -44,7 +44,7 @@ import { useProjectMilestones } from '../hooks/useProjectMilestones';
 import { useMilestoneSteps } from '../hooks/useMilestoneSteps';
 import { useProjectTimeline } from '../hooks/useProjectTimeline';
 import { useProjectRealtime } from '../hooks/useProjectRealtime';
-import { getDueLabel } from '../components/MilestoneCard';
+import { getDueLabel } from '../utils';
 import type { EditMilestoneFormValues } from '../schema';
 import { chatService } from '@/features/chat';
 import { walletService } from '@/features/wallet';
