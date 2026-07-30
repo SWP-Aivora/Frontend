@@ -252,12 +252,35 @@ describe('StepBoard', () => {
     fireEvent.change(dateInput, { target: { value: '2026-08-01' } });
 
     expect(screen.queryByText(/must be on or before the milestone due date/i)).not.toBeInTheDocument();
+    expect(dateInput).toHaveAttribute('max', '2026-08-01');
+    const today = new Date();
+    const todayValue = [
+      today.getFullYear(),
+      String(today.getMonth() + 1).padStart(2, '0'),
+      String(today.getDate()).padStart(2, '0'),
+    ].join('-');
+    expect(dateInput).toHaveAttribute('min', todayValue);
 
     await user.click(screen.getByRole('button', { name: 'Add' }));
     expect(mutate).toHaveBeenCalledWith(
       expect.objectContaining({ dueDate: '2026-08-01' }),
       expect.anything()
     );
+  });
+
+  it('omits the min attribute when the milestone is already overdue', async () => {
+    const user = userEvent.setup();
+    const milestoneOverdue = { ...baseMilestone, dueDate: '2020-01-01T00:00:00Z' };
+    const useCreateMilestoneStepMock = await import('../../../../features/projects/hooks/useCreateMilestoneStep');
+    vi.mocked(useCreateMilestoneStepMock.useCreateMilestoneStep).mockReturnValue({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false } as never);
+
+    const { container } = render(<StepBoard milestoneId="milestone-1" milestone={milestoneOverdue} isExpert={true} isClient={false} />);
+
+    await user.click(screen.getByText('Add Step'));
+    const dateInput = container.querySelector('input[type="date"]') as HTMLInputElement;
+
+    expect(dateInput).not.toHaveAttribute('min');
+    expect(dateInput).toHaveAttribute('max', '2020-01-01');
   });
 
   it('skips due-date validation entirely when the milestone has no due date', async () => {
@@ -274,9 +297,22 @@ describe('StepBoard', () => {
     fireEvent.change(dateInput, { target: { value: '2099-01-01' } });
 
     expect(screen.queryByText(/must be on or before the milestone due date/i)).not.toBeInTheDocument();
+    expect(dateInput).not.toHaveAttribute('max');
 
     await user.click(screen.getByRole('button', { name: 'Add' }));
     expect(mutate).toHaveBeenCalled();
+  });
+
+  it('does not render an empty max attribute when the milestone due date normalizes to an empty string', async () => {
+    const user = userEvent.setup();
+    const milestoneWithEmptyDueDate = { ...baseMilestone, dueDate: '' };
+
+    const { container } = render(<StepBoard milestoneId="milestone-1" milestone={milestoneWithEmptyDueDate} isExpert={true} isClient={false} />);
+
+    await user.click(screen.getByText('Add Step'));
+    const dateInput = container.querySelector('input[type="date"]') as HTMLInputElement;
+
+    expect(dateInput).not.toHaveAttribute('max');
   });
 
   it("prefills a suggested step's due date from its estimatedDays", async () => {

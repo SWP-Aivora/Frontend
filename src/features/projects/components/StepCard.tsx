@@ -22,6 +22,44 @@ export const getStepDueDateError = (stepDueDate: string, milestoneDueDate: strin
   return `Due date must be on or before the milestone due date (${milestone.toLocaleDateString()}).`;
 };
 
+interface StepDueDateFieldProps {
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+  min?: string;
+  milestoneDueDate: string | null;
+}
+
+// Shared label + input + "Milestone due X" hint + inline error, used by the
+// add-step, AI-draft-step, and edit-step forms so all three stay in sync.
+export const StepDueDateField = ({ id, value, onChange, min, milestoneDueDate }: StepDueDateFieldProps) => {
+  const max = milestoneDueDate?.slice(0, 10) || undefined;
+  const error = getStepDueDateError(value, milestoneDueDate);
+
+  return (
+    <>
+      <label htmlFor={id} className="block text-xs font-bold text-slate-500">
+        Due date
+      </label>
+      <input
+        id={id}
+        type="date"
+        value={value}
+        min={min}
+        max={max}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+      />
+      {milestoneDueDate && (
+        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+          Milestone due {new Date(milestoneDueDate).toLocaleDateString()}
+        </p>
+      )}
+      {error && <p className="text-xs font-semibold text-rose-600">{error}</p>}
+    </>
+  );
+};
+
 interface StepCardProps {
   step: MilestoneStep;
   isExpert: boolean;
@@ -78,13 +116,12 @@ export const StepCard = ({ step, isExpert, isClient, milestoneDueDate, isFirst, 
           placeholder="Description (optional)"
           rows={2}
         />
-        <input
-          type="date"
+        <StepDueDateField
+          id={`step-due-date-${step.id}`}
           value={dueDate}
-          onChange={(e) => setDueDate(e.target.value)}
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+          onChange={setDueDate}
+          milestoneDueDate={milestoneDueDate}
         />
-        {dueDateError && <p className="text-xs font-semibold text-rose-600">{dueDateError}</p>}
         <div className="flex gap-2 justify-end">
           <Button variant="outline" size="sm" onClick={() => setIsEditing(false)}>Cancel</Button>
           <Button
