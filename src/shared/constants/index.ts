@@ -38,6 +38,7 @@ export const API_ENDPOINTS = {
     ID: (id: string) => `projects/${id}`,
     MILESTONES: (id: string) => `projects/${id}/milestones`,
     CANCEL: (id: string) => `projects/${id}/cancel`,
+    CANCEL_DISPUTED: (id: string) => `projects/${id}/cancel-disputed`,
   },
   MILESTONES: {
     BASE: 'milestones',

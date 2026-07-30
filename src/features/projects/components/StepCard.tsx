@@ -5,10 +5,28 @@ import { Circle, Clock, CheckCircle2, XCircle, Pencil, Trash2, ArrowUp, ArrowDow
 import { cn } from '@/lib/utils';
 import { Button } from '@/shared/components/ui/Button';
 
+// Mirrors the backend's `step.dueDate > milestone.dueDate` guard so the UI can
+// reject invalid input before round-tripping to the API. Returns null when the
+// date is valid or there's nothing to validate against (no milestone due date).
+export const getStepDueDateError = (stepDueDate: string, milestoneDueDate: string | null): string | null => {
+  if (!milestoneDueDate || !stepDueDate) return null;
+
+  const step = new Date(stepDueDate);
+  const milestone = new Date(milestoneDueDate);
+  if (Number.isNaN(step.getTime()) || Number.isNaN(milestone.getTime())) return null;
+
+  step.setHours(0, 0, 0, 0);
+  milestone.setHours(0, 0, 0, 0);
+  if (step.getTime() <= milestone.getTime()) return null;
+
+  return `Due date must be on or before the milestone due date (${milestone.toLocaleDateString()}).`;
+};
+
 interface StepCardProps {
   step: MilestoneStep;
   isExpert: boolean;
   isClient: boolean;
+  milestoneDueDate: string | null;
   isFirst: boolean;
   isLast: boolean;
   onStart: () => void;
@@ -30,13 +48,14 @@ const STATUS_CONFIG: Record<MilestoneStep['status'], { label: string; color: str
   [MilestoneStepStatus.BLOCKED]: { label: 'Blocked', color: 'text-amber-600 bg-amber-50', icon: AlertTriangle },
 };
 
-export const StepCard = ({ step, isExpert, isClient, isFirst, isLast, onStart, onComplete, onSkip, onBlock, onUnblock, onDelete, onMoveUp, onMoveDown, onEdit }: StepCardProps) => {
+export const StepCard = ({ step, isExpert, isClient, milestoneDueDate, isFirst, isLast, onStart, onComplete, onSkip, onBlock, onUnblock, onDelete, onMoveUp, onMoveDown, onEdit }: StepCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isBlocking, setIsBlocking] = useState(false);
   const [blockReason, setBlockReason] = useState('');
   const [title, setTitle] = useState(step.title);
   const [description, setDescription] = useState(step.description ?? '');
   const [dueDate, setDueDate] = useState(step.dueDate ? step.dueDate.slice(0, 10) : '');
+  const dueDateError = getStepDueDateError(dueDate, milestoneDueDate);
 
   const config = STATUS_CONFIG[step.status];
   const StatusIcon = config.icon;
@@ -65,15 +84,17 @@ export const StepCard = ({ step, isExpert, isClient, isFirst, isLast, onStart, o
           onChange={(e) => setDueDate(e.target.value)}
           className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
         />
+        {dueDateError && <p className="text-xs font-semibold text-rose-600">{dueDateError}</p>}
         <div className="flex gap-2 justify-end">
           <Button variant="outline" size="sm" onClick={() => setIsEditing(false)}>Cancel</Button>
           <Button
             size="sm"
             onClick={() => {
+              if (dueDateError) return;
               onEdit({ title, description, dueDate });
               setIsEditing(false);
             }}
-            disabled={!title.trim()}
+            disabled={!title.trim() || Boolean(dueDateError)}
           >
             Save
           </Button>

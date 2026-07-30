@@ -1,8 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { AdminVerificationReviewModal } from '@/features/admin/components/AdminVerificationReviewModal';
 import { expertVerificationService } from '@/shared/services/expertVerificationService';
 import { VerificationStatus } from '@/shared/types/expertVerification';
+import { toast } from 'sonner';
 
 vi.mock('@/shared/services/expertVerificationService', () => ({
   expertVerificationService: {
@@ -18,19 +19,24 @@ vi.mock('sonner', () => ({
 }));
 
 describe('AdminVerificationReviewModal', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   const mockVerification = {
     id: 'v1',
     expertSkillId: 's1',
     expertId: 'e1',
     expertName: 'John Doe',
     skillName: 'React',
-    status: VerificationStatus.PENDING,
+    status: VerificationStatus.NEEDS_REVIEW,
     createdAt: new Date().toISOString(),
-    certificateUrl: 'https://example.com/cert.pdf',
-    aiScore: 85,
-    aiNotes: 'Looks good',
-    adminNotes: null,
-    updatedAt: new Date().toISOString()
+    evidenceFileUrl: 'https://example.com/cert.pdf',
+    aiConfidenceScore: 85,
+    aiReasoning: 'Looks good',
+    adminDecisionReason: null,
+    reviewedAt: null,
+    canEscalate: true,
   };
 
   it('should render details correctly', () => {
@@ -62,8 +68,27 @@ describe('AdminVerificationReviewModal', () => {
     fireEvent.click(approveBtn);
 
     await waitFor(() => {
-      expect(expertVerificationService.reviewVerification).toHaveBeenCalledWith('v1', { status: VerificationStatus.APPROVED, notes: undefined });
+      expect(expertVerificationService.reviewVerification).toHaveBeenCalledWith('v1', { isApproved: true, rejectionReason: undefined });
       expect(onSuccess).toHaveBeenCalled();
+    });
+  });
+
+  it('should require a rejection reason before rejecting', async () => {
+    render(
+      <AdminVerificationReviewModal
+        isOpen={true}
+        onClose={() => {}}
+        verification={mockVerification}
+        onSuccess={() => {}}
+      />
+    );
+
+    const rejectBtn = screen.getByRole('button', { name: /Reject/i });
+    fireEvent.click(rejectBtn);
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Please provide a reason for rejection.');
+      expect(expertVerificationService.reviewVerification).not.toHaveBeenCalled();
     });
   });
 });

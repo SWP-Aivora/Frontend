@@ -43,6 +43,8 @@ import {
 import { useProjectMilestones } from '../hooks/useProjectMilestones';
 import { useMilestoneSteps } from '../hooks/useMilestoneSteps';
 import { useProjectTimeline } from '../hooks/useProjectTimeline';
+import { useProjectRealtime } from '../hooks/useProjectRealtime';
+import { getDueLabel } from '../components/MilestoneCard';
 import type { EditMilestoneFormValues } from '../schema';
 import { chatService } from '@/features/chat';
 import { walletService } from '@/features/wallet';
@@ -262,6 +264,8 @@ export const ProjectWorkspacePage = () => {
     timelineInfoCards,
     resetTimeline,
   } = useProjectTimeline({ milestones, selectedMilestone });
+
+  useProjectRealtime(id);
 
   useEffect(() => {
     setSelectedMilestone(null);
@@ -553,19 +557,26 @@ export const ProjectWorkspacePage = () => {
     setIsMilestoneEditOpen(false);
   };
 
-  const handleSaveMilestoneEdit = (data: EditMilestoneFormValues) => {
+  const handleSaveMilestoneEdit = async (data: EditMilestoneFormValues) => {
     if (!selectedMilestone) return;
 
-    updateMilestoneMutation.mutate({
-      milestoneId: selectedMilestone.id,
-      data: {
-        title: data.title.trim(),
-        description: data.description?.trim() ?? '',
-        acceptanceCriteria: data.acceptanceCriteria?.trim() ?? '',
-        amount: data.amount,
-        dueDate: data.dueDate || undefined,
-      },
-    });
+    try {
+      const response = await updateMilestoneMutation.mutateAsync({
+        milestoneId: selectedMilestone.id,
+        data: {
+          title: data.title.trim(),
+          description: data.description?.trim() ?? '',
+          acceptanceCriteria: data.acceptanceCriteria?.trim() ?? '',
+          amount: data.amount,
+          dueDate: data.dueDate || undefined,
+        },
+      });
+
+      return { cascadedMilestoneCount: (response.data as { cascadedMilestoneCount?: number } | null)?.cascadedMilestoneCount };
+    } catch {
+      // Error toast already shown by updateMilestoneMutation's onError handler.
+      return undefined;
+    }
   };
 
   const handleFundMilestone = (milestone = selectedMilestone) => {
@@ -748,6 +759,7 @@ export const ProjectWorkspacePage = () => {
   const handleDisputeCreated = () => {
     void queryClient.invalidateQueries({ queryKey: ['project', id] });
     void queryClient.invalidateQueries({ queryKey: ['project', id, 'milestones'] });
+    void queryClient.invalidateQueries({ queryKey: ['project', id, 'active-disputes'] });
     void queryClient.invalidateQueries({ queryKey: ['disputes'] });
   };
 
@@ -1150,8 +1162,8 @@ export const ProjectWorkspacePage = () => {
                   {viewedTimelineMilestone.status === MilestoneStatus.PENDING && user?.role === Role.CLIENT && (
                     <Button
                       onClick={() => handleFundMilestone(viewedTimelineMilestone)}
-                      disabled={fundMutation.isPending || isLoadingWallet}
-                      title="Funding transfers 30% to the Expert immediately"
+                      disabled={fundMutation.isPending || isLoadingWallet || isMilestoneBlockedByDispute(viewedTimelineMilestone)}
+                      title={isMilestoneBlockedByDispute(viewedTimelineMilestone) ? DISPUTE_ACTIONS_UNAVAILABLE_MESSAGE : 'Funding transfers 30% to the Expert immediately'}
                       className="rounded-full px-5 font-black shadow-lg shadow-primary/20"
                     >
                       {fundMutation.isPending ? 'Funding...' : isLoadingWallet ? 'Checking Wallet...' : 'Fund Milestone'}
@@ -1318,8 +1330,8 @@ export const ProjectWorkspacePage = () => {
                     </div>
                     <div className="bg-slate-50 rounded-lg p-4 border border-slate-100">
                        <Clock className="size-5 text-blue-600 mb-2" />
-                       <p className="text-lg font-black text-slate-900">{selectedMilestone.dueDays || 0} Days</p>
-                       <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Est. Duration</p>
+                       <p className="text-lg font-black text-slate-900">{getDueLabel(selectedMilestone.dueDate)}</p>
+                       <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Deadline</p>
                     </div>
                  </div>
 
@@ -1331,6 +1343,7 @@ export const ProjectWorkspacePage = () => {
                     <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-4">
                       <StepBoard
                         milestoneId={selectedMilestone.id}
+                        milestone={selectedMilestone}
                         isExpert={false}
                         isClient={false}
                       />
@@ -1445,8 +1458,8 @@ export const ProjectWorkspacePage = () => {
                    <div className="flex gap-3">
                      <Button
                        onClick={() => handleFundMilestone()}
-                       disabled={fundMutation.isPending || isLoadingWallet}
-                       title="Funding transfers 30% to the Expert immediately"
+                       disabled={fundMutation.isPending || isLoadingWallet || isMilestoneBlockedByDispute(selectedMilestone)}
+                       title={isMilestoneBlockedByDispute(selectedMilestone) ? DISPUTE_ACTIONS_UNAVAILABLE_MESSAGE : 'Funding transfers 30% to the Expert immediately'}
                        className="flex-1 h-14 rounded-full font-black text-base shadow-xl shadow-primary/20"
                      >
                         {fundMutation.isPending ? 'Funding...' : isLoadingWallet ? 'Checking Wallet...' : 'Fund Milestone'}

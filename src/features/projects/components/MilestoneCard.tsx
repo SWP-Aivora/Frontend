@@ -9,7 +9,7 @@ interface MilestoneCardProps {
   onClick: (milestone: Milestone) => void;
 }
 
-const getDueLabel = (dueDate?: string | null): string => {
+export const getDueLabel = (dueDate?: string | null): string => {
   if (!dueDate) return 'No deadline';
 
   const due = new Date(dueDate);

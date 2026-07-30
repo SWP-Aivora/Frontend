@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/shared/components/ui/Button';
 import { X, ExternalLink, ShieldCheck, ShieldAlert, Loader2, FileText } from 'lucide-react';
 import { expertVerificationService } from '@/shared/services/expertVerificationService';
-import { VerificationStatus, type ExpertVerification } from '@/shared/types/expertVerification';
+import type { ExpertVerification } from '@/shared/types/expertVerification';
 import { toast } from 'sonner';
 
 interface AdminVerificationReviewModalProps {
@@ -23,14 +23,19 @@ export const AdminVerificationReviewModal = ({
 
   if (!isOpen) return null;
 
-  const handleReview = async (status: typeof VerificationStatus.APPROVED | typeof VerificationStatus.REJECTED) => {
+  const handleReview = async (isApproved: boolean) => {
+    if (!isApproved && !notes.trim()) {
+      toast.error('Please provide a reason for rejection.');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       await expertVerificationService.reviewVerification(verification.id, {
-        status,
-        notes: notes.trim() ? notes : undefined
+        isApproved,
+        rejectionReason: isApproved ? undefined : notes.trim()
       });
-      toast.success(`Verification ${status === VerificationStatus.APPROVED ? 'approved' : 'rejected'}.`);
+      toast.success(`Verification ${isApproved ? 'approved' : 'rejected'}.`);
       onSuccess();
     } catch (error) {
       console.error(error);
@@ -72,14 +77,14 @@ export const AdminVerificationReviewModal = ({
             </div>
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">AI Score</p>
-              <p className="font-bold text-brand-blue-dark text-lg">{verification.aiScore ?? 'N/A'}</p>
+              <p className="font-bold text-brand-blue-dark text-lg">{verification.aiConfidenceScore ?? 'N/A'}</p>
             </div>
           </div>
 
           <div>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Verification Document</p>
-            <a 
-              href={verification.certificateUrl} 
+            <a
+              href={verification.evidenceFileUrl}
               target="_blank" 
               rel="noreferrer"
               className="flex items-center gap-3 p-4 rounded-xl border border-slate-200 hover:border-brand-blue-dark hover:bg-slate-50 transition-colors"
@@ -95,11 +100,11 @@ export const AdminVerificationReviewModal = ({
             </a>
           </div>
 
-          {verification.aiNotes && (
+          {verification.aiReasoning && (
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">AI Analysis Notes</p>
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 text-sm text-slate-700">
-                {verification.aiNotes}
+                {verification.aiReasoning}
               </div>
             </div>
           )}
@@ -118,17 +123,17 @@ export const AdminVerificationReviewModal = ({
         </div>
 
         <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
-          <Button 
-            variant="outline" 
-            onClick={() => handleReview(VerificationStatus.REJECTED)}
+          <Button
+            variant="outline"
+            onClick={() => handleReview(false)}
             disabled={isSubmitting}
             className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
           >
             {isSubmitting ? <Loader2 className="size-4 animate-spin mr-2" /> : <ShieldAlert className="size-4 mr-2" />}
             Reject
           </Button>
-          <Button 
-            onClick={() => handleReview(VerificationStatus.APPROVED)}
+          <Button
+            onClick={() => handleReview(true)}
             disabled={isSubmitting}
             className="bg-emerald-600 hover:bg-emerald-700 text-white"
           >

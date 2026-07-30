@@ -238,4 +238,13 @@ export const disputeService = {
     const response = await apiClient.put(API_ENDPOINTS.DISPUTES.RESOLVE(disputeId), data);
     return normalizeBaseResponse<void>(response);
   },
+
+  /**
+   * Cancel a project that has at least one open/under-review dispute
+   * (Client or Expert only).
+   */
+  async cancelDisputedProject(projectId: string): Promise<BaseResponse<void>> {
+    const response = await apiClient.put(API_ENDPOINTS.PROJECTS.CANCEL_DISPUTED(projectId));
+    return normalizeBaseResponse<void>(response);
+  },
 };

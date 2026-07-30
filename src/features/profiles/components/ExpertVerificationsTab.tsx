@@ -30,7 +30,7 @@ export const ExpertVerificationsTab = () => {
     queryFn: () => expertVerificationService.getVerifications({ pageSize: 100 }), // Get all
   });
 
-  const verifications = verificationsData?.items || [];
+  const verifications = verificationsData?.data || [];
 
   const handleEscalate = async (verificationId: string) => {
     try {
@@ -40,7 +40,7 @@ export const ExpertVerificationsTab = () => {
       refetch();
     } catch (error) {
       console.error(error);
-      toast.error('Failed to upload verification');
+      toast.error('Failed to escalate verification');
     } finally {
       setIsEscalating(null);
     }
@@ -56,18 +56,17 @@ export const ExpertVerificationsTab = () => {
   const renderStatusBadge = (status: VerificationStatus) => {
     switch (status) {
       case VerificationStatus.APPROVED:
-      case VerificationStatus.AI_APPROVED:
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
             <ShieldCheck className="size-3.5" />
             Verified
           </span>
         );
-      case VerificationStatus.PENDING:
+      case VerificationStatus.NEEDS_REVIEW:
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
-            <RefreshCw className="size-3.5 animate-spin" />
-            Pending AI
+            <RefreshCw className="size-3.5" />
+            Needs Review
           </span>
         );
       case VerificationStatus.ESCALATED:
@@ -121,10 +120,10 @@ export const ExpertVerificationsTab = () => {
                   <p className="text-xs text-slate-500 font-medium mt-0.5">
                     Proficiency: Level {skill.proficiencyLevel}
                   </p>
-                  {verification?.aiNotes && (
+                  {verification?.aiReasoning && (
                     <p className="text-xs text-slate-600 mt-2 p-2 bg-white rounded border border-slate-100">
                       <span className="font-bold text-brand-blue-dark">Notes: </span>
-                      {verification.aiNotes}
+                      {verification.aiReasoning}
                     </p>
                   )}
                 </div>
@@ -132,7 +131,7 @@ export const ExpertVerificationsTab = () => {
                   {verification ? (
                     <>
                       {renderStatusBadge(verification.status)}
-                      {(verification.status === VerificationStatus.REJECTED || verification.status === VerificationStatus.AI_APPROVED) && (
+                      {verification.canEscalate && (
                         <Button
                           size="sm"
                           variant="outline"

@@ -1,8 +1,9 @@
+import type { PaginatedResponse } from '@/shared/types/api';
+
 export const VerificationStatus = {
-  PENDING: 'PENDING',
-  AI_APPROVED: 'AI_APPROVED',
   APPROVED: 'APPROVED',
   REJECTED: 'REJECTED',
+  NEEDS_REVIEW: 'NEEDS_REVIEW',
   ESCALATED: 'ESCALATED'
 } as const;
 
@@ -12,17 +13,18 @@ export interface ExpertVerification {
   id: string;
   expertSkillId: string;
   expertId: string;
-  certificateUrl: string;
+  evidenceFileUrl: string;
   status: VerificationStatus;
-  aiScore: number | null;
-  aiNotes: string | null;
-  adminNotes: string | null;
+  aiConfidenceScore: number | null;
+  aiReasoning: string | null;
+  adminDecisionReason: string | null;
   createdAt: string;
-  updatedAt: string;
-  
+  reviewedAt: string | null;
+  canEscalate: boolean;
+
   // Optional expanded fields for UI
   skillName?: string;
-  expertName?: string;
+  expertName?: string | null;
 }
 
 export interface GetVerificationsRequest {
@@ -39,15 +41,9 @@ export interface GetAdminVerificationsRequest {
   pageSize?: number;
 }
 
-export interface PaginatedVerificationsResponse {
-  items: ExpertVerification[];
-  totalItems: number;
-  totalPages: number;
-  pageIndex: number;
-  pageSize: number;
-}
+export type PaginatedVerificationsResponse = PaginatedResponse<ExpertVerification>;
 
 export interface AdminReviewVerificationRequest {
-  status: typeof VerificationStatus.APPROVED | typeof VerificationStatus.REJECTED;
-  notes?: string;
+  isApproved: boolean;
+  rejectionReason?: string;
 }

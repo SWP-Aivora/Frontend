@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { X } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/shared/components/ui/Button';
 import type { Milestone } from '../types';
 import { editMilestoneSchema, type EditMilestoneFormValues } from '../schema';
@@ -11,7 +12,7 @@ interface EditMilestoneModalProps {
   milestone: Milestone | null;
   isSaving: boolean;
   onClose: () => void;
-  onSave: (data: EditMilestoneFormValues) => void;
+  onSave: (data: EditMilestoneFormValues) => Promise<{ cascadedMilestoneCount?: number } | void> | void;
 }
 
 export const EditMilestoneModal = ({
@@ -55,6 +56,17 @@ export const EditMilestoneModal = ({
     onClose();
   };
 
+  const handleFormSubmit = async (data: EditMilestoneFormValues) => {
+    const result = await onSave(data);
+    const cascadedMilestoneCount = result?.cascadedMilestoneCount ?? 0;
+
+    if (cascadedMilestoneCount > 0) {
+      toast.success(
+        `Due date updated — ${cascadedMilestoneCount} other milestone${cascadedMilestoneCount === 1 ? '' : 's'} were shifted to stay on schedule.`
+      );
+    }
+  };
+
   if (!isOpen || !milestone) return null;
 
   return (
@@ -64,7 +76,7 @@ export const EditMilestoneModal = ({
         onClick={handleClose}
       />
       <form
-        onSubmit={handleSubmit(onSave)}
+        onSubmit={handleSubmit(handleFormSubmit)}
         noValidate
         className="relative z-10 w-full max-w-xl rounded-lg bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200"
       >

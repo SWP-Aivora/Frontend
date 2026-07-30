@@ -33,21 +33,34 @@ describe('AdminExpertVerificationsPage', () => {
 
   it('should render verifications list after loading', async () => {
     const mockData = {
-      items: [
+      success: true,
+      message: '',
+      statusCode: 200,
+      data: [
         {
           id: 'v1',
           expertSkillId: 's1',
           expertId: 'e1',
           expertName: 'John Doe',
           skillName: 'React',
-          status: VerificationStatus.PENDING,
-          createdAt: new Date().toISOString()
+          status: VerificationStatus.NEEDS_REVIEW,
+          createdAt: new Date().toISOString(),
+          evidenceFileUrl: 'https://example.com/cert.pdf',
+          aiConfidenceScore: 90,
+          aiReasoning: null,
+          adminDecisionReason: null,
+          reviewedAt: null,
+          canEscalate: true,
         }
       ],
-      totalItems: 1,
-      totalPages: 1,
-      pageIndex: 1,
-      pageSize: 10
+      metadata: {
+        pageIndex: 1,
+        pageSize: 10,
+        totalCount: 1,
+        totalPages: 1,
+        hasPreviousPage: false,
+        hasNextPage: false,
+      }
     };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (expertVerificationService.getAdminVerifications as any).mockImplementation(() => Promise.resolve(mockData));
@@ -57,7 +70,8 @@ describe('AdminExpertVerificationsPage', () => {
     await waitFor(() => {
       expect(screen.getByText('John Doe')).toBeInTheDocument();
     }, { timeout: 3000 });
-    
+
     expect(screen.getByText('React')).toBeInTheDocument();
+    expect(screen.getByText('Needs Review')).toBeInTheDocument();
   });
 });

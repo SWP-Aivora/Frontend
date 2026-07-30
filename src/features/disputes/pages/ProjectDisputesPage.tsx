@@ -7,6 +7,7 @@ import { Button } from '@/shared/components/ui/Button';
 import { ConfirmActionDialog } from '@/shared/components/ui/ConfirmActionDialog';
 import { useAuthStore } from '@/features/auth/store';
 import { Role } from '@/shared/types/enums';
+import { useProjectRealtime } from '@/features/projects/hooks/useProjectRealtime';
 import { getErrorMessage } from '@/lib/api-utils';
 import { DisputeStatusBadge } from '../components/DisputeStatusBadge';
 import { disputeService } from '../services';
@@ -39,6 +40,9 @@ export const ProjectDisputesPage = () => {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const [disputeIdToClose, setDisputeIdToClose] = useState<string | null>(null);
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+
+  useProjectRealtime(id);
 
   const closeDisputeMutation = useMutation({
     mutationFn: (disputeId: string) => disputeService.closeDispute(disputeId),
@@ -52,6 +56,22 @@ export const ProjectDisputesPage = () => {
     },
     onError: (mutationError) => {
       toast.error(getErrorMessage(mutationError, 'Could not close this dispute.'));
+    },
+  });
+
+  const cancelProjectMutation = useMutation({
+    mutationFn: () => disputeService.cancelDisputedProject(id ?? ''),
+    onSuccess: () => {
+      toast.success('Project canceled.');
+      setIsCancelDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['dispute'] });
+      queryClient.invalidateQueries({ queryKey: ['project-disputes', id] });
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
+      queryClient.invalidateQueries({ queryKey: ['project', id, 'active-disputes'] });
+      queryClient.invalidateQueries({ queryKey: ['project', id, 'milestones'] });
+    },
+    onError: (mutationError) => {
+      toast.error(getErrorMessage(mutationError, 'Could not cancel this project.'));
     },
   });
 
@@ -102,6 +122,14 @@ export const ProjectDisputesPage = () => {
   const isLoadingDetails = detailQueries.some(query => query.isLoading);
   const isLoading = isLoadingFirstPage || additionalPageQueries.some(query => query.isLoading) || isLoadingDetails;
 
+  const isProjectParticipant = Boolean(
+    user?.id && user.role !== Role.ADMIN && disputes.some(dispute => dispute.clientId === user.id || dispute.expertId === user.id)
+  );
+  const hasCancellableDispute = disputes.some(
+    dispute => dispute.status === DisputeStatus.OPEN || dispute.status === DisputeStatus.UNDER_REVIEW
+  );
+  const canCancelProject = isProjectParticipant && hasCancellableDispute;
+
   if (!id) {
     return (
       <div className="rounded-lg border border-rose-100 bg-rose-50 p-6 text-rose-700">
@@ -133,9 +161,22 @@ export const ProjectDisputesPage = () => {
             <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Project Disputes</p>
             <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900">Dispute view</h1>
           </div>
-          <Button asChild variant="outline" className="rounded-full font-bold">
-            <Link to={getWorkspaceHref(user?.role, id)}>Back to Workspace</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {canCancelProject && (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={cancelProjectMutation.isPending}
+                onClick={() => setIsCancelDialogOpen(true)}
+                className="rounded-full border-rose-200 bg-rose-50 font-black text-rose-700 hover:bg-rose-100 hover:text-rose-800"
+              >
+                Cancel Project
+              </Button>
+            )}
+            <Button asChild variant="outline" className="rounded-full font-bold">
+              <Link to={getWorkspaceHref(user?.role, id)}>Back to Workspace</Link>
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -231,6 +272,16 @@ export const ProjectDisputesPage = () => {
         onConfirm={() => {
           if (disputeIdToClose) closeDisputeMutation.mutate(disputeIdToClose);
         }}
+      />
+      <ConfirmActionDialog
+        open={isCancelDialogOpen}
+        title="Cancel this project?"
+        description="This will permanently cancel the project and close all active disputes. No funds will be refunded and no further action is possible. This cannot be undone."
+        confirmLabel="Cancel Project"
+        pendingLabel="Canceling..."
+        isPending={cancelProjectMutation.isPending}
+        onOpenChange={setIsCancelDialogOpen}
+        onConfirm={() => cancelProjectMutation.mutate()}
       />
     </div>
   );

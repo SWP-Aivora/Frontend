@@ -107,7 +107,8 @@ export const getDisputeGuardErrorMessage = (error: unknown): string | null => {
       normalized.includes('cannot submit a deliverable') ||
       normalized.includes('cannot update a milestone') ||
       normalized.includes('cannot add steps') ||
-      normalized.includes('cannot modify steps')
+      normalized.includes('cannot modify steps') ||
+      normalized.includes('cannot fund a milestone')
     );
 
   return isDisputeGuard ? DISPUTE_ACTION_BLOCKED_TOAST : null;

@@ -33,24 +33,23 @@ export const AdminExpertVerificationsPage = () => {
     setPageIndex(1);
   };
 
-  const verifications = data?.items || [];
-  const totalPages = data?.totalPages || 1;
+  const verifications = data?.data || [];
+  const totalPages = data?.metadata.totalPages || 1;
 
   const renderStatusBadge = (status: VerificationStatus) => {
     switch (status) {
       case VerificationStatus.APPROVED:
-      case VerificationStatus.AI_APPROVED:
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
             <ShieldCheck className="size-3" />
-            {status === VerificationStatus.AI_APPROVED ? 'AI Approved' : 'Approved'}
+            Approved
           </span>
         );
-      case VerificationStatus.PENDING:
+      case VerificationStatus.NEEDS_REVIEW:
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
-            <RefreshCw className="size-3 animate-spin" />
-            Pending
+            <RefreshCw className="size-3" />
+            Needs Review
           </span>
         );
       case VerificationStatus.ESCALATED:
@@ -82,7 +81,7 @@ export const AdminExpertVerificationsPage = () => {
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4 md:p-6 space-y-6">
         <div className="flex flex-col md:flex-row justify-between gap-4">
           <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
-            {(['All', VerificationStatus.PENDING, VerificationStatus.ESCALATED, VerificationStatus.APPROVED, VerificationStatus.REJECTED] as const).map((status) => (
+            {(['All', VerificationStatus.NEEDS_REVIEW, VerificationStatus.ESCALATED, VerificationStatus.APPROVED, VerificationStatus.REJECTED] as const).map((status) => (
               <button
                 key={status}
                 onClick={() => {
@@ -140,7 +139,7 @@ export const AdminExpertVerificationsPage = () => {
                     <td className="px-4 py-4 font-medium text-slate-700">{v.skillName || 'Unknown Skill'}</td>
                     <td className="px-4 py-4 text-slate-500">{new Date(v.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
                     <td className="px-4 py-4">{renderStatusBadge(v.status)}</td>
-                    <td className="px-4 py-4 font-bold text-brand-blue-dark">{v.aiScore ?? 'N/A'}</td>
+                    <td className="px-4 py-4 font-bold text-brand-blue-dark">{v.aiConfidenceScore ?? 'N/A'}</td>
                     <td className="px-4 py-4 text-right">
                       <Button size="sm" variant="outline" onClick={() => setSelectedVerification(v)}>
                         <Eye className="size-4 mr-1.5" />

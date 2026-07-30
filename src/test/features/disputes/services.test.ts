@@ -168,10 +168,21 @@ describe('disputeService', () => {
     it('calls resolve endpoint with correct data', async () => {
       (vi.mocked(apiClient.put)).mockResolvedValue({ data: { success: true } });
       const payload = { resolutionNote: 'Done' };
-      
+
       const result = await disputeService.resolveDispute('d1', payload);
       expect(result.success).toBe(true);
       expect(apiClient.put).toHaveBeenCalledWith(expect.stringContaining('/d1'), payload);
+    });
+  });
+
+  describe('cancelDisputedProject', () => {
+    it('calls cancel-disputed endpoint with PUT and no payload', async () => {
+      (vi.mocked(apiClient.put)).mockResolvedValue({ data: { success: true } });
+
+      const result = await disputeService.cancelDisputedProject('p1');
+
+      expect(result.success).toBe(true);
+      expect(apiClient.put).toHaveBeenCalledWith(expect.stringContaining('/p1/cancel-disputed'));
     });
   });
 });

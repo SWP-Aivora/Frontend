@@ -1,7 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { StepBoard } from '../../../../features/projects/components/StepBoard';
+import { MilestoneStatus } from '../../../../shared/types/enums';
+import type { Milestone } from '../../../../features/projects/types';
+
+const baseMilestone: Milestone = {
+  id: 'milestone-1',
+  title: 'Milestone 1',
+  description: null,
+  amount: 100,
+  dueDate: null,
+  dueDays: null,
+  acceptanceCriteria: null,
+  orderIndex: 1,
+  status: MilestoneStatus.CREATED,
+  projectId: 'project-1',
+  createdAt: '2026-01-01T00:00:00Z',
+  updatedAt: '2026-01-01T00:00:00Z',
+};
 
 const mockStep = {
   id: 'step-1',
@@ -52,7 +69,7 @@ describe('StepBoard', () => {
   });
 
   it('renders the step read-only with no mutation controls for a Client', () => {
-    render(<StepBoard milestoneId="milestone-1" isExpert={false} isClient={true} />);
+    render(<StepBoard milestoneId="milestone-1" milestone={baseMilestone} isExpert={false} isClient={true} />);
 
     expect(screen.getByText('Draft wireframes')).toBeInTheDocument();
     expect(screen.queryByText('Add Step')).not.toBeInTheDocument();
@@ -65,7 +82,7 @@ describe('StepBoard', () => {
   });
 
   it('renders add/edit/delete/reorder and status-change controls for an Expert', () => {
-    render(<StepBoard milestoneId="milestone-1" isExpert={true} isClient={false} />);
+    render(<StepBoard milestoneId="milestone-1" milestone={baseMilestone} isExpert={true} isClient={false} />);
 
     expect(screen.getByText('Add Step')).toBeInTheDocument();
     expect(screen.getByText('Start')).toBeInTheDocument();
@@ -78,7 +95,7 @@ describe('StepBoard', () => {
     const useMilestoneStepsMock = await import('../../../../features/projects/hooks/useMilestoneSteps');
     vi.mocked(useMilestoneStepsMock.useMilestoneSteps).mockReturnValueOnce({ data: { data: [blockedStep] }, isLoading: false } as never);
 
-    render(<StepBoard milestoneId="milestone-1" isExpert={false} isClient={true} />);
+    render(<StepBoard milestoneId="milestone-1" milestone={baseMilestone} isExpert={false} isClient={true} />);
 
     expect(screen.getByText(/Waiting on client API credentials/)).toBeInTheDocument();
     expect(screen.getByText('Unblock')).toBeInTheDocument();
@@ -90,7 +107,7 @@ describe('StepBoard', () => {
     const useMilestoneStepsMock = await import('../../../../features/projects/hooks/useMilestoneSteps');
     vi.mocked(useMilestoneStepsMock.useMilestoneSteps).mockReturnValueOnce({ data: { data: [blockedStep] }, isLoading: false } as never);
 
-    render(<StepBoard milestoneId="milestone-1" isExpert={true} isClient={false} />);
+    render(<StepBoard milestoneId="milestone-1" milestone={baseMilestone} isExpert={true} isClient={false} />);
 
     expect(screen.queryByText('Unblock')).not.toBeInTheDocument();
   });
@@ -102,7 +119,7 @@ describe('StepBoard', () => {
       isLoading: false,
     } as never);
 
-    render(<StepBoard milestoneId="milestone-1" isExpert={true} isClient={false} />);
+    render(<StepBoard milestoneId="milestone-1" milestone={baseMilestone} isExpert={true} isClient={false} />);
 
     expect(screen.getByText('Block')).toBeInTheDocument();
   });
@@ -118,7 +135,7 @@ describe('StepBoard', () => {
     const mutate = vi.fn();
     vi.mocked(useUpdateStepStatusMock.useUpdateStepStatus).mockReturnValueOnce({ mutate } as never);
 
-    render(<StepBoard milestoneId="milestone-1" isExpert={true} isClient={false} />);
+    render(<StepBoard milestoneId="milestone-1" milestone={baseMilestone} isExpert={true} isClient={false} />);
 
     await user.click(screen.getByText('Block'));
     const submitButton = screen.getByRole('button', { name: 'Block' });
@@ -139,7 +156,7 @@ describe('StepBoard', () => {
     const mutate = vi.fn();
     vi.mocked(useUpdateStepStatusMock.useUpdateStepStatus).mockReturnValueOnce({ mutate } as never);
 
-    render(<StepBoard milestoneId="milestone-1" isExpert={false} isClient={true} />);
+    render(<StepBoard milestoneId="milestone-1" milestone={baseMilestone} isExpert={false} isClient={true} />);
 
     await user.click(screen.getByText('Unblock'));
     expect(mutate).toHaveBeenCalledWith({ stepId: blockedStep.id, status: 'IN_PROGRESS' });
@@ -157,7 +174,7 @@ describe('StepBoard', () => {
     const mutateAsync = vi.fn().mockResolvedValue(undefined);
     vi.mocked(useCreateMilestoneStepMock.useCreateMilestoneStep).mockReturnValue({ mutate: vi.fn(), mutateAsync, isPending: false } as never);
 
-    render(<StepBoard milestoneId="milestone-1" isExpert={true} isClient={false} />);
+    render(<StepBoard milestoneId="milestone-1" milestone={baseMilestone} isExpert={true} isClient={false} />);
 
     await user.click(screen.getByText('AI Suggest Steps'));
     expect(suggestMutate).toHaveBeenCalled();
@@ -188,7 +205,7 @@ describe('StepBoard', () => {
       .mockRejectedValueOnce(new Error('network error'));
     vi.mocked(useCreateMilestoneStepMock.useCreateMilestoneStep).mockReturnValue({ mutate: vi.fn(), mutateAsync, isPending: false } as never);
 
-    render(<StepBoard milestoneId="milestone-1" isExpert={true} isClient={false} />);
+    render(<StepBoard milestoneId="milestone-1" milestone={baseMilestone} isExpert={true} isClient={false} />);
 
     await user.click(screen.getByText('AI Suggest Steps'));
     await user.click(screen.getByText(/Save 2 step/)).catch(() => undefined);
@@ -198,5 +215,90 @@ describe('StepBoard', () => {
     expect(screen.queryByDisplayValue('Draft schema')).not.toBeInTheDocument();
     expect(screen.getByDisplayValue('Build API')).toBeInTheDocument();
     expect(mutateAsync).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows an inline error and does not call the create API when the new step due date is after the milestone due date', async () => {
+    const user = userEvent.setup();
+    const milestoneWithDueDate = { ...baseMilestone, dueDate: '2026-08-01T00:00:00Z' };
+    const useCreateMilestoneStepMock = await import('../../../../features/projects/hooks/useCreateMilestoneStep');
+    const mutate = vi.fn();
+    vi.mocked(useCreateMilestoneStepMock.useCreateMilestoneStep).mockReturnValue({ mutate, mutateAsync: vi.fn(), isPending: false } as never);
+
+    const { container } = render(<StepBoard milestoneId="milestone-1" milestone={milestoneWithDueDate} isExpert={true} isClient={false} />);
+
+    await user.click(screen.getByText('Add Step'));
+    await user.type(screen.getByPlaceholderText('Step title'), 'Ship API');
+    const dateInput = container.querySelector('input[type="date"]') as HTMLInputElement;
+    fireEvent.change(dateInput, { target: { value: '2026-08-15' } });
+
+    expect(screen.getByText(/must be on or before the milestone due date/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Add' }));
+    expect(mutate).not.toHaveBeenCalled();
+  });
+
+  it('allows a new step due date on or before the milestone due date', async () => {
+    const user = userEvent.setup();
+    const milestoneWithDueDate = { ...baseMilestone, dueDate: '2026-08-01T00:00:00Z' };
+    const useCreateMilestoneStepMock = await import('../../../../features/projects/hooks/useCreateMilestoneStep');
+    const mutate = vi.fn();
+    vi.mocked(useCreateMilestoneStepMock.useCreateMilestoneStep).mockReturnValue({ mutate, mutateAsync: vi.fn(), isPending: false } as never);
+
+    const { container } = render(<StepBoard milestoneId="milestone-1" milestone={milestoneWithDueDate} isExpert={true} isClient={false} />);
+
+    await user.click(screen.getByText('Add Step'));
+    await user.type(screen.getByPlaceholderText('Step title'), 'Ship API');
+    const dateInput = container.querySelector('input[type="date"]') as HTMLInputElement;
+    fireEvent.change(dateInput, { target: { value: '2026-08-01' } });
+
+    expect(screen.queryByText(/must be on or before the milestone due date/i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Add' }));
+    expect(mutate).toHaveBeenCalledWith(
+      expect.objectContaining({ dueDate: '2026-08-01' }),
+      expect.anything()
+    );
+  });
+
+  it('skips due-date validation entirely when the milestone has no due date', async () => {
+    const user = userEvent.setup();
+    const useCreateMilestoneStepMock = await import('../../../../features/projects/hooks/useCreateMilestoneStep');
+    const mutate = vi.fn();
+    vi.mocked(useCreateMilestoneStepMock.useCreateMilestoneStep).mockReturnValue({ mutate, mutateAsync: vi.fn(), isPending: false } as never);
+
+    const { container } = render(<StepBoard milestoneId="milestone-1" milestone={baseMilestone} isExpert={true} isClient={false} />);
+
+    await user.click(screen.getByText('Add Step'));
+    await user.type(screen.getByPlaceholderText('Step title'), 'Ship API');
+    const dateInput = container.querySelector('input[type="date"]') as HTMLInputElement;
+    fireEvent.change(dateInput, { target: { value: '2099-01-01' } });
+
+    expect(screen.queryByText(/must be on or before the milestone due date/i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Add' }));
+    expect(mutate).toHaveBeenCalled();
+  });
+
+  it("prefills a suggested step's due date from its estimatedDays", async () => {
+    const user = userEvent.setup();
+    const useSuggestMilestoneStepsMock = await import('../../../../features/projects/hooks/useSuggestMilestoneSteps');
+    const suggestMutate = vi.fn((_vars, opts?: { onSuccess?: (res: { data: { title: string; description: string | null; estimatedDays?: number }[] }) => void }) => {
+      opts?.onSuccess?.({ data: [{ title: 'Draft schema', description: null, estimatedDays: 5 }] });
+    });
+    vi.mocked(useSuggestMilestoneStepsMock.useSuggestMilestoneSteps).mockReturnValue({ mutate: suggestMutate, isPending: false } as never);
+
+    render(<StepBoard milestoneId="milestone-1" milestone={baseMilestone} isExpert={true} isClient={false} />);
+
+    await user.click(screen.getByText('AI Suggest Steps'));
+
+    const expected = new Date();
+    expected.setDate(expected.getDate() + 5);
+    const expectedValue = [
+      expected.getFullYear(),
+      String(expected.getMonth() + 1).padStart(2, '0'),
+      String(expected.getDate()).padStart(2, '0'),
+    ].join('-');
+
+    expect(screen.getByDisplayValue(expectedValue)).toBeInTheDocument();
   });
 });
