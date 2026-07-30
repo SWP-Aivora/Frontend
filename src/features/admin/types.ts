@@ -59,6 +59,7 @@ export interface AdminProjectMilestone {
   status: number | string;
   orderIndex: number;
   dueDate?: string | null;
+  dueDays?: number | null;
 }
 
 export interface AdminProject {

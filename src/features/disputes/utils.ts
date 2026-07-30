@@ -1,4 +1,3 @@
-import type { Milestone } from '../projects/types';
 
 /**
  * Sanitizes dispute-related error messages for display to users.
@@ -45,7 +44,7 @@ export const sanitizeDisputeError = (error: unknown, defaultMessage = 'Unable to
 /**
  * Calculates the total duration in days of all milestones for a project.
  */
-export const calculateTotalMilestoneDays = (milestones?: Milestone[]): number => {
+export const calculateTotalMilestoneDays = (milestones?: { dueDays?: number | null }[] | null): number => {
   if (!milestones || milestones.length === 0) return 0;
   return milestones.reduce((total, milestone) => total + (milestone.dueDays || 0), 0);
 };
