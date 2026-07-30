@@ -190,6 +190,12 @@ export const getDueLabel = (dueDate?: string | null): string => {
   return `Due in ${days} day${days === 1 ? '' : 's'}`;
 };
 
+export const formatDateOnly = (dateStr: string): string => {
+  const [year, month, day] = dateStr.slice(0, 10).split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  return Number.isNaN(date.getTime()) ? dateStr.slice(0, 10) : date.toLocaleDateString();
+};
+
 export const getStepDueDateError = (stepDueDate: string, milestoneDueDate: string | null): string | null => {
   if (!milestoneDueDate || !stepDueDate) return null;
 
@@ -199,10 +205,7 @@ export const getStepDueDateError = (stepDueDate: string, milestoneDueDate: strin
 
   step.setHours(0, 0, 0, 0);
   milestone.setHours(0, 0, 0, 0);
+  if (step.getTime() <= milestone.getTime()) return null;
 
-  if (step > milestone) {
-    return 'Step due date must be on or before the milestone due date';
-  }
-  return null;
+  return `Due date must be on or before the milestone due date (${formatDateOnly(milestoneDueDate)}).`;
 };
-
