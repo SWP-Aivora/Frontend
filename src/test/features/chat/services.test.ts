@@ -81,6 +81,33 @@ describe('chatService project realtime (Task 242)', () => {
     expect(mockConnection.invoke).toHaveBeenCalledWith('JoinProject', 'project-9');
   });
 
+  it('re-joins every active project group when the connection is torn down and started fresh', async () => {
+    const { chatService } = await import('../../../features/chat/services');
+
+    await chatService.joinProject('project-9');
+    await chatService.resetChatConnection();
+    mockConnection.state = 'Disconnected';
+    mockConnection.invoke.mockClear();
+
+    await chatService.connect();
+
+    expect(mockConnection.invoke).toHaveBeenCalledWith('JoinProject', 'project-9');
+  });
+
+  it('re-attaches DisputeUpdated/MilestoneUpdated listeners on a fresh connection after teardown', async () => {
+    const { chatService } = await import('../../../features/chat/services');
+
+    await chatService.connect();
+    await chatService.resetChatConnection();
+    mockConnection.state = 'Disconnected';
+    mockConnection.on.mockClear();
+
+    await chatService.connect();
+
+    expect(mockConnection.on).toHaveBeenCalledWith('DisputeUpdated', expect.any(Function));
+    expect(mockConnection.on).toHaveBeenCalledWith('MilestoneUpdated', expect.any(Function));
+  });
+
   it('dispatches DisputeUpdated events to onDisputeUpdate subscribers', async () => {
     const { chatService } = await import('../../../features/chat/services');
     const callback = vi.fn();

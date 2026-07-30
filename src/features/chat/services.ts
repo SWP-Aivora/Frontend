@@ -152,7 +152,6 @@ class ChatService extends BaseService<Conversation> {
   private newJobPublishedIdCounter = 0;
   private milestoneIdCounter = 0;
   private disputeIdCounter = 0;
-  private listenersSetup = new Set<string>();
 
   // Separate callback registries to prevent interference between components
   private messageCallbacks = new Map<string, (message: NewMessagePayload) => void>();
@@ -267,14 +266,14 @@ class ChatService extends BaseService<Conversation> {
       .withAutomaticReconnect()
       .build();
 
-    // Setup listeners only once per connection
-    if (!this.listenersSetup.has(connectionKey)) {
-      this.setupMessageListeners(connection);
-      this.setupJobStatusListeners(connection);
-      this.setupMilestoneListeners(connection);
-      this.setupDisputeListeners(connection);
-      this.listenersSetup.add(connectionKey);
-    }
+    // Each call builds a brand new connection object, so listeners must be
+    // (re)attached every time — keying setup by connectionKey instead of the
+    // connection instance let a fresh connection go without any `.on()`
+    // handlers whenever an older connection for the same key hadn't closed yet.
+    this.setupMessageListeners(connection);
+    this.setupJobStatusListeners(connection);
+    this.setupMilestoneListeners(connection);
+    this.setupDisputeListeners(connection);
 
     connection.onclose(() => {
       const currentEntry = this.chatConnectionPool.get(connectionKey);
@@ -286,9 +285,6 @@ class ChatService extends BaseService<Conversation> {
       if (this.activeChatConnectionKey === connectionKey) {
         this.activeChatConnectionKey = null;
       }
-
-      // Clean up listeners setup tracking
-      this.listenersSetup.delete(connectionKey);
     });
 
     return {
@@ -326,6 +322,28 @@ class ChatService extends BaseService<Conversation> {
     return connection.state;
   }
 
+  /**
+   * Re-join every group the app currently considers active. Called both on
+   * `onreconnected` (same connection, transient network blip) and after a
+   * fresh `connection.start()` (brand new connection object, e.g. after
+   * `resetChatConnection()` tore down the shared pooled connection out from
+   * under another still-mounted consumer) — either way the underlying
+   * ConnectionId has no group membership until this runs.
+   */
+  private rejoinActiveGroups(connection: signalR.HubConnection): void {
+    this.activeConversations.forEach((conversationId) => {
+      connection.invoke('JoinConversation', conversationId).catch((rejoinError: unknown) => {
+        console.warn('Failed to re-join conversation after reconnect', conversationId, rejoinError);
+      });
+    });
+
+    this.activeProjects.forEach((projectId) => {
+      connection.invoke('JoinProject', projectId).catch((rejoinError: unknown) => {
+        console.warn('Failed to re-join project after reconnect', projectId, rejoinError);
+      });
+    });
+  }
+
   private setupMessageListeners(connection: signalR.HubConnection): void {
     // Detach any prior handlers first so a re-setup (StrictMode remount, HMR,
     // reconnect) never leaves two handlers firing the same event twice.
@@ -349,20 +367,9 @@ class ChatService extends BaseService<Conversation> {
     });
 
     connection.onreconnected(() => {
-      // Re-join every active conversation group; the reconnect got a fresh
-      // ConnectionId and dropped all prior group memberships.
-      this.activeConversations.forEach((conversationId) => {
-        connection.invoke('JoinConversation', conversationId).catch((rejoinError: unknown) => {
-          console.warn('Failed to re-join conversation after reconnect', conversationId, rejoinError);
-        });
-      });
-
-      // Same re-join requirement for project milestone-update groups.
-      this.activeProjects.forEach((projectId) => {
-        connection.invoke('JoinProject', projectId).catch((rejoinError: unknown) => {
-          console.warn('Failed to re-join project after reconnect', projectId, rejoinError);
-        });
-      });
+      // Re-join every active group; the reconnect got a fresh ConnectionId
+      // and dropped all prior group memberships.
+      this.rejoinActiveGroups(connection);
     });
 
     connection.onreconnecting(() => {
@@ -430,6 +437,9 @@ class ChatService extends BaseService<Conversation> {
             retryStartError
           );
         }))
+      .then(() => {
+        this.rejoinActiveGroups(connection);
+      })
       .finally(() => {
         if (entry.startPromise === startPromise) {
           entry.startPromise = null;
