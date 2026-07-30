@@ -197,7 +197,7 @@ const readDraftSnapshot = (): PostJobDraftSnapshot | null => {
     return {
       version: DRAFT_SNAPSHOT_VERSION,
       savedAt: typeof snapshot.savedAt === 'string' ? snapshot.savedAt : new Date().toISOString(),
-      suggestion: snapshot.suggestion as AiJobSuggestion,
+      suggestion: snapshot.suggestion as unknown as AiJobSuggestion,
       draftValues: isRecord(snapshot.draftValues) ? snapshot.draftValues as JobDraftFormValues : null,
       selectedSkillIds: Array.isArray(snapshot.selectedSkillIds)
         ? snapshot.selectedSkillIds.filter((skillId): skillId is string => typeof skillId === 'string')
