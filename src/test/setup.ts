@@ -17,7 +17,8 @@ if (NativeRequest) {
         super(input, init);
       } catch (error) {
         if (init?.signal && error instanceof TypeError && /AbortSignal/.test(error.message)) {
-          const { signal: _signal, ...rest } = init;
+          const rest = { ...init };
+          delete rest.signal;
           super(input, rest);
         } else {
           throw error;
