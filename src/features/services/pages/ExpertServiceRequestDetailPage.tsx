@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState, useRef } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -83,8 +83,13 @@ export const ExpertServiceRequestDetailPage = () => {
   const canReviseOffer = Boolean(displayOffer && displayOfferStatus !== ServiceOfferStatus.ACCEPTED);
   const shouldShowOfferForm = isAccepted && (!displayOffer || isEditingOffer);
 
+  const prevOfferIdRef = useRef<string | undefined>(undefined);
+
   useEffect(() => {
     if (!request?.offer) return;
+    if (prevOfferIdRef.current === request.offer.id) return;
+    
+    prevOfferIdRef.current = request.offer.id;
     setSentOffer(request.offer);
     setMilestones(cloneOfferMilestones(request.offer));
     setIsEditingOffer(false);

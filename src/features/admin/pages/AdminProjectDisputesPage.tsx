@@ -73,8 +73,8 @@ export const AdminProjectDisputesPage = () => {
 
   const project = projectResponse?.data;
   const totalMilestoneDays = useMemo(
-    () => calculateTotalMilestoneDays(project?.milestones),
-    [project?.milestones]
+    () => calculateTotalMilestoneDays(project?.milestones, project?.startDate),
+    [project?.milestones, project?.startDate]
   );
 
   const allReturnedDisputes = useMemo(() => [
