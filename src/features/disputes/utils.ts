@@ -1,3 +1,5 @@
+import type { Milestone } from '../projects/types';
+
 /**
  * Sanitizes dispute-related error messages for display to users.
  * Prevents raw API/internal errors from leaking to the UI.
@@ -38,4 +40,21 @@ export const sanitizeDisputeError = (error: unknown, defaultMessage = 'Unable to
 
   // Otherwise, return the safe generic default message
   return defaultMessage;
+};
+
+/**
+ * Calculates the total duration in days of all milestones for a project.
+ */
+export const calculateTotalMilestoneDays = (milestones?: Milestone[]): number => {
+  if (!milestones || milestones.length === 0) return 0;
+  return milestones.reduce((total, milestone) => total + (milestone.dueDays || 0), 0);
+};
+
+/**
+ * Calculates the auto-close date for a dispute based on the total milestone days.
+ */
+export const calculateDisputeAutoCloseDate = (createdAt: string, totalDays: number): Date => {
+  const date = new Date(createdAt);
+  date.setDate(date.getDate() + totalDays);
+  return date;
 };

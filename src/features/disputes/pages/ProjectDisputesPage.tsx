@@ -1,18 +1,20 @@
 import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, ArrowLeft, FileText, MessageSquareWarning, UserRound } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Clock, FileText, MessageSquareWarning, UserRound } from 'lucide-react';
 import { LoadingSpinner } from '@/shared/components/common/LoadingSpinner';
 import { Button } from '@/shared/components/ui/Button';
 import { ConfirmActionDialog } from '@/shared/components/ui/ConfirmActionDialog';
 import { useAuthStore } from '@/features/auth/store';
 import { Role } from '@/shared/types/enums';
 import { useProjectRealtime } from '@/features/projects/hooks/useProjectRealtime';
+import { useProjectMilestones } from '@/features/projects/hooks/useProjectMilestones';
 import { getErrorMessage } from '@/lib/api-utils';
 import { DisputeStatusBadge } from '../components/DisputeStatusBadge';
 import { disputeService } from '../services';
 import type { Dispute } from '../types';
 import { DisputeStatus } from '../types';
+import { calculateTotalMilestoneDays, calculateDisputeAutoCloseDate } from '../utils';
 import { toast } from 'sonner';
 
 const DISPUTE_PAGE_SIZE = 100;
@@ -43,6 +45,11 @@ export const ProjectDisputesPage = () => {
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
 
   useProjectRealtime(id);
+  const { data: milestonesResponse } = useProjectMilestones(id || '');
+  const totalMilestoneDays = useMemo(
+    () => calculateTotalMilestoneDays(milestonesResponse?.data),
+    [milestonesResponse?.data]
+  );
 
   const closeDisputeMutation = useMutation({
     mutationFn: (disputeId: string) => disputeService.closeDispute(disputeId),
@@ -213,6 +220,8 @@ export const ProjectDisputesPage = () => {
           const isOpener = Boolean(user?.id && dispute.openerId === user.id);
           const canCloseDispute = isOpener && !nonManageableDisputeStatuses.includes(dispute.status);
           const isClosingThisDispute = closeDisputeMutation.isPending && closeDisputeMutation.variables === dispute.id;
+          const isUnresolved = dispute.status === DisputeStatus.OPEN || dispute.status === DisputeStatus.UNDER_REVIEW;
+          const autoCloseDate = calculateDisputeAutoCloseDate(dispute.createdAt, totalMilestoneDays);
 
           return (
             <section key={dispute.id} className="overflow-hidden rounded-lg border border-slate-100 bg-white shadow-sm">
@@ -227,6 +236,17 @@ export const ProjectDisputesPage = () => {
                     </div>
                     <h2 className="text-lg font-black text-slate-900">{dispute.reason}</h2>
                     <p className="mt-1 text-sm font-medium leading-6 text-slate-500">{dispute.description || 'No description returned.'}</p>
+                    {isUnresolved && totalMilestoneDays > 0 && (
+                      <div className="mt-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                        <Clock className="mt-0.5 size-5 shrink-0 text-amber-600" />
+                        <div>
+                          <p className="text-sm font-bold text-amber-900">Auto-close deadline</p>
+                          <p className="mt-1 text-sm font-medium leading-relaxed text-amber-800">
+                            This dispute has a resolution time limit based on the total project milestone duration of <strong>{totalMilestoneDays} days</strong>. If not resolved, it will automatically close on <strong>{autoCloseDate.toLocaleDateString()}</strong>.
+                          </p>
+                        </div>
+                      </div>
+                    )}
                     <div className="mt-4 grid gap-3 lg:grid-cols-2">
                       <div className="rounded-lg border border-slate-100 bg-slate-50 p-4">
                         <FileText className="mb-2 size-4 text-primary" />
