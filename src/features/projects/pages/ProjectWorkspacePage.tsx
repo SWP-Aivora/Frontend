@@ -128,7 +128,7 @@ type FinishProjectButtonState = {
 const getFinishProjectButtonState = ({
   canRequestFinishProject,
   isFinishingProject,
-  canReviewCompletedProject,
+  canSubmitReview,
   canOpenCompletedReview,
   isLoadingProjectReviews,
   hasClientReviewedProject,
@@ -136,7 +136,7 @@ const getFinishProjectButtonState = ({
 }: {
   canRequestFinishProject: boolean;
   isFinishingProject: boolean;
-  canReviewCompletedProject: boolean;
+  canSubmitReview: boolean;
   canOpenCompletedReview: boolean;
   isLoadingProjectReviews: boolean;
   hasClientReviewedProject: boolean;
@@ -145,14 +145,14 @@ const getFinishProjectButtonState = ({
   const disabled = (
     !canRequestFinishProject ||
     isFinishingProject ||
-    (canReviewCompletedProject && !canOpenCompletedReview)
+    (canSubmitReview && !canOpenCompletedReview)
   );
 
   if (isFinishingProject) {
     return { disabled, label: 'Finishing...' };
   }
 
-  if (!canReviewCompletedProject) {
+  if (!canSubmitReview) {
     return {
       disabled,
       label: 'Finish Project',
@@ -634,7 +634,7 @@ export const ProjectWorkspacePage = () => {
 
   const canShowFinishProject = user?.role === Role.CLIENT && user.id === project?.clientId;
   const canRequestFinishProject = !!id && project && project.status !== ProjectStatus.CANCELLED && !hasProjectDispute;
-  const canReviewCompletedProject = project?.status === ProjectStatus.COMPLETED || project?.status === ProjectStatus.CANCELLED;
+  const canSubmitReview = project?.status === ProjectStatus.COMPLETED || project?.status === ProjectStatus.CANCELLED;
   const canEditMilestoneGeneralInfo = user?.role === Role.CLIENT && user.id === project?.clientId;
   const canAccessCreateMilestone = user?.role === Role.CLIENT && user.id === project?.clientId && project?.status === ProjectStatus.ACTIVE;
   const canCreateMilestone = canAccessCreateMilestone && !hasProjectDispute;
@@ -647,7 +647,7 @@ export const ProjectWorkspacePage = () => {
     projectReviewsResponse?.data?.some(review => review.reviewerId === user?.id)
   );
   const canOpenCompletedReview = Boolean(
-    canReviewCompletedProject &&
+    canSubmitReview &&
     isProjectReviewsLoaded &&
     !hasClientReviewedProject
   );
@@ -659,7 +659,7 @@ export const ProjectWorkspacePage = () => {
   const finishProjectButtonState = getFinishProjectButtonState({
     canRequestFinishProject: Boolean(canRequestFinishProject),
     isFinishingProject: finishProjectMutation.isPending,
-    canReviewCompletedProject,
+    canSubmitReview,
     canOpenCompletedReview,
     isLoadingProjectReviews,
     hasClientReviewedProject,
@@ -746,7 +746,7 @@ export const ProjectWorkspacePage = () => {
       return;
     }
 
-    if (canReviewCompletedProject) {
+    if (canSubmitReview) {
       if (!canOpenCompletedReview) return;
 
       const reviewState = buildReviewState(project);
