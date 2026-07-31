@@ -634,7 +634,7 @@ export const ProjectWorkspacePage = () => {
 
   const canShowFinishProject = user?.role === Role.CLIENT && user.id === project?.clientId;
   const canRequestFinishProject = !!id && project && project.status !== ProjectStatus.CANCELLED && !hasProjectDispute;
-  const canReviewCompletedProject = project?.status === ProjectStatus.COMPLETED;
+  const canReviewCompletedProject = project?.status === ProjectStatus.COMPLETED || project?.status === ProjectStatus.CANCELLED;
   const canEditMilestoneGeneralInfo = user?.role === Role.CLIENT && user.id === project?.clientId;
   const canAccessCreateMilestone = user?.role === Role.CLIENT && user.id === project?.clientId && project?.status === ProjectStatus.ACTIVE;
   const canCreateMilestone = canAccessCreateMilestone && !hasProjectDispute;
