@@ -142,11 +142,9 @@ const getFinishProjectButtonState = ({
   hasClientReviewedProject: boolean;
   isProjectReviewsLoaded: boolean;
 }): FinishProjectButtonState => {
-  const disabled = (
-    !canRequestFinishProject ||
-    isFinishingProject ||
-    (canSubmitReview && !canOpenCompletedReview)
-  );
+  const disabled = canSubmitReview 
+    ? !canOpenCompletedReview
+    : (!canRequestFinishProject || isFinishingProject);
 
   if (isFinishingProject) {
     return { disabled, label: 'Finishing...' };
@@ -1686,3 +1684,4 @@ export const ProjectWorkspacePage = () => {
     </div>
   );
 };
+
