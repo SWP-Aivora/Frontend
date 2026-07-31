@@ -26,10 +26,6 @@ export const JobBoardCard = ({
 
   const formatBudget = () => {
     if (!job.budgetMin && !job.budgetMax) return 'Negotiable';
-    if (job.budgetType === 1) { // Hourly
-      return `${job.budgetMin || 0} - ${job.budgetMax || 0} Aivora Coin / hr`;
-    }
-    // Fixed
     return `${job.budgetMin || 0} - ${job.budgetMax || 0} Aivora Coin`;
   };
 
@@ -108,7 +104,7 @@ export const JobBoardCard = ({
             </div>
             <div>
                <p className="font-bold text-slate-900 leading-none">{formatBudget()}</p>
-               <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mt-0.5">{job.budgetType === 1 ? 'Hourly' : 'Fixed Price'}</p>
+               <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mt-0.5">Fixed Price</p>
             </div>
           </div>
           <div className="flex items-center gap-2 text-sm">

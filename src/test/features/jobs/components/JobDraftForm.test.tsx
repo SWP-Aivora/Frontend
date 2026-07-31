@@ -137,3 +137,11 @@ describe('JobDraftForm milestone budget feedback', () => {
     expect(toast.error).not.toHaveBeenCalled();
   });
 });
+
+describe('JobDraftForm budget type (#249)', () => {
+  it('does not render the removed Hourly Rate toggle', () => {
+    render(<DraftFormHarness initialSuggestion={createSuggestion([500, 1000])} />);
+    expect(screen.queryByRole('button', { name: /hourly rate/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: /budget type/i })).not.toBeInTheDocument();
+  });
+});

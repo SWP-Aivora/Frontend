@@ -10,6 +10,7 @@ import {
   Calendar,
   FileText,
   Loader2,
+  MessageSquare,
   Plus,
   Trash2,
   WalletCards,
@@ -22,6 +23,7 @@ import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { jobService } from '../services';
 import { proposalService } from '../../proposals/services';
+import { chatService } from '@/features/chat/services';
 import { useAuthStore } from '@/features/auth/store';
 import { Role } from '@/shared/types/enums';
 
@@ -159,6 +161,33 @@ export const JobDetailsPage = () => {
     return isProposalStatusEditable(proposal.status) || isProposalStatusResubmittable(proposal.status);
   })();
   const isProposalResubmission = Boolean(isEditMode && proposal && isProposalStatusResubmittable(proposal.status));
+
+  const canMessageClient =
+    user?.role === Role.EXPERT &&
+    !!job?.clientId &&
+    (isEditMode ? Boolean(proposal && isProposalStatusEditable(proposal.status)) : hasSubmitted);
+
+  const messageClientMutation = useMutation({
+    mutationFn: async () => {
+      if (!job?.clientId) throw new Error('This job is missing a client.');
+
+      // The init endpoint expects the counterpart's id — for an expert caller that is the client.
+      return chatService.initializeConversation({ expertId: job.clientId, jobId: job.id }, user?.id);
+    },
+    onSuccess: (response) => {
+      const conversationId = response.data?.id;
+      if (!conversationId) {
+        toast.error('Conversation opened, but no conversation id was returned.');
+        return;
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      navigate('/expert/messages', { state: { conversationId } });
+    },
+    onError: () => {
+      toast.error('Failed to open chat with the client.');
+    },
+  });
 
   const { register, control, handleSubmit, reset, setValue, formState: { errors } } = useForm<CreateProposalFormValues>({
     resolver: zodResolver(createProposalSchema),
@@ -765,6 +794,19 @@ export const JobDetailsPage = () => {
               {clientDisplayName ? (
                 <p className="font-black text-lg text-slate-900">{clientDisplayName}</p>
               ) : null}
+              {canMessageClient && (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  disabled={messageClientMutation.isPending}
+                  onClick={() => messageClientMutation.mutate()}
+                >
+                  {messageClientMutation.isPending
+                    ? <Loader2 className="mr-2 size-4 animate-spin" />
+                    : <MessageSquare className="mr-2 size-4" />}
+                  Message Client
+                </Button>
+              )}
             </div>
           </div>
 

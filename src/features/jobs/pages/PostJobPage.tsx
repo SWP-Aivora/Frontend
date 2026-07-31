@@ -70,9 +70,6 @@ const createMessageId = (): string => {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 };
 
-const toCreateJobBudgetType = (value: AiJobSuggestion['budgetType']): CreateJobRequest['budgetType'] => (
-  value === BudgetType.HOURLY ? 'HOURLY' : 'FIXED'
-);
 
 const toCreateJobSkillLevel = (value: AiJobSuggestion['experienceLevel']): CreateJobRequest['experienceLevel'] => {
   switch (value) {
@@ -92,7 +89,7 @@ const toCreateJobSkillLevel = (value: AiJobSuggestion['experienceLevel']): Creat
 const toPatchBudgetType = (value: unknown): CreateJobRequest['budgetType'] | null | undefined => {
   if (value === undefined) return undefined;
   if (value === null || value === '') return null;
-  return value === BudgetType.HOURLY || String(value).toUpperCase() === 'HOURLY' ? 'HOURLY' : 'FIXED';
+  return 'FIXED';
 };
 
 const toPatchSkillLevel = (value: unknown): CreateJobRequest['experienceLevel'] | null | undefined => {
@@ -162,7 +159,7 @@ const buildPendingPatchFromSuggestion = (suggestion: AiJobSuggestion): PatchAiJo
   suggestedTitle: suggestion.suggestedTitle,
   suggestedDescription: suggestion.suggestedDescription,
   businessDomain: suggestion.businessDomain,
-  budgetType: toCreateJobBudgetType(suggestion.budgetType),
+  budgetType: 'FIXED' as const,
   suggestedBudgetMin: suggestion.suggestedBudgetMin,
   suggestedBudgetMax: suggestion.suggestedBudgetMax,
   experienceLevel: toCreateJobSkillLevel(suggestion.experienceLevel),
@@ -997,7 +994,7 @@ export const PostJobPage = () => {
       businessDomain: sourceSuggestion.businessDomain?.trim() || null,
       expectedOutcome: sourceSuggestion.expectedOutcome,
       categoryId: sourceSuggestion.categoryId ?? null,
-      budgetType: toCreateJobBudgetType(sourceSuggestion.budgetType),
+      budgetType: 'FIXED' as const,
       budgetMin: sourceSuggestion.suggestedBudgetMin,
       budgetMax: sourceSuggestion.suggestedBudgetMax,
       currency: sourceSuggestion.currency,
@@ -1037,7 +1034,7 @@ export const PostJobPage = () => {
       businessDomain: sourceSuggestion.businessDomain?.trim() || null,
       expectedOutcome: sourceSuggestion.expectedOutcome,
       categoryId: sourceSuggestion.categoryId,
-      budgetType: toCreateJobBudgetType(sourceSuggestion.budgetType),
+      budgetType: 'FIXED' as const,
       budgetMin: sourceSuggestion.suggestedBudgetMin,
       budgetMax: sourceSuggestion.suggestedBudgetMax,
       currency,
@@ -1302,10 +1299,6 @@ export const PostJobPage = () => {
     }
   };
 
-  const formatBudgetTypeLabel = (value: AiJobSuggestion['budgetType']) => {
-    return value === BudgetType.HOURLY ? 'Hourly Rate' : 'Fixed Price';
-  };
-
   // --- Render ---
 
   if (isLoadingExistingJob && !suggestion) {
@@ -1461,15 +1454,8 @@ export const PostJobPage = () => {
                 <div className="flex min-h-[80px] flex-col justify-between rounded-lg border border-slate-100 bg-slate-50/80 p-3">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-[72%] font-semibold text-slate-400 lg:text-[11px]">Budget</p>
-                    <span
-                      className={cn(
-                        "inline-flex items-center rounded-lg border px-2 py-0.5 text-[68%] font-semibold lg:text-[10px]",
-                        suggestion.budgetType === BudgetType.HOURLY
-                          ? "border-violet-200 bg-violet-50 text-violet-700"
-                          : "border-sky-200 bg-sky-50 text-sky-700"
-                      )}
-                    >
-                      {formatBudgetTypeLabel(suggestion.budgetType)}
+                    <span className="inline-flex items-center rounded-lg border border-sky-200 bg-sky-50 px-2 py-0.5 text-[68%] font-semibold text-sky-700 lg:text-[10px]">
+                      Fixed Price
                     </span>
                   </div>
                   <p className="text-[80%] font-bold leading-snug text-slate-900 sm:text-[84%] lg:text-[15px]">{suggestion.suggestedBudgetMin} - {suggestion.suggestedBudgetMax} Aivora Coin</p>

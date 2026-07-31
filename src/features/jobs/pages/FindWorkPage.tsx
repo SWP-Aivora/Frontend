@@ -1,18 +1,13 @@
 import { type Dispatch, type FormEvent, type SetStateAction, useMemo, useState } from 'react';
 import { JobBoardCard } from '../components/JobBoardCard';
 import { JobInviteStatus, type JobInvite } from '../types';
-import { Search, DollarSign, BrainCircuit, Loader2 } from 'lucide-react';
+import { Search, BrainCircuit, Loader2 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/Button';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { jobService } from '../services';
 import { toast } from 'sonner';
 import { getErrorMessage } from '@/lib/api-utils';
-import { mapJobToJobCard, normalizeBudgetType, normalizeSkillLevel } from '../utils';
-
-const budgetTypeFilters = [
-  { label: 'Fixed Price', value: 'FIXED' },
-  { label: 'Hourly Rate', value: 'HOURLY' },
-];
+import { mapJobToJobCard, normalizeSkillLevel } from '../utils';
 
 const skillLevelFilters = [
   { label: 'Beginner', value: 'BEGINNER' },
@@ -25,7 +20,6 @@ export const FindWorkPage = () => {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
-  const [selectedBudgetTypes, setSelectedBudgetTypes] = useState<string[]>([]);
   const [selectedSkillLevels, setSelectedSkillLevels] = useState<string[]>([]);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const pageSize = 20;
@@ -53,12 +47,9 @@ export const FindWorkPage = () => {
     const normalizedSearch = appliedSearchTerm.trim().toLowerCase();
 
     return loadedJobs.filter(job => {
-      const budgetType = normalizeBudgetType(job.budgetType);
       const skillLevel = normalizeSkillLevel(job.experienceLevel);
       const clientName = job.client?.fullName || ('clientName' in job ? String(job.clientName || '') : '');
 
-      const matchesBudgetType =
-        selectedBudgetTypes.length === 0 || (budgetType !== null && selectedBudgetTypes.includes(budgetType));
       const matchesSkillLevel =
         selectedSkillLevels.length === 0 ||
         (skillLevel !== null && selectedSkillLevels.includes(skillLevel));
@@ -72,7 +63,7 @@ export const FindWorkPage = () => {
           clientName,
         ].some(value => value?.toLowerCase().includes(normalizedSearch));
 
-      return matchesBudgetType && matchesSkillLevel && matchesSearch;
+      return matchesSkillLevel && matchesSearch;
     }).sort((firstJob, secondJob) => {
       const firstCreatedAt = new Date(firstJob.createdAt).getTime();
       const secondCreatedAt = new Date(secondJob.createdAt).getTime();
@@ -81,7 +72,7 @@ export const FindWorkPage = () => {
         ? secondCreatedAt - firstCreatedAt
         : firstCreatedAt - secondCreatedAt;
     });
-  }, [loadedJobs, appliedSearchTerm, selectedBudgetTypes, selectedSkillLevels, sortOrder]);
+  }, [loadedJobs, appliedSearchTerm, selectedSkillLevels, sortOrder]);
 
   const inviteByJobId = useMemo(() => {
     const invites = Array.isArray(invitesResponse?.data) ? invitesResponse.data : [];
@@ -159,7 +150,6 @@ export const FindWorkPage = () => {
   };
 
   const clearFilters = () => {
-    setSelectedBudgetTypes([]);
     setSelectedSkillLevels([]);
     setSearchTerm('');
     setAppliedSearchTerm('');
@@ -190,32 +180,6 @@ export const FindWorkPage = () => {
           <div className="flex items-center justify-between mb-2">
              <h2 className="text-lg font-black text-slate-900">Filters</h2>
              <button onClick={clearFilters} className="text-xs font-bold text-primary hover:underline">Clear all</button>
-          </div>
-
-          {/* Budget Filter */}
-          <div className="bg-white rounded-lg p-6 border border-slate-100 shadow-sm space-y-4">
-            <div className="flex items-center gap-2 text-slate-900 font-bold">
-               <DollarSign className="size-4 text-brand-blue-dark" />
-               Budget Type
-            </div>
-            <div className="space-y-3">
-              {budgetTypeFilters.map(filter => (
-                <label key={filter.value} className="flex items-center gap-3 cursor-pointer group">
-                   <div className="relative size-5 rounded-md border-2 border-slate-300 bg-white group-hover:border-brand-blue-dark transition-colors overflow-hidden">
-                      <input
-                        type="checkbox"
-                        className="peer absolute inset-0 opacity-0 cursor-pointer"
-                        checked={selectedBudgetTypes.includes(filter.value)}
-                        onChange={() => toggleSelectedValue(filter.value, setSelectedBudgetTypes)}
-                      />
-                      <div className="pointer-events-none absolute inset-0 bg-brand-blue-dark opacity-0 peer-checked:opacity-100 transition-opacity flex items-center justify-center">
-                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="size-3 text-white"><path d="M5 13l4 4L19 7" /></svg>
-                      </div>
-                   </div>
-                   <span className="text-sm font-medium text-slate-700">{filter.label}</span>
-                </label>
-              ))}
-            </div>
           </div>
 
           {/* Skill Level Filter */}

@@ -201,7 +201,7 @@ export const JobDraftForm = ({
   readOnlyMessage
 }: JobDraftFormProps) => {
   const isFormDisabled = isReadOnly;
-  const { register, control, handleSubmit, getValues, reset, setValue, formState: { errors, isDirty, submitCount } } = useForm<JobDraftFormValues>({
+  const { register, control, handleSubmit, getValues, reset, formState: { errors, isDirty, submitCount } } = useForm<JobDraftFormValues>({
     resolver: zodResolver(jobDraftSchema),
     defaultValues: getFormValuesFromSuggestion(suggestion),
   });
@@ -214,7 +214,6 @@ export const JobDraftForm = ({
   });
   const watchedBudgetMin = useWatch({ control, name: 'budgetMin' });
   const watchedBudgetMax = useWatch({ control, name: 'budgetMax' });
-  const watchedBudgetType = useWatch({ control, name: 'budgetType' });
   const watchedMilestones = useWatch({ control, name: 'milestones' });
   const watchedDraftValues = useWatch({ control });
   const milestoneBudgetValidation = validateMilestoneBudgetTotal(
@@ -524,32 +523,6 @@ export const JobDraftForm = ({
                           className="h-11 rounded-lg bg-slate-50"
                         />
                      </div>
-                  </div>
-                  <div className="flex bg-slate-50 p-1 rounded-lg border border-slate-100" role="group" aria-label="Budget type">
-                     <button 
-                       type="button"
-                       aria-pressed={watchedBudgetType === BudgetType.FIXED}
-                       disabled={isFormDisabled}
-                       onClick={() => {
-                         setValue('budgetType', BudgetType.FIXED, { shouldValidate: true });
-                      }}
-                      className={cn(
-                        "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
-                        watchedBudgetType === BudgetType.FIXED ? "bg-white shadow-sm text-primary" : "text-slate-500 hover:text-slate-700"
-                      )}
-                    >Fixed Price</button>
-                     <button 
-                       type="button"
-                       aria-pressed={watchedBudgetType === BudgetType.HOURLY}
-                       disabled={isFormDisabled}
-                       onClick={() => {
-                         setValue('budgetType', BudgetType.HOURLY, { shouldValidate: true });
-                      }}
-                      className={cn(
-                        "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
-                        watchedBudgetType === BudgetType.HOURLY ? "bg-white shadow-sm text-primary" : "text-slate-500 hover:text-slate-700"
-                      )}
-                     >Hourly Rate</button>
                   </div>
                </div>
              </fieldset>
