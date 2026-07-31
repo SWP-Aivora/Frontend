@@ -38,3 +38,7 @@ trace.json
 # User-tester scratch reports
 docs/user-tester/
   
+
+# Playwright artifacts
+playwright-report-flow3/
+test-results/

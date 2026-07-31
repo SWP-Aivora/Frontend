@@ -515,8 +515,12 @@ export const ProjectWorkspacePage = () => {
       if (!project) throw new Error('Project is not loaded yet.');
       if (!project.expertId) throw new Error('This project is missing an expert.');
 
+      // The init endpoint expects the counterpart's id: experts send the client, others send the expert.
+      const counterpartId = user?.role === Role.EXPERT ? project.clientId : project.expertId;
+      if (!counterpartId) throw new Error('This project is missing the chat counterpart.');
+
       return chatService.initializeConversation({
-        expertId: project.expertId,
+        expertId: counterpartId,
         jobId: project.jobId,
         projectId: project.id,
       }, user?.id);
