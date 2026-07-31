@@ -70,8 +70,6 @@ const createMessageId = (): string => {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 };
 
-// Hourly rate was removed from job posts (#249) — every job is fixed-price now.
-const toCreateJobBudgetType = (_value: AiJobSuggestion['budgetType']): CreateJobRequest['budgetType'] => 'FIXED';
 
 const toCreateJobSkillLevel = (value: AiJobSuggestion['experienceLevel']): CreateJobRequest['experienceLevel'] => {
   switch (value) {
@@ -161,7 +159,7 @@ const buildPendingPatchFromSuggestion = (suggestion: AiJobSuggestion): PatchAiJo
   suggestedTitle: suggestion.suggestedTitle,
   suggestedDescription: suggestion.suggestedDescription,
   businessDomain: suggestion.businessDomain,
-  budgetType: toCreateJobBudgetType(suggestion.budgetType),
+  budgetType: 'FIXED' as const,
   suggestedBudgetMin: suggestion.suggestedBudgetMin,
   suggestedBudgetMax: suggestion.suggestedBudgetMax,
   experienceLevel: toCreateJobSkillLevel(suggestion.experienceLevel),
@@ -996,7 +994,7 @@ export const PostJobPage = () => {
       businessDomain: sourceSuggestion.businessDomain?.trim() || null,
       expectedOutcome: sourceSuggestion.expectedOutcome,
       categoryId: sourceSuggestion.categoryId ?? null,
-      budgetType: toCreateJobBudgetType(sourceSuggestion.budgetType),
+      budgetType: 'FIXED' as const,
       budgetMin: sourceSuggestion.suggestedBudgetMin,
       budgetMax: sourceSuggestion.suggestedBudgetMax,
       currency: sourceSuggestion.currency,
@@ -1036,7 +1034,7 @@ export const PostJobPage = () => {
       businessDomain: sourceSuggestion.businessDomain?.trim() || null,
       expectedOutcome: sourceSuggestion.expectedOutcome,
       categoryId: sourceSuggestion.categoryId,
-      budgetType: toCreateJobBudgetType(sourceSuggestion.budgetType),
+      budgetType: 'FIXED' as const,
       budgetMin: sourceSuggestion.suggestedBudgetMin,
       budgetMax: sourceSuggestion.suggestedBudgetMax,
       currency,
